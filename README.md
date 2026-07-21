@@ -20,7 +20,7 @@ does **not** contain model weights or generated startup images.
 
 | Item | v1.0.0 contract |
 |---|---|
-| Hardware | AMD Ryzen AI Max+ 395, Radeon 8060S (`gfx1151`), 96 GB unified memory |
+| Hardware | AMD Ryzen AI Max+ 395, Radeon 8060S (`gfx1151`), 128 GB installed memory with a 96 GiB GTT pool |
 | Operating system | Linux x86-64; qualified on Ubuntu 24.04, kernel 6.14 |
 | Model | Qwen3.6-35B-A3B, BF16 checkpoint with the qualified index hash |
 | Workload | Batch 1, deterministic greedy decoding (`temperature=0`, `top_p=1`) |
@@ -32,6 +32,11 @@ does **not** contain model weights or generated startup images.
 The engine intentionally specializes before generalizing. Requests outside
 this envelope fail closed instead of silently switching to an unqualified
 mode.
+
+The 96 GiB figure is the AMDGPU GTT pool, not fixed BIOS VRAM. Configure a
+128 GB host with 512 MiB fixed VRAM, the two required kernel parameters, and
+`render`/`video` access before loading the model. See
+[`docs/MEMORY.md`](docs/MEMORY.md).
 
 The hash-qualified checkout is the deployment unit. Run the root
 `aima-engine` launcher directly, or use `pip install -e .` if an activated
@@ -135,6 +140,7 @@ passed.
 ## Operations and API
 
 - [Installation and image preparation](docs/INSTALL.md)
+- [AMD395 unified-memory setup](docs/MEMORY.md)
 - [CLI and HTTP API](docs/API.md)
 - [Architecture and residency model](docs/ARCHITECTURE.md)
 - [Performance and correctness evidence](docs/PERFORMANCE.md)

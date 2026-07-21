@@ -3,6 +3,12 @@
 All notable changes are documented here. This project follows Semantic
 Versioning.
 
+## Unreleased
+
+- Documented the required 128 GB BIOS UMA split, 96 GiB AMDGPU GTT kernel
+  parameters, GPU device permissions, post-reboot checks and rollback steps in
+  English and Chinese.
+
 ## 1.0.0 - 2026-07-21
 
 - First public, production-qualified AMD395 release.

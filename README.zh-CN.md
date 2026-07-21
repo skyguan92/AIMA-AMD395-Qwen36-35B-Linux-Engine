@@ -9,7 +9,8 @@ OpenAI Chat Completions 子集、CLI 操作和精确前缀缓存。
 
 ## 适用范围
 
-- 硬件：AMD Ryzen AI Max+ 395、Radeon 8060S、96 GB 统一内存；
+- 硬件：AMD Ryzen AI Max+ 395、Radeon 8060S、128 GB 物理统一内存，并配置
+  96 GiB AMDGPU GTT 池；
 - 系统：Linux x86-64，验证环境为 Ubuntu 24.04、ROCm 7.2.1；
 - 模型：指定 index hash 的 Qwen3.6-35B-A3B BF16 checkpoint；
 - 模式：batch 1、`temperature=0`、`top_p=1`；
@@ -18,6 +19,11 @@ OpenAI Chat Completions 子集、CLI 操作和精确前缀缓存。
 - v1.0.0 不支持 streaming、tools、并发 batch 或随机采样。
 
 超出范围的请求会明确失败，不会静默切换到未经验证的模式。
+
+这里的 96 GiB 指 GTT 池，不是 BIOS 固定显存。运行模型前需要把固定 VRAM
+设为 512 MiB，添加两个内核启动参数，并给服务账户授予 `render`/`video`
+权限。完整步骤、验收值、常见错误和回滚方法见
+[`docs/MEMORY.zh-CN.md`](docs/MEMORY.zh-CN.md)。
 
 ## 快速使用
 

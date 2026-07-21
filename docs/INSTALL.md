@@ -5,7 +5,7 @@
 The qualified v1.0.0 platform is:
 
 - AMD Ryzen AI Max+ 395 with Radeon 8060S (`gfx1151`);
-- 96 GB unified memory;
+- 128 GB installed unified memory, configured as a 96 GiB AMDGPU GTT pool;
 - Linux x86-64, Ubuntu 24.04;
 - ROCm 7.2.1 / HIP `7.2.26015`;
 - two physical NVMe devices for the published startup result.
@@ -14,6 +14,12 @@ One storage device may be functionally usable, but its startup performance is
 not qualified. The full model process reached approximately 73.2 GB allocated
 memory in the accepted runs, while maximum-context cases peaked higher. Close
 other GPU/unified-memory workloads before serving.
+
+The memory figure above is a runtime GTT-pool requirement, not a request for a
+96 GB fixed BIOS framebuffer. Before installing the runtime, follow
+[`MEMORY.md`](MEMORY.md) to set 512 MiB fixed VRAM, the 96 GiB GTT kernel
+parameters, and the serving account's GPU groups. A Chinese version is
+available at [`MEMORY.zh-CN.md`](MEMORY.zh-CN.md).
 
 ## 2. Runtime environment
 
@@ -181,7 +187,7 @@ every start.
 - **Checkpoint index mismatch:** use the qualified BF16 model revision.
 - **Image SHA mismatch:** rebuild both lanes from the matching model; do not mix
   lanes from different builds.
-- **Out of memory:** stop other GPU workloads and confirm the host exposes the
-  expected unified-memory capacity.
+- **Out of memory:** stop other GPU workloads, then verify the fixed VRAM, GTT
+  pool and kernel command line against [`MEMORY.md`](MEMORY.md).
 - **Remote clients cannot connect:** the safe default binds only localhost. If
   changing the host, put authentication and TLS in front of the engine.
