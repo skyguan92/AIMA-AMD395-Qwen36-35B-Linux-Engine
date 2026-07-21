@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aima-amd395-qwen36-engine"
+version = "1.0.0"
+description = "Batch-1 Qwen3.6-35B-A3B BF16 inference engine for AMD Ryzen AI Max+ 395"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+authors = [{name = "Approaching AI"}]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+[project.urls]
+Homepage = "https://github.com/approaching-ai/aima-amd395-qwen36-35b-linux-engine"
+Repository = "https://github.com/approaching-ai/aima-amd395-qwen36-35b-linux-engine"
+Issues = "https://github.com/approaching-ai/aima-amd395-qwen36-35b-linux-engine/issues"
+
+[project.scripts]
+aima-engine = "aima_engine.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["aima_engine*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"

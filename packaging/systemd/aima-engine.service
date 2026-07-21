@@ -1,0 +1,25 @@
+[Unit]
+Description=AIMA AMD395 Qwen3.6 resident inference engine
+After=local-fs.target
+
+[Service]
+Type=simple
+User=aima
+Group=aima
+SupplementaryGroups=render video
+WorkingDirectory=/opt/aima-amd395-qwen36-35b-linux-engine
+EnvironmentFile=/etc/aima-qwen36/engine.env
+ExecStart=/opt/aima-amd395-qwen36-35b-linux-engine/aima-engine serve --host 127.0.0.1 --port 8000 --output-root /var/lib/aima-qwen36
+ExecStop=/opt/aima-amd395-qwen36-35b-linux-engine/aima-engine shutdown --endpoint http://127.0.0.1:8000 --timeout 20
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=120
+TimeoutStopSec=30
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/aima-qwen36
+
+[Install]
+WantedBy=multi-user.target

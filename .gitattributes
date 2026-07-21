@@ -1,0 +1,4 @@
+*.so binary
+*.bin binary
+LICENSE linguist-documentation
+benchmarks/results/*.json linguist-generated=false

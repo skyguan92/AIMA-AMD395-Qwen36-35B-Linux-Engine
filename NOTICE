@@ -1,0 +1,9 @@
+AIMA AMD395 Qwen3.6 35B Linux Engine
+Copyright 2026 Approaching AI Authors
+
+This product includes software developed by Advanced Micro Devices, Inc.
+under the MIT License. See THIRD_PARTY_NOTICES.md and
+third_party/licenses/AMD_COMPOSABLE_KERNEL_MIT.txt.
+
+Model weights, ROCm, PyTorch, Triton, vLLM, Transformers and Safetensors are
+not relicensed by this project and remain subject to their respective terms.

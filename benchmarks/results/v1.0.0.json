@@ -1,0 +1,77 @@
+{
+  "schema": "aima-amd395-qwen36/release-benchmark/v1",
+  "release": "1.0.0",
+  "engine_sha256": "79b5f070a30176af2a7a87a473fe578a15abd5177fb39b2ab9e188f66572fe0e",
+  "environment": {
+    "batch_size": 1,
+    "device": "AMD Radeon 8060S",
+    "gpu_arch": "gfx1151",
+    "model": "Qwen3.6-35B-A3B-BF16",
+    "os": "Ubuntu 24.04 Linux x86_64",
+    "rocm": "7.2.1"
+  },
+  "methodology": {
+    "cache_state": "cold_no_prefix_cache",
+    "cell_samples": "two mirrored-order samples; both within 3%, median used",
+    "decode_sampling": "greedy_argmax",
+    "process_scope": "one resident process for the complete cold matrix"
+  },
+  "cold_context_matrix": [
+    {"input_tokens": 1024, "output_tokens": 512, "prefill_tok_s": 1415.972576228523, "decode_tok_s": 33.56334849064998},
+    {"input_tokens": 1024, "output_tokens": 1024, "prefill_tok_s": 1407.2225121986244, "decode_tok_s": 33.55369801047304},
+    {"input_tokens": 2048, "output_tokens": 512, "prefill_tok_s": 1540.0975060751005, "decode_tok_s": 33.56762241438746},
+    {"input_tokens": 2048, "output_tokens": 1024, "prefill_tok_s": 1529.7540104832433, "decode_tok_s": 33.61656136715759},
+    {"input_tokens": 4096, "output_tokens": 512, "prefill_tok_s": 1552.2903768331453, "decode_tok_s": 33.15688009273502},
+    {"input_tokens": 4096, "output_tokens": 1024, "prefill_tok_s": 1552.5154171893391, "decode_tok_s": 33.17270418028882},
+    {"input_tokens": 8192, "output_tokens": 512, "prefill_tok_s": 1590.9453639891035, "decode_tok_s": 32.123795102905596},
+    {"input_tokens": 8192, "output_tokens": 1024, "prefill_tok_s": 1587.2549832503046, "decode_tok_s": 32.175581719191754},
+    {"input_tokens": 16384, "output_tokens": 512, "prefill_tok_s": 1408.8567487214157, "decode_tok_s": 30.8953289599632},
+    {"input_tokens": 16384, "output_tokens": 1024, "prefill_tok_s": 1413.6966083060356, "decode_tok_s": 30.932530364504593},
+    {"input_tokens": 32768, "output_tokens": 512, "prefill_tok_s": 1169.3876913494487, "decode_tok_s": 28.616142589304996},
+    {"input_tokens": 32768, "output_tokens": 1024, "prefill_tok_s": 1168.1970639531896, "decode_tok_s": 28.632913106898965},
+    {"input_tokens": 65536, "output_tokens": 512, "prefill_tok_s": 927.1324485713924, "decode_tok_s": 24.822930969825414},
+    {"input_tokens": 65536, "output_tokens": 1024, "prefill_tok_s": 925.9719571054186, "decode_tok_s": 24.831519975506986},
+    {"input_tokens": 131072, "output_tokens": 512, "prefill_tok_s": 646.5874069181806, "decode_tok_s": 19.640759062943175},
+    {"input_tokens": 131072, "output_tokens": 1024, "prefill_tok_s": 646.6236289035564, "decode_tok_s": 19.65209917034377},
+    {"input_tokens": 261632, "output_tokens": 512, "prefill_tok_s": 404.54506335464066, "decode_tok_s": 13.922206967414976},
+    {"input_tokens": 261120, "output_tokens": 1024, "prefill_tok_s": 406.37536773820926, "decode_tok_s": 13.967493208463404}
+  ],
+  "output_one": {
+    "input_tokens": 262143,
+    "prefill_tok_s": 372.1,
+    "free_memory_gb": 9.279
+  },
+  "startup_and_first_user": {
+    "command_to_ready_ms": [27525.33240383491, 27102.424184791744],
+    "command_to_ready_median_ms": 27313.878294313326,
+    "startup_spread_percent": 1.5604073501309754,
+    "first_user_q8192_output512_prefill_tok_s": [1566.9604480516898, 1552.872915007858],
+    "first_user_q8192_output512_decode_tok_s": [32.17384585230109, 32.19927280748655]
+  },
+  "prefix_cache": {
+    "input_tokens": 32768,
+    "matched_tokens": 32767,
+    "ttft_speedups": [74.33960861257516, 110.11994260509346, 111.0962506399557],
+    "median_ttft_speedup": 110.11994260509346,
+    "decode_retentions": [0.999653457424567, 1.0010880460617075, 1.0005292479344483],
+    "minimum_decode_retention": 0.999653457424567
+  },
+  "correctness": {
+    "cached_decode_kld": 0.00027683260180730236,
+    "kld_limit": 0.005,
+    "top1_agreement": 1.0,
+    "exact_completion_tokens": 128,
+    "exact_completion_identity": true,
+    "http_output1_checks": "8/8",
+    "http_usage_stop_prefix_checks": "76/76"
+  },
+  "decision": {
+    "all_blocking_context_floors_passed": true,
+    "raw_d275_engineering_target_complete": false
+  },
+  "source_artifacts": {
+    "cold_matrix_sha256": "1a847690c2a67acf8a675bf2d7df818f1f31eab3183ac7bd90866351ea3a8d59",
+    "startup_first_user_sha256": "47c3b3855208347792f7132fe92f84c1dfdd8ab1179e3b69bc4187d46574b5ef",
+    "live_conformance_sha256": "0a0e0f299d8617037a4c186370031a502cf9011fb11fa46f522e3965b4540ec2"
+  }
+}

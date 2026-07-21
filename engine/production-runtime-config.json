@@ -1,0 +1,112 @@
+{
+  "schema": "aima-amd395-qwen36/production-runtime-config/v1",
+  "release_version": "1.0.0",
+  "model_id": "aima-amd395-qwen36-35b",
+  "model_family": "Qwen3.6-35B-A3B-BF16",
+  "runtime_python": null,
+  "default_model_dir": null,
+  "qualified_runtime": {
+    "python_major_minor": "3.12",
+    "packages": {
+      "torch": "2.10.0+git8514f05",
+      "vllm": "0.19.1rc1.dev300+g29e5d1020.rocm721",
+      "triton": "3.6.0",
+      "transformers": "4.57.6",
+      "safetensors": "0.8.0rc0"
+    },
+    "aotriton_library": "libaotriton_v2.so.0.11.1",
+    "aotriton_sha256": "e0638806efa5d35cef04fd7fb02c62cd038b3a38727ecb5d87a49045aa1b9aa5"
+  },
+  "server": {
+    "path": "tools/amd395-qwen36-35b-a3b-bf16-resident-http-server.py",
+    "sha256": "efe4626ca53ca7ca8c562443d28c164e1cf0bff2d669cc1a47f23878279e8198"
+  },
+  "engine": {
+    "path": "benchmarks/shape-lab/four_layer_mini_engine.py",
+    "sha256": "79b5f070a30176af2a7a87a473fe578a15abd5177fb39b2ab9e188f66572fe0e"
+  },
+  "shape_manifest": {
+    "path": "doc/reference/amd395-qwen36-35b-a3b-bf16/qwen36-shape-manifest.json",
+    "sha256": "568bddbdf4ce1907cc7a9d77e997f7e91b28c7a7554d4bf4d87e38d7e7f6a4d7"
+  },
+  "runtime_dependencies": {
+    "resident_request": {
+      "path": "tools/amd395-qwen36-35b-a3b-bf16-resident-chat-completions-request.py",
+      "sha256": "4ac7e21b0d588addfd2aa5995c8af477ecac154d70c5adbccfc07a2f7a3c5511"
+    },
+    "chat_contract": {
+      "path": "tools/aima_chat_contract.py",
+      "sha256": "54ed7cb2ac2fb7ab0abc4ad5b5e6da047f6c9271b1dabb266ab72661ad217fe9"
+    },
+    "context_policy": {
+      "path": "tools/amd395-qwen36-35b-a3b-bf16-aotriton-context-policy.py",
+      "sha256": "06fb0285362741b664cfdc2843916ee69a2f7f50a9bd5d4063620772ecde3930"
+    },
+    "resident_skeleton": {
+      "path": "benchmarks/shape-lab/run_full_model_skeleton.py",
+      "sha256": "2b87a8e74e5d09688626f2c8413823bfd5f0fefff26b77d1879fe2fffc6e353a"
+    },
+    "q8192_compound_provider": {
+      "path": "benchmarks/shape-lab/q8192_compound_provider.py",
+      "sha256": "5099f464df4c7480e937c323cc1acff3f88dada3570e86eabdf2022d3310f7e1"
+    },
+    "packed_gqa_provider": {
+      "path": "benchmarks/shape-lab/packed_gqa_mha_kernel.py",
+      "sha256": "00d2d507d0f14ef855ba593f9737188284b47fba3b124e9d582e602f713b5085"
+    },
+    "persistent_tilequeue_provider": {
+      "path": "benchmarks/shape-lab/persistent_tilequeue_d256_kernel.py",
+      "sha256": "0aa7bfd289ba4c7450d913bf1fb83906e56fe58d6f42f084b7e738ebb404a075"
+    },
+    "partial_persistent_tilequeue_provider": {
+      "path": "benchmarks/shape-lab/partial_persistent_tilequeue_d256_kernel.py",
+      "sha256": "6365d607bd71bdeb1ea9900fe12a6e15cb986f6cc30892a7e10ac5e0fbde1573"
+    }
+  },
+  "native": {
+    "q8192_provider": {
+      "path": "benchmarks/shape-lab/native/libqrt_ck_fmha_q8192_provider.so",
+      "sha256": "5d03c4ea9491af3fc5505b0ce8fc052c33055254e514dd6c674f5d5ccf7fa7c9"
+    },
+    "q8192_kv16384_provider": {
+      "path": "benchmarks/shape-lab/native/libqrt_ck_fmha_q8192_kv16384_bottom_right_provider.so",
+      "sha256": "22132b23c649daaa8c85799cb41705a1cd4b00cc1088143d5ad6ae6dc1618865"
+    },
+    "striped_image_loader": {
+      "path": "benchmarks/shape-lab/native/libtorch_owned_striped_image_loader.so",
+      "sha256": "0daa986d1d033247011a98a5794352208f04fbbefc89f8c1b2fdc4da61938ffe"
+    }
+  },
+  "striped_image": {
+    "manifest_schema": "aima-amd395-qwen36/striped-image-manifest/v1",
+    "template": {
+      "path": "engine/production-striped-image-manifest.json",
+      "sha256": "a1e192c1e60c3120023d95c40b9266d0086c87d60fae172d7a854f22f1a7b131"
+    },
+    "checkpoint_index_sha256": "41b9356101ebf8e7519e150dc811f80c4226e727301fbb032b890f006ed0be83",
+    "layout_fingerprint_sha256": "34fb7242c042d69607daee1eff8a67fa4135b791ba5eb0c4c66e615ab9917c04",
+    "lane0": {
+      "bytes": 34660827136,
+      "sha256": "32a659bf46ebea58ad8348ba1132c6f4bb405c163577508805819a16b2f19877"
+    },
+    "lane1": {
+      "bytes": 34660823040,
+      "sha256": "50179d1099ca52fe5f00555e29c2ee139f3b51b3196823de9e7309b41bf524a7"
+    },
+    "aligned_bytes": 69321650176,
+    "payload_bytes": 69321221376,
+    "chunk_bytes": 536870912,
+    "expected_xor": "0xca1d71472d45fd86",
+    "expected_sum": "0xce0f5e958964415e"
+  },
+  "fixed_policy": {
+    "device": "cuda",
+    "admitted_context_policy": true,
+    "exact_prefix_cache": true,
+    "exact_prefix_cache_max_entries": 1,
+    "exact_prefix_cache_max_tokens": 32768,
+    "exact_prefix_cache_min_match_fraction": 0.5,
+    "resident_native_decode_hotset_layers": 0,
+    "user_visible_variant_switching": false
+  }
+}

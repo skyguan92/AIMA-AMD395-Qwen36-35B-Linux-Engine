@@ -1,0 +1,26 @@
+name: Performance report
+description: Submit a reproducible performance result or regression
+title: "[performance] "
+labels: [performance]
+body:
+  - type: textarea
+    id: configuration
+    attributes:
+      label: Exact configuration
+      description: Engine hash, hardware/runtime versions, input/output tokens, cache state and warmup
+    validations:
+      required: true
+  - type: textarea
+    id: measurements
+    attributes:
+      label: Measurements
+      description: Raw command, all replicate values, median and spread
+    validations:
+      required: true
+  - type: textarea
+    id: correctness
+    attributes:
+      label: Correctness evidence
+      description: KLD/top-1/completion or applicable sanity result
+    validations:
+      required: true

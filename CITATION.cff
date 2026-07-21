@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+title: AIMA AMD395 Qwen3.6 35B Linux Engine
+message: If you use this engine, please cite this software release.
+type: software
+authors:
+  - name: Approaching AI Authors
+repository-code: https://github.com/approaching-ai/aima-amd395-qwen36-35b-linux-engine
+license: Apache-2.0
+version: 1.0.0
+date-released: 2026-07-21

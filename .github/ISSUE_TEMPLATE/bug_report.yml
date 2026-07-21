@@ -1,0 +1,35 @@
+name: Bug report
+description: Report a reproducible engine, CLI or API problem
+title: "[bug] "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Do not attach model weights, private prompts, credentials or unreviewed runtime artifacts.
+  - type: input
+    id: version
+    attributes:
+      label: Release and engine hash
+      placeholder: v1.0.0, 79b5f070...
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, kernel, ROCm, GPU, Python, torch and vLLM versions
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction
+      description: Minimal sanitized command/request and observed output
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
