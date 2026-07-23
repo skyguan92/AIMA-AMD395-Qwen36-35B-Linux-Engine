@@ -1,0 +1,139 @@
+{
+  "schema": "aima-amd395-qwen36/native-decode-moe-overlap-result/v0.1.0",
+  "recorded_at": "2026-07-23",
+  "hardware": {
+    "cpu": "AMD Ryzen AI Max+ 395",
+    "gpu": "AMD Radeon Graphics",
+    "gpu_arch": "gfx1151",
+    "memory_gib": 124
+  },
+  "software": {
+    "engine_version": "1.2.0-native",
+    "rocm_version": "7.2.3",
+    "source_commit_with_optimization": "df41412",
+    "candidate_binary_sha256": "8e67de7832fa3936b7927a4af9aa6bc6aaf862f50cdedc5e6ffbda6788214e01"
+  },
+  "model": {
+    "name": "Qwen3.6-35B-A3B",
+    "payload_bytes": 69321221376,
+    "context_tokens": 8192,
+    "uniform_input_token_id": 1000,
+    "fmha_provider": "CK-Tile"
+  },
+  "optimization": {
+    "name": "decode_moe_branch_overlap",
+    "default_enabled": true,
+    "disable_flag": "--disable-decode-moe-overlap",
+    "description": "Run each layer's independent shared-expert branch on a non-blocking auxiliary HIP stream while the primary stream executes the routed-expert branch; join with HIP events before the residual add."
+  },
+  "method": {
+    "order": [
+      "disabled",
+      "default_enabled",
+      "disabled"
+    ],
+    "max_new_tokens_sequence": [
+      512,
+      1024
+    ],
+    "prefix_behavior": "cold 512-token request followed by exact-prefix 1024-token request",
+    "command_template": "aima-engine-native resident-session-probe --model-dir MODEL --uniform-input-token-id 1000 --context-tokens 8192 --fmha-provider LIB --max-new-tokens-sequence 512,1024 [--disable-decode-moe-overlap]"
+  },
+  "runs": [
+    {
+      "label": "off1",
+      "decode_moe_overlap": false,
+      "decode_tokens_per_second": {
+        "512": 32.343618852,
+        "1024": 32.340618661
+      },
+      "decode_wall_ms": {
+        "512": 15799.098,
+        "1024": 31632.048
+      }
+    },
+    {
+      "label": "default_on",
+      "decode_moe_overlap": true,
+      "decode_tokens_per_second": {
+        "512": 32.983748227,
+        "1024": 32.969412749
+      },
+      "decode_wall_ms": {
+        "512": 15492.478,
+        "1024": 31028.76
+      }
+    },
+    {
+      "label": "off2",
+      "decode_moe_overlap": false,
+      "decode_tokens_per_second": {
+        "512": 32.347709855,
+        "1024": 32.341846405
+      },
+      "decode_wall_ms": {
+        "512": 15797.1,
+        "1024": 31630.847
+      }
+    }
+  ],
+  "aggregate": {
+    "disabled_mean_tokens_per_second": {
+      "512": 32.345664353,
+      "1024": 32.341232533
+    },
+    "enabled_tokens_per_second": {
+      "512": 32.983748227,
+      "1024": 32.969412749
+    },
+    "throughput_gain_percent": {
+      "512": 1.9727,
+      "1024": 1.9424
+    },
+    "saved_ms_per_decode_token": {
+      "512": 0.598083,
+      "1024": 0.589137
+    }
+  },
+  "correctness": {
+    "all_runs_complete": true,
+    "launch_counts_identical_between_modes": true,
+    "output_token_ids_sha256": {
+      "512": "c7fb0bfbbb859ff68bb2e17fb418a313cf9abfd092d5ba66eb8eaeb46c298836",
+      "1024": "c8cc7a5722f05bbd32bc522123ed83138c985146cddaa0930e75ea17fca6c23a"
+    }
+  },
+  "profile": {
+    "decode_kernel_count": 712,
+    "disabled": {
+      "elapsed_ms": 31.75944,
+      "union_busy_ms": 29.883821,
+      "idle_ms": 1.875619,
+      "concurrent_ms": 0.0
+    },
+    "enabled": {
+      "elapsed_ms": 30.846886,
+      "union_busy_ms": 29.127626,
+      "idle_ms": 1.71926,
+      "concurrent_ms": 1.632172
+    },
+    "note": "rocprofv3 intercepts launch APIs and distorts absolute host submission time; these timestamps are used only to verify device-side overlap."
+  },
+  "rejected_experiments": [
+    {
+      "name": "static_linear_layer_hip_graphs",
+      "effect": "Reduced host layer submission time by about 62 percent but changed 1024-token throughput by -0.05 percent; device kernel gaps were unchanged."
+    },
+    {
+      "name": "fused_shared_gate_residual_add",
+      "effect": "Reduced native kernel count by 40 per token but changed 512-token throughput by -0.04 percent because the previously hidden gate work moved onto the join critical path."
+    }
+  ],
+  "validation": {
+    "native_build": "passed",
+    "http_ready_health_shutdown": "passed",
+    "unit_tests_passed": 25,
+    "unit_tests_total": 26,
+    "known_unrelated_failure": "The fresh source checkout does not contain the release-contract binary benchmarks/shape-lab/native/libtorch_owned_safetensors_loader.so."
+  }
+}
