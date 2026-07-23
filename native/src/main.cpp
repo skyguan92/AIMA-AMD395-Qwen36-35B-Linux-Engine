@@ -136,8 +136,8 @@ void usage(std::ostream& output) {
       << "  aima-engine-native prefill-linear-layer-oracle-probe --model-dir PATH (--oracle-dir PATH | --attention-oracle-dir PATH --moe-oracle-dir PATH) --layer INDEX [--boundary-oracle-dir PATH] [options]\n"
       << "  aima-engine-native prefill-linear-prefix-oracle-probe --model-dir PATH --layer0-attention-oracle-dir PATH --layer0-moe-oracle-dir PATH --later-oracle-dir PATH [--full-layer-oracle-dir PATH --ck-provider PATH --through-layer 3] [--chain-output-oracle-dir PATH] [options]\n"
       << "  aima-engine-native prefill-all-layers-oracle-probe --model-dir PATH --ck-provider PATH (--chain-output-oracle-dir PATH | --execution-only) [--uniform-input-token-id ID | --input-token-id-cycle ID,ID,...] [--entry-input-oracle-dir PATH] [--prefill-state-oracle-dir PATH] [--decode-oracle-dir PATH] [--decode-logits-oracle-dir PATH] [--decode-logits-oracle-label-prefix LABEL] [options]\n"
-      << "  aima-engine-native resident-session-probe --model-dir PATH (--uniform-input-token-id ID | --input-token-id-cycle ID,ID,...) [--context-tokens 1024|2048|4096|8192|16384|32768] [--fmha-provider PATH] [--secondary-fmha-provider PATH --secondary-fmha-layers 3,7,...] [--max-new-tokens N | --max-new-tokens-sequence N,N,...] [--requests N] [--cached-suffix-token-ids ID,ID,...] [--expected-token-ids ID,ID,...] [--reference-logits PATH] [--layer-tail-oracle-dir PATH [--layer-tail-oracle-index 0..39]] [options]\n"
-      << "  aima-engine-native serve --model-dir PATH [--context-tokens 1024|2048|4096|8192|16384|32768] [--fmha-provider PATH] [--secondary-fmha-provider PATH --secondary-fmha-layers 3,7,...] [--host 127.0.0.1] [--port 8000] [--cache-capacity N] [options]\n"
+      << "  aima-engine-native resident-session-probe --model-dir PATH (--uniform-input-token-id ID | --input-token-id-cycle ID,ID,...) [--context-tokens 1024|2048|4096|8192|16384|32768] [--fmha-provider PATH] [--secondary-fmha-provider PATH --secondary-fmha-layers 3,7,...] [--disable-decode-moe-overlap] [--max-new-tokens N | --max-new-tokens-sequence N,N,...] [--requests N] [--cached-suffix-token-ids ID,ID,...] [--expected-token-ids ID,ID,...] [--reference-logits PATH] [--layer-tail-oracle-dir PATH [--layer-tail-oracle-index 0..39]] [options]\n"
+      << "  aima-engine-native serve --model-dir PATH [--context-tokens 1024|2048|4096|8192|16384|32768] [--fmha-provider PATH] [--secondary-fmha-provider PATH --secondary-fmha-layers 3,7,...] [--disable-decode-moe-overlap] [--host 127.0.0.1] [--port 8000] [--cache-capacity N] [options]\n"
       << "  aima-engine-native prefill-full-layer-oracle-probe --model-dir PATH --oracle-dir PATH --ck-provider PATH [--layer 3] [options]\n"
       << "  aima-engine-native full-attention-core-oracle-probe --oracle-dir PATH [--layer INDEX] [--cache-end N]\n"
       << "  aima-engine-native full-layer-oracle-probe --model-dir PATH --oracle-dir PATH [--layer INDEX|--all-full-layers] [options]\n"
@@ -4263,6 +4263,8 @@ int run_resident_session_probe(int argc, char** argv) {
     } else if (argument == "--secondary-fmha-layer-sets") {
       secondary_fmha_layer_sets = parse_layer_sets(
           next("--secondary-fmha-layer-sets"));
+    } else if (argument == "--disable-decode-moe-overlap") {
+      options.decode_moe_overlap = false;
     } else if (argument == "--disable-prefix-cache") {
       disable_prefix_cache = true;
     } else if (argument == "--uniform-input-token-id") {
@@ -4619,6 +4621,8 @@ int run_resident_session_probe(int argc, char** argv) {
             << load.exact_prefix_cache_bytes << ",\n"
             << "    \"cache_capacity\": " << load.cache_capacity << ",\n"
             << "    \"prompt_tokens\": " << load.prompt_tokens << ",\n"
+            << "    \"decode_moe_overlap\": "
+            << (load.decode_moe_overlap ? "true" : "false") << ",\n"
             << "    \"fmha_provider_backend\": \""
             << json_escape(load.fmha_provider_backend) << "\",\n"
             << "    \"fmha_provider_path\": \""
@@ -4715,6 +4719,8 @@ int run_resident_session_probe(int argc, char** argv) {
               << ",\"prefill_wall_ms\":" << request.prefill_wall_ms
               << ",\"prefill_tokens_per_second\":"
               << request.prefill_tokens_per_second
+              << ",\"decode_layer_submission_ms\":"
+              << request.decode_layer_submission_ms
               << ",\"decode_wall_ms\":" << request.decode_wall_ms
               << ",\"decode_tokens_per_second\":"
               << request.decode_tokens_per_second

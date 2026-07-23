@@ -6,6 +6,7 @@
 #include "aima/native_decode_executor.h"
 #include "aima/native_decode_invocation.h"
 #include "aima/native_decode_workspace.h"
+#include "aima/native_moe_overlap.h"
 #include "aima/native_weight_store.h"
 
 #include <cstddef>
@@ -31,6 +32,7 @@ NativeLinearLayerMetrics run_native_linear_layer(
     NativeDecodeExecutor& executor,
     int cu_count,
     void* stream = nullptr,
-    bool synchronize = true);
+    bool synchronize = true,
+    const NativeMoeOverlapResources* moe_overlap = nullptr);
 
 }  // namespace aima

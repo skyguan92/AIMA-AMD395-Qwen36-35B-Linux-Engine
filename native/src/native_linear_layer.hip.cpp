@@ -74,7 +74,7 @@ NativeLinearLayerMetrics run_native_linear_layer(
     const NativeDecodeWorkspace& workspace,
     const NativeDecodeInvocations& invocations,
     NativeDecodeExecutor& executor, int cu_count, void* stream_value,
-    bool synchronize) {
+    bool synchronize, const NativeMoeOverlapResources* moe_overlap) {
   const auto& launches = invocations.launches();
   const std::size_t base = layer_index * 10;
   if (!executor.loaded() || base + 10 > launches.size() ||
@@ -146,6 +146,24 @@ NativeLinearLayerMetrics run_native_linear_layer(
 
   const auto started = std::chrono::steady_clock::now();
   hipStream_t stream = static_cast<hipStream_t>(stream_value);
+  if (moe_overlap != nullptr && !moe_overlap->valid()) {
+    throw std::runtime_error(
+        "native linear layer MoE overlap resources are incomplete");
+  }
+  const bool overlap_enabled =
+      moe_overlap != nullptr && moe_overlap->valid();
+  hipStream_t shared_stream =
+      overlap_enabled
+          ? static_cast<hipStream_t>(moe_overlap->auxiliary_stream)
+          : stream;
+  hipEvent_t branch_ready =
+      overlap_enabled
+          ? static_cast<hipEvent_t>(moe_overlap->branch_ready_event)
+          : nullptr;
+  hipEvent_t shared_done =
+      overlap_enabled
+          ? static_cast<hipEvent_t>(moe_overlap->shared_done_event)
+          : nullptr;
   NativeLinearLayerMetrics metrics;
   metrics.layer_index = layer_index;
   for (std::size_t offset = 0; offset < 4; ++offset) {
@@ -161,24 +179,39 @@ NativeLinearLayerMetrics run_native_linear_layer(
   ++metrics.native_pointwise_launches;
 
   executor.launch(launches[base + 4], stream);
-  executor.launch(launches[base + 5], stream);
-  metrics.aot_launches += 2;
+  ++metrics.aot_launches;
+  if (overlap_enabled) {
+    check_hip(hipEventRecord(branch_ready, stream),
+              "hipEventRecord native linear MoE branch ready");
+    check_hip(hipStreamWaitEvent(shared_stream, branch_ready, 0),
+              "hipStreamWaitEvent native linear shared branch ready");
+  }
+  executor.launch(launches[base + 5], shared_stream);
+  ++metrics.aot_launches;
   launch_shared_silu_multiply(shared_input.device_pointer,
-                              activated.device_pointer, stream);
+                              activated.device_pointer, shared_stream);
   ++metrics.native_pointwise_launches;
   launch_bf16_wvsplitk(
       shared_down_weight.device_pointer, activated.device_pointer, nullptr,
       shared_down.device_pointer, kHidden, kSharedIntermediate, cu_count,
-      stream);
+      shared_stream);
   ++metrics.native_projection_launches;
   launch_shared_sigmoid_scale(shared_input.device_pointer,
                               shared_down.device_pointer,
-                              shared_scaled.device_pointer, stream);
+                              shared_scaled.device_pointer, shared_stream);
   ++metrics.native_pointwise_launches;
+  if (overlap_enabled) {
+    check_hip(hipEventRecord(shared_done, shared_stream),
+              "hipEventRecord native linear shared branch done");
+  }
 
   for (std::size_t offset = 6; offset < 10; ++offset) {
     executor.launch(launches[base + offset], stream);
     ++metrics.aot_launches;
+  }
+  if (overlap_enabled) {
+    check_hip(hipStreamWaitEvent(stream, shared_done, 0),
+              "hipStreamWaitEvent native linear shared branch done");
   }
   launch_bf16_add_pair(
       routed_moe.device_pointer, shared_scaled.device_pointer,

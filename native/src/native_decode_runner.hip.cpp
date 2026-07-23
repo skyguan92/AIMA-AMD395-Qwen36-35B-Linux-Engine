@@ -173,7 +173,8 @@ NativeDecodeRunMetrics run_native_decode_token(
     const NativeDecodeWorkspace& workspace,
     NativeDecodeInvocations& invocations,
     NativeDecodeExecutor& executor, NativeFullAttentionState& attention_state,
-    int cu_count, void* stream_value) {
+    int cu_count, void* stream_value,
+    const NativeMoeOverlapResources* moe_overlap) {
   const auto& launches = invocations.launches();
   if (launches.size() != 402 || !executor.loaded() || !lm_head.built() ||
       cu_count <= 0 ||
@@ -189,7 +190,7 @@ NativeDecodeRunMetrics run_native_decode_token(
         "triton_fused_input_proj_conv_kernel") {
       const NativeLinearLayerMetrics layer = run_native_linear_layer(
           layer_index, weights, workspace, invocations, executor, cu_count,
-          stream, false);
+          stream, false, moe_overlap);
       ++metrics.linear_layer_count;
       metrics.aot_launches += layer.aot_launches;
       metrics.native_projection_launches += layer.native_projection_launches;
@@ -197,7 +198,7 @@ NativeDecodeRunMetrics run_native_decode_token(
     } else {
       const NativeFullLayerMetrics layer = run_native_full_layer(
           layer_index, position, cache_end, weights, workspace, invocations,
-          executor, attention_state, cu_count, stream, false);
+          executor, attention_state, cu_count, stream, false, moe_overlap);
       ++metrics.full_layer_count;
       metrics.aot_launches += layer.aot_launches;
       metrics.native_attention_launches += layer.native_attention_launches;

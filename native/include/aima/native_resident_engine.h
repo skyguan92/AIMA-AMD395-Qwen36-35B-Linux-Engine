@@ -31,6 +31,8 @@ struct NativeResidentEngineOptions {
   std::size_t prompt_tokens = 8192;
   // Includes prompt and decoded cache entries.
   std::size_t cache_capacity = 9216;
+  // Overlap the independent shared/routed MoE decode branches on two streams.
+  bool decode_moe_overlap = true;
 };
 
 struct NativeResidentLoadMetrics {
@@ -50,6 +52,7 @@ struct NativeResidentLoadMetrics {
   std::uint64_t exact_prefix_cache_bytes = 0;
   std::size_t cache_capacity = 0;
   std::size_t prompt_tokens = 0;
+  bool decode_moe_overlap = false;
   std::string fmha_provider_backend;
   std::string fmha_provider_path;
   bool fmha_provider_loaded = false;
@@ -119,6 +122,7 @@ struct NativeResidentRequestMetrics {
   bool all_decode_tokens_certified = false;
   double prefill_wall_ms = 0.0;
   double prefill_tokens_per_second = 0.0;
+  double decode_layer_submission_ms = 0.0;
   double decode_wall_ms = 0.0;
   double decode_tokens_per_second = 0.0;
   double request_wall_ms = 0.0;

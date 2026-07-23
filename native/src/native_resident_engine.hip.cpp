@@ -274,6 +274,7 @@ struct NativeResidentEngine::Impl {
   NativeDecodeWorkspace decode_workspace;
   NativeDecodeInvocations decode_invocations;
   NativeDecodeExecutor executor;
+  NativeMoeOverlapResources moe_overlap;
   NativeQ8192CkProvider ck_provider;
   NativeQ8192CkProvider secondary_fmha_provider;
   std::array<bool, 40> secondary_fmha_layers{};
@@ -295,8 +296,25 @@ struct NativeResidentEngine::Impl {
   bool ready = false;
 
   ~Impl() {
-    if (chunked_hidden != nullptr) {
+    if (moe_overlap.auxiliary_stream != nullptr ||
+        moe_overlap.branch_ready_event != nullptr ||
+        moe_overlap.shared_done_event != nullptr ||
+        chunked_hidden != nullptr) {
       (void)hipSetDevice(device);
+    }
+    if (moe_overlap.shared_done_event != nullptr) {
+      (void)hipEventDestroy(
+          static_cast<hipEvent_t>(moe_overlap.shared_done_event));
+    }
+    if (moe_overlap.branch_ready_event != nullptr) {
+      (void)hipEventDestroy(
+          static_cast<hipEvent_t>(moe_overlap.branch_ready_event));
+    }
+    if (moe_overlap.auxiliary_stream != nullptr) {
+      (void)hipStreamDestroy(
+          static_cast<hipStream_t>(moe_overlap.auxiliary_stream));
+    }
+    if (chunked_hidden != nullptr) {
       (void)hipFree(chunked_hidden);
     }
   }
@@ -442,6 +460,23 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
   if (impl_->cu_count <= 0) {
     throw std::runtime_error("native resident engine has no compute units");
   }
+  if (options.decode_moe_overlap) {
+    hipStream_t auxiliary_stream = nullptr;
+    hipEvent_t branch_ready_event = nullptr;
+    hipEvent_t shared_done_event = nullptr;
+    check_hip(
+        hipStreamCreateWithFlags(&auxiliary_stream, hipStreamNonBlocking),
+        "hipStreamCreateWithFlags native decode MoE overlap");
+    impl_->moe_overlap.auxiliary_stream = auxiliary_stream;
+    check_hip(
+        hipEventCreateWithFlags(&branch_ready_event, hipEventDisableTiming),
+        "hipEventCreateWithFlags native decode MoE branch ready");
+    impl_->moe_overlap.branch_ready_event = branch_ready_event;
+    check_hip(
+        hipEventCreateWithFlags(&shared_done_event, hipEventDisableTiming),
+        "hipEventCreateWithFlags native decode MoE shared done");
+    impl_->moe_overlap.shared_done_event = shared_done_event;
+  }
 
   const auto find_prefill_start = [](const NativePrefillInvocations& owner,
                                      std::size_t launch_count) {
@@ -502,6 +537,7 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
   impl_->metrics.exact_prefix_cache_bytes = prefix_cache_bytes;
   impl_->metrics.cache_capacity = options.cache_capacity;
   impl_->metrics.prompt_tokens = impl_->prompt_tokens;
+  impl_->metrics.decode_moe_overlap = impl_->moe_overlap.valid();
   impl_->metrics.fmha_provider_backend =
       fmha_provider_backend(provider_path);
   impl_->metrics.fmha_provider_path =
@@ -918,7 +954,8 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
       suffix_last = run_native_decode_token(
           token_index, token_index + 1, impl_->weights, impl_->lm_head,
           impl_->decode_workspace, impl_->decode_invocations,
-          impl_->executor, impl_->attention_state, impl_->cu_count);
+          impl_->executor, impl_->attention_state, impl_->cu_count, nullptr,
+          impl_->moe_overlap.valid() ? &impl_->moe_overlap : nullptr);
       ++metrics.prefix_cache_suffix_decode_tokens;
       metrics.prefix_cache_suffix_aot_launches += suffix_last.aot_launches;
       metrics.prefix_cache_suffix_native_launches +=
@@ -1003,13 +1040,15 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
     const NativeDecodeRunMetrics token = run_native_decode_token(
         position, position + 1, impl_->weights, impl_->lm_head,
         impl_->decode_workspace, impl_->decode_invocations,
-        impl_->executor, impl_->attention_state, impl_->cu_count);
+        impl_->executor, impl_->attention_state, impl_->cu_count, nullptr,
+        impl_->moe_overlap.valid() ? &impl_->moe_overlap : nullptr);
     ++metrics.decode_tokens_executed;
     metrics.decode_aot_launches += token.aot_launches;
     metrics.decode_native_launches +=
         token.native_attention_launches + token.native_projection_launches +
         token.native_pointwise_launches +
         token.native_lm_head_certificate_launches + 2;
+    metrics.decode_layer_submission_ms += token.layer_submission_ms;
     metrics.decode_wall_ms += token.synchronized_wall_ms;
     metrics.all_decode_tokens_certified =
         metrics.all_decode_tokens_certified && token.lm_head_certified;

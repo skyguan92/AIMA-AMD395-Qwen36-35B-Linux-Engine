@@ -6,6 +6,7 @@
 #include "aima/native_decode_invocation.h"
 #include "aima/native_decode_workspace.h"
 #include "aima/native_full_attention.h"
+#include "aima/native_moe_overlap.h"
 #include "aima/native_weight_store.h"
 
 #include <cstddef>
@@ -28,6 +29,7 @@ NativeFullLayerMetrics run_native_full_layer(
     const NativeWeightStore& weights, const NativeDecodeWorkspace& workspace,
     const NativeDecodeInvocations& invocations,
     NativeDecodeExecutor& executor, NativeFullAttentionState& attention_state,
-    int cu_count, void* stream = nullptr, bool synchronize = true);
+    int cu_count, void* stream = nullptr, bool synchronize = true,
+    const NativeMoeOverlapResources* moe_overlap = nullptr);
 
 }  // namespace aima

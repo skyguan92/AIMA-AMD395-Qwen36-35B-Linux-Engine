@@ -287,6 +287,8 @@ ServerOptions parse_options(int argc, char** argv) {
       options.engine.secondary_fmha_layers = parse_size_list(
           next("--secondary-fmha-layers"),
           "--secondary-fmha-layers");
+    } else if (argument == "--disable-decode-moe-overlap") {
+      options.engine.decode_moe_overlap = false;
     } else if (argument == "--host") {
       options.host = next("--host");
     } else if (argument == "--port") {
@@ -377,6 +379,8 @@ Json request_metrics_json(const NativeResidentRequestMetrics& metrics) {
           {"output_token_ids_sha256", metrics.output_token_ids_sha256},
           {"prefill_tokens_per_second", metrics.prefill_tokens_per_second},
           {"decode_tokens_per_second", metrics.decode_tokens_per_second},
+          {"decode_layer_submission_ms",
+           metrics.decode_layer_submission_ms},
           {"ttft_ms", metrics.prefill_wall_ms},
           {"request_wall_ms", metrics.request_wall_ms},
           {"prefix_cache", {{"implemented", true},
@@ -523,6 +527,7 @@ int run_native_http_server(int argc, char** argv) {
                      {"model", kModelId},
                      {"command_to_ready_wall_ms", command_to_ready_ms},
                      {"engine_load_wall_ms", load.command_to_ready_wall_ms},
+                     {"decode_moe_overlap", load.decode_moe_overlap},
                      {"fmha_provider_backend", load.fmha_provider_backend},
                      {"fmha_provider_path", load.fmha_provider_path},
                      {"secondary_fmha_provider_backend",
@@ -562,6 +567,7 @@ int run_native_http_server(int argc, char** argv) {
                    {"uptime_ms", elapsed_ms(process_started)},
                    {"command_to_ready_wall_ms", command_to_ready_ms},
                    {"runtime", "native"},
+                   {"decode_moe_overlap", load.decode_moe_overlap},
                    {"fmha_provider_backend", load.fmha_provider_backend},
                    {"secondary_fmha_provider_backend",
                     load.secondary_fmha_provider_backend},

@@ -7,6 +7,7 @@
 #include "aima/native_decode_workspace.h"
 #include "aima/native_full_attention.h"
 #include "aima/native_lm_head.h"
+#include "aima/native_moe_overlap.h"
 #include "aima/native_weight_store.h"
 
 #include <cstddef>
@@ -65,16 +66,19 @@ NativeLmHeadTop1Metrics run_native_lm_head_top1(
     const NativeDecodeInvocations& invocations,
     NativeDecodeExecutor& executor, int cu_count, void* stream = nullptr);
 
-// Executes one q8192 decode token from already-resident state.  All forty
-// parameterized layers are submitted to one stream without per-layer host
-// synchronization, followed by the captured final RMSNorm/int8 LM-head and a
-// native globally certified top-1 selection.
+// Executes one q8192 decode token from already-resident state. Layers remain
+// ordered on the primary stream without per-layer host synchronization; when
+// overlap resources are present, each independent shared-expert branch runs
+// on the auxiliary stream and rejoins before the layer residual add. The
+// captured final RMSNorm/int8 LM-head then produces a native globally
+// certified top-1 selection.
 NativeDecodeRunMetrics run_native_decode_token(
     std::size_t position, std::size_t cache_end,
     const NativeWeightStore& weights, const NativeLmHeadStore& lm_head,
     const NativeDecodeWorkspace& workspace,
     NativeDecodeInvocations& invocations,
     NativeDecodeExecutor& executor, NativeFullAttentionState& attention_state,
-    int cu_count, void* stream = nullptr);
+    int cu_count, void* stream = nullptr,
+    const NativeMoeOverlapResources* moe_overlap = nullptr);
 
 }  // namespace aima
