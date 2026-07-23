@@ -84,7 +84,11 @@ def component_records(config: dict[str, Any]) -> Iterable[tuple[str, dict[str, A
         yield name, record
     for name, record in config["native"].items():
         yield name, record
-    yield "striped_image_template", config["striped_image"]["template"]
+    direct_plan = config["direct_checkpoint"]["plan"]
+    yield "checkpoint_load_plan", direct_plan
+    striped_template = config["striped_image"]["template"]
+    if striped_template["path"] != direct_plan["path"]:
+        yield "striped_image_template", striped_template
 
 
 def verify_components(config: dict[str, Any]) -> list[dict[str, Any]]:
@@ -154,6 +158,14 @@ def image_manifest(args: argparse.Namespace) -> Path:
     )
 
 
+def direct_worker_count(args: argparse.Namespace, config: dict[str, Any]) -> int:
+    explicit = getattr(args, "load_workers", None)
+    count = int(config["direct_checkpoint"]["workers"] if explicit is None else explicit)
+    if count <= 0 or count > 16:
+        raise UserError("--load-workers must be between 1 and 16")
+    return count
+
+
 def validate_model(path: Path, config: dict[str, Any]) -> dict[str, Any]:
     required = [path / "config.json", path / "model.safetensors.index.json"]
     missing = [str(item) for item in required if not item.is_file()]
@@ -161,13 +173,87 @@ def validate_model(path: Path, config: dict[str, Any]) -> dict[str, Any]:
         raise UserError(f"model directory is incomplete; missing: {', '.join(missing)}")
     index_path = required[1]
     actual = sha256_file(index_path)
-    expected = str(config["striped_image"]["checkpoint_index_sha256"])
+    expected = str(config["direct_checkpoint"]["checkpoint_index_sha256"])
     if actual != expected:
         raise UserError(
             "checkpoint index does not match the qualified Qwen3.6-35B-A3B BF16 layout: "
             f"expected {expected}, got {actual}"
         )
     return {"model_dir": str(path), "checkpoint_index_sha256": actual, "passed": True}
+
+
+def validate_direct_checkpoint(path: Path, config: dict[str, Any]) -> dict[str, Any]:
+    model = validate_model(path, config)
+    direct = config["direct_checkpoint"]
+    plan_path = repo_path(str(direct["plan"]["path"]))
+    plan = load_json(plan_path)
+    index = load_json(path / "model.safetensors.index.json")
+    weight_map = index.get("weight_map")
+    entries = plan.get("entries")
+    if not isinstance(weight_map, dict):
+        raise UserError("checkpoint index does not contain a weight_map object")
+    if not isinstance(entries, list) or len(entries) != int(direct["tensor_count"]):
+        raise UserError("direct checkpoint plan does not contain the qualified tensor set")
+    if plan.get("layout", {}).get("payload_bytes") != int(direct["payload_bytes"]):
+        raise UserError("direct checkpoint plan payload total does not match the release contract")
+
+    names: set[str] = set()
+    shard_names: set[str] = set()
+    payload_total = 0
+    normalized: list[tuple[str, str, int, int]] = []
+    for position, entry in enumerate(entries):
+        if not isinstance(entry, dict):
+            raise UserError(f"direct checkpoint entry {position} is not an object")
+        name = entry.get("name")
+        shard = entry.get("source_shard")
+        if not isinstance(name, str) or not name or name in names:
+            raise UserError(f"invalid or duplicate tensor name at direct checkpoint entry {position}")
+        if (
+            not isinstance(shard, str)
+            or not shard
+            or Path(shard).name != shard
+            or weight_map.get(name) != shard
+        ):
+            raise UserError(f"checkpoint shard mapping mismatch for tensor {name}")
+        if entry.get("dtype") != "BF16":
+            raise UserError(f"unsupported direct checkpoint dtype for tensor {name}")
+        offset = int(entry.get("source_offset_bytes", -1))
+        payload = int(entry.get("payload_bytes", 0))
+        if offset < 0 or payload <= 0:
+            raise UserError(f"invalid direct checkpoint byte geometry for tensor {name}")
+        names.add(name)
+        shard_names.add(shard)
+        payload_total += payload
+        normalized.append((name, shard, offset, payload))
+    if not names.issubset(weight_map):
+        raise UserError("direct checkpoint plan contains tensors absent from checkpoint weight_map")
+    if payload_total != int(direct["payload_bytes"]):
+        raise UserError("direct checkpoint entry payload sum mismatch")
+
+    shard_results: list[dict[str, Any]] = []
+    shard_sizes: dict[str, int] = {}
+    for shard in sorted(shard_names):
+        shard_path = path / shard
+        if not shard_path.is_file():
+            raise UserError(f"checkpoint shard is missing: {shard_path}")
+        shard_sizes[shard] = shard_path.stat().st_size
+        shard_results.append(
+            {"name": shard, "path": str(shard_path), "bytes": shard_sizes[shard]}
+        )
+    for name, shard, offset, payload in normalized:
+        if offset + payload > shard_sizes[shard]:
+            raise UserError(f"tensor payload exceeds checkpoint shard: {name}")
+    return {
+        **model,
+        "plan": str(plan_path),
+        "plan_sha256": sha256_file(plan_path),
+        "tensor_count": len(entries),
+        "payload_bytes": payload_total,
+        "shard_count": len(shard_results),
+        "shard_bytes": sum(item["bytes"] for item in shard_results),
+        "shards": shard_results,
+        "passed": True,
+    }
 
 
 def validate_image_manifest(
@@ -533,17 +619,36 @@ def doctor(args: argparse.Namespace) -> int:
         checks.append({"name": "runtime", "passed": probe.get("passed") is True, "details": probe})
     except UserError as exc:
         checks.append({"name": "runtime", "passed": False, "error": str(exc)})
+    model_path: Path | None = None
     try:
         model_path = model_dir(args, config)
         checks.append({"name": "model", "passed": True, "details": validate_model(model_path, config)})
     except UserError as exc:
         checks.append({"name": "model", "passed": False, "error": str(exc)})
-    try:
-        manifest_path = image_manifest(args)
-        image_result = validate_image_manifest(manifest_path, config, deep=args.deep)
-        checks.append({"name": "striped_images", "passed": image_result["passed"], "details": image_result})
-    except UserError as exc:
-        checks.append({"name": "striped_images", "passed": False, "error": str(exc)})
+    if args.load_mode == "direct":
+        try:
+            if model_path is None:
+                raise UserError("model validation must pass before direct loading can be checked")
+            direct_result = validate_direct_checkpoint(model_path, config)
+            direct_result["reader_workers"] = direct_worker_count(args, config)
+            checks.append(
+                {
+                    "name": "direct_safetensors",
+                    "passed": direct_result["passed"],
+                    "details": direct_result,
+                }
+            )
+        except UserError as exc:
+            checks.append({"name": "direct_safetensors", "passed": False, "error": str(exc)})
+    else:
+        try:
+            manifest_path = image_manifest(args)
+            image_result = validate_image_manifest(manifest_path, config, deep=args.deep)
+            checks.append(
+                {"name": "striped_images", "passed": image_result["passed"], "details": image_result}
+            )
+        except UserError as exc:
+            checks.append({"name": "striped_images", "passed": False, "error": str(exc)})
     result = {"ready": all(item["passed"] for item in checks), "checks": checks}
     if args.json:
         print(json.dumps(result, indent=2, sort_keys=True))
@@ -568,10 +673,16 @@ def serve(args: argparse.Namespace) -> int:
         raise UserError(f"runtime contract mismatch: {probe}")
     model_path = model_dir(args, config)
     validate_model(model_path, config)
-    image_manifest_path = image_manifest(args)
-    image_result = validate_image_manifest(image_manifest_path, config, deep=False)
-    if not image_result["passed"]:
-        raise UserError(f"striped-image validation failed: {image_result['checks']}")
+    direct_result: dict[str, Any] | None = None
+    image_manifest_path: Path | None = None
+    image_result: dict[str, Any] | None = None
+    if args.load_mode == "direct":
+        direct_result = validate_direct_checkpoint(model_path, config)
+    else:
+        image_manifest_path = image_manifest(args)
+        image_result = validate_image_manifest(image_manifest_path, config, deep=False)
+        if not image_result["passed"]:
+            raise UserError(f"striped-image validation failed: {image_result['checks']}")
 
     output_dir = (
         Path(args.output_dir).expanduser().resolve()
@@ -590,22 +701,36 @@ def serve(args: argparse.Namespace) -> int:
         if args.ready_file
         else output_dir / "ready.json"
     )
-    lanes = image_result["lanes"]
-    image = config["striped_image"]
-    native_loader = repo_path(config["native"]["striped_image_loader"]["path"])
     server_path = repo_path(config["server"]["path"])
     shape_manifest = repo_path(config["shape_manifest"]["path"])
     env = os.environ.copy()
+    internal_load_environment = (
+        "AIMA_DIRECT_CHECKPOINT_HELPER",
+        "AIMA_DIRECT_CHECKPOINT_PLAN",
+        "AIMA_DIRECT_CHECKPOINT_LOADER",
+        "AIMA_DIRECT_CHECKPOINT_NATIVE_REPORT",
+        "AIMA_DIRECT_CHECKPOINT_REPORT",
+        "AIMA_DIRECT_CHECKPOINT_INDEX_SHA256",
+        "AIMA_DIRECT_CHECKPOINT_EXPECTED_XOR",
+        "AIMA_DIRECT_CHECKPOINT_EXPECTED_SUM",
+        "AIMA_DIRECT_CHECKPOINT_PAYLOAD_BYTES",
+        "AIMA_DIRECT_CHECKPOINT_TENSOR_COUNT",
+        "AIMA_DIRECT_CHECKPOINT_CHUNK_BYTES",
+        "AIMA_DIRECT_CHECKPOINT_WORKERS",
+        "AMD395_STRIPED_IMAGE_CHUNK_BYTES",
+        "AMD395_STRIPED_IMAGE_EXPECTED_SUM",
+        "AMD395_STRIPED_IMAGE_EXPECTED_XOR",
+        "AMD395_STRIPED_IMAGE_LANE0_SHA256",
+        "AMD395_STRIPED_IMAGE_LANE1_SHA256",
+        "AMD395_STRIPED_IMAGE_LOADER",
+        "AMD395_STRIPED_IMAGE_MANIFEST",
+        "AMD395_STRIPED_IMAGE_NATIVE_REPORT",
+    )
+    for name in internal_load_environment:
+        env.pop(name, None)
     env.update(
         {
-            "AMD395_STRIPED_IMAGE_CHUNK_BYTES": str(image["chunk_bytes"]),
-            "AMD395_STRIPED_IMAGE_EXPECTED_SUM": str(image["expected_sum"]),
-            "AMD395_STRIPED_IMAGE_EXPECTED_XOR": str(image["expected_xor"]),
-            "AMD395_STRIPED_IMAGE_LANE0_SHA256": str(image["lane0"]["sha256"]),
-            "AMD395_STRIPED_IMAGE_LANE1_SHA256": str(image["lane1"]["sha256"]),
-            "AMD395_STRIPED_IMAGE_LOADER": str(native_loader),
-            "AMD395_STRIPED_IMAGE_MANIFEST": str(image_manifest_path),
-            "AMD395_STRIPED_IMAGE_NATIVE_REPORT": str(output_dir / "striped-native-loader.json"),
+            "AIMA_LOAD_MODE": args.load_mode,
             "HIP_VISIBLE_DEVICES": str(args.device),
             "PYTHONNOUSERSITE": "1",
             "PYTHONUNBUFFERED": "1",
@@ -615,6 +740,69 @@ def serve(args: argparse.Namespace) -> int:
             "TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL": "1",
         }
     )
+    load_event: dict[str, Any]
+    if args.load_mode == "direct":
+        direct = config["direct_checkpoint"]
+        load_workers = direct_worker_count(args, config)
+        direct_plan = repo_path(str(direct["plan"]["path"]))
+        direct_loader = repo_path(config["native"]["direct_checkpoint_loader"]["path"])
+        direct_helper = repo_path(
+            config["runtime_dependencies"]["direct_checkpoint_helper"]["path"]
+        )
+        env.update(
+            {
+                "AIMA_DIRECT_CHECKPOINT_HELPER": str(direct_helper),
+                "AIMA_DIRECT_CHECKPOINT_PLAN": str(direct_plan),
+                "AIMA_DIRECT_CHECKPOINT_LOADER": str(direct_loader),
+                "AIMA_DIRECT_CHECKPOINT_NATIVE_REPORT": str(
+                    output_dir / "direct-checkpoint-native.json"
+                ),
+                "AIMA_DIRECT_CHECKPOINT_REPORT": str(
+                    output_dir / "direct-checkpoint-loader.json"
+                ),
+                "AIMA_DIRECT_CHECKPOINT_INDEX_SHA256": str(
+                    direct["checkpoint_index_sha256"]
+                ),
+                "AIMA_DIRECT_CHECKPOINT_EXPECTED_XOR": str(direct["expected_xor"]),
+                "AIMA_DIRECT_CHECKPOINT_EXPECTED_SUM": str(direct["expected_sum"]),
+                "AIMA_DIRECT_CHECKPOINT_PAYLOAD_BYTES": str(direct["payload_bytes"]),
+                "AIMA_DIRECT_CHECKPOINT_TENSOR_COUNT": str(direct["tensor_count"]),
+                "AIMA_DIRECT_CHECKPOINT_CHUNK_BYTES": str(direct["chunk_bytes"]),
+                "AIMA_DIRECT_CHECKPOINT_WORKERS": str(load_workers),
+            }
+        )
+        load_event = {
+            "load_mode": "direct",
+            "checkpoint_plan": str(direct_plan),
+            "checkpoint_shards": direct_result["shard_count"] if direct_result else None,
+            "load_workers": load_workers,
+            "extra_weight_copy_bytes": 0,
+        }
+    else:
+        if image_result is None or image_manifest_path is None:
+            raise UserError("striped-image validation did not produce a load contract")
+        image = config["striped_image"]
+        native_loader = repo_path(config["native"]["striped_image_loader"]["path"])
+        lanes = image_result["lanes"]
+        env.update(
+            {
+                "AMD395_STRIPED_IMAGE_CHUNK_BYTES": str(image["chunk_bytes"]),
+                "AMD395_STRIPED_IMAGE_EXPECTED_SUM": str(image["expected_sum"]),
+                "AMD395_STRIPED_IMAGE_EXPECTED_XOR": str(image["expected_xor"]),
+                "AMD395_STRIPED_IMAGE_LANE0_SHA256": str(image["lane0"]["sha256"]),
+                "AMD395_STRIPED_IMAGE_LANE1_SHA256": str(image["lane1"]["sha256"]),
+                "AMD395_STRIPED_IMAGE_LOADER": str(native_loader),
+                "AMD395_STRIPED_IMAGE_MANIFEST": str(image_manifest_path),
+                "AMD395_STRIPED_IMAGE_NATIVE_REPORT": str(
+                    output_dir / "striped-native-loader.json"
+                ),
+            }
+        )
+        load_event = {
+            "load_mode": "striped",
+            "image_manifest": str(image_manifest_path),
+            "lane_paths": [item["path"] for item in lanes],
+        }
     policy = config["fixed_policy"]
     argv = [
         str(python),
@@ -654,8 +842,7 @@ def serve(args: argparse.Namespace) -> int:
         "output_dir": str(output_dir),
         "ready_file": str(ready_file),
         "engine_sha256": config["engine"]["sha256"],
-        "image_manifest": str(image_manifest_path),
-        "lane_paths": [item["path"] for item in lanes],
+        **load_event,
     }
     print(json.dumps(event, sort_keys=True), flush=True)
     os.chdir(ROOT)
@@ -817,7 +1004,21 @@ def add_runtime_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--config", default=str(DEFAULT_CONFIG))
     parser.add_argument("--runtime-python")
     parser.add_argument("--model-dir")
-    parser.add_argument("--image-manifest")
+    parser.add_argument(
+        "--load-mode",
+        choices=("direct", "striped"),
+        default=os.environ.get("AIMA_LOAD_MODE", "direct"),
+        help="load standard Safetensors directly (default) or use optional striped images",
+    )
+    parser.add_argument(
+        "--load-workers",
+        type=int,
+        help="direct Safetensors reader workers; defaults to the qualified release value",
+    )
+    parser.add_argument(
+        "--image-manifest",
+        help="required only with --load-mode striped",
+    )
 
 
 def add_http_arguments(parser: argparse.ArgumentParser) -> None:
@@ -838,9 +1039,13 @@ def build_parser() -> argparse.ArgumentParser:
     verify_parser.add_argument("--json", action="store_true")
     verify_parser.set_defaults(handler=verify_release)
 
-    doctor_parser = subparsers.add_parser("doctor", help="check host, runtime, model and images")
+    doctor_parser = subparsers.add_parser("doctor", help="check host, runtime and model loading")
     add_runtime_arguments(doctor_parser)
-    doctor_parser.add_argument("--deep", action="store_true", help="also SHA-256 both 32 GiB lanes")
+    doctor_parser.add_argument(
+        "--deep",
+        action="store_true",
+        help="with --load-mode striped, also SHA-256 both 32 GiB lanes",
+    )
     doctor_parser.add_argument("--json", action="store_true")
     doctor_parser.set_defaults(handler=doctor)
 

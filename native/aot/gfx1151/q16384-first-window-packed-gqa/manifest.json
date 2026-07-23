@@ -1,0 +1,358 @@
+{
+  "abi": {
+    "hidden_argument_values": [
+      0,
+      0
+    ],
+    "hidden_arguments": [
+      "global_scratch",
+      "profile_scratch"
+    ],
+    "launch": "hipModuleLaunchKernel"
+  },
+  "coverage": {
+    "cache_state": "warm_compilation_cache_cold_prefix_request",
+    "completion_tokens": 1,
+    "context_tokens": 8192,
+    "full_matrix_complete": false
+  },
+  "kernel_count": 1,
+  "kernel_symbol_count": 1,
+  "kernels": [
+    {
+      "audit_artifacts": [
+        {
+          "bytes": 28004,
+          "name": "_packed_gqa_mha_fwd.ttir",
+          "sha256": "0ba6ebf8330af69bf0c8fccdd0890c1d01b82b1dc1d1b03eb6d92ca24543597d"
+        },
+        {
+          "bytes": 28810,
+          "name": "_packed_gqa_mha_fwd.ttgir",
+          "sha256": "21d91b0443ff8fa35f39562fd208041ee98e86e29de9277aed38cd4902fd595f"
+        },
+        {
+          "bytes": 513748,
+          "name": "_packed_gqa_mha_fwd.llir",
+          "sha256": "2c7d7130a6a496366b8a61ceb2211828ceabec097665df90a0f05701a7218bce"
+        },
+        {
+          "bytes": 215870,
+          "name": "_packed_gqa_mha_fwd.amdgcn",
+          "sha256": "321dae94a018ba6168cb13fb42a5f187b6cd2cb7a8d42997addefb83a43513d3"
+        },
+        {
+          "bytes": 1135,
+          "name": "_packed_gqa_mha_fwd.json",
+          "sha256": "3d382d98229bdc7a3f8584021f3e984877f083310b01093b9951ea7956b54791"
+        },
+        {
+          "bytes": 36544,
+          "name": "_packed_gqa_mha_fwd.hsaco",
+          "sha256": "d3ad17c1c6b0ce7b6beab073c0681a8bdd26c6694f76504e6ceb0a3d9a0ad204"
+        },
+        {
+          "bytes": 62655,
+          "name": "_packed_gqa_mha_fwd.source",
+          "sha256": "fd9f3d03e75b0f995fd9c2367aee13aca65354987d43592f6b5d74ece51d2e6c"
+        }
+      ],
+      "compile_constants": {
+        "BLOCK_N": 32,
+        "HEAD_DIM": 256,
+        "NUM_KV_HEADS": 2,
+        "NUM_Q_HEADS": 16,
+        "QUERY_HEADS_PER_PROGRAM": 8,
+        "QUERY_ROWS_PER_HEAD": 16,
+        "SEQLEN_K": 8192,
+        "SEQLEN_Q": 8192,
+        "SM_SCALE": 0.0625,
+        "stride_kd": 1,
+        "stride_od": 1,
+        "stride_qd": 1,
+        "stride_vd": 1
+      },
+      "image": {
+        "bytes": 33104,
+        "path": "kernels/4c6b00554f1a7b65-_packed_gqa_mha_fwd.hsaco",
+        "raw_bytes": 36544,
+        "raw_sha256": "d3ad17c1c6b0ce7b6beab073c0681a8bdd26c6694f76504e6ceb0a3d9a0ad204",
+        "sha256": "d1540f853da3b399a9ee2ecbec41dfcb45f0aebc1794d06544ed5dab19db2c4b",
+        "transformation": "llvm-strip --strip-debug"
+      },
+      "kernel_hash": "4c6b00554f1a7b655eaf50486bc593fa0910e9f9e2ef94d20c83ddd4871f113b",
+      "launch_variants": [
+        {
+          "arguments": [
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "q_ptr",
+              "shape": [
+                1,
+                8192,
+                16,
+                256
+              ],
+              "stride": [
+                33554432,
+                4096,
+                256,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "k_ptr",
+              "shape": [
+                1,
+                8192,
+                2,
+                256
+              ],
+              "stride": [
+                4194304,
+                512,
+                256,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "v_ptr",
+              "shape": [
+                1,
+                8192,
+                2,
+                256
+              ],
+              "stride": [
+                4194304,
+                512,
+                256,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "out_ptr",
+              "shape": [
+                1,
+                8192,
+                16,
+                256
+              ],
+              "stride": [
+                33554432,
+                4096,
+                256,
+                1
+              ]
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_qs",
+              "value": 4096
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_qh",
+              "value": 256
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_ks",
+              "value": 512
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_kh",
+              "value": 256
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_vs",
+              "value": 512
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_vh",
+              "value": 256
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_os",
+              "value": 4096
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_oh",
+              "value": 256
+            }
+          ],
+          "grid": [
+            512,
+            2,
+            1
+          ]
+        }
+      ],
+      "metadata": {
+        "launch_cooperative_grid": false,
+        "name": "_packed_gqa_mha_fwd",
+        "num_ctas": 1,
+        "num_stages": 1,
+        "num_warps": 8,
+        "shared": 65536,
+        "target": {
+          "arch": "gfx1151",
+          "backend": "hip",
+          "warp_size": 32
+        },
+        "warp_size": 32
+      },
+      "regular_abi": [
+        {
+          "name": "q_ptr",
+          "type": "*bf16"
+        },
+        {
+          "name": "k_ptr",
+          "type": "*bf16"
+        },
+        {
+          "name": "v_ptr",
+          "type": "*bf16"
+        },
+        {
+          "name": "out_ptr",
+          "type": "*bf16"
+        },
+        {
+          "name": "stride_qs",
+          "type": "i32"
+        },
+        {
+          "name": "stride_qh",
+          "type": "i32"
+        },
+        {
+          "name": "stride_ks",
+          "type": "i32"
+        },
+        {
+          "name": "stride_kh",
+          "type": "i32"
+        },
+        {
+          "name": "stride_vs",
+          "type": "i32"
+        },
+        {
+          "name": "stride_vh",
+          "type": "i32"
+        },
+        {
+          "name": "stride_os",
+          "type": "i32"
+        },
+        {
+          "name": "stride_oh",
+          "type": "i32"
+        }
+      ],
+      "signature": {
+        "BLOCK_N": "constexpr",
+        "HEAD_DIM": "constexpr",
+        "NUM_KV_HEADS": "constexpr",
+        "NUM_Q_HEADS": "constexpr",
+        "QUERY_HEADS_PER_PROGRAM": "constexpr",
+        "QUERY_ROWS_PER_HEAD": "constexpr",
+        "SEQLEN_K": "constexpr",
+        "SEQLEN_Q": "constexpr",
+        "SM_SCALE": "constexpr",
+        "k_ptr": "*bf16",
+        "out_ptr": "*bf16",
+        "q_ptr": "*bf16",
+        "stride_kd": "constexpr",
+        "stride_kh": "i32",
+        "stride_ks": "i32",
+        "stride_od": "constexpr",
+        "stride_oh": "i32",
+        "stride_os": "i32",
+        "stride_qd": "constexpr",
+        "stride_qh": "i32",
+        "stride_qs": "i32",
+        "stride_vd": "constexpr",
+        "stride_vh": "i32",
+        "stride_vs": "i32",
+        "v_ptr": "*bf16"
+      },
+      "source_provenance": [
+        {
+          "license": "Apache-2.0",
+          "owner": "Approaching AI Authors",
+          "path": "benchmarks/shape-lab/packed_gqa_mha_kernel.py"
+        },
+        {
+          "license": "MIT",
+          "owner": "Triton",
+          "path": "triton/language/standard.py"
+        }
+      ],
+      "symbol": "_packed_gqa_mha_fwd"
+    }
+  ],
+  "launch_variant_count": 1,
+  "non_claims": [
+    "not_yet_a_complete_native_model_executor",
+    "not_yet_full_context_matrix_coverage",
+    "not_yet_a_correctness_or_performance_promotion"
+  ],
+  "packaged_hsaco_bytes": 33104,
+  "raw_hsaco_bytes": 36544,
+  "schema": "aima-amd395-qwen36/native-aot-closure/v1",
+  "source": {
+    "commit": "f098712fa257698ee02b2e2f0dfe4be24026f074",
+    "compiler": {
+      "license": "MIT",
+      "name": "Triton",
+      "version": "3.6.0"
+    },
+    "engine_sha256": "79b5f070a30176af2a7a87a473fe578a15abd5177fb39b2ab9e188f66572fe0e",
+    "traces": [
+      {
+        "bytes": 5639,
+        "records": 2,
+        "sha256": "670d370ebc9898a473e73dcfb71cde4eba27da9c205c43210d6fe3b07b824964"
+      }
+    ],
+    "vllm_license": "Apache-2.0",
+    "vllm_version": "0.19.1rc1.dev300+g29e5d1020.rocm721"
+  },
+  "status": "bounded_q8192_output1_executor_migration_evidence",
+  "target": {
+    "arch": "gfx1151",
+    "backend": "HIP",
+    "warp_size": 32
+  }
+}

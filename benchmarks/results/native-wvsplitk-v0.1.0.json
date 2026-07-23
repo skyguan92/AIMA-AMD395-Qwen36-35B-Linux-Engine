@@ -1,0 +1,128 @@
+{
+  "schema": "aima-amd395-qwen36/native-wvsplitk-qualification/v1",
+  "complete": true,
+  "scope": "decode_projection_provider_boundary_only",
+  "generated_at_utc": "2026-07-21T16:55:00Z",
+  "source": {
+    "base_commit": "c1d274a00f8db28d9bd806db008b7bbc32cd5634",
+    "worktree_dirty": true,
+    "native_source": "native/src/bf16_wvsplitk.hip.cpp",
+    "native_source_sha256": "b9d7a0c26fe87657df7a953a8f9d949376d54d3afc2722f44cbee613614e3654",
+    "native_header_sha256": "11c7febf7f1d1a7fe28c110b2e67c564a4740556faeae059dc72c661c42dcb",
+    "validation_script_sha256": "7f057486d2f6883ac47d4b0656cb00a9e4df19ce880e7d5a65c730b1483ea951",
+    "upstream": {
+      "project": "vllm-project/vllm",
+      "commit": "29e5d102050669d03992a2eb863ad364ea50fab2",
+      "path": "csrc/rocm/skinny_gemms.cu",
+      "raw_source_sha256": "0189faf297176d2cd5fee4bcc2a5b27b712c84812eb9006631523715b4e137da",
+      "license": "Apache-2.0"
+    }
+  },
+  "binary": {
+    "path": "build/native/aima-engine-native",
+    "sha256": "b4df2282021102a7e7e5c0cfe50a425d60c8366377563bd7346476c9e4f72966",
+    "bytes": 33259512,
+    "runtime_python": false,
+    "runtime_torch": false,
+    "runtime_vllm": false,
+    "runtime_triton": false
+  },
+  "environment": {
+    "hostname": "quings",
+    "device": "Radeon 8060S Graphics",
+    "gpu_arch": "gfx1151",
+    "compute_units": 20,
+    "hip": "7.2.53211",
+    "torch_validation_oracle": "2.10.0+git8514f05",
+    "vllm_validation_oracle": "0.19.1rc1.dev300+g29e5d1020.rocm721"
+  },
+  "measurement": {
+    "warmup_launches": 10,
+    "launches_per_sample": 200,
+    "samples_per_run": 5,
+    "same_configuration_runs": 3,
+    "comparison_gate": "native median time / vLLM median time <= 1.03",
+    "correctness_gate": "full BF16 output byte SHA-256 equality"
+  },
+  "cases": [
+    {
+      "owner": "shared_expert_down",
+      "shape": {"m": 2048, "n": 1, "k": 512},
+      "count_per_decode_token": 40,
+      "output_bf16_sha256": "244856f006c62696b1dccd8c7882fc8d63e5063cdab825e8dcd8e4f0bf93cd0a",
+      "full_output_bf16_sha256_equal_in_all_runs": true,
+      "native_run_medians_ms": [
+        0.004120534751564264,
+        0.004074485041201115,
+        0.004050130024552345
+      ],
+      "vllm_run_medians_ms": [
+        0.004041534960269928,
+        0.004020130038261413,
+        0.003989534974098205
+      ],
+      "native_median_of_run_medians_ms": 0.004074485041201115,
+      "vllm_median_of_run_medians_ms": 0.004020130038261413,
+      "native_to_vllm_time_ratio": 1.0135207076443746,
+      "bounded_nonregression_passed": true
+    },
+    {
+      "owner": "linear_attention_output",
+      "shape": {"m": 2048, "n": 1, "k": 4096},
+      "count_per_decode_token": 30,
+      "output_bf16_sha256": "7bfe6028c9df4e156947779c0aeb080ca8bfcc284def70e954e83bdb326db68b",
+      "full_output_bf16_sha256_equal_in_all_runs": true,
+      "native_run_medians_ms": [
+        0.09137807786464691,
+        0.08980807662010193,
+        0.08963315933942795
+      ],
+      "vllm_run_medians_ms": [
+        0.0972539234161377,
+        0.09577984809875488,
+        0.09472726821899415
+      ],
+      "native_median_of_run_medians_ms": 0.08980807662010193,
+      "vllm_median_of_run_medians_ms": 0.09577984809875488,
+      "native_to_vllm_time_ratio": 0.9376510654673863,
+      "native_speedup": 1.066494815426392,
+      "bounded_nonregression_passed": true
+    }
+  ],
+  "raw_artifacts": [
+    {
+      "path": "state/native-aot-q8192-v1/native-wvsplitk-paired-batched-run1.json",
+      "sha256": "9999697663bd2b2c82747c256da91c5ab294a80e6073c6ecdbad556415edaadd"
+    },
+    {
+      "path": "state/native-aot-q8192-v1/native-wvsplitk-paired-batched-run2.json",
+      "sha256": "7ce9d1593dcb7b5c8e2ca48dac22377e8fabf0ca38aac76a29137d67a2b81c10"
+    },
+    {
+      "path": "state/native-aot-q8192-v1/native-wvsplitk-paired-batched-run3.json",
+      "sha256": "cb86742e2bb9c348b49c72206cab8e703bbb01b8e2c56a9bf77e95f77f2310e1"
+    }
+  ],
+  "bundle": {
+    "path": "dist/aima-engine-native-foundation-b4df22820211",
+    "manifest_sha256": "15ccaff3ddd042e225f76a7a18ad22e663912611dbc3d45766d6c318193ab367",
+    "payload_bytes": 353163523,
+    "file_or_symlink_count": 190,
+    "isolated_home_and_empty_environment_passed": true,
+    "successful_system_rocm_path_opens": 0,
+    "successful_python_torch_vllm_triton_path_opens": 0,
+    "openat_trace_sha256": "fd91f0291837268afa87383c3669d1b892c0ad1f0c41e8155102102238481a43"
+  },
+  "decision": {
+    "full_bf16_output_parity_passed": true,
+    "both_decode_projection_shapes_nonregressing": true,
+    "torch_vllm_dispatch_removal_supported_for_selected_owners": true
+  },
+  "claims": {
+    "decode_projection_provider_boundary_qualified": true,
+    "full_native_inference_qualified": false,
+    "full_context_matrix_qualified": false,
+    "api_ready_startup_qualified": false,
+    "prefix_cache_qualified": false
+  }
+}

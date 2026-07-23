@@ -1,61 +1,142 @@
-# Architecture
+# Native architecture
 
-## Design objective
+## Product boundary
 
-The engine is specialized for one model, one GPU architecture and batch size
-one. The optimization boundary is the complete resident request, not a generic
-framework abstraction.
+The v1.2 runtime specializes one model, one GPU architecture and batch size one.
+It is a native resident engine, not a Python wrapper around the v1.1 stack.
 
 ```text
-CLI / HTTP
-    |
-resident request adapter
-    |
-fixed context and prefix policy
-    |
-40-layer parameterized engine loop
-    |-- Triton projection, normalization, routing and attention kernels
-    |-- vLLM fused MoE and FLA primitives from the qualified runtime
-    |-- CK-Tile fixed-shape full-attention providers
-    `-- independent-storage striped checkpoint loader
+static bin/aima-engine launcher
+        |
+bundled glibc loader + BUNDLE/lib
+        |
+native HTTP / tokenizer / resident engine
+        |
+40-layer parameterized loop
+        |-- embedded captured gfx1151 AOT code objects
+        |-- native HIP pointwise, state and cache kernels
+        |-- native gfx1151 wvSplitK decode projections
+        |-- hipBLASLt BF16 prefill plans
+        |-- q1024/q2048/q4096 bundled AOTriton FMHA
+        |-- q8192/q32768/long-chunk bundled CK-Tile FMHA
+        `-- q16384 bundled packed-GQA/CK hybrid FMHA
+        |
+native Safetensors O_DIRECT scatter
+        |
+693 resident model tensors + derived layouts + LM head
 ```
 
-## Residency
+No Python interpreter, PyTorch dispatcher/tensor owner, vLLM operator registry,
+Triton JIT or Transformers tokenizer exists in the runtime process.
 
-Startup allocates independent device tensors for 693 active checkpoint
-objects. A native dual-lane loader reads the deterministic startup images and
-scatters payloads directly into those Torch-owned storages. The process then
-retains raw tensors, derived layouts, workspaces and model state.
+## Startup and ownership
 
-The published startup clock includes command launch, imports, allocation,
-image ingestion, model setup and load-only kernel priming until the HTTP API is
-ready. Priming executes no hidden full-model user request and creates no prefix
-cache entry.
+The engine validates the checkpoint index, allocates 693 independent final HIP
+device tensors, and scatters only the active language-model ranges from the 26
+Safetensors shards. Reader workers use page-aligned pinned buffers, O_DIRECT
+when supported, asynchronous H2D copies and a buffered fallback for filesystems
+that reject direct I/O.
+
+Before readiness it verifies the complete 69,321,221,376-byte GPU payload,
+builds the shared derived weight layouts and int8 LM head, resolves every AOT
+weight binding, loads code objects, prepares hipBLASLt plans, allocates
+prefill/decode workspaces and creates the prefix-cache owner. Nothing performs a
+second full-weight copy.
+
+All owners live for the process lifetime. Normal request execution performs no
+checkpoint or oracle reads.
+
+## O(1) source structure
+
+Layer source is parameterized. One linear-attention path, one full-attention
+path, one MoE path and one 40-layer loop consume layer-indexed bindings. There
+are no per-layer source files or generated host branches. Validation ledgers and
+captured schedules may scale with layer count; executable source structure does
+not.
+
+## Static context profiles
+
+Prefill uses captured schedules for the standard shapes. Long contexts run the
+same qualified q8192 chunk schedule in a layer-major loop, carry recurrent/KV
+state across chunks, and use one of the admitted tail schedules.
+
+| Context | Prefill schedule | Full-attention provider |
+|---:|---|---|
+| 1024 | q1024 embedded AOT closure | bundled AOTriton 0.11.1 |
+| 2048 | q2048 embedded AOT closure | bundled AOTriton 0.11.1 |
+| 4096 | q4096 embedded AOT closure | bundled AOTriton 0.11.1 |
+| 8192 | q8192 embedded AOT closure | bundled CK-Tile |
+| 16384 | q16384 embedded AOT closure | packed-GQA/CK hybrid; CK layer 39 |
+| 32768 | q32768 embedded AOT closure | bundled CK-Tile |
+| 65536+ | repeated q8192 closure plus 7168/7680/8191 tail when needed | CK-Tile; AOTriton layer 39 |
+
+Provider selection is derived from the admitted context and the executable's
+own location. `--fmha-provider` is an explicit qualification override.
+
+The fixed schedule is why arbitrary cold prompt lengths are rejected. The
+engine never interpolates between unmeasured policies. Published standard
+contexts and the three maximum-window endpoints are fully qualified.
+
+## Correctness-sensitive arithmetic
+
+The native q1024 full-attention input path reproduces PyTorch's vectorized
+head-RMSNorm reduction order and correctly rounded FP32 reciprocal square root.
+RoPE products are split at eager FP32 rounding boundaries. This removed the
+rare one-ULP Q-head drift that had previously amplified through attention.
+
+Full-vocabulary release gates are distributional: finite logits, matching top-1
+and KLD below `0.005`. Exact boundary probes remain available for localization
+but are not substituted for the end-to-end gate.
 
 ## Request execution
 
-The server supports one in-flight request. For a cold prompt, it performs
-prefill, retains the resulting recurrent/KV state and runs greedy one-token
-decode until a stop token or length limit. Terminal EOS is hidden from content
-but included in usage.
+A cold request runs the selected prefill schedule, writes full-attention KV
+directly into the resident cache, retains all linear recurrent/conv state, runs
+the native LM head, and captures one cache checkpoint. The first completion
+token comes from the prefill distribution; later tokens execute the 402-launch
+decode schedule plus native support kernels.
 
-## Prefix reuse
+Greedy decode stops on the model EOS or the requested length. EOS is included
+in token usage and omitted from visible text.
 
-The exact-prefix cache retains one checkpoint for prompts up to 32,768 tokens.
-An exact hit restores the full state; a strict hit restores the longest exact
-token prefix and prefills only the suffix. The runtime contract is part of the
-cache key, preventing state reuse across incompatible output policies.
+## Prefix cache
 
-## Context specialization
+The one-entry cache owns:
 
-Cold request lengths 8k, 16k, 32k, 64k and 128k use only separately measured
-policies. There is no threshold interpolation. Other valid lengths use the
-safe fallback layout. Maximum-valid requests use persistent full-attention
-providers for all complete and final partial chunks.
+- the static token sequence;
+- every linear-attention conv/recurrent state;
+- K/V state for all ten full-attention layers;
+- the terminal hidden row used for the cached first-token distribution.
 
-## Integrity model
+An exact hit restores the state and bypasses prefill. If a request begins with
+the cached tokens and adds a suffix, the engine restores the same state,
+executes each suffix token through native decode at its real position, and then
+starts completion. Cache metrics distinguish miss, exact and prefix-extension
+lookups and report that no prefill launches occurred on a hit.
 
-The release config pins every production source and native binary by SHA-256.
-The CLI verifies these hashes before serving. Startup-image manifests bind the
-checkpoint index, exact geometry and lane paths; the native loader validates
-the complete device payload checksum before exposing the model as ready.
+## HTTP residency
+
+The server loads the native tokenizer and engine before binding/listening. One
+process handles one request at a time, retaining model and cache state. Health
+and model-list endpoints do not mutate the cache. `SIGINT`, `SIGTERM` and
+`POST /shutdown` lead to normal RAII cleanup.
+
+## Portable userspace
+
+The archive includes a fully static launcher and a complete x86-64 dynamic
+closure for the real engine and all three FMHA providers. The launcher invokes the
+colocated glibc loader with `--inhibit-cache`; all RUNPATH entries are
+`$ORIGIN`-relative. The engine points HIP device libraries and hipBLASLt
+assets at its own bundle.
+
+This removes host ROCm/glibc/C++ version coupling. It cannot remove the Linux
+kernel ABI, AMDGPU/KFD driver, device nodes, CPU architecture or `gfx1151`
+hardware contract.
+
+## Evidence separation
+
+The full-envelope portable decision is recorded in
+[the v1.2 native result](../benchmarks/results/native-portable-product-v1.2.0.json).
+The v1.1 complete-context matrix remains the frozen per-cell floor. A
+bundle-closure pass, a correctness pass and a performance pass are independent
+gates; none is used as a proxy for another.

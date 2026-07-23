@@ -38,7 +38,7 @@ class ReleaseContractTest(unittest.TestCase):
         cls.context_policy = load_module("release_context_policy_test", CONTEXT_POLICY_PATH)
 
     def test_release_components_are_hash_qualified(self) -> None:
-        self.assertEqual(__version__, "1.0.0")
+        self.assertEqual(__version__, "1.2.0")
         checks = cli.verify_components(self.config)
         self.assertGreaterEqual(len(checks), 10)
         self.assertTrue(all(item["passed"] for item in checks), checks)
@@ -175,6 +175,17 @@ class ReleaseContractTest(unittest.TestCase):
                 str(model / "model.safetensors.index.json"),
             )
 
+    def test_direct_checkpoint_is_the_default_contract(self) -> None:
+        direct = self.config["direct_checkpoint"]
+        self.assertTrue(direct["default"])
+        self.assertEqual(direct["tensor_count"], 693)
+        self.assertEqual(direct["payload_bytes"], 69_321_221_376)
+        self.assertEqual(direct["workers"], 2)
+        self.assertEqual(
+            direct["plan"]["path"],
+            self.config["striped_image"]["template"]["path"],
+        )
+
     def test_published_benchmark_boundary_is_explicit(self) -> None:
         result = json.loads((ROOT / "benchmarks/results/v1.0.0.json").read_text(encoding="utf-8"))
         matrix = result["cold_context_matrix"]
@@ -184,11 +195,26 @@ class ReleaseContractTest(unittest.TestCase):
         self.assertFalse(result["decision"]["raw_d275_engineering_target_complete"])
         self.assertEqual(result["correctness"]["http_usage_stop_prefix_checks"], "76/76")
 
+        direct = json.loads(
+            (ROOT / "benchmarks/results/v1.1.0.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(direct["release"], "1.1.0")
+        self.assertEqual(direct["load_mode"], "direct_safetensors")
+        self.assertEqual(len(direct["startup"]["model_load_to_api_ready_ms"]), 3)
+        self.assertTrue(direct["integrity"]["all_runs_gpu_payload_checksum_equal"])
+        self.assertEqual(direct["integrity"]["extra_weight_copy_bytes"], 0)
+
     def test_cli_surface_and_native_symbols(self) -> None:
         parser = cli.build_parser()
         self.assertEqual(parser.parse_args(["status"]).command, "status")
         serve = parser.parse_args(["serve", "--output-root", "/tmp/aima"])
         self.assertEqual(serve.output_root, "/tmp/aima")
+        self.assertEqual(serve.load_mode, "direct")
+        self.assertIsNone(serve.image_manifest)
+        self.assertEqual(cli.direct_worker_count(serve, self.config), 2)
+        invalid_workers = parser.parse_args(["serve", "--load-workers", "0"])
+        with self.assertRaises(cli.UserError):
+            cli.direct_worker_count(invalid_workers, self.config)
         nm = subprocess.run(
             ["nm", "-D", str(ROOT / self.config["native"]["striped_image_loader"]["path"])],
             capture_output=True,
@@ -197,6 +223,14 @@ class ReleaseContractTest(unittest.TestCase):
         )
         if nm.returncode == 0:
             self.assertIn("torch_owned_striped_tensor_scatter_ingest", nm.stdout)
+        direct_nm = subprocess.run(
+            ["nm", "-D", str(ROOT / self.config["native"]["direct_checkpoint_loader"]["path"])],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if direct_nm.returncode == 0:
+            self.assertIn("torch_owned_safetensors_tensor_scatter_ingest", direct_nm.stdout)
 
     def test_runtime_python_preserves_virtualenv_symlink(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -214,7 +248,7 @@ class ReleaseContractTest(unittest.TestCase):
         forbidden = ["/home/" + "quings", "/data/home/" + "quings", "qujing" + "#$@21"]
         suffixes = {".c", ".cc", ".cpp", ".h", ".hip", ".json", ".md", ".py", ".sh", ".toml", ".txt", ".yml", ".yaml"}
         findings: list[str] = []
-        excluded = {".git", "__pycache__", "build", "output", "state"}
+        excluded = {".git", "__pycache__", "build", "dist", "output", "state"}
         for path in ROOT.rglob("*"):
             if (
                 not path.is_file()
@@ -232,7 +266,7 @@ class ReleaseContractTest(unittest.TestCase):
         self.assertEqual(findings, [])
 
     def test_json_and_relative_document_links_are_valid(self) -> None:
-        excluded = {".git", "__pycache__", "build", "output", "state"}
+        excluded = {".git", "__pycache__", "build", "dist", "output", "state"}
         for path in ROOT.rglob("*.json"):
             if any(part in excluded for part in path.parts):
                 continue
@@ -240,7 +274,7 @@ class ReleaseContractTest(unittest.TestCase):
                 json.loads(path.read_text(encoding="utf-8"))
 
         missing: list[str] = []
-        link_pattern = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
+        link_pattern = re.compile(r"\]\(([^)]+)\)")
         for path in ROOT.rglob("*.md"):
             if any(part in excluded for part in path.parts):
                 continue
@@ -259,9 +293,18 @@ class ReleaseContractTest(unittest.TestCase):
         notice = (ROOT / "NOTICE").read_text(encoding="utf-8")
         self.assertIn("Copyright 2026 Approaching AI Authors", notice)
         service = (ROOT / "packaging/systemd/aima-engine.service").read_text(encoding="utf-8")
-        self.assertIn("--output-root /var/lib/aima-qwen36", service)
-        self.assertIn("ExecStop=", service)
-        self.assertIn("--endpoint http://127.0.0.1:8000", service)
+        environment = (
+            ROOT / "packaging/systemd/aima-engine.env.example"
+        ).read_text(encoding="utf-8")
+        self.assertIn("/opt/aima-engine/bin/aima-engine serve", service)
+        self.assertIn("--context-tokens ${AIMA_CONTEXT_TOKENS}", service)
+        self.assertIn("--host ${AIMA_HOST}", service)
+        self.assertIn("--port ${AIMA_PORT}", service)
+        self.assertNotIn("ExecStop=", service)
+        self.assertIn("TimeoutStopSec=30", service)
+        self.assertIn("AIMA_CONTEXT_TOKENS=8192", environment)
+        self.assertNotIn("AIMA_LOAD_MODE=", environment)
+        self.assertNotIn("AIMA_IMAGE_MANIFEST=", environment)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,70 @@
+{
+  "schema": "aima-amd395-qwen36/native-tokenizer-qualification/v1",
+  "version": "0.1.0-native-foundation",
+  "complete": true,
+  "scope": "supported_text_and_system_user_chat_template",
+  "native_binary_sha256": "4daba873b997415bbc4755ee09c69e9c96decd5af66262c1d1328edac142da36",
+  "model_identity": {
+    "tokenizer_sha256": "5f9e4d4901a92b997e463c1f46055088b6cca5ca61a6522d1b9f64c4bb81cb42",
+    "tokenizer_config_sha256": "5186f0defcd7f232382c7f0aebcd2252d073bb921ab240e407b7ae8745d2b29b",
+    "bpe_vocab_entries": 248044,
+    "added_tokens": 33,
+    "total_tokenizer_size": 248077,
+    "eos_token_id": 248046,
+    "pad_token_id": 248044
+  },
+  "reference": {
+    "python": "3.12.3",
+    "transformers": "4.57.6",
+    "tokenizers": "0.22.2",
+    "implementation": "Qwen2TokenizerFast loaded from the qualified model directory"
+  },
+  "coverage": {
+    "case_count": 85,
+    "text_cases": 81,
+    "chat_template_cases": 4,
+    "deterministic_generated_text_cases": 64,
+    "generated_seed": 20260721,
+    "text_classes": [
+      "empty",
+      "ASCII and contractions",
+      "spaces tabs and CRLF",
+      "Chinese Japanese Korean",
+      "Arabic Hindi Cyrillic Greek",
+      "NFC combining characters",
+      "emoji and zero-width joiners",
+      "source code and numbers",
+      "added and special tokens"
+    ],
+    "chat_classes": [
+      "system plus user",
+      "user without system",
+      "Unicode whitespace trimming",
+      "thinking enabled and disabled",
+      "English and Chinese"
+    ]
+  },
+  "decision": {
+    "all_token_ids_equal": true,
+    "all_text_decodes_equal": true,
+    "all_chat_template_text_equal": true,
+    "native_runtime_python": false,
+    "native_runtime_transformers": false,
+    "icu_linkage": "static",
+    "icu_runtime_shared_library_needed": false
+  },
+  "timing_diagnostic": {
+    "native_load_ms_min": 295.042678,
+    "native_load_ms_median": 304.065431,
+    "native_load_ms_max": 342.679186,
+    "native_encode_ms_max": 0.177136,
+    "note": "one fresh native process per case; timing is diagnostic and not a promotion claim"
+  },
+  "source_artifact_sha256": "74343cb6e6ccfb6ad416f7237b4da0652eb90ad47b7ff3b805511e100e015491",
+  "claims": {
+    "native_tokenizer_boundary_implemented": true,
+    "supported_chat_template_boundary_implemented": true,
+    "full_http_control_plane_implemented": false,
+    "full_native_inference_qualified": false
+  }
+}

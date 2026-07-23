@@ -83,7 +83,7 @@ sudo reboot
 
 These are global AMDGPU memory-manager settings. Do not apply them to a host
 with less than 128 GB of installed unified memory, and do not claim a different
-kernel as qualified merely because the memory checks pass. v1.0.0 performance
+kernel as qualified merely because the memory checks pass. v1.1.0 performance
 was qualified on the kernel and ROCm versions listed in
 [`INSTALL.md`](INSTALL.md).
 

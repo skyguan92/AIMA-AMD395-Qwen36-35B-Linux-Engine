@@ -77,7 +77,7 @@ sudo reboot
 
 这两个参数会影响整台机器的 AMDGPU 内存管理。不要在物理统一内存不足
 128 GB 的机器上应用。内存检查通过也不代表任意内核版本都已得到性能
-认证；v1.0.0 的合格内核和 ROCm 版本见 [`INSTALL.md`](INSTALL.md)。
+认证；v1.1.0 的合格内核和 ROCm 版本见 [`INSTALL.md`](INSTALL.md)。
 
 ## 3. 授予 GPU 设备权限
 

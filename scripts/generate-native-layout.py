@@ -1,0 +1,190 @@
+#!/usr/bin/env python3
+"""Generate the compile-time native tensor layout from qualified release data."""
+
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 Approaching AI Authors
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import math
+from pathlib import Path
+import sys
+from typing import Any
+
+
+ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_MANIFEST = ROOT / "engine" / "production-striped-image-manifest.json"
+DEFAULT_RUNTIME_CONFIG = ROOT / "engine" / "production-runtime-config.json"
+DEFAULT_PRODUCT_CONTRACT = ROOT / "native" / "product-contract.json"
+DEFAULT_OUTPUT = ROOT / "native" / "generated" / "model_layout.h"
+
+
+def load_object(path: Path) -> dict[str, Any]:
+    value = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(value, dict):
+        raise RuntimeError(f"JSON root must be an object: {path}")
+    return value
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for block in iter(lambda: stream.read(8 * 1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def cpp_string(value: str) -> str:
+    return json.dumps(value, ensure_ascii=True)
+
+
+def render(manifest_path: Path, runtime_path: Path, contract_path: Path) -> str:
+    manifest = load_object(manifest_path)
+    runtime = load_object(runtime_path)
+    contract = load_object(contract_path)
+    entries = manifest.get("entries")
+    direct = runtime.get("direct_checkpoint", {})
+    model = contract.get("model", {})
+    if manifest.get("complete") is not True or not isinstance(entries, list):
+        raise RuntimeError("qualified tensor manifest is incomplete")
+    if len(entries) != int(direct.get("tensor_count", -1)):
+        raise RuntimeError("runtime tensor count does not match the manifest")
+    if len(entries) != int(model.get("tensor_count", -1)):
+        raise RuntimeError("product tensor count does not match the manifest")
+    if manifest.get("layout", {}).get("payload_bytes") != int(direct.get("payload_bytes", -1)):
+        raise RuntimeError("runtime payload bytes do not match the manifest")
+    if int(model.get("payload_bytes", -1)) != int(direct.get("payload_bytes", -2)):
+        raise RuntimeError("product payload bytes do not match the runtime")
+    index_sha = str(
+        manifest.get("inputs", {}).get("checkpoint_index", {}).get("sha256", "")
+    )
+    if index_sha != direct.get("checkpoint_index_sha256") or index_sha != model.get(
+        "checkpoint_index_sha256"
+    ):
+        raise RuntimeError("checkpoint-index identity differs across native inputs")
+    if str(direct.get("expected_xor")) != str(model.get("expected_payload_xor")):
+        raise RuntimeError("payload XOR differs across native inputs")
+    if str(direct.get("expected_sum")) != str(model.get("expected_payload_sum")):
+        raise RuntimeError("payload sum differs across native inputs")
+
+    shard_names = sorted({str(entry["source_shard"]) for entry in entries})
+    if len(shard_names) != int(model.get("checkpoint_shards", -1)):
+        raise RuntimeError("checkpoint shard count differs from the product contract")
+    shard_indices = {name: index for index, name in enumerate(shard_names)}
+    normalized: list[dict[str, Any]] = []
+    names: set[str] = set()
+    payload_total = 0
+    for position, entry in enumerate(entries):
+        if not isinstance(entry, dict):
+            raise RuntimeError(f"manifest entry {position} is not an object")
+        name = str(entry.get("name", ""))
+        shape = entry.get("shape")
+        payload = int(entry.get("payload_bytes", 0))
+        offset = int(entry.get("source_offset_bytes", -1))
+        shard = str(entry.get("source_shard", ""))
+        if not name or name in names:
+            raise RuntimeError(f"invalid or duplicate tensor name at entry {position}")
+        if entry.get("dtype") != "BF16" or not isinstance(shape, list) or not 1 <= len(shape) <= 3:
+            raise RuntimeError(f"unsupported native tensor contract for {name}")
+        dimensions = [int(value) for value in shape]
+        if any(value <= 0 or value > 0xFFFFFFFF for value in dimensions):
+            raise RuntimeError(f"invalid native tensor shape for {name}")
+        if payload != math.prod(dimensions) * 2 or offset < 0 or shard not in shard_indices:
+            raise RuntimeError(f"invalid native tensor geometry for {name}")
+        names.add(name)
+        payload_total += payload
+        normalized.append(
+            {
+                "name": name,
+                "shard": shard_indices[shard],
+                "offset": offset,
+                "bytes": payload,
+                "rank": len(dimensions),
+                "shape": dimensions + [1] * (3 - len(dimensions)),
+            }
+        )
+    if payload_total != int(model["payload_bytes"]):
+        raise RuntimeError("native tensor payload sum differs from the product contract")
+
+    lines = [
+        "// Generated by scripts/generate-native-layout.py. Do not edit.",
+        "// SPDX-License-Identifier: Apache-2.0",
+        "#pragma once",
+        "",
+        "#include <array>",
+        "#include <cstddef>",
+        "#include <cstdint>",
+        "",
+        "namespace aima::generated {",
+        "",
+        "struct TensorSpec {",
+        "  const char* name;",
+        "  std::uint32_t shard_index;",
+        "  std::uint64_t source_offset_bytes;",
+        "  std::uint64_t payload_bytes;",
+        "  std::uint8_t rank;",
+        "  std::array<std::uint32_t, 3> shape;",
+        "};",
+        "",
+        f"inline constexpr char kModelId[] = {cpp_string(str(model['id']))};",
+        f"inline constexpr char kModelConfigSha256[] = {cpp_string(str(model['config_sha256']))};",
+        f"inline constexpr char kCheckpointIndexSha256[] = {cpp_string(index_sha)};",
+        f"inline constexpr char kTokenizerSha256[] = {cpp_string(str(model['tokenizer_sha256']))};",
+        f"inline constexpr char kTokenizerConfigSha256[] = {cpp_string(str(model['tokenizer_config_sha256']))};",
+        f"inline constexpr char kManifestSha256[] = {cpp_string(sha256_file(manifest_path))};",
+        f"inline constexpr std::uint64_t kPayloadBytes = {int(model['payload_bytes'])}ULL;",
+        f"inline constexpr std::uint64_t kExpectedPayloadXor = {int(str(model['expected_payload_xor']), 0)}ULL;",
+        f"inline constexpr std::uint64_t kExpectedPayloadSum = {int(str(model['expected_payload_sum']), 0)}ULL;",
+        "inline constexpr std::size_t kDefaultChunkBytes = 536870912ULL;",
+        "inline constexpr std::size_t kDefaultWorkerCount = 2;",
+        "",
+        f"inline constexpr std::array<const char*, {len(shard_names)}> kShardNames = {{{{",
+    ]
+    lines.extend(f"  {cpp_string(name)}," for name in shard_names)
+    lines.extend(["}};", "", f"inline constexpr std::array<TensorSpec, {len(normalized)}> kTensorSpecs = {{{{"])
+    for entry in normalized:
+        shape = ", ".join(str(value) for value in entry["shape"])
+        lines.append(
+            "  TensorSpec{"
+            f"{cpp_string(entry['name'])}, {entry['shard']}, {entry['offset']}ULL, "
+            f"{entry['bytes']}ULL, {entry['rank']}, {{{{{shape}}}}}"
+            "},"
+        )
+    lines.extend(["}};", "", "}  // namespace aima::generated", ""])
+    return "\n".join(lines)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
+    parser.add_argument("--runtime-config", type=Path, default=DEFAULT_RUNTIME_CONFIG)
+    parser.add_argument("--product-contract", type=Path, default=DEFAULT_PRODUCT_CONTRACT)
+    parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument("--check", action="store_true")
+    args = parser.parse_args()
+    expected = render(
+        args.manifest.resolve(),
+        args.runtime_config.resolve(),
+        args.product_contract.resolve(),
+    )
+    output = args.output.resolve()
+    if args.check:
+        actual = output.read_text(encoding="utf-8") if output.is_file() else None
+        if actual != expected:
+            print(f"generated native layout is stale: {output}", file=sys.stderr)
+            return 1
+        print(f"native layout: PASS ({len(expected.encode())} bytes)")
+        return 0
+    output.parent.mkdir(parents=True, exist_ok=True)
+    temporary = output.with_suffix(output.suffix + ".tmp")
+    temporary.write_text(expected, encoding="utf-8")
+    temporary.replace(output)
+    print(output)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

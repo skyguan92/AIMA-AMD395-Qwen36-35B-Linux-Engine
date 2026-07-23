@@ -1,0 +1,98 @@
+{
+  "schema": "aima-amd395-qwen36/native-bf16-gemm-qualification/v1",
+  "version": "0.1.0-native-gemm-foundation",
+  "complete": true,
+  "scope": "one_dominant_production_prefill_projection_shape_only",
+  "base_release_commit": "c1d274a00f8db28d9bd806db008b7bbc32cd5634",
+  "environment": {
+    "hostname_class": "qualified AMD395 target",
+    "device": "Radeon 8060S Graphics",
+    "gpu_arch": "gfx1151",
+    "os": "Ubuntu 24.04 Linux x86_64",
+    "hip": "7.2.26015-fc0010cf6a",
+    "hipblaslt_version": 100201
+  },
+  "shape": {
+    "m": 8192,
+    "n": 12352,
+    "k": 2048
+  },
+  "methodology": {
+    "dtype": "BF16 inputs and output with FP32 accumulation",
+    "layout": "row-major mathematical contract through equivalent column-major transpose views",
+    "warmup_iterations": 2,
+    "measured_iterations": 5,
+    "timing": "HIP events",
+    "decision": "paired same-host same-shape medians",
+    "correctness": "4096 contiguous BF16 output elements compared exactly for all-one inputs"
+  },
+  "native": {
+    "command": "build/native/aima-engine-native bf16-gemm-probe",
+    "provider": "hipBLASLt",
+    "runtime_python": false,
+    "runtime_torch": false,
+    "runtime_vllm": false,
+    "runtime_triton": false,
+    "binary_sha256": "bd35f80ca7dbc4f0261a389a05c80ebc95f7db928aed774bd626c97e32f3ceaa",
+    "heuristic_count": 32,
+    "workspace_bytes": 0,
+    "measured_ms": [
+      13.086591720581055,
+      13.103192329406738,
+      13.044832229614258,
+      13.102272033691406,
+      13.11427116394043
+    ],
+    "median_ms": 13.102272033691406,
+    "tflops": 31.6330131902497,
+    "exact_bf16_elements": 4096,
+    "expected_bf16_elements": 4096,
+    "source_artifact_sha256": "9902337366eab973c8bfcd9fa5b527489b7dcaab0b1523dd883ba3941d134d48"
+  },
+  "torch_reference": {
+    "python": "qualified_vllm_rocm721_patched_runtime",
+    "torch": "2.10.0+git8514f05",
+    "provider": "_BlasBackend.Cublaslt",
+    "measured_ms": [
+      13.85629653930664,
+      13.811448097229004,
+      13.823408126831055,
+      13.9061861038208,
+      13.881096839904785
+    ],
+    "median_ms": 13.85629653930664,
+    "tflops": 29.91162486226204,
+    "exact_bf16_elements": 4096,
+    "expected_bf16_elements": 4096,
+    "source_artifact_sha256": "8c055ee6cc95962611a38ca5b8d510ff6fd7fb44537f6629b039befe15152b2a"
+  },
+  "comparison": {
+    "native_speedup": 1.0575491413761158,
+    "native_time_reduction_percent": 5.441746309890716,
+    "native_throughput_ratio": 1.0575491413761158,
+    "minimum_native_to_qualified_ratio": 0.97,
+    "bounded_nonregression_passed": true
+  },
+  "bundle": {
+    "path": "dist/aima-engine-native-foundation-bd35f80ca7db",
+    "manifest_sha256": "a89495450ef57da5370b0c7229e22f98cbc639c6242fea5949286514a0d33cba",
+    "payload_bytes": 353083530,
+    "file_count": 189,
+    "gfx1151_only_hipblaslt_code_assets": true,
+    "isolated_home_and_empty_environment_passed": true,
+    "successful_system_rocm_path_opens": 0,
+    "probe_exact_bf16_elements": 4096,
+    "openat_trace_sha256": "f9e3c1d95bbfec8090bc47e03cbf99fcb56bc6e9c32e2bc58ae7b0dbbb20fbaa"
+  },
+  "claims": {
+    "native_dominant_prefill_gemm_shape_implemented": true,
+    "native_dominant_prefill_gemm_shape_nonregressing": true,
+    "torch_dispatch_required_for_this_shape": false,
+    "full_native_inference_qualified": false,
+    "full_context_matrix_qualified": false,
+    "correctness_qualified": false,
+    "prefix_cache_qualified": false,
+    "startup_qualified": false,
+    "full_product_rocm_bundle_qualified": false
+  }
+}

@@ -8,8 +8,12 @@ build/
 dist/
 output/
 state/
+benchmarks/runs/
 *.log
 *.pid
+*.so
+*.so.*
+/native-*-weight-load.json
 lane0.bin
 lane1.bin
 striped-image-manifest.json

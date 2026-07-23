@@ -350,6 +350,16 @@ def prepare_resident_engine(
     args: argparse.Namespace,
 ) -> dict[str, Any]:
     global _startup_max2_prewarms_done
+    direct_checkpoint_report: dict[str, Any] | None = None
+    direct_checkpoint_helper = os.environ.get("AIMA_DIRECT_CHECKPOINT_HELPER")
+    if direct_checkpoint_helper:
+        helper_path = Path(direct_checkpoint_helper).expanduser().resolve()
+        helper = load_script_module("aima_direct_checkpoint_loader", helper_path)
+        direct_checkpoint_report = helper.preload_from_environment(
+            engine=engine,
+            model_dir=model_dir,
+            device=args.device,
+        )
     prepare_args = argparse.Namespace(**vars(args))
     prepare_args.max_tokens = 2
     prepared = run_engine_once(
@@ -372,6 +382,7 @@ def prepare_resident_engine(
         "suppressed_prewarms": STARTUP_MAX2_PREWARM_COUNT,
         "reason": "user requests must not own hidden compile or exact-prefix warmup work",
     }
+    measurement["direct_checkpoint_loader"] = direct_checkpoint_report
     return measurement
 
 

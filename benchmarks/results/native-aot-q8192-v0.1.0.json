@@ -1,0 +1,107 @@
+{
+  "schema": "aima-amd395-qwen36/native-aot-foundation-qualification/v1",
+  "version": "0.1.0-native-aot-foundation",
+  "complete": true,
+  "scope": "bounded_q8192_output2_aot_foundation_only",
+  "base_release_commit": "c1d274a00f8db28d9bd806db008b7bbc32cd5634",
+  "environment": {
+    "hostname_class": "qualified AMD395 target",
+    "device": "Radeon 8060S Graphics",
+    "gpu_arch": "gfx1151",
+    "model": "Qwen3.6-35B-A3B-BF16",
+    "os": "Ubuntu 24.04 Linux x86_64",
+    "hip": "7.2.26015-fc0010cf6a"
+  },
+  "capture": {
+    "source_engine_sha256": "79b5f070a30176af2a7a87a473fe578a15abd5177fb39b2ab9e188f66572fe0e",
+    "context_tokens": 8192,
+    "completion_tokens": 2,
+    "cache_state": "warm_compilation_cache_cold_prefix_request",
+    "trace_sha256": "abd82cdcb3ec888f39c69be46af4f828fedaa0732b1cff071c248c83cfdd4df6",
+    "trace_records": 209,
+    "kernel_count": 25,
+    "kernel_symbol_count": 22,
+    "launch_variant_count": 26,
+    "raw_hsaco_bytes": 438448,
+    "stripped_hsaco_bytes": 345392
+  },
+  "aot_manifest": {
+    "path": "native/aot/gfx1151/q8192-output2/manifest.json",
+    "sha256": "8ea05788685ccfacddb28409ded478f1adaec2b52908ebdea138c089dce49d91",
+    "all_images_sha256_verified": true,
+    "all_images_path_clean": true,
+    "all_images_hip_module_load_passed": true,
+    "all_symbols_resolved": true,
+    "hidden_argument_abi": [
+      "global_scratch=0",
+      "profile_scratch=0"
+    ]
+  },
+  "binary": {
+    "path": "build/native/aima-engine-native",
+    "sha256": "9cc29cd004894cd47ae3c5578bc9a6f5973f5e1fcaedb32575c86514225de45c",
+    "bytes": 33143896,
+    "runpath": "$ORIGIN/../lib",
+    "reproducible_consecutive_build_sha256": true,
+    "forbidden_private_paths_present": false
+  },
+  "native_probe": {
+    "command": "build/native/aima-engine-native aot-closure-probe",
+    "loaded_count": 25,
+    "image_bytes": 345392,
+    "exact_bf16_elements": 1025,
+    "expected_bf16_elements": 1025,
+    "five_run_probe_ms": [
+      0.121857,
+      0.122218,
+      0.121798,
+      0.073428,
+      0.123037
+    ],
+    "five_run_median_probe_ms": 0.121857,
+    "timing_role": "diagnostic_only_not_a_route_value_claim",
+    "runtime_python": false,
+    "runtime_torch": false,
+    "runtime_vllm": false,
+    "runtime_triton": false
+  },
+  "bundle_probe": {
+    "path": "dist/aima-engine-native-foundation-9cc29cd00489",
+    "manifest_sha256": "9b72c208bd862952262d288437c139a05b13363b61bd176e3e5fc17a4eeba8e5",
+    "payload_bytes": 229233907,
+    "file_count": 88,
+    "isolated_home_and_empty_environment_passed": true,
+    "loaded_count": 25,
+    "exact_bf16_elements": 1025,
+    "successful_system_rocm_path_opens": 0,
+    "openat_trace_sha256": "d1a4bd0dd9774f55a584ca395d493836807518f35391fbdcd8867efa9d142137"
+  },
+  "bounded_performance": {
+    "metric": "q8192_output2_cold_prefix_prefill_tok_s_under_capture",
+    "captured_prefill_tok_s": 1575.086391246777,
+    "qualified_q8192_output512_prefill_tok_s": 1590.9453639891035,
+    "prefill_retention": 0.9900317301264439,
+    "delta_percent": -0.9968269873556146,
+    "minimum_native_to_qualified_ratio": 0.97,
+    "bounded_gate_passed": true,
+    "decode_result_claimable": false,
+    "decode_nonclaim_reason": "one post-first decode token cannot qualify steady-state decode throughput"
+  },
+  "source_artifact_sha256": {
+    "ready": "5b1e4f011a6164b1b4c28952ffa912684645ec8ce464647435012dd45546df51",
+    "response": "53ce1727c6ac738d2e3b446a25a56bc69ed92b9e589619f2f1de13d7fba9073d",
+    "summary": "923dc580118dc280c03ed954bacbf2bd957818c0b0d6064b8a57c025a59a58af"
+  },
+  "claims": {
+    "production_aot_closure_captured_for_this_shape": true,
+    "all_captured_code_objects_embedded": true,
+    "native_hip_loader_and_exact_kernel_launch_proved": true,
+    "python_torch_vllm_triton_needed_for_native_aot_probe": false,
+    "full_native_inference_qualified": false,
+    "full_context_matrix_qualified": false,
+    "correctness_qualified": false,
+    "prefix_cache_qualified": false,
+    "startup_qualified": false,
+    "full_product_rocm_bundle_qualified": false
+  }
+}

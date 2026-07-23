@@ -1,0 +1,127 @@
+{
+  "schema": "aima-amd395-qwen36/native-derived-weights-qualification/v2",
+  "version": "0.2.0-native-derived-weights",
+  "complete": true,
+  "scope": "all_layer_local_aot_decode_weight_layouts_and_two_real_layer0_boundaries",
+  "base_release_commit": "c1d274a00f8db28d9bd806db008b7bbc32cd5634",
+  "binary": {
+    "sha256": "530e6a0b9bc0037cfb078772021983175f806ce43775c995ef08e5bd3c2badb8",
+    "runtime_python": false,
+    "runtime_torch": false,
+    "runtime_vllm": false,
+    "runtime_triton": false
+  },
+  "source": {
+    "native_derived_weights_sha256": "ac76220d54b15441f08a5490febf046f198502dda685016adb2941887e6db938",
+    "native_derived_weights_header_sha256": "bfca96c4e226a81a4f57dfe933f0810c597a704b43badfb11a4be85ece7642fc",
+    "native_main_sha256": "8beadefcff6df8a0a81fda52a883ed72d3ef1221672b7630c88fa47e10d8efd2"
+  },
+  "environment": {
+    "hostname_class": "qualified AMD395 target",
+    "device": "Radeon 8060S Graphics",
+    "gpu_arch": "gfx1151",
+    "model": "Qwen3.6-35B-A3B-BF16",
+    "os": "Ubuntu 24.04 Linux x86_64",
+    "hip": "7.2.26015-fc0010cf6a"
+  },
+  "layout": {
+    "allocation_count": 1,
+    "view_count": 120,
+    "linear_attention_fused_transposed_views": 30,
+    "full_attention_qkv_fused_transposed_views": 10,
+    "shared_expert_fused_transposed_views": 40,
+    "router_transposed_views": 40,
+    "payload_bytes": 2105180160,
+    "increment_from_v0_1_bytes": 41943040,
+    "lifetime": "resident_for_process_lifetime"
+  },
+  "methodology": {
+    "command": "build/native/aima-engine-native derived-weights-probe --model-dir MODEL_DIR --report RUN_LOADER_REPORT",
+    "measurement_rule": "two expensive same-binary runs within three percent",
+    "integrity": "full order-independent uint16 xor and sum, 310 source-position samples, full 524288-element layer0 router transpose, and a 98816-element real layer0 fused projection comparison"
+  },
+  "runs": [
+    {
+      "run": 1,
+      "raw_load_wall_ms": 43664.047672,
+      "derived_allocation_ms": 92.554005,
+      "derived_pack_ms": 38.506328,
+      "derived_checksum_ms": 41.75767,
+      "derived_build_wall_ms": 177.527691,
+      "weight_load_plus_derived_ms": 43841.575363,
+      "source_u16_xor": 8654,
+      "source_u16_sum": 33385349200926,
+      "derived_u16_xor": 8654,
+      "derived_u16_sum": 33385349200926,
+      "full_payload_checksum_equal": true,
+      "exact_sample_elements": 310,
+      "projection_elements": 98816,
+      "projection_exact_elements": 98816,
+      "projection_relative_l2_error": 0.0,
+      "router_transpose_elements": 524288,
+      "router_transpose_exact_elements": 524288,
+      "router_transpose_relative_l2_error": 0.0,
+      "free_bytes_after": 31340134400,
+      "probe_sha256": "dfc42c5c9f4de16a5ec9358a1077f06ce97b6c9432cc7fca733b0f9309cbe95e",
+      "loader_report_sha256": "1ad3eb83fceb6b66caf15c43b944f2c39e0dde3404b0e81e3cbfba18779f84b2"
+    },
+    {
+      "run": 2,
+      "raw_load_wall_ms": 43515.773069,
+      "derived_allocation_ms": 91.438236,
+      "derived_pack_ms": 38.436876,
+      "derived_checksum_ms": 42.370183,
+      "derived_build_wall_ms": 176.969673,
+      "weight_load_plus_derived_ms": 43692.742742,
+      "source_u16_xor": 8654,
+      "source_u16_sum": 33385349200926,
+      "derived_u16_xor": 8654,
+      "derived_u16_sum": 33385349200926,
+      "full_payload_checksum_equal": true,
+      "exact_sample_elements": 310,
+      "projection_elements": 98816,
+      "projection_exact_elements": 98816,
+      "projection_relative_l2_error": 0.0,
+      "router_transpose_elements": 524288,
+      "router_transpose_exact_elements": 524288,
+      "router_transpose_relative_l2_error": 0.0,
+      "free_bytes_after": 31340134400,
+      "probe_sha256": "2a402ea712a676c632ed1d380b700fe685d7f1a6724501467be43de0627eaac8",
+      "loader_report_sha256": "2728a62637c7a0ce21f26db3ad7452c2522c88ce4a3e74a4719db61feb6af3ba"
+    }
+  ],
+  "median": {
+    "raw_load_wall_ms": 43589.9103705,
+    "derived_build_wall_ms": 177.248682,
+    "weight_load_plus_derived_ms": 43767.1590525
+  },
+  "spread_percent": {
+    "weight_load_plus_derived_ms": 0.3400554758911179
+  },
+  "startup_comparison": {
+    "qualified_standard_safetensors_command_to_ready_median_ms": 51408.20149378851,
+    "native_weight_load_plus_derived_median_ms": 43767.1590525,
+    "native_time_ratio": 0.851365303215057,
+    "native_time_reduction_percent": 14.863469678494301,
+    "v0_1_native_weight_load_plus_derived_median_ms": 44369.053826,
+    "v0_2_to_v0_1_time_ratio": 0.986434356345294,
+    "bounded_startup_gate_passed": true,
+    "nonclaim": "HTTP bind, remaining executor initialization, and service readiness are not yet included"
+  },
+  "claims": {
+    "all_layer_local_aot_decode_weight_layouts_implemented": true,
+    "global_lm_head_int8_layout_implemented": false,
+    "all_aot_decode_weight_layouts_implemented": false,
+    "derived_layout_full_payload_integrity_passed": true,
+    "real_layer0_fused_projection_boundary_exact": true,
+    "layer0_router_transpose_full_payload_exact": true,
+    "weight_load_plus_all_aot_decode_layouts_startup_gate_passed": true,
+    "api_ready_startup_qualified": false,
+    "full_native_inference_qualified": false,
+    "full_context_matrix_qualified": false,
+    "cold_context_matrix_qualified": false,
+    "correctness_qualified": false,
+    "prefix_cache_qualified": false,
+    "full_product_rocm_bundle_qualified": false
+  }
+}

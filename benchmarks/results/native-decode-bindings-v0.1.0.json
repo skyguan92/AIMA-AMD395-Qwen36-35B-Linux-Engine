@@ -1,0 +1,122 @@
+{
+  "schema": "aima-amd395-qwen36/native-decode-bindings-qualification/v1",
+  "version": "0.1.0-native-decode-bindings",
+  "complete": true,
+  "scope": "all_423_q8192_decode_schedule_weight_bindings_and_resident_decode_assets",
+  "base_release_commit": "c1d274a00f8db28d9bd806db008b7bbc32cd5634",
+  "binary": {
+    "sha256": "c14771810a79a2dd35c3ee05b877d96628b7db13cf3836325577726b7f8b8e98",
+    "runtime_python": false,
+    "runtime_torch": false,
+    "runtime_vllm": false,
+    "runtime_triton": false
+  },
+  "source": {
+    "native_lm_head_sha256": "89c29355e812046eca859578863509a4612f7bf2cafaf4b421981463909d51fb",
+    "native_lm_head_header_sha256": "102cdd620335d9ecebfef7191fcee3bb15012604fa43f394d953c53264aff427",
+    "native_decode_bindings_sha256": "f0525841abc2f2f78b4834d6526704e47540f90b1fb3c2b543b8b7d7e671afbc",
+    "native_decode_bindings_header_sha256": "4eb04d15fefa58ef9f04f184f160223901449ecd729fbb176ca6de723ae68cf7",
+    "qualified_reference_script_sha256": "f302179f2d689135118295dfad3db78fe022cd7c0dfdc19b9633a16826ac634d"
+  },
+  "environment": {
+    "hostname_class": "qualified AMD395 target",
+    "device": "Radeon 8060S Graphics",
+    "gpu_arch": "gfx1151",
+    "model": "Qwen3.6-35B-A3B-BF16",
+    "os": "Ubuntu 24.04 Linux x86_64",
+    "hip": "7.2.26015-fc0010cf6a"
+  },
+  "lm_head": {
+    "q_weight_bytes": 508559360,
+    "scales_bytes": 993280,
+    "residual_l2_bytes": 993280,
+    "total_payload_bytes": 510545920,
+    "qualified_q_weight_sha256": "ba779dbee92989c1247a2075b50a5864f6fb992285d6b597a1317525d3452603",
+    "native_q_weight_sha256": "ba779dbee92989c1247a2075b50a5864f6fb992285d6b597a1317525d3452603",
+    "qualified_scales_sha256": "0856b4bf881f7bf47dbe3f72e21614f665e01f696e83006ee0b9074d96eadb43",
+    "native_scales_sha256": "0856b4bf881f7bf47dbe3f72e21614f665e01f696e83006ee0b9074d96eadb43",
+    "qualified_residual_l2_sha256": "c3c5538387c3cc2e43aeba5a39e61c6d85c2ddacbe3687c114c372db5b32c869",
+    "native_conservative_residual_l2_sha256": "3a3b26845cb3f894f80d7cb28f49bee1e2a0e058369545a4bd94a54187292114",
+    "q_weight_full_payload_exact": true,
+    "scales_full_payload_exact": true,
+    "residual_validation": {
+      "rows": 248320,
+      "native_below_qualified_rows": 0,
+      "minimum_ulp_inflation": 1,
+      "maximum_ulp_inflation": 13,
+      "maximum_relative_inflation": 0.0000012459707932066522,
+      "policy": "double_accumulated_norm_rounded_to_fp32_then_advanced_eight_ulps",
+      "qualified_reference_sha256": "42a1f43047d432b1c6ef3a3a4732aebcfa7fae85308e7b034c3cbc46b5449369"
+    }
+  },
+  "binding_closure": {
+    "schedule_weight_arguments": 423,
+    "unique_bindings": 423,
+    "raw_weight_bindings": 301,
+    "layer_derived_bindings": 120,
+    "lm_head_derived_bindings": 2,
+    "device_pointer_checks": 423,
+    "exact_payload_byte_checks": 423,
+    "unresolved_bindings": 0
+  },
+  "runs": [
+    {
+      "run": 1,
+      "raw_load_wall_ms": 48035.662444,
+      "layer_derived_build_wall_ms": 178.958881,
+      "lm_head_build_wall_ms": 1503.512249,
+      "total_wall_ms": 49718.607234,
+      "probe_sha256": "6195afce21d1a08218e52b9f6b3db5dbb37ef60d1b6b5aea26b7151a08d2bc84",
+      "loader_report_sha256": "e0fca6588c4b2377c0b959a8e6f640e7f8e62f0de33b24af161e94546893cef9"
+    },
+    {
+      "run": 2,
+      "raw_load_wall_ms": 45496.062895,
+      "layer_derived_build_wall_ms": 179.424795,
+      "lm_head_build_wall_ms": 1511.824885,
+      "total_wall_ms": 47187.782594,
+      "probe_sha256": "3719ee26636112c569c8eb3153c2ed7d3da743627912547e0f48a7280b865a0b",
+      "loader_report_sha256": "9f5954fa1b99ca2f692c65b83e7decf59c586b7bc3dc7474b819d4f7f120654d"
+    },
+    {
+      "run": 3,
+      "raw_load_wall_ms": 44095.63301,
+      "layer_derived_build_wall_ms": 179.482489,
+      "lm_head_build_wall_ms": 1515.721035,
+      "total_wall_ms": 45791.306402,
+      "probe_sha256": "42d4d3a18352afbadd7d49691bc4e0caf446f828257ae09402ceac3534395fed",
+      "loader_report_sha256": "7ba0091f6dbf59fda6eeb1f09828668fd424ae16975a1a385dd6acac72388386"
+    }
+  ],
+  "median": {
+    "raw_load_wall_ms": 45496.062895,
+    "layer_derived_build_wall_ms": 179.424795,
+    "lm_head_build_wall_ms": 1511.824885,
+    "total_wall_ms": 47187.782594
+  },
+  "spread_percent": {
+    "total_wall_ms": 8.322706887480159,
+    "role": "diagnostic_under_median_of_three_protocol"
+  },
+  "startup_comparison": {
+    "qualified_standard_safetensors_command_to_ready_median_ms": 51408.20149378851,
+    "native_weights_all_decode_assets_and_binding_validation_median_ms": 47187.782594,
+    "native_time_ratio": 0.917903782331338,
+    "native_time_reduction_percent": 8.209621766866238,
+    "bounded_startup_gate_passed": true,
+    "nonclaim": "HTTP bind, full executor initialization, prefill assets, and service readiness are not yet included"
+  },
+  "claims": {
+    "all_schedule_weight_bindings_resolved": true,
+    "lm_head_q_weight_and_scales_full_payload_exact": true,
+    "lm_head_residual_metadata_never_less_conservative_than_qualified_reference": true,
+    "resident_decode_asset_startup_gate_passed": true,
+    "full_native_decode_executor_qualified": false,
+    "api_ready_startup_qualified": false,
+    "full_native_inference_qualified": false,
+    "full_context_matrix_qualified": false,
+    "correctness_qualified": false,
+    "prefix_cache_qualified": false,
+    "full_product_rocm_bundle_qualified": false
+  }
+}

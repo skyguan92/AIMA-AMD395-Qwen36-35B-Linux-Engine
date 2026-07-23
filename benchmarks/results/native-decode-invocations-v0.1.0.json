@@ -1,0 +1,104 @@
+{
+  "schema": "aima-amd395-qwen36/native-decode-invocations-qualification/v1",
+  "version": "0.1.0-native-decode-invocations",
+  "complete": true,
+  "scope": "all_q8192_decode_schedule_weight_and_workspace_bindings_prepared_as_stable_native_hip_abi_invocations",
+  "base_release_commit": "c1d274a00f8db28d9bd806db008b7bbc32cd5634",
+  "binary": {
+    "sha256": "376243cceabeb490eee21650a80e5ec7294b23538149c0bb5c8201ab48596d98",
+    "runtime_python": false,
+    "runtime_torch": false,
+    "runtime_vllm": false,
+    "runtime_triton": false
+  },
+  "source": {
+    "native_decode_workspace_sha256": "1b834bc169c8aae5e8805f847fe4cf786d862f3bd3c0c3034a64959f5982ad1f",
+    "native_decode_workspace_header_sha256": "2606a13b91deb973150f1c6b2c5575ce5f72f8beaefd75f04e68a8201808b77c",
+    "native_decode_invocation_sha256": "e9572a14ab4da015c7022c1d82e57a78286a855e1841e1ee1ee9feeed3e0d50c",
+    "native_decode_invocation_header_sha256": "25272353692718ba227110fe7dc05025d2168ad5cc22d7eec941b6232412240a"
+  },
+  "environment": {
+    "hostname_class": "qualified AMD395 target",
+    "device": "Radeon 8060S Graphics",
+    "gpu_arch": "gfx1151",
+    "model": "Qwen3.6-35B-A3B-BF16",
+    "os": "Ubuntu 24.04 Linux x86_64",
+    "hip": "7.2.26015-fc0010cf6a"
+  },
+  "binding_closure": {
+    "schedule_launches": 402,
+    "prepared_abi_arguments": 1927,
+    "tensor_arguments": 1777,
+    "model_tensor_arguments": 423,
+    "workspace_tensor_arguments": 1354,
+    "scalar_arguments": 150,
+    "pointer_offset_checks": 1777,
+    "workspace_unique_bindings": 566,
+    "workspace_resident_bindings": 556,
+    "workspace_transient_bindings": 10,
+    "workspace_logical_payload_bytes": 131922896,
+    "workspace_allocation_bytes": 131965952,
+    "unresolved_bindings": 0
+  },
+  "runs": [
+    {
+      "run": 1,
+      "raw_load_wall_ms": 47149.694822,
+      "layer_derived_build_wall_ms": 178.950092,
+      "lm_head_build_wall_ms": 1494.283899,
+      "workspace_allocation_and_zero_ms": 6.432126,
+      "total_wall_ms": 48830.112172,
+      "probe_sha256": "75be54e5cde7c25da579b4a299650f5f70eaefb1b4127504140098a051a28e55",
+      "loader_report_sha256": "576aa9cdc99fd34b16123d7925ac238572ec64ed44cdd303fb4bad025960b8f3"
+    },
+    {
+      "run": 2,
+      "raw_load_wall_ms": 45136.570441,
+      "layer_derived_build_wall_ms": 179.339075,
+      "lm_head_build_wall_ms": 1508.224204,
+      "workspace_allocation_and_zero_ms": 6.118333,
+      "total_wall_ms": 46831.024315,
+      "probe_sha256": "db332a2f1d8f5a86380a6448a6614162ebf08a6148c8f3825ff1e726c24cdbe9",
+      "loader_report_sha256": "cf5602c4b0f7ed07bd3dd27112bd704c587780adb2f7c4c67275e00bbfb0837a"
+    },
+    {
+      "run": 3,
+      "raw_load_wall_ms": 42942.766884,
+      "layer_derived_build_wall_ms": 179.667589,
+      "lm_head_build_wall_ms": 1498.900404,
+      "workspace_allocation_and_zero_ms": 6.298079,
+      "total_wall_ms": 44628.395309,
+      "probe_sha256": "b7da05bada34e898ecec5a5926093f690fadcdf6f40e58e6bf48755081432066",
+      "loader_report_sha256": "ea97c0fdb2fbe0f9a67a26a569d271f70001726d5b84d8c6e0e8b8bb20f6bbc3"
+    }
+  ],
+  "median": {
+    "total_wall_ms": 46831.024315,
+    "workspace_allocation_and_zero_ms": 6.298079
+  },
+  "spread_percent": {
+    "total_wall_ms": 8.972079779288938,
+    "role": "diagnostic_under_median_of_three_protocol"
+  },
+  "startup_comparison": {
+    "qualified_standard_safetensors_command_to_ready_median_ms": 51408.20149378851,
+    "native_weights_decode_assets_workspace_and_abi_preparation_median_ms": 46831.024315,
+    "native_time_ratio": 0.9109640670984852,
+    "native_time_reduction_percent": 8.903593290151479,
+    "bounded_startup_gate_passed": true,
+    "nonclaim": "HIP module loading, actual kernel launches, prefill assets, HTTP bind, and service readiness are not yet included"
+  },
+  "claims": {
+    "all_schedule_weight_bindings_resolved": true,
+    "all_schedule_workspace_bindings_allocated": true,
+    "all_schedule_abi_arguments_prepared": true,
+    "resident_decode_asset_startup_gate_passed": true,
+    "full_native_decode_executor_qualified": false,
+    "api_ready_startup_qualified": false,
+    "full_native_inference_qualified": false,
+    "full_context_matrix_qualified": false,
+    "correctness_qualified": false,
+    "prefix_cache_qualified": false,
+    "full_product_rocm_bundle_qualified": false
+  }
+}

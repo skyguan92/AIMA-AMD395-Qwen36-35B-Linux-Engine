@@ -8,6 +8,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <mutex>
+#include <type_traits>
+#include <utility>
 
 #include "fmha_fwd.hpp"
 
@@ -36,6 +38,23 @@ struct ProviderState {
 
 ProviderState g_state;
 std::mutex g_state_mutex;
+
+template <typename T, typename = void>
+struct has_head_partition : std::false_type {};
+
+template <typename T>
+struct has_head_partition<
+    T, std::void_t<decltype(std::declval<T &>().num_head_q_total),
+                   decltype(std::declval<T &>().head_start)>>
+    : std::true_type {};
+
+template <typename T>
+void set_head_partition(T &args) {
+    if constexpr (has_head_partition<T>::value) {
+        args.num_head_q_total = kQueryHeads;
+        args.head_start = 0;
+    }
+}
 
 __device__ uint16_t f32_to_bf16(float value) {
     const uint32_t bits = __float_as_uint(value);
@@ -117,8 +136,12 @@ int launch_bf16_qkv(
     const uint16_t *k,
     const uint16_t *v,
     float *output,
+    unsigned int query_tokens,
+    unsigned int kv_tokens,
     hipStream_t stream) {
-    if (q == nullptr || k == nullptr || v == nullptr || output == nullptr) {
+    if (q == nullptr || k == nullptr || v == nullptr || output == nullptr ||
+        query_tokens == 0u || query_tokens > 262144u ||
+        kv_tokens < query_tokens || kv_tokens > 262144u) {
         return static_cast<int>(hipErrorInvalidValue);
     }
 
@@ -129,7 +152,9 @@ int launch_bf16_qkv(
     traits.is_group_mode = false;
     traits.is_v_rowmajor = true;
     traits.has_logits_soft_cap = false;
-    traits.mask_type = mask_enum::mask_top_left;
+    traits.mask_type = query_tokens == kv_tokens
+                           ? mask_enum::mask_top_left
+                           : mask_enum::mask_bottom_right;
     traits.bias_type = bias_enum::no_bias;
     traits.has_lse = false;
     traits.has_dropout = false;
@@ -142,16 +167,15 @@ int launch_bf16_qkv(
     args.k_ptr = const_cast<uint16_t *>(k);
     args.v_ptr = const_cast<uint16_t *>(v);
     args.o_ptr = output;
-    args.seqlen_q = kTokens;
-    args.seqlen_k = kTokens;
+    args.seqlen_q = query_tokens;
+    args.seqlen_k = kv_tokens;
     args.batch = 1;
-    args.max_seqlen_q = kTokens;
+    args.max_seqlen_q = query_tokens;
     args.hdim_q = kHeadDim;
     args.hdim_v = kHeadDim;
     args.nhead_q = kQueryHeads;
     args.nhead_k = kKvHeads;
-    args.num_head_q_total = kQueryHeads;
-    args.head_start = 0;
+    set_head_partition(args);
     args.scale_s = 1.0f / std::sqrt(static_cast<float>(kHeadDim));
     args.logits_soft_cap = 0.0f;
     args.stride_q = kQueryFeatures;
@@ -162,15 +186,17 @@ int launch_bf16_qkv(
     args.nhead_stride_k = kHeadDim;
     args.nhead_stride_v = kHeadDim;
     args.nhead_stride_o = kHeadDim;
-    args.batch_stride_q = kTokens * kQueryFeatures;
-    args.batch_stride_k = kTokens * kKvFeatures;
-    args.batch_stride_v = kTokens * kKvFeatures;
-    args.batch_stride_o = kTokens * kQueryFeatures;
+    args.batch_stride_q = query_tokens * kQueryFeatures;
+    args.batch_stride_k = kv_tokens * kKvFeatures;
+    args.batch_stride_v = kv_tokens * kKvFeatures;
+    args.batch_stride_o = query_tokens * kQueryFeatures;
     args.window_size_left = -1;
     args.window_size_right = 0;
     args.sink_size = 0;
-    args.mask_type = static_cast<int>(mask_enum::mask_top_left);
-    args.min_seqlen_q = kTokens;
+    args.mask_type = static_cast<int>(
+        query_tokens == kv_tokens ? mask_enum::mask_top_left
+                                  : mask_enum::mask_bottom_right);
+    args.min_seqlen_q = query_tokens;
     args.p_drop = 0.0f;
     args.s_randval = false;
     args.drop_seed_offset = std::make_pair(uint64_t{0}, uint64_t{0});
@@ -188,6 +214,15 @@ int launch_bf16_qkv(
 QRT_CK_EXPORT int qrt_ck_fmha_q8192_prepare() {
     std::lock_guard<std::mutex> lock(g_state_mutex);
     return prepare_locked();
+}
+
+// Product ABI: the BF16 path owns no provider-side tensors and is valid for
+// every admitted static context. The legacy q8192 ABI remains for existing
+// qualification tools that also use the F32 packing path.
+QRT_CK_EXPORT int qrt_ck_fmha_prepare(unsigned int tokens) {
+    return (tokens > 0u && tokens <= 262144u)
+               ? static_cast<int>(hipSuccess)
+               : static_cast<int>(hipErrorInvalidValue);
 }
 
 QRT_CK_EXPORT int qrt_ck_fmha_q8192_f32_launch(
@@ -230,6 +265,8 @@ QRT_CK_EXPORT int qrt_ck_fmha_q8192_f32_launch(
         g_state.k,
         g_state.v,
         output,
+        kTokens,
+        kTokens,
         stream);
 }
 
@@ -244,7 +281,38 @@ QRT_CK_EXPORT int qrt_ck_fmha_q8192_bf16_launch(
         k,
         v,
         output,
+        kTokens,
+        kTokens,
         reinterpret_cast<hipStream_t>(stream_handle));
+}
+
+QRT_CK_EXPORT int qrt_ck_fmha_bf16_launch(
+    const uint16_t *q,
+    const uint16_t *k,
+    const uint16_t *v,
+    float *output,
+    unsigned int tokens,
+    void *stream_handle) {
+    return launch_bf16_qkv(
+        q, k, v, output, tokens, tokens,
+        reinterpret_cast<hipStream_t>(stream_handle));
+}
+
+QRT_CK_EXPORT int qrt_ck_fmha_bf16_launch_ex(
+    const uint16_t *q,
+    const uint16_t *k,
+    const uint16_t *v,
+    float *output,
+    unsigned int query_tokens,
+    unsigned int kv_tokens,
+    void *stream_handle) {
+    return launch_bf16_qkv(
+        q, k, v, output, query_tokens, kv_tokens,
+        reinterpret_cast<hipStream_t>(stream_handle));
+}
+
+QRT_CK_EXPORT int qrt_ck_fmha_release() {
+    return static_cast<int>(hipSuccess);
 }
 
 QRT_CK_EXPORT int qrt_ck_fmha_q8192_release() {

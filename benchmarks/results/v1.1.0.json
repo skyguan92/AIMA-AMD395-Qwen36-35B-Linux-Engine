@@ -1,0 +1,84 @@
+{
+  "schema": "aima-amd395-qwen36/direct-loader-qualification/v1",
+  "release": "1.1.0",
+  "engine_sha256": "79b5f070a30176af2a7a87a473fe578a15abd5177fb39b2ab9e188f66572fe0e",
+  "checkpoint_index_sha256": "41b9356101ebf8e7519e150dc811f80c4226e727301fbb032b890f006ed0be83",
+  "load_mode": "direct_safetensors",
+  "environment": {
+    "device": "AMD Radeon 8060S",
+    "gpu_arch": "gfx1151",
+    "model": "Qwen3.6-35B-A3B-BF16",
+    "os": "Ubuntu 24.04 Linux x86_64",
+    "rocm": "7.2.1",
+    "source_storage_device_count": 1
+  },
+  "methodology": {
+    "processes": 3,
+    "cache_state": "fresh_process",
+    "reader_workers": 2,
+    "buffers_per_worker": 2,
+    "chunk_bytes": 536870912,
+    "startup_clock": "resident process load start to HTTP API ready",
+    "decision": "median of three runs"
+  },
+  "startup": {
+    "model_load_to_api_ready_ms": [
+      50510.571477003396,
+      51408.20149378851,
+      51940.78947417438
+    ],
+    "median_model_load_to_api_ready_ms": 51408.20149378851,
+    "spread_percent": 2.782081371478816,
+    "checkpoint_preload_wall_time_ms": [
+      44194.02012974024,
+      45028.53252924979,
+      45638.79874302074
+    ],
+    "median_checkpoint_preload_wall_time_ms": 45028.53252924979,
+    "native_payload_gib_s": [
+      1.6054151520293092,
+      1.576366290180985,
+      1.550237003092305
+    ],
+    "median_native_payload_gib_s": 1.576366290180985,
+    "peak_memory_bytes": 73217943040
+  },
+  "integrity": {
+    "active_tensor_count": 693,
+    "payload_bytes": 69321221376,
+    "source_bytes_read": 69321260648,
+    "direct_io_shards_per_run": [26, 26, 26],
+    "buffered_shards_per_run": [0, 0, 0],
+    "expected_xor": "0xca1d71472d45fd86",
+    "expected_sum": "0xce0f5e958964415e",
+    "all_runs_gpu_payload_checksum_equal": true,
+    "all_runs_device_pointers_match": true,
+    "extra_weight_copy_bytes": 0,
+    "core_engine_source_unchanged_from_v1_0_0": true
+  },
+  "resident_smoke": {
+    "request": "Reply with one short word.",
+    "prompt_tokens": 16,
+    "completion_tokens": 1,
+    "content": "Here",
+    "finish_reason": "length",
+    "passed": true
+  },
+  "inference_qualification": {
+    "inherits_release": "1.0.0",
+    "results": "benchmarks/results/v1.0.0.json",
+    "reason": "the model-math engine and qualified providers are byte-identical"
+  },
+  "optional_striped_reference": {
+    "source_release": "1.0.0",
+    "command_to_ready_median_ms": 27313.878294313326,
+    "additional_generated_image_bytes": 69321650176,
+    "qualified_physical_storage_devices": 2
+  },
+  "source_artifact_sha256": {
+    "ready_run_1": "1cade6f776b675babd75ec316b5c4f3058de81590d3ca254c936ec94d3e83cda",
+    "ready_run_2": "59c5451d3f81d097a6aed23900a388f04b860ce545443196347180aea570485f",
+    "ready_run_3": "d4e2b250c4261346a7ce1e569c465a6468c10291b8012b25dc1f8d92c8be3047",
+    "resident_smoke_response": "7f7bf40782405f9010dc3b86911c64ca8963fcb2cc69bba508d20480e3e2deae"
+  }
+}

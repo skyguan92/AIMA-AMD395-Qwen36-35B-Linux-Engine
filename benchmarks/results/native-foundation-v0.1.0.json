@@ -1,0 +1,201 @@
+{
+  "schema": "aima-amd395-qwen36/native-foundation-qualification/v1",
+  "version": "0.1.0-native-foundation",
+  "complete": true,
+  "scope": "native_weight_ownership_and_bundle_only",
+  "base_release_commit": "c1d274a00f8db28d9bd806db008b7bbc32cd5634",
+  "environment": {
+    "hostname_class": "qualified AMD395 target",
+    "device": "Radeon 8060S Graphics",
+    "gpu_arch": "gfx1151",
+    "model": "Qwen3.6-35B-A3B-BF16",
+    "os": "Ubuntu 24.04 Linux x86_64",
+    "kernel": "6.14.0-1020-oem",
+    "hip": "7.2.26015-fc0010cf6a",
+    "device_memory_bytes": 103079215104
+  },
+  "binary": {
+    "path": "dist/aima-engine-native-foundation-4daba873b997/bin/aima-engine",
+    "sha256": "4daba873b997415bbc4755ee09c69e9c96decd5af66262c1d1328edac142da36",
+    "bytes": 32779464,
+    "runpath": "$ORIGIN/../lib",
+    "needed": [
+      "libamdhip64.so.7",
+      "libstdc++.so.6",
+      "libm.so.6",
+      "libgcc_s.so.1",
+      "libc.so.6"
+    ],
+    "forbidden_runtime_symbols_present": false,
+    "forbidden_runtime_symbol_classes": [
+      "Python",
+      "PyTorch",
+      "vLLM",
+      "Triton"
+    ]
+  },
+  "methodology": {
+    "processes": 3,
+    "cache_state": "fresh_process",
+    "reader_workers": 2,
+    "buffers_per_worker": 2,
+    "chunk_bytes": 536870912,
+    "decision": "the first pair differed by more than three percent, so a third same-configuration run was added and the median decides",
+    "command": "/usr/bin/time -f wall_seconds=%e,max_rss_kb=%M BUNDLE/bin/aima-engine weights-probe --model-dir MODEL_DIR --report RUN_DIR/native-loader.json"
+  },
+  "model_identity": {
+    "config_sha256": "93a4693fa9d8392fbfccd4b3c9873f4bfdcb14fdede978b123d07d19675efe99",
+    "checkpoint_index_sha256": "41b9356101ebf8e7519e150dc811f80c4226e727301fbb032b890f006ed0be83",
+    "tensor_count": 693,
+    "shard_count": 26,
+    "payload_bytes": 69321221376,
+    "expected_payload_xor": "0xca1d71472d45fd86",
+    "expected_payload_sum": "0xce0f5e958964415e"
+  },
+  "runs": [
+    {
+      "run": 1,
+      "allocation_ms": 3018.056399,
+      "ingest_ms": 40834.758245,
+      "load_wall_ms": 44019.873723,
+      "aggregate_ms": 40053.117627,
+      "payload_gib_s": 1.6118699914601748,
+      "process_wall_seconds": 44.19,
+      "max_rss_kb": 2439196,
+      "direct_io_shards": 26,
+      "buffered_shards": 0,
+      "unique_device_pointers": 693,
+      "all_pointer_types_device": true,
+      "all_device_pointers_match": true,
+      "gpu_payload_checksum_equal": true,
+      "gpu_payload_xor": "0xca1d71472d45fd86",
+      "gpu_payload_sum": "0xce0f5e958964415e"
+    },
+    {
+      "run": 2,
+      "allocation_ms": 3033.148355,
+      "ingest_ms": 39311.860018,
+      "load_wall_ms": 42464.392815,
+      "aggregate_ms": 38514.778554,
+      "payload_gib_s": 1.6762505404741803,
+      "process_wall_seconds": 42.63,
+      "max_rss_kb": 2438912,
+      "direct_io_shards": 26,
+      "buffered_shards": 0,
+      "unique_device_pointers": 693,
+      "all_pointer_types_device": true,
+      "all_device_pointers_match": true,
+      "gpu_payload_checksum_equal": true,
+      "gpu_payload_xor": "0xca1d71472d45fd86",
+      "gpu_payload_sum": "0xce0f5e958964415e"
+    },
+    {
+      "run": 3,
+      "allocation_ms": 3038.764824,
+      "ingest_ms": 43474.416401,
+      "load_wall_ms": 46679.024997,
+      "aggregate_ms": 42671.454352,
+      "payload_gib_s": 1.5129650335988591,
+      "process_wall_seconds": 46.85,
+      "max_rss_kb": 2439876,
+      "direct_io_shards": 26,
+      "buffered_shards": 0,
+      "unique_device_pointers": 693,
+      "all_pointer_types_device": true,
+      "all_device_pointers_match": true,
+      "gpu_payload_checksum_equal": true,
+      "gpu_payload_xor": "0xca1d71472d45fd86",
+      "gpu_payload_sum": "0xce0f5e958964415e"
+    }
+  ],
+  "median": {
+    "allocation_ms": 3033.148355,
+    "ingest_ms": 40834.758245,
+    "load_wall_ms": 44019.873723,
+    "aggregate_ms": 40053.117627,
+    "payload_gib_s": 1.6118699914601748,
+    "process_wall_seconds": 44.19
+  },
+  "spread_percent": {
+    "load_wall_ms": 9.574384989200668,
+    "payload_gib_s": 10.130190880183996,
+    "process_wall_seconds": 9.54967187146413
+  },
+  "comparison": {
+    "qualified_v1_1_checkpoint_preload_median_ms": 45028.53252924979,
+    "native_weight_load_median_ms": 44019.873723,
+    "native_to_v1_1_preload_speedup": 1.0229137142145588,
+    "native_time_reduction_percent": 2.2400437002795557,
+    "qualified_v1_1_payload_gib_s": 1.576366290180985,
+    "native_payload_gib_s": 1.6118699914601748,
+    "native_payload_throughput_ratio": 1.0225224946133007
+  },
+  "integrity": {
+    "all_runs_exact_config_hash": true,
+    "all_runs_exact_checkpoint_index_hash": true,
+    "all_runs_gpu_payload_checksum_equal": true,
+    "all_runs_device_pointer_checks_passed": true,
+    "all_runs_direct_io_shards": 26,
+    "all_runs_buffered_shards": 0,
+    "stderr_empty": true,
+    "isolated_home_bundle_smoke_passed": true,
+    "successful_system_rocm_opens_in_bundle_smoke": 0
+  },
+  "bundle": {
+    "path": "dist/aima-engine-native-foundation-4daba873b997",
+    "manifest_sha256": "1807878fe2179b95b5097389f664ac8affb2e52710cdeee7ad1064e30a67a720",
+    "payload_bytes_excluding_manifest": 228851545,
+    "manifest_file_count": 88,
+    "human_size": "219 MiB",
+    "bundled_rocm_userspace": [
+      "HIP runtime",
+      "HSA runtime",
+      "rocprofiler-register",
+      "AMD COMGR",
+      "HSA AQL Profile",
+      "ROCm device bitcode for gfx1151"
+    ],
+    "host_contract": [
+      "Linux x86_64 system ABI",
+      "amdgpu kernel driver with KFD and render nodes",
+      "AMD gfx1151 GPU"
+    ],
+    "isolated_home_smoke": {
+      "complete": true,
+      "successful_system_rocm_opens": 0,
+      "tensor_count": 693,
+      "payload_bytes": 69321221376,
+      "direct_io_shards": 26,
+      "buffered_shards": 0,
+      "gpu_payload_checksum_equal": true,
+      "stderr_empty": true,
+      "tracing_note": "the strace run is dependency evidence, not a performance sample"
+    }
+  },
+  "source_artifact_sha256": {
+    "run_1_result": "9708b7ca06e72f9c35053d5f5e4793fd540a6036ac388321c2d99ad9f166b083",
+    "run_1_native_report": "d33e3d7f4358be014d47a418ac8eff81a7d778c3b68eb0e23dd2f674ad7028db",
+    "run_1_process_time": "b84c7f6a58ee523e715a736ea16360fce7f2493437a8f1a2c15786d6ab9fc1b8",
+    "run_2_result": "65f9dff1f054d50b71027087d5c412fa03b929ab6d68b3693180824972a8b373",
+    "run_2_native_report": "692bb295a7ca4347ff44da5d0f04dac699138d041c1efaff7431db81cee7cd15",
+    "run_2_process_time": "dc0a2a5c2a5f7525cbdfcaddbee31d0a24f374401d1ca8fd2d722dc53fab2894",
+    "run_3_result": "a3595e65fec34453eb3e24e98905eb7f72ce8512f2ef380db7624e1b13cdd966",
+    "run_3_native_report": "17adf963de0aa08618bc1e794e3a393a7164556cad5363ff3a5b7c119844b96c",
+    "run_3_process_time": "f2588ba998ae7484564bf0a0004d1d89461c47db4fbc0f44a4f14374bc08b534",
+    "isolated_bundle_result": "85217de9730abc2ef3be5237cc442ff636cef616ba22c7dfb3a488b711788beb",
+    "isolated_bundle_native_report": "c4168ac45bc8424ecadfb97af9a90250fbf0f7b1eb7fc8264192b80489c876be",
+    "isolated_bundle_openat_trace": "ab4dd5b0eb1c9434d52c2da477e654e1f12b571b62ad2adb28334c16592d96a3",
+    "empty_stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "claims": {
+    "native_weight_ownership_implemented_and_measured": true,
+    "python_torch_vllm_triton_needed_for_this_stage": false,
+    "native_foundation_rocm_bundle_self_contained": true,
+    "full_native_inference_qualified": false,
+    "api_ready_startup_qualified": false,
+    "cold_context_matrix_qualified": false,
+    "correctness_qualified": false,
+    "prefix_cache_qualified": false,
+    "full_product_rocm_bundle_qualified": false
+  }
+}

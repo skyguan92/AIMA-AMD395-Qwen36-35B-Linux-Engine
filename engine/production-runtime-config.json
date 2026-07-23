@@ -1,6 +1,6 @@
 {
   "schema": "aima-amd395-qwen36/production-runtime-config/v1",
-  "release_version": "1.0.0",
+  "release_version": "1.2.0",
   "model_id": "aima-amd395-qwen36-35b",
   "model_family": "Qwen3.6-35B-A3B-BF16",
   "runtime_python": null,
@@ -32,7 +32,7 @@
   "runtime_dependencies": {
     "resident_request": {
       "path": "tools/amd395-qwen36-35b-a3b-bf16-resident-chat-completions-request.py",
-      "sha256": "4ac7e21b0d588addfd2aa5995c8af477ecac154d70c5adbccfc07a2f7a3c5511"
+      "sha256": "2b640d19ac5877f73634adebad06c56cd290978afaa1e44aa43a38c1c7d5b93c"
     },
     "chat_contract": {
       "path": "tools/aima_chat_contract.py",
@@ -41,6 +41,10 @@
     "context_policy": {
       "path": "tools/amd395-qwen36-35b-a3b-bf16-aotriton-context-policy.py",
       "sha256": "06fb0285362741b664cfdc2843916ee69a2f7f50a9bd5d4063620772ecde3930"
+    },
+    "direct_checkpoint_helper": {
+      "path": "tools/aima_direct_checkpoint_loader.py",
+      "sha256": "8f85a5913f5dc732dd469190e5a59d37675dd9b711697d5fc811b25b0fa7c261"
     },
     "resident_skeleton": {
       "path": "benchmarks/shape-lab/run_full_model_skeleton.py",
@@ -64,6 +68,10 @@
     }
   },
   "native": {
+    "direct_checkpoint_loader": {
+      "path": "benchmarks/shape-lab/native/libtorch_owned_safetensors_loader.so",
+      "sha256": "e1b89a626e0c3041cf806e9b1ff13005700a4a09f8aa2aa825946612748f9894"
+    },
     "q8192_provider": {
       "path": "benchmarks/shape-lab/native/libqrt_ck_fmha_q8192_provider.so",
       "sha256": "5d03c4ea9491af3fc5505b0ce8fc052c33055254e514dd6c674f5d5ccf7fa7c9"
@@ -76,6 +84,20 @@
       "path": "benchmarks/shape-lab/native/libtorch_owned_striped_image_loader.so",
       "sha256": "0daa986d1d033247011a98a5794352208f04fbbefc89f8c1b2fdc4da61938ffe"
     }
+  },
+  "direct_checkpoint": {
+    "default": true,
+    "plan": {
+      "path": "engine/production-striped-image-manifest.json",
+      "sha256": "a1e192c1e60c3120023d95c40b9266d0086c87d60fae172d7a854f22f1a7b131"
+    },
+    "checkpoint_index_sha256": "41b9356101ebf8e7519e150dc811f80c4226e727301fbb032b890f006ed0be83",
+    "tensor_count": 693,
+    "payload_bytes": 69321221376,
+    "chunk_bytes": 536870912,
+    "workers": 2,
+    "expected_xor": "0xca1d71472d45fd86",
+    "expected_sum": "0xce0f5e958964415e"
   },
   "striped_image": {
     "manifest_schema": "aima-amd395-qwen36/striped-image-manifest/v1",

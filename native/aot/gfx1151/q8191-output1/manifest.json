@@ -1,0 +1,3607 @@
+{
+  "abi": {
+    "hidden_argument_values": [
+      0,
+      0
+    ],
+    "hidden_arguments": [
+      "global_scratch",
+      "profile_scratch"
+    ],
+    "launch": "hipModuleLaunchKernel"
+  },
+  "coverage": {
+    "cache_state": "warm_compilation_cache_cold_prefix_request",
+    "completion_tokens": 1,
+    "context_tokens": 8191,
+    "full_matrix_complete": false
+  },
+  "kernel_count": 13,
+  "kernel_symbol_count": 12,
+  "kernels": [
+    {
+      "audit_artifacts": [
+        {
+          "bytes": 104578,
+          "name": "fused_moe_kernel.amdgcn",
+          "sha256": "19c4d5f126ce9f9ecb31f80e16363fb05ba4dbef4dc57d3b7443b6b5716a8cd3"
+        },
+        {
+          "bytes": 1133,
+          "name": "fused_moe_kernel.json",
+          "sha256": "4f8eab8b22684a5abe3e0f9be3781d2325dc47d8e3f8da6439ba030138930613"
+        },
+        {
+          "bytes": 29172,
+          "name": "fused_moe_kernel.ttir",
+          "sha256": "6b82313ba7be9d4c08f2c5fd639cdbe3109f21f16432db8f007fa69af8f7fc63"
+        },
+        {
+          "bytes": 40136,
+          "name": "fused_moe_kernel.ttgir",
+          "sha256": "8c22c03189e2f7a7bdcd2b294b37a9235a66f1356a6e54912a0ef4504b0799ba"
+        },
+        {
+          "bytes": 19584,
+          "name": "fused_moe_kernel.hsaco",
+          "sha256": "8dadc11054e1cdf1748d03a41e2ff659a882f2571767efbb1e79c3d7cf48e0cb"
+        },
+        {
+          "bytes": 148709,
+          "name": "fused_moe_kernel.llir",
+          "sha256": "9b8755450192663f5951a1ef701c27489a1bdc4cb50c7a79daaabf0d3c132818"
+        },
+        {
+          "bytes": 55105,
+          "name": "fused_moe_kernel.source",
+          "sha256": "d065db9117896cb62159d5092d4cc5ad96849017f17ff1b0e790d036c8312daa"
+        }
+      ],
+      "compile_constants": {
+        "BLOCK_SIZE_K": 512,
+        "BLOCK_SIZE_M": 32,
+        "BLOCK_SIZE_N": 32,
+        "GROUP_SIZE_M": 1,
+        "HAS_BIAS": false,
+        "MUL_ROUTED_WEIGHT": false,
+        "SPLIT_K": 1,
+        "a_scale_ptr": null,
+        "b_bias_ptr": null,
+        "b_scale_ptr": null,
+        "compute_type": "bf16",
+        "group_k": 0,
+        "group_n": 0,
+        "naive_block_assignment": false,
+        "per_channel_quant": false,
+        "stride_ak": 1,
+        "stride_bk": 1,
+        "stride_cn": 1,
+        "top_k": 8,
+        "use_fp8_w8a8": false,
+        "use_int8_w8a16": false,
+        "use_int8_w8a8": false
+      },
+      "image": {
+        "bytes": 15912,
+        "path": "kernels/053cead422f325a6-fused_moe_kernel.hsaco",
+        "raw_bytes": 19584,
+        "raw_sha256": "8dadc11054e1cdf1748d03a41e2ff659a882f2571767efbb1e79c3d7cf48e0cb",
+        "sha256": "79b16c0d02afe9d7639e61acbfa9e9cfcdae76e876aca0f4e109a826a25a0284",
+        "transformation": "llvm-strip --strip-debug"
+      },
+      "kernel_hash": "053cead422f325a63ca01869702be45999b27acfef8d7a946ca98fe1591d2e15",
+      "launch_variants": [
+        {
+          "arguments": [
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "a_ptr",
+              "shape": [
+                8191,
+                2048
+              ],
+              "stride": [
+                2048,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "b_ptr",
+              "shape": [
+                256,
+                1024,
+                2048
+              ],
+              "stride": [
+                2097152,
+                2048,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "c_ptr",
+              "shape": [
+                8191,
+                8,
+                1024
+              ],
+              "stride": [
+                8192,
+                1024,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "topk_weights_ptr",
+              "shape": [
+                8191,
+                8
+              ],
+              "stride": [
+                8,
+                1
+              ]
+            },
+            {
+              "abi_type": "*i32",
+              "dtype": "torch.int32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "sorted_token_ids_ptr",
+              "shape": [
+                73464
+              ],
+              "stride": [
+                1
+              ]
+            },
+            {
+              "abi_type": "*i32",
+              "dtype": "torch.int32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "expert_ids_ptr",
+              "shape": [
+                2296
+              ],
+              "stride": [
+                1
+              ]
+            },
+            {
+              "abi_type": "*i32",
+              "dtype": "torch.int32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "num_tokens_post_padded_ptr",
+              "shape": [
+                1
+              ],
+              "stride": [
+                1
+              ]
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "N",
+              "value": 1024
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "K",
+              "value": 2048
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "EM",
+              "value": 73464
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "num_valid_tokens",
+              "value": 65528
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_am",
+              "value": 2048
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_be",
+              "value": 2097152
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_bn",
+              "value": 2048
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_cm",
+              "value": 1024
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_asm",
+              "value": 0
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_ask",
+              "value": 0
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_bse",
+              "value": 0
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_bsk",
+              "value": 0
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_bsn",
+              "value": 0
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_bbe",
+              "value": 0
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_bbn",
+              "value": 0
+            }
+          ],
+          "grid": [
+            73472,
+            1,
+            1
+          ]
+        }
+      ],
+      "metadata": {
+        "launch_cooperative_grid": false,
+        "name": "fused_moe_kernel",
+        "num_ctas": 1,
+        "num_stages": 2,
+        "num_warps": 4,
+        "shared": 65536,
+        "target": {
+          "arch": "gfx1151",
+          "backend": "hip",
+          "warp_size": 32
+        },
+        "warp_size": 32
+      },
+      "regular_abi": [
+        {
+          "name": "a_ptr",
+          "type": "*bf16"
+        },
+        {
+          "name": "b_ptr",
+          "type": "*bf16"
+        },
+        {
+          "name": "c_ptr",
+          "type": "*bf16"
+        },
+        {
+          "name": "topk_weights_ptr",
+          "type": "*bf16"
+        },
+        {
+          "name": "sorted_token_ids_ptr",
+          "type": "*i32"
+        },
+        {
+          "name": "expert_ids_ptr",
+          "type": "*i32"
+        },
+        {
+          "name": "num_tokens_post_padded_ptr",
+          "type": "*i32"
+        },
+        {
+          "name": "N",
+          "type": "i32"
+        },
+        {
+          "name": "K",
+          "type": "i32"
+        },
+        {
+          "name": "EM",
+          "type": "i32"
+        },
+        {
+          "name": "num_valid_tokens",
+          "type": "i32"
+        },
+        {
+          "name": "stride_am",
+          "type": "i32"
+        },
+        {
+          "name": "stride_be",
+          "type": "i32"
+        },
+        {
+          "name": "stride_bn",
+          "type": "i32"
+        },
+        {
+          "name": "stride_cm",
+          "type": "i32"
+        },
+        {
+          "name": "stride_asm",
+          "type": "i32"
+        },
+        {
+          "name": "stride_ask",
+          "type": "i32"
+        },
+        {
+          "name": "stride_bse",
+          "type": "i32"
+        },
+        {
+          "name": "stride_bsk",
+          "type": "i32"
+        },
+        {
+          "name": "stride_bsn",
+          "type": "i32"
+        },
+        {
+          "name": "stride_bbe",
+          "type": "i32"
+        },
+        {
+          "name": "stride_bbn",
+          "type": "i32"
+        }
+      ],
+      "signature": {
+        "BLOCK_SIZE_K": "constexpr",
+        "BLOCK_SIZE_M": "constexpr",
+        "BLOCK_SIZE_N": "constexpr",
+        "EM": "i32",
+        "GROUP_SIZE_M": "constexpr",
+        "HAS_BIAS": "constexpr",
+        "K": "i32",
+        "MUL_ROUTED_WEIGHT": "constexpr",
+        "N": "i32",
+        "SPLIT_K": "constexpr",
+        "a_ptr": "*bf16",
+        "a_scale_ptr": "constexpr",
+        "b_bias_ptr": "constexpr",
+        "b_ptr": "*bf16",
+        "b_scale_ptr": "constexpr",
+        "c_ptr": "*bf16",
+        "compute_type": "constexpr",
+        "expert_ids_ptr": "*i32",
+        "group_k": "constexpr",
+        "group_n": "constexpr",
+        "naive_block_assignment": "constexpr",
+        "num_tokens_post_padded_ptr": "*i32",
+        "num_valid_tokens": "i32",
+        "per_channel_quant": "constexpr",
+        "sorted_token_ids_ptr": "*i32",
+        "stride_ak": "constexpr",
+        "stride_am": "i32",
+        "stride_ask": "i32",
+        "stride_asm": "i32",
+        "stride_bbe": "i32",
+        "stride_bbn": "i32",
+        "stride_be": "i32",
+        "stride_bk": "constexpr",
+        "stride_bn": "i32",
+        "stride_bse": "i32",
+        "stride_bsk": "i32",
+        "stride_bsn": "i32",
+        "stride_cm": "i32",
+        "stride_cn": "constexpr",
+        "top_k": "constexpr",
+        "topk_weights_ptr": "*bf16",
+        "use_fp8_w8a8": "constexpr",
+        "use_int8_w8a16": "constexpr",
+        "use_int8_w8a8": "constexpr"
+      },
+      "source_provenance": [
+        {
+          "license": "MIT",
+          "owner": "Triton",
+          "path": "triton/language/standard.py"
+        },
+        {
+          "license": "Apache-2.0",
+          "owner": "vLLM",
+          "path": "vllm/model_executor/layers/fused_moe/fused_moe.py"
+        }
+      ],
+      "symbol": "fused_moe_kernel"
+    },
+    {
+      "audit_artifacts": [
+        {
+          "bytes": 171886,
+          "name": "chunk_scaled_dot_kkt_fwd_kernel.amdgcn",
+          "sha256": "12f998ac997b4827158747a9ceab602ce91a4301eb68809f71c25a43727872d3"
+        },
+        {
+          "bytes": 27535,
+          "name": "chunk_scaled_dot_kkt_fwd_kernel.ttgir",
+          "sha256": "3b744a6bfc4a6bbb232aa9605b7fbca0698f8ce1501e930dcb8e249bd16d214d"
+        },
+        {
+          "bytes": 1146,
+          "name": "chunk_scaled_dot_kkt_fwd_kernel.json",
+          "sha256": "542480bb8a7bb3ca102b94a6173b175c7cd144a45a7e629491f8df9f949a7917"
+        },
+        {
+          "bytes": 31451,
+          "name": "chunk_scaled_dot_kkt_fwd_kernel.source",
+          "sha256": "730ee7875618d76ae76472f310f19a396f6ea3312d14816fcc03b8b00b3b474f"
+        },
+        {
+          "bytes": 33632,
+          "name": "chunk_scaled_dot_kkt_fwd_kernel.hsaco",
+          "sha256": "abc4d48a3195a4369b12f8497af1c4c703ad255071f150da99d56bc36a418020"
+        },
+        {
+          "bytes": 258381,
+          "name": "chunk_scaled_dot_kkt_fwd_kernel.llir",
+          "sha256": "adc3130870b7e1343e7d88a55d4da07aee2a9f54b56518652c2150cd6a13a359"
+        },
+        {
+          "bytes": 17415,
+          "name": "chunk_scaled_dot_kkt_fwd_kernel.ttir",
+          "sha256": "e297c7082381422aef4ad47092b0c4262344fa803240ab08ab246b298cfdf425"
+        }
+      ],
+      "compile_constants": {
+        "BK": 128,
+        "BT": 32,
+        "H": 32,
+        "Hg": 16,
+        "IS_VARLEN": false,
+        "K": 128,
+        "USE_G": true,
+        "chunk_indices": null,
+        "cu_seqlens": null
+      },
+      "image": {
+        "bytes": 31072,
+        "path": "kernels/137bfc3872e1b5ad-chunk_scaled_dot_kkt_fwd_kernel.hsaco",
+        "raw_bytes": 33632,
+        "raw_sha256": "abc4d48a3195a4369b12f8497af1c4c703ad255071f150da99d56bc36a418020",
+        "sha256": "b22f2853a7ef1dbfd542ee837dd776738aab6357a99654244404e245f64a5a60",
+        "transformation": "llvm-strip --strip-debug"
+      },
+      "kernel_hash": "137bfc3872e1b5ade147357c78d054530c15686a8f41e4b6089649e84db4ffec",
+      "launch_variants": [
+        {
+          "arguments": [
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "k",
+              "shape": [
+                1,
+                8191,
+                16,
+                128
+              ],
+              "stride": [
+                16775168,
+                2048,
+                128,
+                1
+              ]
+            },
+            {
+              "abi_type": "*fp32",
+              "dtype": "torch.float32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "beta",
+              "shape": [
+                1,
+                8191,
+                32
+              ],
+              "stride": [
+                262112,
+                32,
+                1
+              ]
+            },
+            {
+              "abi_type": "*fp32",
+              "dtype": "torch.float32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "g",
+              "shape": [
+                1,
+                8191,
+                32
+              ],
+              "stride": [
+                262112,
+                32,
+                1
+              ]
+            },
+            {
+              "abi_type": "*fp32",
+              "dtype": "torch.float32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "A",
+              "shape": [
+                1,
+                8191,
+                32,
+                32
+              ],
+              "stride": [
+                8387584,
+                1024,
+                32,
+                1
+              ]
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "T",
+              "value": 8191
+            }
+          ],
+          "grid": [
+            256,
+            32,
+            1
+          ]
+        }
+      ],
+      "metadata": {
+        "launch_cooperative_grid": false,
+        "name": "chunk_scaled_dot_kkt_fwd_kernel",
+        "num_ctas": 1,
+        "num_stages": 2,
+        "num_warps": 2,
+        "shared": 8192,
+        "target": {
+          "arch": "gfx1151",
+          "backend": "hip",
+          "warp_size": 32
+        },
+        "warp_size": 32
+      },
+      "regular_abi": [
+        {
+          "name": "k",
+          "type": "*bf16"
+        },
+        {
+          "name": "beta",
+          "type": "*fp32"
+        },
+        {
+          "name": "g",
+          "type": "*fp32"
+        },
+        {
+          "name": "A",
+          "type": "*fp32"
+        },
+        {
+          "name": "T",
+          "type": "i32"
+        }
+      ],
+      "signature": {
+        "A": "*fp32",
+        "BK": "constexpr",
+        "BT": "constexpr",
+        "H": "constexpr",
+        "Hg": "constexpr",
+        "IS_VARLEN": "constexpr",
+        "K": "constexpr",
+        "T": "i32",
+        "USE_G": "constexpr",
+        "beta": "*fp32",
+        "chunk_indices": "constexpr",
+        "cu_seqlens": "constexpr",
+        "g": "*fp32",
+        "k": "*bf16"
+      },
+      "source_provenance": [
+        {
+          "license": "MIT",
+          "owner": "Triton",
+          "path": "triton/language/standard.py"
+        },
+        {
+          "license": "Apache-2.0",
+          "owner": "vLLM",
+          "path": "vllm/model_executor/layers/fla/ops/chunk_scaled_dot_kkt.py"
+        }
+      ],
+      "symbol": "chunk_scaled_dot_kkt_fwd_kernel"
+    },
+    {
+      "audit_artifacts": [
+        {
+          "bytes": 6496,
+          "name": "chunk_local_cumsum_scalar_kernel.hsaco",
+          "sha256": "030cf8ce664d48d544a25fea2b9d0e49fe866ceec94a828bb357e965a4a661af"
+        },
+        {
+          "bytes": 5689,
+          "name": "chunk_local_cumsum_scalar_kernel.ttgir",
+          "sha256": "2218d62be72b8a081f94d8eef7ac622ba811fb36e78770cfef3a87f06a5c982d"
+        },
+        {
+          "bytes": 11398,
+          "name": "chunk_local_cumsum_scalar_kernel.source",
+          "sha256": "76d10243abec6fb3c04d494f3a74e0d062142534a72b93cbdabc0d62dd2bf6ba"
+        },
+        {
+          "bytes": 8894,
+          "name": "chunk_local_cumsum_scalar_kernel.llir",
+          "sha256": "bf45e8620b8bd4d21895b1fd10cdec2cb9cd76cdcd1b6b666d5c2a9a35aac756"
+        },
+        {
+          "bytes": 16568,
+          "name": "chunk_local_cumsum_scalar_kernel.amdgcn",
+          "sha256": "c0c850c77cbb7bd5f34cf49058c6ff8f7bba545354099fe6765dadf0cf8324c5"
+        },
+        {
+          "bytes": 1144,
+          "name": "chunk_local_cumsum_scalar_kernel.json",
+          "sha256": "c4e0ba633b82ef6d66580951d472531fa504467fa92c8e3f331109a321f600d7"
+        },
+        {
+          "bytes": 5701,
+          "name": "chunk_local_cumsum_scalar_kernel.ttir",
+          "sha256": "dd010b43474a64134fcd2ee51e66395ee03807eaae4018f269a77ea84a667069"
+        }
+      ],
+      "compile_constants": {
+        "B": 1,
+        "BT": 32,
+        "H": 32,
+        "HEAD_FIRST": false,
+        "IS_VARLEN": false,
+        "REVERSE": false,
+        "chunk_indices": null,
+        "cu_seqlens": null
+      },
+      "image": {
+        "bytes": 5096,
+        "path": "kernels/1c0d4f6f0aeb9a95-chunk_local_cumsum_scalar_kernel.hsaco",
+        "raw_bytes": 6496,
+        "raw_sha256": "030cf8ce664d48d544a25fea2b9d0e49fe866ceec94a828bb357e965a4a661af",
+        "sha256": "e073ff430da0720d0455fef2d291c94f3f72861a1fb80719b4306ce8cf6578d0",
+        "transformation": "llvm-strip --strip-debug"
+      },
+      "kernel_hash": "1c0d4f6f0aeb9a95f0e57ff4cf8ea21b65f21a36a1e29564074c0d081257b5da",
+      "launch_variants": [
+        {
+          "arguments": [
+            {
+              "abi_type": "*fp32",
+              "dtype": "torch.float32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "s",
+              "shape": [
+                1,
+                8191,
+                32
+              ],
+              "stride": [
+                262112,
+                32,
+                1
+              ]
+            },
+            {
+              "abi_type": "*fp32",
+              "dtype": "torch.float32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "o",
+              "shape": [
+                1,
+                8191,
+                32
+              ],
+              "stride": [
+                262112,
+                32,
+                1
+              ]
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "T",
+              "value": 8191
+            }
+          ],
+          "grid": [
+            256,
+            32,
+            1
+          ]
+        }
+      ],
+      "metadata": {
+        "launch_cooperative_grid": false,
+        "name": "chunk_local_cumsum_scalar_kernel",
+        "num_ctas": 1,
+        "num_stages": 3,
+        "num_warps": 1,
+        "shared": 0,
+        "target": {
+          "arch": "gfx1151",
+          "backend": "hip",
+          "warp_size": 32
+        },
+        "warp_size": 32
+      },
+      "regular_abi": [
+        {
+          "name": "s",
+          "type": "*fp32"
+        },
+        {
+          "name": "o",
+          "type": "*fp32"
+        },
+        {
+          "name": "T",
+          "type": "i32"
+        }
+      ],
+      "signature": {
+        "B": "constexpr",
+        "BT": "constexpr",
+        "H": "constexpr",
+        "HEAD_FIRST": "constexpr",
+        "IS_VARLEN": "constexpr",
+        "REVERSE": "constexpr",
+        "T": "i32",
+        "chunk_indices": "constexpr",
+        "cu_seqlens": "constexpr",
+        "o": "*fp32",
+        "s": "*fp32"
+      },
+      "source_provenance": [
+        {
+          "license": "MIT",
+          "owner": "Triton",
+          "path": "triton/language/standard.py"
+        },
+        {
+          "license": "Apache-2.0",
+          "owner": "vLLM",
+          "path": "vllm/model_executor/layers/fla/ops/cumsum.py"
+        }
+      ],
+      "symbol": "chunk_local_cumsum_scalar_kernel"
+    },
+    {
+      "audit_artifacts": [
+        {
+          "bytes": 13586,
+          "name": "triton_rmsnorm_kernel.source",
+          "sha256": "354c65ec2f762ee3a2974ab9dcd03c6a94f7d4ec071f648dec669e999c151f05"
+        },
+        {
+          "bytes": 8699,
+          "name": "triton_rmsnorm_kernel.ttgir",
+          "sha256": "da7e5837a243d8e9ff65ed6cb2dc6b1bcdfe127484afeada7fb4f6eb23d112b4"
+        },
+        {
+          "bytes": 22617,
+          "name": "triton_rmsnorm_kernel.amdgcn",
+          "sha256": "e1b6383d22a5c9c79148f2502d54e2e5e551ce6fa139f3b9ede7719ac095c976"
+        },
+        {
+          "bytes": 1134,
+          "name": "triton_rmsnorm_kernel.json",
+          "sha256": "e8f7cc0b840abb066ea6513e23b605cc27f4a7d32711c01d502bc0fe20d93d87"
+        },
+        {
+          "bytes": 9871,
+          "name": "triton_rmsnorm_kernel.ttir",
+          "sha256": "f30689cbb2c909efd650d6c377e69aa467797b77c23d293ab0b880825384a118"
+        },
+        {
+          "bytes": 16944,
+          "name": "triton_rmsnorm_kernel.llir",
+          "sha256": "f752efb9dc8e06dce62125d59aad827d26f34aaf2432c0f24ed7ac6887f57f94"
+        },
+        {
+          "bytes": 7200,
+          "name": "triton_rmsnorm_kernel.hsaco",
+          "sha256": "f80f15791cf0838ebffb860959b5869947aef5b4c0f1d090981deb03c355b877"
+        }
+      ],
+      "compile_constants": {
+        "block_h": 2048,
+        "eps": 1e-06,
+        "hidden_size": 2048
+      },
+      "image": {
+        "bytes": 5608,
+        "path": "kernels/2ac4c6764fdd89d8-triton_rmsnorm_kernel.hsaco",
+        "raw_bytes": 7200,
+        "raw_sha256": "f80f15791cf0838ebffb860959b5869947aef5b4c0f1d090981deb03c355b877",
+        "sha256": "cc1737adb8b739b14bb087df211388ff96987d4ee8d939c3989581ef875e77e1",
+        "transformation": "llvm-strip --strip-debug"
+      },
+      "kernel_hash": "2ac4c6764fdd89d831dcba3a1148ac96988e7664890c48b32e463d794734eeeb",
+      "launch_variants": [
+        {
+          "arguments": [
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "x",
+              "shape": [
+                16775168
+              ],
+              "stride": [
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "weight",
+              "shape": [
+                2048
+              ],
+              "stride": [
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "out",
+              "shape": [
+                16775168
+              ],
+              "stride": [
+                1
+              ]
+            }
+          ],
+          "grid": [
+            8191,
+            1,
+            1
+          ]
+        }
+      ],
+      "metadata": {
+        "launch_cooperative_grid": false,
+        "name": "triton_rmsnorm_kernel",
+        "num_ctas": 1,
+        "num_stages": 2,
+        "num_warps": 8,
+        "shared": 32,
+        "target": {
+          "arch": "gfx1151",
+          "backend": "hip",
+          "warp_size": 32
+        },
+        "warp_size": 32
+      },
+      "regular_abi": [
+        {
+          "name": "x",
+          "type": "*bf16"
+        },
+        {
+          "name": "weight",
+          "type": "*bf16"
+        },
+        {
+          "name": "out",
+          "type": "*bf16"
+        }
+      ],
+      "signature": {
+        "block_h": "constexpr",
+        "eps": "constexpr",
+        "hidden_size": "constexpr",
+        "out": "*bf16",
+        "weight": "*bf16",
+        "x": "*bf16"
+      },
+      "source_provenance": [
+        {
+          "license": "Apache-2.0",
+          "owner": "Approaching AI Authors",
+          "path": "benchmarks/shape-lab/four_layer_mini_engine.py"
+        },
+        {
+          "license": "MIT",
+          "owner": "Triton",
+          "path": "triton/language/standard.py"
+        }
+      ],
+      "symbol": "triton_rmsnorm_kernel"
+    },
+    {
+      "audit_artifacts": [
+        {
+          "bytes": 13936,
+          "name": "triton_prefill_fused_add_rmsnorm_kernel.ttir",
+          "sha256": "009055bc2fe404fcf728cbbdfd69cddbd463887b67b83b4d1eb95415f17b8675"
+        },
+        {
+          "bytes": 1152,
+          "name": "triton_prefill_fused_add_rmsnorm_kernel.json",
+          "sha256": "120401ef1876175fdd49477ba93a71ae35b5bee8c8092c78be868c368344f0cd"
+        },
+        {
+          "bytes": 22832,
+          "name": "triton_prefill_fused_add_rmsnorm_kernel.llir",
+          "sha256": "3129debe1928a0e789a75f34ac562218c00fe6bda42cbfbfc0a1325bb38de4cc"
+        },
+        {
+          "bytes": 8120,
+          "name": "triton_prefill_fused_add_rmsnorm_kernel.hsaco",
+          "sha256": "671020d2af6687a77ac8917ad174ca3608d6ba109736d6a34998938291631f93"
+        },
+        {
+          "bytes": 29652,
+          "name": "triton_prefill_fused_add_rmsnorm_kernel.amdgcn",
+          "sha256": "738715c487e30ea86752d6324210cc266f6b88c588595083b6032f2a1726a41f"
+        },
+        {
+          "bytes": 20058,
+          "name": "triton_prefill_fused_add_rmsnorm_kernel.source",
+          "sha256": "79c8c9fe9efc4c5e758aff180cf1dc833408b286cd36c8468300b3c987ecbcf4"
+        },
+        {
+          "bytes": 11299,
+          "name": "triton_prefill_fused_add_rmsnorm_kernel.ttgir",
+          "sha256": "ba99c8ec26908a625e2e6d5d7ca140207ac387a7fd2ae3b0e9af16f1af56b626"
+        }
+      ],
+      "compile_constants": {
+        "block_h": 2048,
+        "eps": 1e-06,
+        "hidden_size": 2048
+      },
+      "image": {
+        "bytes": 6336,
+        "path": "kernels/2b4d4dc7a1434da2-triton_prefill_fused_add_rmsnorm_kernel.hsaco",
+        "raw_bytes": 8120,
+        "raw_sha256": "671020d2af6687a77ac8917ad174ca3608d6ba109736d6a34998938291631f93",
+        "sha256": "456db404b5f34419d21127db9c2ddfd404010f38e15fc4a178f2a9f8d548d452",
+        "transformation": "llvm-strip --strip-debug"
+      },
+      "kernel_hash": "2b4d4dc7a1434da23d29a6a2101b92dd0c36542d24cb7846d1d18364605d3da7",
+      "launch_variants": [
+        {
+          "arguments": [
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "x",
+              "shape": [
+                16775168
+              ],
+              "stride": [
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "residual",
+              "shape": [
+                16775168
+              ],
+              "stride": [
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "weight",
+              "shape": [
+                2048
+              ],
+              "stride": [
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "residual_out",
+              "shape": [
+                16775168
+              ],
+              "stride": [
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "norm_out",
+              "shape": [
+                16775168
+              ],
+              "stride": [
+                1
+              ]
+            }
+          ],
+          "grid": [
+            8191,
+            1,
+            1
+          ]
+        }
+      ],
+      "metadata": {
+        "launch_cooperative_grid": false,
+        "name": "triton_prefill_fused_add_rmsnorm_kernel",
+        "num_ctas": 1,
+        "num_stages": 2,
+        "num_warps": 8,
+        "shared": 32,
+        "target": {
+          "arch": "gfx1151",
+          "backend": "hip",
+          "warp_size": 32
+        },
+        "warp_size": 32
+      },
+      "regular_abi": [
+        {
+          "name": "x",
+          "type": "*bf16"
+        },
+        {
+          "name": "residual",
+          "type": "*bf16"
+        },
+        {
+          "name": "weight",
+          "type": "*bf16"
+        },
+        {
+          "name": "residual_out",
+          "type": "*bf16"
+        },
+        {
+          "name": "norm_out",
+          "type": "*bf16"
+        }
+      ],
+      "signature": {
+        "block_h": "constexpr",
+        "eps": "constexpr",
+        "hidden_size": "constexpr",
+        "norm_out": "*bf16",
+        "residual": "*bf16",
+        "residual_out": "*bf16",
+        "weight": "*bf16",
+        "x": "*bf16"
+      },
+      "source_provenance": [
+        {
+          "license": "Apache-2.0",
+          "owner": "Approaching AI Authors",
+          "path": "benchmarks/shape-lab/four_layer_mini_engine.py"
+        },
+        {
+          "license": "MIT",
+          "owner": "Triton",
+          "path": "triton/language/standard.py"
+        }
+      ],
+      "symbol": "triton_prefill_fused_add_rmsnorm_kernel"
+    },
+    {
+      "audit_artifacts": [
+        {
+          "bytes": 76007,
+          "name": "_causal_conv1d_fwd_kernel.ttgir",
+          "sha256": "6e744ba816dafdea4f477ff8c031844e98b25ffc5cf8ca9248e4635c4a6e0e82"
+        },
+        {
+          "bytes": 157696,
+          "name": "_causal_conv1d_fwd_kernel.source",
+          "sha256": "8cf3411e07caa84cdb08914f453f2aa38f83a07d7c910d175fe81581cc3f2543"
+        },
+        {
+          "bytes": 68678,
+          "name": "_causal_conv1d_fwd_kernel.ttir",
+          "sha256": "91a855e88db88155bc1e47a47b21b564ccf57f05e551125063c00af263170af7"
+        },
+        {
+          "bytes": 12784,
+          "name": "_causal_conv1d_fwd_kernel.hsaco",
+          "sha256": "97d119be1833100b3e352e54152aa1a02da9d930b4f51c0d01c1944e81607bdd"
+        },
+        {
+          "bytes": 57000,
+          "name": "_causal_conv1d_fwd_kernel.amdgcn",
+          "sha256": "9ad003cfd5bf4118238b259c00be978b5c6afadad04c714ad294bfc3281ca15a"
+        },
+        {
+          "bytes": 1140,
+          "name": "_causal_conv1d_fwd_kernel.json",
+          "sha256": "a56ecfad196aa9d7132fd079ba6a2d93072e8be2d204efce6e9cc9a7ab605efb"
+        },
+        {
+          "bytes": 71873,
+          "name": "_causal_conv1d_fwd_kernel.llir",
+          "sha256": "be88c9544ec80b4ae0cbe091ff9737d808d5758b2888443434d3f92911f84117"
+        }
+      ],
+      "compile_constants": {
+        "BLOCK_M": 8,
+        "BLOCK_N": 256,
+        "HAS_BIAS": false,
+        "HAS_NULL_BLOCK": true,
+        "IS_APC_ENABLED": false,
+        "KERNEL_WIDTH": 4,
+        "NP2_STATELEN": 4,
+        "SILU_ACTIVATION": true,
+        "bias_ptr": null,
+        "block_idx_first_scheduled_token": null,
+        "block_idx_last_scheduled_token": null,
+        "dim": 8192,
+        "initial_state_idx": null,
+        "null_block_id": -1,
+        "num_cache_lines": 1,
+        "num_computed_tokens": null,
+        "pad_slot_id": -1,
+        "stride_block_m": 0,
+        "stride_cache_indices": 1,
+        "stride_istate_dim": 3,
+        "stride_istate_seq": 24576,
+        "stride_istate_token": 1,
+        "stride_o_dim": 1,
+        "stride_o_token": 8192,
+        "stride_w_dim": 4,
+        "stride_w_width": 1,
+        "stride_x_dim": 1,
+        "stride_x_token": 8192
+      },
+      "image": {
+        "bytes": 10776,
+        "path": "kernels/42659a8536bb410c-_causal_conv1d_fwd_kernel.hsaco",
+        "raw_bytes": 12784,
+        "raw_sha256": "97d119be1833100b3e352e54152aa1a02da9d930b4f51c0d01c1944e81607bdd",
+        "sha256": "e4b4a1d805ddeb28a2c95678250b0a83dfcbfce9656431967cce757f72a1a577",
+        "transformation": "llvm-strip --strip-debug"
+      },
+      "kernel_hash": "42659a8536bb410c5b89b6e22f40b4938181e21acc9954ff0015745dcdac0009",
+      "launch_variants": [
+        {
+          "arguments": [
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "x_ptr",
+              "shape": [
+                8192,
+                8191
+              ],
+              "stride": [
+                1,
+                8192
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "w_ptr",
+              "shape": [
+                8192,
+                4
+              ],
+              "stride": [
+                4,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "initial_states_ptr",
+              "shape": [
+                1,
+                8192,
+                3
+              ],
+              "stride": [
+                24576,
+                3,
+                1
+              ]
+            },
+            {
+              "abi_type": "*i32",
+              "dtype": "torch.int32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "cache_indices_ptr",
+              "shape": [
+                1
+              ],
+              "stride": [
+                1
+              ]
+            },
+            {
+              "abi_type": "*u1",
+              "dtype": "torch.bool",
+              "element_size": 1,
+              "kind": "tensor",
+              "name": "has_initial_states_ptr",
+              "shape": [
+                1
+              ],
+              "stride": [
+                1
+              ]
+            },
+            {
+              "abi_type": "*i32",
+              "dtype": "torch.int32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "query_start_loc_ptr",
+              "shape": [
+                2
+              ],
+              "stride": [
+                1
+              ]
+            },
+            {
+              "abi_type": "*i32",
+              "dtype": "torch.int32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "batch_ptr",
+              "shape": [
+                1024
+              ],
+              "stride": [
+                1
+              ]
+            },
+            {
+              "abi_type": "*i32",
+              "dtype": "torch.int32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "token_chunk_offset_ptr",
+              "shape": [
+                1024
+              ],
+              "stride": [
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "o_ptr",
+              "shape": [
+                8192,
+                8191
+              ],
+              "stride": [
+                1,
+                8192
+              ]
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "seqlen",
+              "value": 8191
+            }
+          ],
+          "grid": [
+            1024,
+            32,
+            1
+          ]
+        }
+      ],
+      "metadata": {
+        "launch_cooperative_grid": false,
+        "name": "_causal_conv1d_fwd_kernel",
+        "num_ctas": 1,
+        "num_stages": 2,
+        "num_warps": 4,
+        "shared": 2048,
+        "target": {
+          "arch": "gfx1151",
+          "backend": "hip",
+          "warp_size": 32
+        },
+        "warp_size": 32
+      },
+      "regular_abi": [
+        {
+          "name": "x_ptr",
+          "type": "*bf16"
+        },
+        {
+          "name": "w_ptr",
+          "type": "*bf16"
+        },
+        {
+          "name": "initial_states_ptr",
+          "type": "*bf16"
+        },
+        {
+          "name": "cache_indices_ptr",
+          "type": "*i32"
+        },
+        {
+          "name": "has_initial_states_ptr",
+          "type": "*u1"
+        },
+        {
+          "name": "query_start_loc_ptr",
+          "type": "*i32"
+        },
+        {
+          "name": "batch_ptr",
+          "type": "*i32"
+        },
+        {
+          "name": "token_chunk_offset_ptr",
+          "type": "*i32"
+        },
+        {
+          "name": "o_ptr",
+          "type": "*bf16"
+        },
+        {
+          "name": "seqlen",
+          "type": "i32"
+        }
+      ],
+      "signature": {
+        "BLOCK_M": "constexpr",
+        "BLOCK_N": "constexpr",
+        "HAS_BIAS": "constexpr",
+        "HAS_NULL_BLOCK": "constexpr",
+        "IS_APC_ENABLED": "constexpr",
+        "KERNEL_WIDTH": "constexpr",
+        "NP2_STATELEN": "constexpr",
+        "SILU_ACTIVATION": "constexpr",
+        "batch_ptr": "*i32",
+        "bias_ptr": "constexpr",
+        "block_idx_first_scheduled_token": "constexpr",
+        "block_idx_last_scheduled_token": "constexpr",
+        "cache_indices_ptr": "*i32",
+        "dim": "constexpr",
+        "has_initial_states_ptr": "*u1",
+        "initial_state_idx": "constexpr",
+        "initial_states_ptr": "*bf16",
+        "null_block_id": "constexpr",
+        "num_cache_lines": "constexpr",
+        "num_computed_tokens": "constexpr",
+        "o_ptr": "*bf16",
+        "pad_slot_id": "constexpr",
+        "query_start_loc_ptr": "*i32",
+        "seqlen": "i32",
+        "stride_block_m": "constexpr",
+        "stride_cache_indices": "constexpr",
+        "stride_istate_dim": "constexpr",
+        "stride_istate_seq": "constexpr",
+        "stride_istate_token": "constexpr",
+        "stride_o_dim": "constexpr",
+        "stride_o_token": "constexpr",
+        "stride_w_dim": "constexpr",
+        "stride_w_width": "constexpr",
+        "stride_x_dim": "constexpr",
+        "stride_x_token": "constexpr",
+        "token_chunk_offset_ptr": "*i32",
+        "w_ptr": "*bf16",
+        "x_ptr": "*bf16"
+      },
+      "source_provenance": [
+        {
+          "license": "MIT",
+          "owner": "Triton",
+          "path": "triton/language/standard.py"
+        },
+        {
+          "license": "Apache-2.0",
+          "owner": "vLLM",
+          "path": "vllm/model_executor/layers/mamba/ops/causal_conv1d.py"
+        }
+      ],
+      "symbol": "_causal_conv1d_fwd_kernel"
+    },
+    {
+      "audit_artifacts": [
+        {
+          "bytes": 20347,
+          "name": "recompute_w_u_fwd_kernel.ttir",
+          "sha256": "55712435b64e795ccbc54aa8e85ef3fa9f09ca30849b87087fa24186902abbf3"
+        },
+        {
+          "bytes": 151730,
+          "name": "recompute_w_u_fwd_kernel.amdgcn",
+          "sha256": "6ba3e38c44ad459614082c192a5fa6a3430821342d3b75e2f5903d1f48b91d71"
+        },
+        {
+          "bytes": 1139,
+          "name": "recompute_w_u_fwd_kernel.json",
+          "sha256": "6db36d22776eb4e572673be9f9562434bf756f09f81bd9003a722f07141d9fba"
+        },
+        {
+          "bytes": 27272,
+          "name": "recompute_w_u_fwd_kernel.hsaco",
+          "sha256": "74d0c457941098b238fd87d57fe8033fbaa85dac3b5016a93c936c79e02d1788"
+        },
+        {
+          "bytes": 35032,
+          "name": "recompute_w_u_fwd_kernel.ttgir",
+          "sha256": "9e48ad8b86453222d3c16db290a0cda01842b74db812cf813f3ef2b62a18a190"
+        },
+        {
+          "bytes": 198971,
+          "name": "recompute_w_u_fwd_kernel.llir",
+          "sha256": "af5f7b288bbc14fa0324018b52b27e87926cbe863a260509536dccd36ff7e3b3"
+        },
+        {
+          "bytes": 42298,
+          "name": "recompute_w_u_fwd_kernel.source",
+          "sha256": "ce757cff0433a4dbb53ed395a4d62d67dae89da7967e62082b2ffb3c9ab409f0"
+        }
+      ],
+      "compile_constants": {
+        "BK": 64,
+        "BT": 32,
+        "BV": 64,
+        "H": 32,
+        "Hg": 16,
+        "IS_VARLEN": false,
+        "K": 128,
+        "V": 128,
+        "chunk_indices": null,
+        "cu_seqlens": null
+      },
+      "image": {
+        "bytes": 23688,
+        "path": "kernels/5cadfdc821bd8500-recompute_w_u_fwd_kernel.hsaco",
+        "raw_bytes": 27272,
+        "raw_sha256": "74d0c457941098b238fd87d57fe8033fbaa85dac3b5016a93c936c79e02d1788",
+        "sha256": "dd0a33122ff9aa691877b277a3f8101bd0decfd0ac1ab4c1903ca74b1ebac7dc",
+        "transformation": "llvm-strip --strip-debug"
+      },
+      "kernel_hash": "5cadfdc821bd8500d03070d9d384f54af4056c968689614bad44dbbe956ed495",
+      "launch_variants": [
+        {
+          "arguments": [
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "k",
+              "shape": [
+                1,
+                8191,
+                16,
+                128
+              ],
+              "stride": [
+                16775168,
+                2048,
+                128,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "v",
+              "shape": [
+                1,
+                8191,
+                32,
+                128
+              ],
+              "stride": [
+                33550336,
+                4096,
+                128,
+                1
+              ]
+            },
+            {
+              "abi_type": "*fp32",
+              "dtype": "torch.float32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "beta",
+              "shape": [
+                1,
+                8191,
+                32
+              ],
+              "stride": [
+                262112,
+                32,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "w",
+              "shape": [
+                1,
+                8191,
+                32,
+                128
+              ],
+              "stride": [
+                33550336,
+                4096,
+                128,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "u",
+              "shape": [
+                1,
+                8191,
+                32,
+                128
+              ],
+              "stride": [
+                33550336,
+                4096,
+                128,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "A",
+              "shape": [
+                1,
+                8191,
+                32,
+                32
+              ],
+              "stride": [
+                8387584,
+                1024,
+                32,
+                1
+              ]
+            },
+            {
+              "abi_type": "*fp32",
+              "dtype": "torch.float32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "g",
+              "shape": [
+                1,
+                8191,
+                32
+              ],
+              "stride": [
+                262112,
+                32,
+                1
+              ]
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "T",
+              "value": 8191
+            }
+          ],
+          "grid": [
+            256,
+            32,
+            1
+          ]
+        }
+      ],
+      "metadata": {
+        "launch_cooperative_grid": false,
+        "name": "recompute_w_u_fwd_kernel",
+        "num_ctas": 1,
+        "num_stages": 2,
+        "num_warps": 8,
+        "shared": 4096,
+        "target": {
+          "arch": "gfx1151",
+          "backend": "hip",
+          "warp_size": 32
+        },
+        "warp_size": 32
+      },
+      "regular_abi": [
+        {
+          "name": "k",
+          "type": "*bf16"
+        },
+        {
+          "name": "v",
+          "type": "*bf16"
+        },
+        {
+          "name": "beta",
+          "type": "*fp32"
+        },
+        {
+          "name": "w",
+          "type": "*bf16"
+        },
+        {
+          "name": "u",
+          "type": "*bf16"
+        },
+        {
+          "name": "A",
+          "type": "*bf16"
+        },
+        {
+          "name": "g",
+          "type": "*fp32"
+        },
+        {
+          "name": "T",
+          "type": "i32"
+        }
+      ],
+      "signature": {
+        "A": "*bf16",
+        "BK": "constexpr",
+        "BT": "constexpr",
+        "BV": "constexpr",
+        "H": "constexpr",
+        "Hg": "constexpr",
+        "IS_VARLEN": "constexpr",
+        "K": "constexpr",
+        "T": "i32",
+        "V": "constexpr",
+        "beta": "*fp32",
+        "chunk_indices": "constexpr",
+        "cu_seqlens": "constexpr",
+        "g": "*fp32",
+        "k": "*bf16",
+        "u": "*bf16",
+        "v": "*bf16",
+        "w": "*bf16"
+      },
+      "source_provenance": [
+        {
+          "license": "MIT",
+          "owner": "Triton",
+          "path": "triton/language/standard.py"
+        },
+        {
+          "license": "Apache-2.0",
+          "owner": "vLLM",
+          "path": "vllm/model_executor/layers/fla/ops/wy_fast.py"
+        }
+      ],
+      "symbol": "recompute_w_u_fwd_kernel"
+    },
+    {
+      "audit_artifacts": [
+        {
+          "bytes": 50383,
+          "name": "chunk_fwd_kernel_o.source",
+          "sha256": "070f454a7faf41e6e7df1c6abd8029656221eea1b27f8c067796877bc60d6a50"
+        },
+        {
+          "bytes": 12672,
+          "name": "chunk_fwd_kernel_o.hsaco",
+          "sha256": "82f873cb87ebf75af0ff83fa60ef0f972d980ec60d8791af70ef2f3e731b85ee"
+        },
+        {
+          "bytes": 58784,
+          "name": "chunk_fwd_kernel_o.amdgcn",
+          "sha256": "859940046577dd5daa6f13fa66856ffebf2106eafef45ed4d3c2b161479a05be"
+        },
+        {
+          "bytes": 1134,
+          "name": "chunk_fwd_kernel_o.json",
+          "sha256": "95a45fd78fba8ae95efc94586f4c4a3490b4fe2a8c7e15961af5cf86870d6f88"
+        },
+        {
+          "bytes": 46782,
+          "name": "chunk_fwd_kernel_o.ttgir",
+          "sha256": "b3d4a147d93d0b869bfadaec6837fc861112df5d2cdfd115b044b9fba675b2e9"
+        },
+        {
+          "bytes": 27773,
+          "name": "chunk_fwd_kernel_o.ttir",
+          "sha256": "ed541fd668c5e692259a8cf0e90f96aeba275ae25c658e78f9d69ef1152adc70"
+        },
+        {
+          "bytes": 101889,
+          "name": "chunk_fwd_kernel_o.llir",
+          "sha256": "f503fbf24f58ab897d5aa35035586501b117454075a1f5e0dc0405b03234f51f"
+        }
+      ],
+      "compile_constants": {
+        "BK": 64,
+        "BT": 32,
+        "BV": 32,
+        "H": 32,
+        "Hg": 16,
+        "IS_VARLEN": false,
+        "K": 128,
+        "USE_G": true,
+        "V": 128,
+        "chunk_indices": null,
+        "cu_seqlens": null
+      },
+      "image": {
+        "bytes": 10432,
+        "path": "kernels/7f59e68c9d2b9554-chunk_fwd_kernel_o.hsaco",
+        "raw_bytes": 12672,
+        "raw_sha256": "82f873cb87ebf75af0ff83fa60ef0f972d980ec60d8791af70ef2f3e731b85ee",
+        "sha256": "6d6e5b00a40688c1f7803258afca859c020d55e620c7ebde18bc44a3973cf7d5",
+        "transformation": "llvm-strip --strip-debug"
+      },
+      "kernel_hash": "7f59e68c9d2b95543c0e4be8089fedb87b05b81c530afbe574e0674b0d417dbc",
+      "launch_variants": [
+        {
+          "arguments": [
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "q",
+              "shape": [
+                1,
+                8191,
+                16,
+                128
+              ],
+              "stride": [
+                16775168,
+                2048,
+                128,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "k",
+              "shape": [
+                1,
+                8191,
+                16,
+                128
+              ],
+              "stride": [
+                16775168,
+                2048,
+                128,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "v",
+              "shape": [
+                1,
+                8191,
+                32,
+                128
+              ],
+              "stride": [
+                33550336,
+                4096,
+                128,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "h",
+              "shape": [
+                1,
+                256,
+                32,
+                128,
+                128
+              ],
+              "stride": [
+                134217728,
+                524288,
+                16384,
+                128,
+                1
+              ]
+            },
+            {
+              "abi_type": "*fp32",
+              "dtype": "torch.float32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "g",
+              "shape": [
+                1,
+                8191,
+                32
+              ],
+              "stride": [
+                262112,
+                32,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "o",
+              "shape": [
+                1,
+                8191,
+                32,
+                128
+              ],
+              "stride": [
+                33550336,
+                4096,
+                128,
+                1
+              ]
+            },
+            {
+              "abi_type": "fp32",
+              "kind": "scalar",
+              "name": "scale",
+              "value": 0.08838834764831845
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "T",
+              "value": 8191
+            }
+          ],
+          "grid": [
+            4,
+            256,
+            32
+          ]
+        }
+      ],
+      "metadata": {
+        "launch_cooperative_grid": false,
+        "name": "chunk_fwd_kernel_o",
+        "num_ctas": 1,
+        "num_stages": 3,
+        "num_warps": 8,
+        "shared": 20480,
+        "target": {
+          "arch": "gfx1151",
+          "backend": "hip",
+          "warp_size": 32
+        },
+        "warp_size": 32
+      },
+      "regular_abi": [
+        {
+          "name": "q",
+          "type": "*bf16"
+        },
+        {
+          "name": "k",
+          "type": "*bf16"
+        },
+        {
+          "name": "v",
+          "type": "*bf16"
+        },
+        {
+          "name": "h",
+          "type": "*bf16"
+        },
+        {
+          "name": "g",
+          "type": "*fp32"
+        },
+        {
+          "name": "o",
+          "type": "*bf16"
+        },
+        {
+          "name": "scale",
+          "type": "fp32"
+        },
+        {
+          "name": "T",
+          "type": "i32"
+        }
+      ],
+      "signature": {
+        "BK": "constexpr",
+        "BT": "constexpr",
+        "BV": "constexpr",
+        "H": "constexpr",
+        "Hg": "constexpr",
+        "IS_VARLEN": "constexpr",
+        "K": "constexpr",
+        "T": "i32",
+        "USE_G": "constexpr",
+        "V": "constexpr",
+        "chunk_indices": "constexpr",
+        "cu_seqlens": "constexpr",
+        "g": "*fp32",
+        "h": "*bf16",
+        "k": "*bf16",
+        "o": "*bf16",
+        "q": "*bf16",
+        "scale": "fp32",
+        "v": "*bf16"
+      },
+      "source_provenance": [
+        {
+          "license": "MIT",
+          "owner": "Triton",
+          "path": "triton/language/standard.py"
+        },
+        {
+          "license": "Apache-2.0",
+          "owner": "vLLM",
+          "path": "vllm/model_executor/layers/fla/ops/chunk_o.py"
+        }
+      ],
+      "symbol": "chunk_fwd_kernel_o"
+    },
+    {
+      "audit_artifacts": [
+        {
+          "bytes": 40819,
+          "name": "fused_moe_kernel.ttgir",
+          "sha256": "64aa73ddd6ab9b554b92269824f114a9040e6f5965115435ddb769f6e80be088"
+        },
+        {
+          "bytes": 30403,
+          "name": "fused_moe_kernel.ttir",
+          "sha256": "6c9eca8f5fecc32339ba7dcb7bd7cd7eac67d54a0d9e010e8ab22815b3217d72"
+        },
+        {
+          "bytes": 56829,
+          "name": "fused_moe_kernel.source",
+          "sha256": "75dc8c7571ba899d2214e4aadfa63bd703ec784c557646c8b09b093049c96c89"
+        },
+        {
+          "bytes": 103763,
+          "name": "fused_moe_kernel.amdgcn",
+          "sha256": "83f98efa62c365faa9c3cd1ee6efbd5815a8fb9eef61f47f56dc16f355438a28"
+        },
+        {
+          "bytes": 1133,
+          "name": "fused_moe_kernel.json",
+          "sha256": "a50531a69ffa1702d957fd2d7bf0d287b8bd556baffcdb54d4e3f8a6abeabf29"
+        },
+        {
+          "bytes": 149211,
+          "name": "fused_moe_kernel.llir",
+          "sha256": "e6ee3d0fd83fc92057232231284b77264e8210e2092d41a1cc049b1b801e9c40"
+        },
+        {
+          "bytes": 19440,
+          "name": "fused_moe_kernel.hsaco",
+          "sha256": "fba8b960f52be2a8761ad41e947fe3fa3e58d5cc811d399cb45ffef97704e70d"
+        }
+      ],
+      "compile_constants": {
+        "BLOCK_SIZE_K": 512,
+        "BLOCK_SIZE_M": 32,
+        "BLOCK_SIZE_N": 32,
+        "GROUP_SIZE_M": 1,
+        "HAS_BIAS": false,
+        "MUL_ROUTED_WEIGHT": true,
+        "SPLIT_K": 1,
+        "a_scale_ptr": null,
+        "b_bias_ptr": null,
+        "b_scale_ptr": null,
+        "compute_type": "bf16",
+        "group_k": 0,
+        "group_n": 0,
+        "naive_block_assignment": false,
+        "per_channel_quant": false,
+        "stride_ak": 1,
+        "stride_bk": 1,
+        "stride_cn": 1,
+        "top_k": 1,
+        "use_fp8_w8a8": false,
+        "use_int8_w8a16": false,
+        "use_int8_w8a8": false
+      },
+      "image": {
+        "bytes": 15784,
+        "path": "kernels/8f47f93cfdcaae13-fused_moe_kernel.hsaco",
+        "raw_bytes": 19440,
+        "raw_sha256": "fba8b960f52be2a8761ad41e947fe3fa3e58d5cc811d399cb45ffef97704e70d",
+        "sha256": "15ec8a18a86526b99610cad9e9acc43022279c4520ac3cd30cd11344a805b1a1",
+        "transformation": "llvm-strip --strip-debug"
+      },
+      "kernel_hash": "8f47f93cfdcaae130e996105a5da252b938e74f1c986e0e4459252bb6dd2a52e",
+      "launch_variants": [
+        {
+          "arguments": [
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "a_ptr",
+              "shape": [
+                65528,
+                512
+              ],
+              "stride": [
+                512,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "b_ptr",
+              "shape": [
+                256,
+                2048,
+                512
+              ],
+              "stride": [
+                1048576,
+                512,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "c_ptr",
+              "shape": [
+                8191,
+                8,
+                2048
+              ],
+              "stride": [
+                16384,
+                2048,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "topk_weights_ptr",
+              "shape": [
+                8191,
+                8
+              ],
+              "stride": [
+                8,
+                1
+              ]
+            },
+            {
+              "abi_type": "*i32",
+              "dtype": "torch.int32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "sorted_token_ids_ptr",
+              "shape": [
+                73464
+              ],
+              "stride": [
+                1
+              ]
+            },
+            {
+              "abi_type": "*i32",
+              "dtype": "torch.int32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "expert_ids_ptr",
+              "shape": [
+                2296
+              ],
+              "stride": [
+                1
+              ]
+            },
+            {
+              "abi_type": "*i32",
+              "dtype": "torch.int32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "num_tokens_post_padded_ptr",
+              "shape": [
+                1
+              ],
+              "stride": [
+                1
+              ]
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "N",
+              "value": 2048
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "K",
+              "value": 512
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "EM",
+              "value": 73464
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "num_valid_tokens",
+              "value": 65528
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_am",
+              "value": 512
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_be",
+              "value": 1048576
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_bn",
+              "value": 512
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_cm",
+              "value": 2048
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_asm",
+              "value": 0
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_ask",
+              "value": 0
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_bse",
+              "value": 0
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_bsk",
+              "value": 0
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_bsn",
+              "value": 0
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_bbe",
+              "value": 0
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_bbn",
+              "value": 0
+            }
+          ],
+          "grid": [
+            146944,
+            1,
+            1
+          ]
+        }
+      ],
+      "metadata": {
+        "launch_cooperative_grid": false,
+        "name": "fused_moe_kernel",
+        "num_ctas": 1,
+        "num_stages": 2,
+        "num_warps": 4,
+        "shared": 65536,
+        "target": {
+          "arch": "gfx1151",
+          "backend": "hip",
+          "warp_size": 32
+        },
+        "warp_size": 32
+      },
+      "regular_abi": [
+        {
+          "name": "a_ptr",
+          "type": "*bf16"
+        },
+        {
+          "name": "b_ptr",
+          "type": "*bf16"
+        },
+        {
+          "name": "c_ptr",
+          "type": "*bf16"
+        },
+        {
+          "name": "topk_weights_ptr",
+          "type": "*bf16"
+        },
+        {
+          "name": "sorted_token_ids_ptr",
+          "type": "*i32"
+        },
+        {
+          "name": "expert_ids_ptr",
+          "type": "*i32"
+        },
+        {
+          "name": "num_tokens_post_padded_ptr",
+          "type": "*i32"
+        },
+        {
+          "name": "N",
+          "type": "i32"
+        },
+        {
+          "name": "K",
+          "type": "i32"
+        },
+        {
+          "name": "EM",
+          "type": "i32"
+        },
+        {
+          "name": "num_valid_tokens",
+          "type": "i32"
+        },
+        {
+          "name": "stride_am",
+          "type": "i32"
+        },
+        {
+          "name": "stride_be",
+          "type": "i32"
+        },
+        {
+          "name": "stride_bn",
+          "type": "i32"
+        },
+        {
+          "name": "stride_cm",
+          "type": "i32"
+        },
+        {
+          "name": "stride_asm",
+          "type": "i32"
+        },
+        {
+          "name": "stride_ask",
+          "type": "i32"
+        },
+        {
+          "name": "stride_bse",
+          "type": "i32"
+        },
+        {
+          "name": "stride_bsk",
+          "type": "i32"
+        },
+        {
+          "name": "stride_bsn",
+          "type": "i32"
+        },
+        {
+          "name": "stride_bbe",
+          "type": "i32"
+        },
+        {
+          "name": "stride_bbn",
+          "type": "i32"
+        }
+      ],
+      "signature": {
+        "BLOCK_SIZE_K": "constexpr",
+        "BLOCK_SIZE_M": "constexpr",
+        "BLOCK_SIZE_N": "constexpr",
+        "EM": "i32",
+        "GROUP_SIZE_M": "constexpr",
+        "HAS_BIAS": "constexpr",
+        "K": "i32",
+        "MUL_ROUTED_WEIGHT": "constexpr",
+        "N": "i32",
+        "SPLIT_K": "constexpr",
+        "a_ptr": "*bf16",
+        "a_scale_ptr": "constexpr",
+        "b_bias_ptr": "constexpr",
+        "b_ptr": "*bf16",
+        "b_scale_ptr": "constexpr",
+        "c_ptr": "*bf16",
+        "compute_type": "constexpr",
+        "expert_ids_ptr": "*i32",
+        "group_k": "constexpr",
+        "group_n": "constexpr",
+        "naive_block_assignment": "constexpr",
+        "num_tokens_post_padded_ptr": "*i32",
+        "num_valid_tokens": "i32",
+        "per_channel_quant": "constexpr",
+        "sorted_token_ids_ptr": "*i32",
+        "stride_ak": "constexpr",
+        "stride_am": "i32",
+        "stride_ask": "i32",
+        "stride_asm": "i32",
+        "stride_bbe": "i32",
+        "stride_bbn": "i32",
+        "stride_be": "i32",
+        "stride_bk": "constexpr",
+        "stride_bn": "i32",
+        "stride_bse": "i32",
+        "stride_bsk": "i32",
+        "stride_bsn": "i32",
+        "stride_cm": "i32",
+        "stride_cn": "constexpr",
+        "top_k": "constexpr",
+        "topk_weights_ptr": "*bf16",
+        "use_fp8_w8a8": "constexpr",
+        "use_int8_w8a16": "constexpr",
+        "use_int8_w8a8": "constexpr"
+      },
+      "source_provenance": [
+        {
+          "license": "MIT",
+          "owner": "Triton",
+          "path": "triton/language/standard.py"
+        },
+        {
+          "license": "Apache-2.0",
+          "owner": "vLLM",
+          "path": "vllm/model_executor/layers/fused_moe/fused_moe.py"
+        }
+      ],
+      "symbol": "fused_moe_kernel"
+    },
+    {
+      "audit_artifacts": [
+        {
+          "bytes": 106566,
+          "name": "merge_16x16_to_32x32_inverse_kernel.llir",
+          "sha256": "0d67c8c4be9276d0b42e8c2eae7a56adbcdccf96d9fe6ba47cf4b18c32dbf9e5"
+        },
+        {
+          "bytes": 34205,
+          "name": "merge_16x16_to_32x32_inverse_kernel.ttgir",
+          "sha256": "353a9758f77f78facbbcbbfd5163b80583d06afb24f2f53e989cbfadd262336d"
+        },
+        {
+          "bytes": 1150,
+          "name": "merge_16x16_to_32x32_inverse_kernel.json",
+          "sha256": "60237dbc86c52126ec6fdc34490d6377f03053bcd28791d9e2e538dd06e7822f"
+        },
+        {
+          "bytes": 26029,
+          "name": "merge_16x16_to_32x32_inverse_kernel.ttir",
+          "sha256": "92cb9c772273044ed195492a5e21a7078e204b565f3092fc0341e13eb2cd3e81"
+        },
+        {
+          "bytes": 53296,
+          "name": "merge_16x16_to_32x32_inverse_kernel.source",
+          "sha256": "a6979b475457e0644064f6f8022ad010bf4364a4f41a2ff45bf6fde6939d4b0f"
+        },
+        {
+          "bytes": 15200,
+          "name": "merge_16x16_to_32x32_inverse_kernel.hsaco",
+          "sha256": "fb11c13bd9360c6b34d95f2ef0166fbb0ee7f1ed2b4cb50e3233cddd06afe90d"
+        },
+        {
+          "bytes": 83867,
+          "name": "merge_16x16_to_32x32_inverse_kernel.amdgcn",
+          "sha256": "ff550b5d52537a5ea6ea11ed3e784c017c56e221a470d3d0a5d75a2f3474a039"
+        }
+      ],
+      "compile_constants": {
+        "BT": 32,
+        "DOT_PRECISION": "ieee",
+        "H": 32,
+        "IS_VARLEN": false,
+        "USE_TMA": false,
+        "chunk_indices": null,
+        "cu_seqlens": null
+      },
+      "image": {
+        "bytes": 11664,
+        "path": "kernels/905fedfee52531ee-merge_16x16_to_32x32_inverse_kernel.hsaco",
+        "raw_bytes": 15200,
+        "raw_sha256": "fb11c13bd9360c6b34d95f2ef0166fbb0ee7f1ed2b4cb50e3233cddd06afe90d",
+        "sha256": "35db4afdddfa2084332988a3c653e1d1099c0d21840e26ac4dd5237c37544f8b",
+        "transformation": "llvm-strip --strip-debug"
+      },
+      "kernel_hash": "905fedfee52531ee6dd6b52f4090d4df1776e61cc0f601993aa1004f03583e36",
+      "launch_variants": [
+        {
+          "arguments": [
+            {
+              "abi_type": "*fp32",
+              "dtype": "torch.float32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "A",
+              "shape": [
+                1,
+                8191,
+                32,
+                32
+              ],
+              "stride": [
+                8387584,
+                1024,
+                32,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "Ai",
+              "shape": [
+                1,
+                8191,
+                32,
+                32
+              ],
+              "stride": [
+                8387584,
+                1024,
+                32,
+                1
+              ]
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "T",
+              "value": 8191
+            }
+          ],
+          "grid": [
+            256,
+            32,
+            1
+          ]
+        }
+      ],
+      "metadata": {
+        "launch_cooperative_grid": false,
+        "name": "merge_16x16_to_32x32_inverse_kernel",
+        "num_ctas": 1,
+        "num_stages": 2,
+        "num_warps": 1,
+        "shared": 1024,
+        "target": {
+          "arch": "gfx1151",
+          "backend": "hip",
+          "warp_size": 32
+        },
+        "warp_size": 32
+      },
+      "regular_abi": [
+        {
+          "name": "A",
+          "type": "*fp32"
+        },
+        {
+          "name": "Ai",
+          "type": "*bf16"
+        },
+        {
+          "name": "T",
+          "type": "i32"
+        }
+      ],
+      "signature": {
+        "A": "*fp32",
+        "Ai": "*bf16",
+        "BT": "constexpr",
+        "DOT_PRECISION": "constexpr",
+        "H": "constexpr",
+        "IS_VARLEN": "constexpr",
+        "T": "i32",
+        "USE_TMA": "constexpr",
+        "chunk_indices": "constexpr",
+        "cu_seqlens": "constexpr"
+      },
+      "source_provenance": [
+        {
+          "license": "MIT",
+          "owner": "Triton",
+          "path": "triton/language/standard.py"
+        },
+        {
+          "license": "Apache-2.0",
+          "owner": "vLLM",
+          "path": "vllm/model_executor/layers/fla/ops/solve_tril.py"
+        }
+      ],
+      "symbol": "merge_16x16_to_32x32_inverse_kernel"
+    },
+    {
+      "audit_artifacts": [
+        {
+          "bytes": 753191,
+          "name": "_fused_post_conv_kernel.amdgcn",
+          "sha256": "2b77273f847d958df4e14a002191a17ffaac5628293eb4f5d2976cbe2a77f45e"
+        },
+        {
+          "bytes": 97368,
+          "name": "_fused_post_conv_kernel.hsaco",
+          "sha256": "464e589abf854f8d51cca3a2616d2364cab9de28f2900dc5d9a2e0528b013e88"
+        },
+        {
+          "bytes": 495284,
+          "name": "_fused_post_conv_kernel.llir",
+          "sha256": "532ddb9c1ef3313c189d5b3b536b8b7794578cb586ee32c294342be24446f7d9"
+        },
+        {
+          "bytes": 39556,
+          "name": "_fused_post_conv_kernel.ttir",
+          "sha256": "637fdb35f710c88ab9833ce1da92ad04a3175f509922f977fd38d31b7a139a66"
+        },
+        {
+          "bytes": 79628,
+          "name": "_fused_post_conv_kernel.source",
+          "sha256": "6907fa9473f7da7860c55ac8c588c94b88d4d27e7047a5e15baf4cd8e74f7477"
+        },
+        {
+          "bytes": 35882,
+          "name": "_fused_post_conv_kernel.ttgir",
+          "sha256": "894a2eab7c764d91e6d6148cbe2ff22ed1cd088d91dbb2fc8610ffa322b93e5f"
+        },
+        {
+          "bytes": 1135,
+          "name": "_fused_post_conv_kernel.json",
+          "sha256": "f388c5d20e85badbb95501349b344f4e71b0ac9320f2368f78e982219cd2476a"
+        }
+      ],
+      "compile_constants": {
+        "APPLY_L2NORM": true,
+        "BK": 128,
+        "BLOCK_T": 256,
+        "BV": 128,
+        "H": 16,
+        "HV": 32,
+        "K": 128,
+        "L2NORM_EPS": 1e-06,
+        "OUTPUT_G_EXP": false,
+        "SOFTPLUS_THRESHOLD": 20.0,
+        "V": 128
+      },
+      "image": {
+        "bytes": 73088,
+        "path": "kernels/943af6f131804be5-_fused_post_conv_kernel.hsaco",
+        "raw_bytes": 97368,
+        "raw_sha256": "464e589abf854f8d51cca3a2616d2364cab9de28f2900dc5d9a2e0528b013e88",
+        "sha256": "af75810b1cb4745e58e865081b340b6e00de24b74d29af26121054ba13e3a7f2",
+        "transformation": "llvm-strip --strip-debug"
+      },
+      "kernel_hash": "943af6f131804be5f169452c570125d064ea5ca433836090f44da5cdfdad2ef2",
+      "launch_variants": [
+        {
+          "arguments": [
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "mixed_qkv_ptr",
+              "shape": [
+                8191,
+                8192
+              ],
+              "stride": [
+                8192,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "a_ptr",
+              "shape": [
+                8191,
+                32
+              ],
+              "stride": [
+                32,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "b_ptr",
+              "shape": [
+                8191,
+                32
+              ],
+              "stride": [
+                32,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "A_log_ptr",
+              "shape": [
+                32
+              ],
+              "stride": [
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "dt_bias_ptr",
+              "shape": [
+                32
+              ],
+              "stride": [
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "q_ptr",
+              "shape": [
+                8191,
+                16,
+                128
+              ],
+              "stride": [
+                2048,
+                128,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "k_ptr",
+              "shape": [
+                8191,
+                16,
+                128
+              ],
+              "stride": [
+                2048,
+                128,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "v_ptr",
+              "shape": [
+                8191,
+                32,
+                128
+              ],
+              "stride": [
+                4096,
+                128,
+                1
+              ]
+            },
+            {
+              "abi_type": "*fp32",
+              "dtype": "torch.float32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "g_ptr",
+              "shape": [
+                8191,
+                32
+              ],
+              "stride": [
+                32,
+                1
+              ]
+            },
+            {
+              "abi_type": "*fp32",
+              "dtype": "torch.float32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "beta_ptr",
+              "shape": [
+                8191,
+                32
+              ],
+              "stride": [
+                32,
+                1
+              ]
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_x_tok",
+              "value": 8192
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_a_tok",
+              "value": 32
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_b_tok",
+              "value": 32
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_q_tok",
+              "value": 2048
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_k_tok",
+              "value": 2048
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_v_tok",
+              "value": 4096
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "L",
+              "value": 8191
+            }
+          ],
+          "grid": [
+            32,
+            48,
+            1
+          ]
+        }
+      ],
+      "metadata": {
+        "launch_cooperative_grid": false,
+        "name": "_fused_post_conv_kernel",
+        "num_ctas": 1,
+        "num_stages": 2,
+        "num_warps": 4,
+        "shared": 0,
+        "target": {
+          "arch": "gfx1151",
+          "backend": "hip",
+          "warp_size": 32
+        },
+        "warp_size": 32
+      },
+      "regular_abi": [
+        {
+          "name": "mixed_qkv_ptr",
+          "type": "*bf16"
+        },
+        {
+          "name": "a_ptr",
+          "type": "*bf16"
+        },
+        {
+          "name": "b_ptr",
+          "type": "*bf16"
+        },
+        {
+          "name": "A_log_ptr",
+          "type": "*bf16"
+        },
+        {
+          "name": "dt_bias_ptr",
+          "type": "*bf16"
+        },
+        {
+          "name": "q_ptr",
+          "type": "*bf16"
+        },
+        {
+          "name": "k_ptr",
+          "type": "*bf16"
+        },
+        {
+          "name": "v_ptr",
+          "type": "*bf16"
+        },
+        {
+          "name": "g_ptr",
+          "type": "*fp32"
+        },
+        {
+          "name": "beta_ptr",
+          "type": "*fp32"
+        },
+        {
+          "name": "stride_x_tok",
+          "type": "i32"
+        },
+        {
+          "name": "stride_a_tok",
+          "type": "i32"
+        },
+        {
+          "name": "stride_b_tok",
+          "type": "i32"
+        },
+        {
+          "name": "stride_q_tok",
+          "type": "i32"
+        },
+        {
+          "name": "stride_k_tok",
+          "type": "i32"
+        },
+        {
+          "name": "stride_v_tok",
+          "type": "i32"
+        },
+        {
+          "name": "L",
+          "type": "i32"
+        }
+      ],
+      "signature": {
+        "APPLY_L2NORM": "constexpr",
+        "A_log_ptr": "*bf16",
+        "BK": "constexpr",
+        "BLOCK_T": "constexpr",
+        "BV": "constexpr",
+        "H": "constexpr",
+        "HV": "constexpr",
+        "K": "constexpr",
+        "L": "i32",
+        "L2NORM_EPS": "constexpr",
+        "OUTPUT_G_EXP": "constexpr",
+        "SOFTPLUS_THRESHOLD": "constexpr",
+        "V": "constexpr",
+        "a_ptr": "*bf16",
+        "b_ptr": "*bf16",
+        "beta_ptr": "*fp32",
+        "dt_bias_ptr": "*bf16",
+        "g_ptr": "*fp32",
+        "k_ptr": "*bf16",
+        "mixed_qkv_ptr": "*bf16",
+        "q_ptr": "*bf16",
+        "stride_a_tok": "i32",
+        "stride_b_tok": "i32",
+        "stride_k_tok": "i32",
+        "stride_q_tok": "i32",
+        "stride_v_tok": "i32",
+        "stride_x_tok": "i32",
+        "v_ptr": "*bf16"
+      },
+      "source_provenance": [
+        {
+          "license": "MIT",
+          "owner": "Triton",
+          "path": "triton/language/standard.py"
+        },
+        {
+          "license": "Apache-2.0",
+          "owner": "vLLM",
+          "path": "vllm/model_executor/layers/fla/ops/fused_gdn_prefill_post_conv.py"
+        }
+      ],
+      "symbol": "_fused_post_conv_kernel"
+    },
+    {
+      "audit_artifacts": [
+        {
+          "bytes": 70915,
+          "name": "triton_lm_head_rowwise_int8_gemv_kernel.amdgcn",
+          "sha256": "00f6fcb436a2d30f580a3dc9960360642c6e3683f0c71b86a672284c831dad76"
+        },
+        {
+          "bytes": 55458,
+          "name": "triton_lm_head_rowwise_int8_gemv_kernel.llir",
+          "sha256": "10e0d989242031ab130a9b9e3d8f61cac799e34578e453641b2267fa058058df"
+        },
+        {
+          "bytes": 105097,
+          "name": "triton_lm_head_rowwise_int8_gemv_kernel.source",
+          "sha256": "22d8d574eb5397e406850c430c41a510421890d8156c8ec1134ac64df311c7a8"
+        },
+        {
+          "bytes": 45525,
+          "name": "triton_lm_head_rowwise_int8_gemv_kernel.ttir",
+          "sha256": "325b0ce7aefb67aabe00b16aa0058136acd9a4903859bdae319d0de6fd899284"
+        },
+        {
+          "bytes": 1152,
+          "name": "triton_lm_head_rowwise_int8_gemv_kernel.json",
+          "sha256": "88cbb10c8d0a9b9041dafb7a5eb5ba7f77cc3901f051f99bee5825ec72ed9f31"
+        },
+        {
+          "bytes": 13224,
+          "name": "triton_lm_head_rowwise_int8_gemv_kernel.hsaco",
+          "sha256": "f151dd8e2ec9fcf1540c16d2d6519d361448866fe67e5a428c5c6f27cc1fb248"
+        },
+        {
+          "bytes": 51023,
+          "name": "triton_lm_head_rowwise_int8_gemv_kernel.ttgir",
+          "sha256": "f23acb17655b0a548edf4bba0fb9951d58977c5cd2ed673d01acf4207d9d6b4f"
+        }
+      ],
+      "compile_constants": {
+        "BLOCK_K": 128,
+        "BLOCK_M": 8,
+        "cols": 2048,
+        "rows": 248320
+      },
+      "image": {
+        "bytes": 7872,
+        "path": "kernels/f6666cbb2f2ddfd3-triton_lm_head_rowwise_int8_gemv_kernel.hsaco",
+        "raw_bytes": 13224,
+        "raw_sha256": "f151dd8e2ec9fcf1540c16d2d6519d361448866fe67e5a428c5c6f27cc1fb248",
+        "sha256": "85cc216a1c322da5baaa2f6585c458b49c784cc30674d10bfc66005703e1b8eb",
+        "transformation": "llvm-strip --strip-debug"
+      },
+      "kernel_hash": "f6666cbb2f2ddfd3076b52820a14df92a8fb85af0126536c1c048cc1a2749c56",
+      "launch_variants": [
+        {
+          "arguments": [
+            {
+              "abi_type": "*i8",
+              "dtype": "torch.int8",
+              "element_size": 1,
+              "kind": "tensor",
+              "name": "q_ptr",
+              "shape": [
+                248320,
+                2048
+              ],
+              "stride": [
+                2048,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "x_ptr",
+              "shape": [
+                1,
+                2048
+              ],
+              "stride": [
+                2048,
+                1
+              ]
+            },
+            {
+              "abi_type": "*fp32",
+              "dtype": "torch.float32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "scale_ptr",
+              "shape": [
+                248320
+              ],
+              "stride": [
+                1
+              ]
+            },
+            {
+              "abi_type": "*fp32",
+              "dtype": "torch.float32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "out_ptr",
+              "shape": [
+                248320
+              ],
+              "stride": [
+                1
+              ]
+            }
+          ],
+          "grid": [
+            31040,
+            1,
+            1
+          ]
+        }
+      ],
+      "metadata": {
+        "launch_cooperative_grid": false,
+        "name": "triton_lm_head_rowwise_int8_gemv_kernel",
+        "num_ctas": 1,
+        "num_stages": 2,
+        "num_warps": 8,
+        "shared": 32,
+        "target": {
+          "arch": "gfx1151",
+          "backend": "hip",
+          "warp_size": 32
+        },
+        "warp_size": 32
+      },
+      "regular_abi": [
+        {
+          "name": "q_ptr",
+          "type": "*i8"
+        },
+        {
+          "name": "x_ptr",
+          "type": "*bf16"
+        },
+        {
+          "name": "scale_ptr",
+          "type": "*fp32"
+        },
+        {
+          "name": "out_ptr",
+          "type": "*fp32"
+        }
+      ],
+      "signature": {
+        "BLOCK_K": "constexpr",
+        "BLOCK_M": "constexpr",
+        "cols": "constexpr",
+        "out_ptr": "*fp32",
+        "q_ptr": "*i8",
+        "rows": "constexpr",
+        "scale_ptr": "*fp32",
+        "x_ptr": "*bf16"
+      },
+      "source_provenance": [
+        {
+          "license": "Apache-2.0",
+          "owner": "Approaching AI Authors",
+          "path": "benchmarks/shape-lab/four_layer_mini_engine.py"
+        },
+        {
+          "license": "MIT",
+          "owner": "Triton",
+          "path": "triton/language/standard.py"
+        }
+      ],
+      "symbol": "triton_lm_head_rowwise_int8_gemv_kernel"
+    },
+    {
+      "audit_artifacts": [
+        {
+          "bytes": 75698,
+          "name": "chunk_gated_delta_rule_fwd_kernel_h_blockdim64.ttgir",
+          "sha256": "3fd435f4fbf9a4df22d900e5e908c05cb323a8a411ccf43abffd0e340261aabd"
+        },
+        {
+          "bytes": 161772,
+          "name": "chunk_gated_delta_rule_fwd_kernel_h_blockdim64.amdgcn",
+          "sha256": "59a94b84bd233fcb1019a94ce4b306baef47cab539ae3f97ebcfc57e5c0b6ea5"
+        },
+        {
+          "bytes": 35029,
+          "name": "chunk_gated_delta_rule_fwd_kernel_h_blockdim64.ttir",
+          "sha256": "783cbf53b60c27f8f82a6e4523ad7e0b4abfd199063a12669ed2f126fbdb938f"
+        },
+        {
+          "bytes": 560625,
+          "name": "chunk_gated_delta_rule_fwd_kernel_h_blockdim64.llir",
+          "sha256": "7e9c3122d1d86f90bbf1293861e3fd79284f6fe4e35aaa89153a19226cce1995"
+        },
+        {
+          "bytes": 30368,
+          "name": "chunk_gated_delta_rule_fwd_kernel_h_blockdim64.hsaco",
+          "sha256": "d2cdcf3d70880243565833d0b953e530645e59644438774060411a65a17a0771"
+        },
+        {
+          "bytes": 71073,
+          "name": "chunk_gated_delta_rule_fwd_kernel_h_blockdim64.source",
+          "sha256": "d82189ddf3ee4bce3a373f580f7d33b8d86d947160ca2d6e1441febb5d046aea"
+        },
+        {
+          "bytes": 1162,
+          "name": "chunk_gated_delta_rule_fwd_kernel_h_blockdim64.json",
+          "sha256": "e5de79fc8e0815ed8f0471da3baabbbe03dc527433e509604916bcc93d4b1b18"
+        }
+      ],
+      "compile_constants": {
+        "BT": 32,
+        "BV": 32,
+        "H": 32,
+        "Hg": 16,
+        "IS_VARLEN": false,
+        "K": 128,
+        "SAVE_NEW_VALUE": true,
+        "STORE_FINAL_STATE": true,
+        "USE_G": true,
+        "USE_GK": false,
+        "USE_INITIAL_STATE": true,
+        "V": 128,
+        "chunk_offsets": null,
+        "cu_seqlens": null,
+        "gk": null
+      },
+      "image": {
+        "bytes": 26512,
+        "path": "kernels/f8e20224e486e5c1-chunk_gated_delta_rule_fwd_kernel_h_blockdim64.hsaco",
+        "raw_bytes": 30368,
+        "raw_sha256": "d2cdcf3d70880243565833d0b953e530645e59644438774060411a65a17a0771",
+        "sha256": "b097a655b37b6a4b4b2ceb84b2326059898f838d696bc526c0f5ccb868bfe443",
+        "transformation": "llvm-strip --strip-debug"
+      },
+      "kernel_hash": "f8e20224e486e5c192bb9c3038d1d199b99fa5a598466840914f673675ba10b5",
+      "launch_variants": [
+        {
+          "arguments": [
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "k",
+              "shape": [
+                1,
+                8191,
+                16,
+                128
+              ],
+              "stride": [
+                16775168,
+                2048,
+                128,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "v",
+              "shape": [
+                1,
+                8191,
+                32,
+                128
+              ],
+              "stride": [
+                33550336,
+                4096,
+                128,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "w",
+              "shape": [
+                1,
+                8191,
+                32,
+                128
+              ],
+              "stride": [
+                33550336,
+                4096,
+                128,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "v_new",
+              "shape": [
+                1,
+                8191,
+                32,
+                128
+              ],
+              "stride": [
+                33550336,
+                4096,
+                128,
+                1
+              ]
+            },
+            {
+              "abi_type": "*fp32",
+              "dtype": "torch.float32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "g",
+              "shape": [
+                1,
+                8191,
+                32
+              ],
+              "stride": [
+                262112,
+                32,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "h",
+              "shape": [
+                1,
+                256,
+                32,
+                128,
+                128
+              ],
+              "stride": [
+                134217728,
+                524288,
+                16384,
+                128,
+                1
+              ]
+            },
+            {
+              "abi_type": "*fp32",
+              "dtype": "torch.float32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "h0",
+              "shape": [
+                1,
+                32,
+                128,
+                128
+              ],
+              "stride": [
+                524288,
+                16384,
+                128,
+                1
+              ]
+            },
+            {
+              "abi_type": "*fp32",
+              "dtype": "torch.float32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "ht",
+              "shape": [
+                1,
+                32,
+                128,
+                128
+              ],
+              "stride": [
+                524288,
+                16384,
+                128,
+                1
+              ]
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "T",
+              "value": 8191
+            }
+          ],
+          "grid": [
+            4,
+            32,
+            1
+          ]
+        }
+      ],
+      "metadata": {
+        "launch_cooperative_grid": false,
+        "name": "chunk_gated_delta_rule_fwd_kernel_h_blockdim64",
+        "num_ctas": 1,
+        "num_stages": 2,
+        "num_warps": 4,
+        "shared": 20480,
+        "target": {
+          "arch": "gfx1151",
+          "backend": "hip",
+          "warp_size": 32
+        },
+        "warp_size": 32
+      },
+      "regular_abi": [
+        {
+          "name": "k",
+          "type": "*bf16"
+        },
+        {
+          "name": "v",
+          "type": "*bf16"
+        },
+        {
+          "name": "w",
+          "type": "*bf16"
+        },
+        {
+          "name": "v_new",
+          "type": "*bf16"
+        },
+        {
+          "name": "g",
+          "type": "*fp32"
+        },
+        {
+          "name": "h",
+          "type": "*bf16"
+        },
+        {
+          "name": "h0",
+          "type": "*fp32"
+        },
+        {
+          "name": "ht",
+          "type": "*fp32"
+        },
+        {
+          "name": "T",
+          "type": "i32"
+        }
+      ],
+      "signature": {
+        "BT": "constexpr",
+        "BV": "constexpr",
+        "H": "constexpr",
+        "Hg": "constexpr",
+        "IS_VARLEN": "constexpr",
+        "K": "constexpr",
+        "SAVE_NEW_VALUE": "constexpr",
+        "STORE_FINAL_STATE": "constexpr",
+        "T": "i32",
+        "USE_G": "constexpr",
+        "USE_GK": "constexpr",
+        "USE_INITIAL_STATE": "constexpr",
+        "V": "constexpr",
+        "chunk_offsets": "constexpr",
+        "cu_seqlens": "constexpr",
+        "g": "*fp32",
+        "gk": "constexpr",
+        "h": "*bf16",
+        "h0": "*fp32",
+        "ht": "*fp32",
+        "k": "*bf16",
+        "v": "*bf16",
+        "v_new": "*bf16",
+        "w": "*bf16"
+      },
+      "source_provenance": [
+        {
+          "license": "MIT",
+          "owner": "Triton",
+          "path": "triton/language/standard.py"
+        },
+        {
+          "license": "Apache-2.0",
+          "owner": "vLLM",
+          "path": "vllm/model_executor/layers/fla/ops/chunk_delta_h.py"
+        }
+      ],
+      "symbol": "chunk_gated_delta_rule_fwd_kernel_h_blockdim64"
+    }
+  ],
+  "launch_variant_count": 13,
+  "non_claims": [
+    "not_yet_a_complete_native_model_executor",
+    "not_yet_full_context_matrix_coverage",
+    "not_yet_a_correctness_or_performance_promotion"
+  ],
+  "packaged_hsaco_bytes": 243840,
+  "raw_hsaco_bytes": 303360,
+  "schema": "aima-amd395-qwen36/native-aot-closure/v1",
+  "source": {
+    "commit": "f098712fa257698ee02b2e2f0dfe4be24026f074",
+    "compiler": {
+      "license": "MIT",
+      "name": "Triton",
+      "version": "3.6.0"
+    },
+    "engine_sha256": "79b5f070a30176af2a7a87a473fe578a15abd5177fb39b2ab9e188f66572fe0",
+    "traces": [
+      {
+        "bytes": 2707634,
+        "records": 582,
+        "sha256": "c6c6c2159d5c835603df7d0a043c8be200a84a7521ca436b12af595ad382ed58"
+      }
+    ],
+    "vllm_license": "Apache-2.0",
+    "vllm_version": "0.19.1rc1.dev300+g29e5d1020.rocm721"
+  },
+  "status": "bounded_q8191_output1_executor_migration_evidence",
+  "target": {
+    "arch": "gfx1151",
+    "backend": "HIP",
+    "warp_size": 32
+  }
+}

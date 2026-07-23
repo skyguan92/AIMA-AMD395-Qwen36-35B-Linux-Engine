@@ -1,0 +1,149 @@
+{
+  "schema": "aima-amd395-qwen36/native-portable-bundle-qualification/v1",
+  "complete": true,
+  "scope": "portable_userspace_bundle_and_provider_nonregression_only",
+  "generated_at_utc": "2026-07-21T18:40:00Z",
+  "source": {
+    "base_commit": "c1d274a00f8db28d9bd806db008b7bbc32cd5634",
+    "worktree_dirty": true,
+    "launcher_source": "native/src/portable_launcher.c",
+    "launcher_source_sha256": "8d565792878a5957cec83e2bc64acee42cc45e0765389bf777bad6a801fa35ac",
+    "closure_auditor": "scripts/native_bundle_closure.py",
+    "closure_auditor_sha256": "57ed11ae04cfac12579f4a4b6e06911de41acb8862a765c05a6450339a7a0e3e",
+    "packager_sha256": "970b1ae966446396dd8fc07d07c85367b91439bba86587b60ee34059053b94d6",
+    "manifest_generator_sha256": "a954155f711aba44176b29d8b9d3ffa34179fe844d2c1bf7504611d750112dfd"
+  },
+  "environment": {
+    "hostname": "quings",
+    "device": "Radeon 8060S Graphics",
+    "gpu_arch": "gfx1151",
+    "os": "Ubuntu 24.04 Linux x86_64",
+    "bundled_glibc": "2.39"
+  },
+  "launcher": {
+    "path": "build/native/aima-engine-launcher",
+    "sha256": "ae7cce00c9a73b705b6690d67367df71ff889aa5f60befe38284b4cb017baac6",
+    "bytes": 706568,
+    "static_elf": true,
+    "elf_interpreter": null,
+    "needed_shared_libraries": [],
+    "exec_contract": "bundled ld-linux-x86-64.so.2 --inhibit-cache --library-path BUNDLE/lib"
+  },
+  "engine_payload": {
+    "path": "build/native/aima-engine-native",
+    "sha256": "b4df2282021102a7e7e5c0cfe50a425d60c8366377563bd7346476c9e4f72966",
+    "bytes": 33259512,
+    "bundle_path": "libexec/aima-engine.real",
+    "runpath": "$ORIGIN/../lib"
+  },
+  "bundle": {
+    "path": "dist/aima-engine-native-foundation-portable-49d6be752aae",
+    "manifest_sha256": "346219a766b18a9b113480aebd8c3479e70af7b009de9707e308bcef6bd09007",
+    "payload_bytes_excluding_manifest": 361312914,
+    "filesystem_bytes_including_manifest": 361367788,
+    "file_or_symlink_count_including_manifest": 211,
+    "human_size": "346 MiB",
+    "x86_64_dynamic_object_count": 20,
+    "provided_soname_count": 20,
+    "unresolved_userspace_elf_dependencies": 0,
+    "host_userspace_elf_dependencies": 0,
+    "bundled_userspace_classes": [
+      "HIP and HSA runtime",
+      "hipBLASLt gfx1151 code objects and metadata",
+      "ROCm COMGR, RocRoller, ROCTx and profiler support",
+      "glibc loader, libc and libm",
+      "libstdc++ and libgcc",
+      "libelf, libdrm, libnuma, zlib and zstd"
+    ],
+    "host_contract": [
+      "Linux x86_64 kernel",
+      "amdgpu kernel driver with KFD and render nodes",
+      "AMD gfx1151 GPU"
+    ]
+  },
+  "dependency_isolation": {
+    "empty_home": true,
+    "ld_library_path_empty": true,
+    "ld_preload_empty": true,
+    "system_rocm_successful_opens": 0,
+    "python_torch_vllm_triton_successful_opens": 0,
+    "preexisting_host_shared_object_successful_opens": 0,
+    "bundle_hipblaslt_metadata_and_code_objects_opened": true,
+    "optional_host_metadata_observed": "/usr/share/libdrm/amdgpu.ids",
+    "optional_host_metadata_absence_test": {
+      "method": "private mount namespace with an empty /usr/share/libdrm",
+      "probe_complete": true,
+      "expected_warning_only": "/usr/share/libdrm/amdgpu.ids: No such file or directory",
+      "output_sha256": "b0f1fae65329be91efe3bc36bbb994f09a64d568cb275da7c00c758a53f81191",
+      "stderr_sha256": "81057a0e98a65ea85500dd419c4f174dfa9674491c55c2475c4cb8456fb1b21e"
+    },
+    "trace_artifacts": [
+      {
+        "path": "state/native-portable-bundle-v2/wvsplitk.openat",
+        "sha256": "6783a46c7504d83333e6cd9fcee7b245d94f8ed3404f13ef679e244ed511a216"
+      },
+      {
+        "path": "state/native-portable-bundle-v2/gemm.openat",
+        "sha256": "b96df667cca61cab55d86704c6200375eed699d74c865af136d84fe107b2a767"
+      }
+    ],
+    "relocation_smoke": {
+      "arbitrary_working_directory": true,
+      "symlink_entrypoint": true
+    }
+  },
+  "provider_nonregression": {
+    "method": "three same-configuration fresh-process bundle runs and three direct-payload runs; median of run medians",
+    "prefill_hipblaslt": {
+      "shape": {"m": 8192, "n": 12352, "k": 2048},
+      "bundle_run_medians_ms": [13.799145698547363, 13.502058982849121, 14.6368408203125],
+      "direct_run_medians_ms": [13.263150215148926, 13.549777030944824, 14.261247634887695],
+      "bundle_median_ms": 13.799145698547363,
+      "direct_median_ms": 13.549777030944824,
+      "bundle_to_direct_time_ratio": 1.0184038945462375,
+      "exact_bf16_elements_per_run": 4096,
+      "nonregression_gate": 1.03,
+      "passed": true
+    },
+    "decode_wvsplitk": [
+      {
+        "shape": {"m": 2048, "n": 1, "k": 512},
+        "bundle_run_medians_ms": [0.004086560104042292, 0.004043729975819588, 0.004126150161027908],
+        "direct_run_medians_ms": [0.004083314910531044, 0.00403970992192626, 0.004169565159827471],
+        "bundle_median_ms": 0.004086560104042292,
+        "direct_median_ms": 0.004083314910531044,
+        "bundle_to_direct_time_ratio": 1.0007947448537162,
+        "output_bf16_sha256": "244856f006c62696b1dccd8c7882fc8d63e5063cdab825e8dcd8e4f0bf93cd0a",
+        "all_output_hashes_equal": true,
+        "nonregression_gate": 1.03,
+        "passed": true
+      },
+      {
+        "shape": {"m": 2048, "n": 1, "k": 4096},
+        "bundle_run_medians_ms": [0.0905284509062767, 0.09157892316579819, 0.09118486195802689],
+        "direct_run_medians_ms": [0.09645673632621765, 0.09655815362930298, 0.0945059135556221],
+        "bundle_median_ms": 0.09118486195802689,
+        "direct_median_ms": 0.09645673632621765,
+        "bundle_to_direct_time_ratio": 0.9453446740063728,
+        "output_bf16_sha256": "7bfe6028c9df4e156947779c0aeb080ca8bfcc284def70e954e83bdb326db68b",
+        "all_output_hashes_equal": true,
+        "nonregression_gate": 1.03,
+        "passed": true
+      }
+    ]
+  },
+  "decision": {
+    "system_installed_rocm_required": false,
+    "host_c_or_cxx_runtime_required": false,
+    "kernel_amdgpu_driver_required": true,
+    "tested_native_provider_performance_nonregressing": true,
+    "whole_engine_performance_nonregression_proved": false
+  },
+  "claims": {
+    "portable_userspace_bundle_boundary_qualified": true,
+    "full_native_inference_qualified": false,
+    "full_context_matrix_qualified": false,
+    "api_ready_startup_qualified": false,
+    "prefix_cache_qualified": false
+  }
+}
