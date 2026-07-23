@@ -2,7 +2,7 @@
 
 ## 1. Qualified platform
 
-The v1.2 native profile is qualified on:
+The v1.3 native profile is qualified on:
 
 - AMD Ryzen AI Max+ 395 with Radeon 8060S (`gfx1151`);
 - 128 GB installed unified memory;
@@ -200,7 +200,7 @@ under `dist/`. The archive contains no model weights.
 ## Compatibility runtime
 
 The source checkout retains the v1.1 Python control plane for provenance and
-compatibility testing. It is not copied into the v1.2 native archive. The
+compatibility testing. It is not copied into the v1.3 native archive. The
 portable native runtime now covers the complete published v1.1 context/output
 performance envelope.
 

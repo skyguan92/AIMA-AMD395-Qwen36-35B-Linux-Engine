@@ -4,7 +4,7 @@
 
 | Version | Supported |
 |---|---|
-| 1.0.x | Yes |
+| Latest minor release | Yes |
 | Earlier/private research versions | No |
 
 ## Reporting a vulnerability
@@ -21,6 +21,8 @@ The built-in server is an inference transport, not an internet-facing gateway:
 - it has no authentication, authorization, TLS or rate limiting;
 - `POST /shutdown` is intentionally available for local lifecycle control;
 - request and error artifacts may contain user prompts and generated text;
+- one slow SSE client occupies the single batch-1 request slot until it
+  disconnects or generation ends;
 - model weights and startup images are memory-mapped/read by a privileged local
   process.
 

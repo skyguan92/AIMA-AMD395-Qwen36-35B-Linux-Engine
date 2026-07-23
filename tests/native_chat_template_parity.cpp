@@ -1,0 +1,99 @@
+// SPDX-License-Identifier: Apache-2.0
+
+#include "aima/native_chat_protocol.h"
+#include "aima/native_tokenizer.h"
+#include "aima/sha256.h"
+
+#include <cstdlib>
+#include <filesystem>
+#include <iostream>
+#include <string>
+#include <utility>
+#include <vector>
+
+namespace {
+
+using Json = aima::NativeOrderedJson;
+
+void check_case(aima::NativeTokenizer* tokenizer, const char* name,
+                const Json& request, const char* expected_sha256,
+                std::size_t expected_tokens) {
+  const aima::NativePreparedChat prepared =
+      aima::prepare_native_chat(request);
+  const std::string prompt = tokenizer->render_chat_prompt(
+      prepared.messages, prepared.prompt_tools, true);
+  const std::string actual_sha256 =
+      aima::sha256_bytes(prompt.data(), prompt.size());
+  const std::size_t actual_tokens = tokenizer->encode(prompt).size();
+  if (actual_sha256 != expected_sha256 ||
+      actual_tokens != expected_tokens) {
+    std::cerr << name << " parity failed: sha256=" << actual_sha256
+              << " tokens=" << actual_tokens << '\n';
+    std::exit(1);
+  }
+}
+
+}  // namespace
+
+int main(int argc, char** argv) {
+  if (argc != 2) {
+    std::cerr << "usage: native_chat_template_parity MODEL_DIR\n";
+    return 2;
+  }
+  aima::NativeTokenizer tokenizer;
+  tokenizer.load(std::filesystem::absolute(argv[1]));
+  const Json tool = {
+      {"type", "function"},
+      {"function",
+       {{"name", "weather"},
+        {"description", "天气"},
+        {"parameters",
+         {{"type", "object"},
+          {"properties",
+           {{"city", {{"type", "string"}}},
+            {"days", {{"type", "integer"}}}}}}}}}};
+
+  check_case(
+      &tokenizer, "simple",
+      {{"messages",
+        Json::array(
+            {{{"role", "system"}, {"content", " Be concise. "}},
+             {{"role", "user"}, {"content", " Hello 世界 "}}})}},
+      "7bedf5ff847e89b2836218398d22fa6db5197ebbcff83cf98dbbcef420c2ba9d",
+      23);
+  check_case(
+      &tokenizer, "tool",
+      {{"messages",
+        Json::array(
+            {{{"role", "system"}, {"content", " Be concise. "}},
+             {{"role", "user"}, {"content", "Weather in Paris?"}}})},
+       {"tools", Json::array({tool})},
+       {"tool_choice", "auto"}},
+      "f8300b39c0e87c79e052cdd4cd152a143a94db95268d0217d440e731b05a5914",
+      274);
+  check_case(
+      &tokenizer, "history",
+      {{"messages",
+        Json::array(
+            {{{"role", "user"}, {"content", "Use it"}},
+             {{"role", "assistant"},
+              {"content", nullptr},
+              {"tool_calls",
+               Json::array(
+                   {{{"id", "call_1"},
+                     {"type", "function"},
+                     {"function",
+                      {{"name", "weather"},
+                       {"arguments",
+                        R"({"city":"Paris","days":2})"}}}}})}},
+             {{"role", "tool"},
+              {"tool_call_id", "call_1"},
+              {"content", R"({"temperature":20})"}},
+             {{"role", "user"}, {"content", "Summarize"}}})},
+       {"tools", Json::array({tool})}},
+      "e763e00178be9cbb2df3de13e9b393d815e976ecdd4e8e9ddea01260b165566c",
+      333);
+
+  std::cout << "native_chat_template_parity: PASS\n";
+  return 0;
+}

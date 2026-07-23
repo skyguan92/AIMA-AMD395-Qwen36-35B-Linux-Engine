@@ -114,7 +114,7 @@ def main() -> int:
     payload = {
         "schema": "aima-amd395-qwen36/native-portable-bundle/v3",
         "complete": True,
-        "release": "1.2.0",
+        "release": "1.3.0",
         "status": "portable_native_inference_runtime",
         "target": "Linux x86_64, amdgpu/KFD host driver, AMD gfx1151",
         "runtime_python": False,

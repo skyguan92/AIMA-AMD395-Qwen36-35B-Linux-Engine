@@ -38,7 +38,7 @@ class ReleaseContractTest(unittest.TestCase):
         cls.context_policy = load_module("release_context_policy_test", CONTEXT_POLICY_PATH)
 
     def test_release_components_are_hash_qualified(self) -> None:
-        self.assertEqual(__version__, "1.2.0")
+        self.assertEqual(__version__, "1.3.0")
         checks = cli.verify_components(self.config)
         self.assertGreaterEqual(len(checks), 10)
         self.assertTrue(all(item["passed"] for item in checks), checks)
@@ -207,6 +207,26 @@ class ReleaseContractTest(unittest.TestCase):
     def test_cli_surface_and_native_symbols(self) -> None:
         parser = cli.build_parser()
         self.assertEqual(parser.parse_args(["status"]).command, "status")
+        chat = parser.parse_args(
+            [
+                "chat",
+                "--stream",
+                "--tools-json",
+                "tools.json",
+                "--tool-choice",
+                "required",
+                "--no-parallel-tool-calls",
+                "hello",
+            ]
+        )
+        self.assertTrue(chat.stream)
+        self.assertEqual(chat.tools_json, "tools.json")
+        self.assertEqual(chat.tool_choice, "required")
+        self.assertFalse(chat.parallel_tool_calls)
+        history_chat = parser.parse_args(
+            ["chat", "--messages-json", "messages.json"]
+        )
+        self.assertEqual(history_chat.messages_json, "messages.json")
         serve = parser.parse_args(["serve", "--output-root", "/tmp/aima"])
         self.assertEqual(serve.output_root, "/tmp/aima")
         self.assertEqual(serve.load_mode, "direct")

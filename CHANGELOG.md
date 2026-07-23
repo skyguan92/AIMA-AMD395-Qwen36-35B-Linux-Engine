@@ -5,6 +5,16 @@ Versioning.
 
 ## Unreleased
 
+## 1.3.0 - 2026-07-23
+
+- Added live HTTP/1.1 SSE token streaming with incremental UTF-8 handling,
+  optional usage chunks, client-disconnect cancellation and exact
+  stream/non-stream token parity.
+- Added OpenAI function tools, tool-choice modes, parallel call handling,
+  assistant/tool message history and schema-aware Qwen XML call parsing.
+- Added a byte-exact native Qwen tool template, protocol unit tests and a
+  target-host streaming/tool lifecycle qualification.
+
 ## 1.2.0 - 2026-07-22
 
 - Added a relocatable native `gfx1151` runtime bundle with a static launcher,

@@ -9,7 +9,7 @@ Model weights, ROCm, AOTriton, PyTorch, Triton, vLLM, Transformers and
 Safetensors are not relicensed by this project and remain subject to their
 respective terms.
 
-The v1.2 native bundle contains selected ROCm and AOTriton userspace artifacts.
+The v1.3 native bundle contains selected ROCm and AOTriton userspace artifacts.
 Their upstream distribution license texts are shipped in the bundle's
 `licenses/` directory.
 

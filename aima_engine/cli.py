@@ -53,6 +53,13 @@ def load_json(path: Path) -> dict[str, Any]:
     return value
 
 
+def load_json_value(path: Path) -> Any:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise UserError(f"cannot read JSON {path}: {exc}") from exc
+
+
 def write_json(path: Path, value: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(path.name + ".tmp")
@@ -875,6 +882,47 @@ def http_json(
     return value
 
 
+def http_sse(
+    endpoint: str,
+    path: str,
+    payload: dict[str, Any],
+    timeout: float,
+) -> Iterable[dict[str, Any]]:
+    body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    request = urlrequest.Request(
+        endpoint.rstrip("/") + path,
+        data=body,
+        headers={
+            "Accept": "text/event-stream",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urlrequest.urlopen(request, timeout=timeout) as response:
+            content_type = response.headers.get_content_type()
+            if content_type != "text/event-stream":
+                raise UserError(
+                    f"server returned {content_type}, expected text/event-stream"
+                )
+            for wire_line in response:
+                line = wire_line.decode("utf-8").strip()
+                if not line.startswith("data:"):
+                    continue
+                data = line[5:].strip()
+                if data == "[DONE]":
+                    return
+                value = json.loads(data)
+                if not isinstance(value, dict):
+                    raise UserError("stream event is not a JSON object")
+                if "error" in value:
+                    message = value.get("error", {}).get("message", value)
+                    raise UserError(f"stream failed: {message}")
+                yield value
+    except (urlerror.URLError, TimeoutError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise UserError(f"stream request failed: {exc}") from exc
+
+
 def status(args: argparse.Namespace) -> int:
     print(json.dumps(http_json("GET", args.endpoint, "/health", timeout=args.timeout), indent=2))
     return 0
@@ -886,24 +934,89 @@ def models(args: argparse.Namespace) -> int:
 
 
 def chat(args: argparse.Namespace) -> int:
-    prompt = args.prompt
-    if prompt is None:
-        prompt = sys.stdin.read()
-    if not prompt.strip():
-        raise UserError("prompt is empty")
-    messages: list[dict[str, str]] = []
-    if args.system:
-        messages.append({"role": "system", "content": args.system})
-    messages.append({"role": "user", "content": prompt})
+    if args.messages_json:
+        messages = load_json_value(Path(args.messages_json).expanduser())
+        if not isinstance(messages, list) or not messages:
+            raise UserError("--messages-json must contain a non-empty array")
+        if args.prompt is not None or args.system:
+            raise UserError("--messages-json cannot be combined with prompt or --system")
+    else:
+        prompt = args.prompt
+        if prompt is None:
+            prompt = sys.stdin.read()
+        if not prompt.strip():
+            raise UserError("prompt is empty")
+        messages = []
+        if args.system:
+            messages.append({"role": "system", "content": args.system})
+        messages.append({"role": "user", "content": prompt})
     payload = {
         "model": args.model,
         "messages": messages,
         "temperature": 0,
         "top_p": 1,
         "n": 1,
-        "stream": False,
+        "stream": args.stream,
         "max_tokens": args.max_tokens,
     }
+    if args.tools_json:
+        tools = load_json_value(Path(args.tools_json).expanduser())
+        if not isinstance(tools, list):
+            raise UserError("--tools-json must contain an array")
+        payload["tools"] = tools
+        if args.tool_choice in {"auto", "none", "required"}:
+            payload["tool_choice"] = args.tool_choice
+        else:
+            payload["tool_choice"] = {
+                "type": "function",
+                "function": {"name": args.tool_choice},
+            }
+        payload["parallel_tool_calls"] = args.parallel_tool_calls
+    elif args.tool_choice != "auto":
+        raise UserError("--tool-choice requires --tools-json")
+    if args.stream:
+        payload["stream_options"] = {"include_usage": True}
+        tool_calls: dict[int, dict[str, Any]] = {}
+        wrote_content = False
+        for event in http_sse(
+            args.endpoint,
+            "/v1/chat/completions",
+            payload,
+            timeout=args.timeout,
+        ):
+            if args.json:
+                print(json.dumps(event, ensure_ascii=False), flush=True)
+                continue
+            for choice in event.get("choices", []):
+                delta = choice.get("delta") or {}
+                content = delta.get("content")
+                if content:
+                    print(content, end="", flush=True)
+                    wrote_content = True
+                for call in delta.get("tool_calls") or []:
+                    index = int(call["index"])
+                    target = tool_calls.setdefault(
+                        index,
+                        {
+                            "id": call.get("id"),
+                            "type": call.get("type", "function"),
+                            "function": {"name": "", "arguments": ""},
+                        },
+                    )
+                    function = call.get("function") or {}
+                    target["function"]["name"] += function.get("name", "")
+                    target["function"]["arguments"] += function.get("arguments", "")
+        if not args.json:
+            if wrote_content:
+                print()
+            if tool_calls:
+                print(
+                    json.dumps(
+                        {"tool_calls": [tool_calls[index] for index in sorted(tool_calls)]},
+                        ensure_ascii=False,
+                    )
+                )
+        return 0
     response = http_json(
         "POST",
         args.endpoint,
@@ -915,9 +1028,18 @@ def chat(args: argparse.Namespace) -> int:
         print(json.dumps(response, indent=2, ensure_ascii=False))
     else:
         try:
-            print(response["choices"][0]["message"]["content"])
+            message = response["choices"][0]["message"]
+            if message.get("tool_calls"):
+                print(
+                    json.dumps(
+                        {"tool_calls": message["tool_calls"]},
+                        ensure_ascii=False,
+                    )
+                )
+            else:
+                print(message["content"])
         except (KeyError, IndexError, TypeError) as exc:
-            raise UserError("server response is missing assistant content") from exc
+            raise UserError("server response is missing an assistant message") from exc
     return 0
 
 
@@ -1098,6 +1220,25 @@ def build_parser() -> argparse.ArgumentParser:
     add_http_arguments(chat_parser)
     chat_parser.add_argument("prompt", nargs="?")
     chat_parser.add_argument("--system")
+    chat_parser.add_argument(
+        "--messages-json",
+        help="JSON file containing a complete user/assistant/tool message history",
+    )
+    chat_parser.add_argument(
+        "--tools-json",
+        help="JSON file containing an array of OpenAI function tools",
+    )
+    chat_parser.add_argument(
+        "--tool-choice",
+        default="auto",
+        help="auto, none, required, or a function name",
+    )
+    chat_parser.add_argument(
+        "--parallel-tool-calls",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+    )
+    chat_parser.add_argument("--stream", action="store_true")
     chat_parser.add_argument("--model", default="aima-amd395-qwen36-35b")
     chat_parser.add_argument("--max-tokens", type=int, default=128)
     chat_parser.add_argument("--json", action="store_true")

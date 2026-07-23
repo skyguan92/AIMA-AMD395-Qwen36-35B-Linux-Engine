@@ -212,7 +212,7 @@ def main() -> None:
         "--product-result",
         type=Path,
         default=Path(
-            "benchmarks/results/native-portable-product-v1.2.0.json"
+            "benchmarks/results/native-portable-product-v1.3.0.json"
         ),
     )
     cli = parser.parse_args()
@@ -281,7 +281,7 @@ def main() -> None:
             check=True,
         ).stdout
         if (
-            version != "aima-engine-native 1.2.0-native"
+            version != "aima-engine-native 1.3.0-native"
             or "131072" not in help_text
             or "input261120/output1024" not in help_text
         ):
@@ -311,7 +311,7 @@ def main() -> None:
 
     result = {
         "schema": "aima-amd395-qwen36/native-portable-bundle-qualification/v1",
-        "release": "1.2.0",
+        "release": "1.3.0",
         "complete": True,
         "qualified": True,
         "archive": {

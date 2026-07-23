@@ -1,3 +1,3 @@
 """Public control plane for the AIMA AMD395 Qwen3.6 engine."""
 
-__version__ = "1.2.0"
+__version__ = "1.3.0"

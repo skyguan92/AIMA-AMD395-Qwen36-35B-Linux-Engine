@@ -1,8 +1,8 @@
-# v1.2.0 release provenance
+# v1.3.0 release provenance
 
 ## Portable native release boundary
 
-The v1.2 deployment unit is the deterministic
+The v1.3 deployment unit is the deterministic
 `aima-engine-native-portable-*.tar.zst` archive produced by
 `make package-native`. The archive includes a recursive `manifest.json`, the
 machine product contract and the qualification record.
@@ -11,7 +11,7 @@ Qualified executable components:
 
 | Component | SHA-256 |
 |---|---|
-| native engine | `6d33934eb08e05f412f5c82380042cb13c0ad40bb8f5ddd88a882a43e11cc7d8` |
+| native engine | `7b8ae090a80b90a066c39539313ebed92c899d370fc2ccf7021cda03cec0a81d` |
 | static launcher | `7d945e0306299b4878b33b26f82d9b2d5c463bdca2422019e986abe1edd8e960` |
 | AOTriton adapter | `8f42d7b17a778168a1bb66b34eff282e13955541ededfa838355ffbc176b43a5` |
 | CK-Tile adapter | `77f6f6429ed7ef2e34a33372f6096a6d62957ba46f1866e7f40c39da9add25b4` |
@@ -38,9 +38,10 @@ contract remains Linux x86-64, AMDGPU/KFD/render nodes and `gfx1151`.
 The admitted release profile contains all eight standard contexts from q1024
 through q131072 plus the three valid 262144-token-window endpoints. All 19
 performance cells, nine full-vocabulary correctness contexts, exact 128-token
-identity, startup, prefix cache and resident HTTP passed their frozen gates.
+identity, startup, prefix cache, resident HTTP, live SSE and function tools
+passed their independent frozen gates.
 The exact decision is in
-[`native-portable-product-v1.2.0.json`](../benchmarks/results/native-portable-product-v1.2.0.json).
+[`native-portable-product-v1.3.0.json`](../benchmarks/results/native-portable-product-v1.3.0.json).
 The result records that the published v1.1 long-context envelope is replaced
 by the native package.
 

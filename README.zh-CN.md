@@ -1,13 +1,14 @@
 # AIMA AMD395 Qwen3.6 35B Linux 推理引擎
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![Release](https://img.shields.io/badge/release-v1.2.0-green.svg)](CHANGELOG.md)
+[![Release](https://img.shields.io/badge/release-v1.3.0-green.svg)](CHANGELOG.md)
 [![Hardware](https://img.shields.io/badge/GPU-gfx1151-orange.svg)](docs/INSTALL.md)
 
 这是一个面向 AMD Ryzen AI Max+ 395 / Radeon 8060S 的 batch-1
 `Qwen3.6-35B-A3B-BF16` 专用推理引擎。
 
-v1.2 提供可搬移的原生运行包：运行时不加载 Python、PyTorch、vLLM、
+v1.3 提供真正的 SSE 流式输出与 OpenAI function tools，同时保持可搬移原生
+运行包：运行时不加载 Python、PyTorch、vLLM、
 Triton、Transformers，也不依赖宿主机安装 ROCm userspace。发布包内含静态
 启动器、原生引擎、固定版本的 ROCm/AOTriton/CK 动态库、glibc loader、许可证
 和资格验证记录。模型权重不随项目分发。
@@ -92,6 +93,26 @@ curl -fsS http://127.0.0.1:8000/v1/chat/completions \
   }'
 ```
 
+真正的逐 token SSE 流式输出：
+
+```bash
+curl -N http://127.0.0.1:8000/v1/chat/completions \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "model": "aima-amd395-qwen36-35b",
+    "messages": [{"role": "user", "content": "编码后长度正好命中固定上下文的提示词"}],
+    "temperature": 0,
+    "top_p": 1,
+    "max_tokens": 512,
+    "stream": true,
+    "stream_options": {"include_usage": true}
+  }'
+```
+
+同一接口也支持 OpenAI function `tools`、`tool_choice`、
+`parallel_tool_calls`、assistant 工具调用历史以及 tool 响应。完整请求与返回示例、
+静态上下文计数规则见 [docs/API.md](docs/API.md)。
+
 前台运行时可用 `Ctrl-C` 或 `SIGTERM` 关闭，也可以：
 
 ```bash
@@ -109,10 +130,19 @@ aima-engine serve --model-dir PATH --context-tokens N
 aima-engine resident-session-probe --model-dir PATH [验证参数]
 aima-engine tokenizer-probe --model-dir PATH --text TEXT
 aima-engine chat-template-probe --model-dir PATH --user TEXT
+aima-engine chat-template-probe --model-dir PATH --request-json JSON
 ```
 
 `serve` 有意以前台形式运行，便于 systemd、容器和其他 supervisor 管理。随包的
 内部 probe 可在没有框架运行时的情况下复现公开的正确性和性能结果。
+
+源码安装后的可选控制 CLI 也可以直接作为客户端：
+
+```bash
+aima-engine chat --stream "PROMPT"
+aima-engine chat --stream --tools-json tools.json --tool-choice auto "PROMPT"
+aima-engine chat --messages-json conversation.json --tools-json tools.json
+```
 
 ## 原生成品性能
 
@@ -121,31 +151,33 @@ aima-engine chat-template-probe --model-dir PATH --user TEXT
 
 | 输入 | output512 prefill | output512 decode | output1024 prefill | output1024 decode |
 |---:|---:|---:|---:|---:|
-| 1,024 | 1636 | 33.99 | 1636 | 33.99 |
-| 2,048 | 1695 | 33.89 | 1695 | 33.87 |
-| 4,096 | 1576 | 33.27 | 1576 | 33.27 |
-| 8,192 | 1657 | 32.27 | 1657 | 32.26 |
-| 16,384 | 1429 | 30.69 | 1429 | 30.68 |
-| 32,768 | 1357 | 28.17 | 1357 | 28.16 |
-| 65,536 | 1168 | 24.63 | 1168 | 24.63 |
-| 131,072 | 874.4 | 19.52 | 874.4 | 19.52 |
+| 1,024 | 1636 | 34.02 | 1636 | 34.00 |
+| 2,048 | 1690 | 33.85 | 1690 | 33.83 |
+| 4,096 | 1574 | 33.28 | 1574 | 33.27 |
+| 8,192 | 1654 | 32.26 | 1654 | 32.26 |
+| 16,384 | 1433 | 30.67 | 1433 | 30.66 |
+| 32,768 | 1357 | 28.18 | 1357 | 28.17 |
+| 65,536 | 1183 | 24.61 | 1183 | 24.61 |
+| 131,072 | 871.4 | 19.53 | 871.4 | 19.53 |
 
-最大窗口端点分别达到：262143/output1 prefill `537.4` token/s，
-261632/output512 为 `559.6 / 13.62` prefill/decode token/s，
-261120/output1024 为 `554.9 / 13.60`。19 个 cell 全部达到冻结基线的
-97%；最低保留率是 output1024 最大端点的 `0.9740x`。
+最大窗口端点分别达到：262143/output1 prefill `554.1` token/s，
+261632/output512 为 `550.3 / 13.96` prefill/decode token/s，
+261120/output1024 为 `565.8 / 13.91`。19 个 cell 全部达到冻结基线的
+97%；最低 prefill/decode 保留率分别是 `1.014x` 与 `0.9839x`。
 
 其他门槛：
 
 - 9 个上下文直至 q261632 的全词表 KLD 全部小于 `0.005`，最大值
   `0.002174`，top-1 全一致；
 - 冻结 q8192 fixture 的 128-token 输出逐 token 完全一致；
-- q8192 command-to-ready 中位数 `42.52 s`，低于 `51.41 s` 上限；
-- q32768 exact-prefix TTFT 加速 `2634x`，decode 保留率 `1.0006`；
-- HTTP 两次请求期间模型装载次数始终为 1，第二次命中 exact cache，并可干净关闭。
+- q8192 command-to-ready 中位数 `44.69 s`，低于 `51.41 s` 上限；
+- q32768 exact-prefix TTFT 加速 `2612x`，decode 保留率 `1.0000`；
+- HTTP 两次请求期间模型装载次数始终为 1，第二次命中 exact cache，并可干净关闭；
+- chunked SSE 与非流式的 token/text 哈希一致，stream/non-stream 工具调用一致，
+  客户端断连后服务仍健康。
 
 完整精度、每次测量值和组件哈希见
-[benchmarks/results/native-portable-product-v1.2.0.json](benchmarks/results/native-portable-product-v1.2.0.json)。
+[benchmarks/results/native-portable-product-v1.3.0.json](benchmarks/results/native-portable-product-v1.3.0.json)。
 
 ## 从源码构建
 

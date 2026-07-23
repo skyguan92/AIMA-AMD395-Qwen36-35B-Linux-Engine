@@ -18,7 +18,10 @@ WVSPLITK_RESULT = ROOT / "benchmarks/results/native-wvsplitk-v0.1.0.json"
 DERIVED_RESULT = ROOT / "benchmarks/results/native-derived-weights-v0.1.0.json"
 DERIVED_V2_RESULT = ROOT / "benchmarks/results/native-derived-weights-v0.2.0.json"
 PORTABLE_BUNDLE_RESULT = ROOT / "benchmarks/results/native-portable-bundle-v0.1.0.json"
-PORTABLE_PRODUCT_RESULT = ROOT / "benchmarks/results/native-portable-product-v1.2.0.json"
+PORTABLE_BUNDLE_V130_RESULT = (
+    ROOT / "benchmarks/results/native-portable-bundle-v1.3.0.json"
+)
+PORTABLE_PRODUCT_RESULT = ROOT / "benchmarks/results/native-portable-product-v1.3.0.json"
 DECODE_SCHEDULE = ROOT / "native/aot/gfx1151/q8192-output2/decode-schedule.json"
 DECODE_SCHEDULE_RESULT = ROOT / "benchmarks/results/native-decode-schedule-v0.1.0.json"
 DECODE_BINDINGS_RESULT = ROOT / "benchmarks/results/native-decode-bindings-v0.1.0.json"
@@ -52,6 +55,9 @@ class NativeRuntimeContractTest(unittest.TestCase):
         cls.derived_result = load_json(DERIVED_RESULT)
         cls.derived_v2_result = load_json(DERIVED_V2_RESULT)
         cls.portable_bundle_result = load_json(PORTABLE_BUNDLE_RESULT)
+        cls.portable_bundle_v130_result = load_json(
+            PORTABLE_BUNDLE_V130_RESULT
+        )
         cls.portable_product_result = load_json(PORTABLE_PRODUCT_RESULT)
         cls.decode_schedule = load_json(DECODE_SCHEDULE)
         cls.decode_schedule_result = load_json(DECODE_SCHEDULE_RESULT)
@@ -105,7 +111,7 @@ class NativeRuntimeContractTest(unittest.TestCase):
         profile = self.contract["qualified_native_profile"]
         self.assertTrue(result["complete"])
         self.assertTrue(result["qualified"])
-        self.assertEqual(result["release"], "1.2.0")
+        self.assertEqual(result["release"], "1.3.0")
         self.assertEqual(result["scope"]["input_tokens"], profile["input_tokens"])
         self.assertEqual(result["scope"]["output_tokens"], profile["output_tokens"])
         self.assertTrue(result["scope"]["matrix_complete_for_admitted_native_profile"])
@@ -150,11 +156,71 @@ class NativeRuntimeContractTest(unittest.TestCase):
         self.assertTrue(result["prefix_cache"]["q32768_output512_exact"]["pass"])
         self.assertTrue(result["http"]["resident"])
         self.assertEqual(result["http"]["model_loads"], 1)
+        self.assertTrue(result["openai_features"]["pass"])
+        self.assertTrue(result["openai_features"]["streaming"]["pass"])
+        self.assertTrue(
+            result["openai_features"]["streaming"][
+                "content_matches_nonstream"
+            ]
+        )
+        self.assertTrue(
+            result["openai_features"]["streaming"][
+                "token_sha256_matches_nonstream"
+            ]
+        )
+        self.assertTrue(result["openai_features"]["tools"]["pass"])
+        self.assertTrue(
+            result["openai_features"]["tools"][
+                "token_sha256_matches_nonstream"
+            ]
+        )
+        self.assertEqual(
+            result["openai_features"]["tools"]["finish_reason"],
+            "tool_calls",
+        )
+        self.assertTrue(result["openai_features"]["disconnect"]["pass"])
         for dependency in ("python", "torch", "vllm", "triton", "transformers"):
             self.assertFalse(result["runtime_dependency_gate"][f"runtime_{dependency}"])
         self.assertFalse(result["runtime_dependency_gate"]["host_rocm_userspace_required"])
         self.assertTrue(result["decision"]["native_profile_performance_nonregression_pass"])
         self.assertTrue(result["decision"]["full_legacy_context_envelope_replacement_pass"])
+        self.assertTrue(result["decision"]["http_streaming_pass"])
+        self.assertTrue(result["decision"]["tool_calling_pass"])
+        self.assertTrue(result["decision"]["disconnect_cancellation_pass"])
+
+    def test_v130_release_archive_is_isolated_and_provider_complete(self) -> None:
+        bundle = self.portable_bundle_v130_result
+        self.assertEqual(bundle["release"], "1.3.0")
+        self.assertTrue(bundle["complete"])
+        self.assertTrue(bundle["qualified"])
+        self.assertTrue(bundle["archive"]["checksum_verified"])
+        self.assertEqual(bundle["archive"]["root_mode"], "0755")
+        self.assertTrue(bundle["manifest"]["complete"])
+        self.assertEqual(bundle["manifest"]["checked_files"], 240)
+        self.assertTrue(bundle["elf_closure"]["complete"])
+        self.assertTrue(bundle["elf_closure"]["launcher_static"])
+        self.assertEqual(
+            bundle["elf_closure"]["host_userspace_dependencies"],
+            [],
+        )
+        self.assertEqual(
+            bundle["elf_closure"]["unresolved_userspace_dependencies"],
+            {},
+        )
+        self.assertFalse(
+            bundle["isolated_environment"]["host_rocm_path"]
+        )
+        self.assertEqual(
+            bundle["isolated_environment"]["version"],
+            "aima-engine-native 1.3.0-native",
+        )
+        self.assertEqual(
+            [smoke["context_tokens"] for smoke in bundle["provider_smokes"]],
+            [1024, 16384, 65536],
+        )
+        self.assertTrue(
+            all(smoke["qualified"] for smoke in bundle["provider_smokes"])
+        )
 
     def test_generated_layout_is_current_and_complete(self) -> None:
         check = subprocess.run(
@@ -238,7 +304,7 @@ class NativeRuntimeContractTest(unittest.TestCase):
             "libaima-fmha-ck.so",
             "libaima-fmha-q16384-hybrid.so",
             "libaotriton_v2.so.0.11.1",
-            "native-portable-product-v1.2.0.json",
+            "native-portable-product-v1.3.0.json",
             "product-contract.json",
             "aima-engine.service",
         ):

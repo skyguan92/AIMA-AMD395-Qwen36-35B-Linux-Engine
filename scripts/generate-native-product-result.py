@@ -41,27 +41,36 @@ def main() -> None:
     parser.add_argument(
         "--matrix",
         type=Path,
-        default=Path("benchmarks/runs/native-full-matrix-20260723/matrix.json"),
+        default=Path(
+            "benchmarks/runs/native-full-matrix-20260723-v130/matrix.json"
+        ),
     )
     parser.add_argument(
         "--correctness",
         type=Path,
         default=Path(
-            "benchmarks/runs/native-correctness-20260723/correctness.json"
+            "benchmarks/runs/native-correctness-20260723-v130/correctness.json"
         ),
     )
     parser.add_argument(
         "--surfaces",
         type=Path,
         default=Path(
-            "benchmarks/runs/native-product-surfaces-20260723/surfaces.json"
+            "benchmarks/runs/native-product-surfaces-20260723-v130/surfaces.json"
+        ),
+    )
+    parser.add_argument(
+        "--features",
+        type=Path,
+        default=Path(
+            "benchmarks/runs/native-openai-features-20260723-v130/features.json"
         ),
     )
     parser.add_argument(
         "--output",
         type=Path,
         default=Path(
-            "benchmarks/results/native-portable-product-v1.2.0.json"
+            "benchmarks/results/native-portable-product-v1.3.0.json"
         ),
     )
     parser.add_argument(
@@ -107,10 +116,12 @@ def main() -> None:
     matrix_path = cli.matrix.resolve()
     correctness_path = cli.correctness.resolve()
     surfaces_path = cli.surfaces.resolve()
+    features_path = cli.features.resolve()
     output_path = cli.output.resolve()
     matrix = load_json(matrix_path)
     correctness = load_json(correctness_path)
     surfaces = load_json(surfaces_path)
+    features = load_json(features_path)
     engine = cli.engine.resolve()
     launcher = cli.launcher.resolve()
     aotriton_provider = cli.aotriton_provider.resolve()
@@ -134,6 +145,7 @@ def main() -> None:
         ("matrix", matrix),
         ("correctness", correctness),
         ("surfaces", surfaces),
+        ("features", features),
     ):
         if payload.get("qualified") is not True:
             raise SystemExit(f"{name} qualification did not pass")
@@ -192,7 +204,7 @@ def main() -> None:
     http = surfaces["http"]
     result = {
         "schema": "aima-amd395-qwen36/native-portable-product-result/v1",
-        "release": "1.2.0",
+        "release": "1.3.0",
         "date_utc": "2026-07-23",
         "complete": True,
         "qualified": True,
@@ -232,7 +244,7 @@ def main() -> None:
             ),
         },
         "components": {
-            "source_base_commit": "c1d274a00f8db28d9bd806db008b7bbc32cd5634",
+            "source_base_commit": "e430e50dcb41af04465386287d696caa0ff22b10",
             "native_engine": component(
                 engine, "build/native/aima-engine-native"
             ),
@@ -324,27 +336,29 @@ def main() -> None:
             "q32768_output512_exact": prefix,
         },
         "http": http,
+        "openai_features": {
+            "streaming": features["streaming"],
+            "tools": features["tools"],
+            "disconnect": features["disconnect"],
+            "validation": features["validation"],
+            "pass": features["qualified"],
+        },
         "evidence": {
             "matrix": {
-                "path": (
-                    "benchmarks/runs/native-full-matrix-20260723/"
-                    "matrix.json"
-                ),
+                "path": str(matrix_path.relative_to(Path.cwd())),
                 "sha256": sha256(matrix_path),
             },
             "correctness": {
-                "path": (
-                    "benchmarks/runs/native-correctness-20260723/"
-                    "correctness.json"
-                ),
+                "path": str(correctness_path.relative_to(Path.cwd())),
                 "sha256": sha256(correctness_path),
             },
             "surfaces": {
-                "path": (
-                    "benchmarks/runs/native-product-surfaces-20260723/"
-                    "surfaces.json"
-                ),
+                "path": str(surfaces_path.relative_to(Path.cwd())),
                 "sha256": sha256(surfaces_path),
+            },
+            "openai_features": {
+                "path": str(features_path.relative_to(Path.cwd())),
+                "sha256": sha256(features_path),
             },
         },
         "decision": {
@@ -354,10 +368,14 @@ def main() -> None:
             "prefix_cache_nonregression_pass": prefix["pass"],
             "portable_userspace_closure_pass": True,
             "http_residency_pass": http["pass"],
+            "http_streaming_pass": features["streaming"]["pass"],
+            "tool_calling_pass": features["tools"]["pass"],
+            "disconnect_cancellation_pass": features["disconnect"]["pass"],
             "full_legacy_context_envelope_replacement_pass": True,
             "release_decision": (
                 "qualified portable native replacement for the complete "
-                "published batch-1 context/output envelope"
+                "published batch-1 context/output envelope with live SSE "
+                "streaming and OpenAI function tools"
             ),
         },
     }

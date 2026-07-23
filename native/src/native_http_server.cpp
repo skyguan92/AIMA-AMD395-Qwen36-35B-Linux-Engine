@@ -3,6 +3,7 @@
 
 #include "aima/native_http_server.h"
 
+#include "aima/native_chat_protocol.h"
 #include "aima/native_resident_engine.h"
 #include "aima/native_tokenizer.h"
 
@@ -22,7 +23,9 @@
 #include <cstring>
 #include <filesystem>
 #include <iostream>
+#include <iomanip>
 #include <limits>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -33,7 +36,7 @@
 namespace aima {
 namespace {
 
-using Json = nlohmann::json;
+using Json = NativeOrderedJson;
 constexpr const char* kModelId = "aima-amd395-qwen36-35b";
 constexpr std::size_t kMaximumRequestBytes = 1024 * 1024;
 std::atomic<bool> g_shutdown{false};
@@ -96,6 +99,44 @@ void send_all(int fd, std::string_view value) {
     if (result <= 0) throw std::runtime_error("HTTP response send failed");
     sent += static_cast<std::size_t>(result);
   }
+}
+
+bool try_send_all(int fd, std::string_view value) {
+  std::size_t sent = 0;
+  while (sent < value.size()) {
+    const ssize_t result =
+        ::send(fd, value.data() + sent, value.size() - sent, MSG_NOSIGNAL);
+    if (result < 0 && errno == EINTR) continue;
+    if (result <= 0) return false;
+    sent += static_cast<std::size_t>(result);
+  }
+  return true;
+}
+
+bool send_http_chunk(int fd, std::string_view value) {
+  std::ostringstream size;
+  size << std::hex << value.size() << "\r\n";
+  return try_send_all(fd, size.str()) && try_send_all(fd, value) &&
+         try_send_all(fd, "\r\n");
+}
+
+bool send_sse_event(int fd, std::string_view data) {
+  std::string event = "data: ";
+  event.append(data);
+  event += "\n\n";
+  return send_http_chunk(fd, event);
+}
+
+bool begin_sse(int fd) {
+  return try_send_all(
+      fd,
+      "HTTP/1.1 200 OK\r\n"
+      "Content-Type: text/event-stream; charset=utf-8\r\n"
+      "Cache-Control: no-cache\r\n"
+      "X-Accel-Buffering: no\r\n"
+      "Transfer-Encoding: chunked\r\n"
+      "Connection: close\r\n"
+      "X-Content-Type-Options: nosniff\r\n\r\n");
 }
 
 std::string status_text(int status) {
@@ -335,45 +376,13 @@ void require_number(const Json& request, const char* field, double expected) {
   }
 }
 
-std::pair<std::string, std::string> parse_messages(const Json& request) {
-  if (!request.contains("messages") || !request["messages"].is_array() ||
-      request["messages"].empty()) {
-    throw std::invalid_argument("messages must be a non-empty array");
-  }
-  std::string system;
-  std::string user;
-  bool saw_user = false;
-  for (const Json& message : request["messages"]) {
-    if (!message.is_object() || !message.contains("role") ||
-        !message.contains("content") || !message["role"].is_string() ||
-        !message["content"].is_string()) {
-      throw std::invalid_argument(
-          "each message requires string role and content");
-    }
-    const std::string role = message["role"].get<std::string>();
-    const std::string content = message["content"].get<std::string>();
-    if (role == "system" && !saw_user) {
-      if (!system.empty()) system += '\n';
-      system += content;
-    } else if (role == "user") {
-      saw_user = true;
-      if (!user.empty()) user += '\n';
-      user += content;
-    } else {
-      throw std::invalid_argument(
-          "only leading system messages followed by user messages are supported");
-    }
-  }
-  if (user.empty()) throw std::invalid_argument("a user message is required");
-  return {system, user};
-}
-
 Json request_metrics_json(const NativeResidentRequestMetrics& metrics) {
   return {{"runtime", "native-resident-q" +
                           std::to_string(metrics.prompt_tokens)},
           {"oracle_tensor_reads", metrics.oracle_tensor_reads},
           {"request_index", metrics.request_index},
           {"model_loads", metrics.model_loads},
+          {"client_cancelled", metrics.client_cancelled},
           {"output_token_ids_sha256", metrics.output_token_ids_sha256},
           {"prefill_tokens_per_second", metrics.prefill_tokens_per_second},
           {"decode_tokens_per_second", metrics.decode_tokens_per_second},
@@ -400,8 +409,30 @@ Json request_metrics_json(const NativeResidentRequestMetrics& metrics) {
                              metrics.prefix_cache_suffix_wall_ms}}}};
 }
 
-Json chat_completion(NativeResidentEngine& engine, NativeTokenizer& tokenizer,
-                     const Json& request, std::size_t admitted_prompt_tokens) {
+struct ParsedCompletionRequest {
+  NativePreparedChat chat;
+  std::vector<std::uint32_t> prompt;
+  std::size_t max_tokens = 16;
+  bool stream = false;
+  bool include_usage = false;
+};
+
+std::size_t positive_integer_field(const Json& request, const char* field) {
+  if (!request[field].is_number_unsigned()) {
+    throw std::invalid_argument(std::string(field) +
+                                " must be a positive integer");
+  }
+  const std::uint64_t value = request[field].get<std::uint64_t>();
+  if (value == 0 || value > std::numeric_limits<std::size_t>::max()) {
+    throw std::invalid_argument(std::string(field) +
+                                " must be a positive integer");
+  }
+  return static_cast<std::size_t>(value);
+}
+
+ParsedCompletionRequest parse_completion_request(
+    NativeTokenizer& tokenizer, const Json& request,
+    std::size_t admitted_prompt_tokens) {
   if (!request.is_object()) {
     throw std::invalid_argument("request body must be a JSON object");
   }
@@ -413,72 +444,321 @@ Json chat_completion(NativeResidentEngine& engine, NativeTokenizer& tokenizer,
   require_number(request, "temperature", 0.0);
   require_number(request, "top_p", 1.0);
   require_number(request, "n", 1.0);
-  if (request.value("stream", false)) {
-    throw std::invalid_argument("streaming is not supported");
+  ParsedCompletionRequest parsed;
+  if (request.contains("stream")) {
+    if (!request["stream"].is_boolean()) {
+      throw std::invalid_argument("stream must be boolean");
+    }
+    parsed.stream = request["stream"].get<bool>();
   }
-  if (request.contains("tools") || request.contains("functions") ||
-      request.contains("response_format") || request.contains("stop")) {
+  if (request.contains("functions") || request.contains("response_format") ||
+      request.contains("stop")) {
     throw std::invalid_argument(
-        "tools, functions, response_format, and custom stop are not supported");
+        "deprecated functions, response_format, and custom stop are not "
+        "supported");
   }
-  const auto [system, user] = parse_messages(request);
-  std::vector<std::uint32_t> prompt =
-      tokenizer.encode_chat(system, user, true);
-  if (prompt.size() < admitted_prompt_tokens) {
+  if (request.contains("stream_options")) {
+    if (!parsed.stream || !request["stream_options"].is_object()) {
+      throw std::invalid_argument(
+          "stream_options requires stream=true and an object value");
+    }
+    const Json& options = request["stream_options"];
+    if (options.contains("include_usage")) {
+      if (!options["include_usage"].is_boolean()) {
+        throw std::invalid_argument(
+            "stream_options.include_usage must be boolean");
+      }
+      parsed.include_usage = options["include_usage"].get<bool>();
+    }
+  }
+  parsed.chat = prepare_native_chat(request);
+  parsed.prompt = tokenizer.encode_chat(
+      parsed.chat.messages, parsed.chat.prompt_tools, true);
+  if (parsed.prompt.size() < admitted_prompt_tokens) {
     throw std::invalid_argument(
         "the current native product route requires a cold prompt of " +
         std::to_string(admitted_prompt_tokens) +
         " tokens or a longer prompt extending that cached prefix; encoded "
         "prompt has " +
-        std::to_string(prompt.size()));
+        std::to_string(parsed.prompt.size()));
   }
-  std::size_t max_tokens = 16;
   if (request.contains("max_completion_tokens")) {
-    if (!request["max_completion_tokens"].is_number_unsigned()) {
-      throw std::invalid_argument("max_completion_tokens must be a positive integer");
-    }
-    max_tokens = request["max_completion_tokens"].get<std::size_t>();
+    parsed.max_tokens =
+        positive_integer_field(request, "max_completion_tokens");
   } else if (request.contains("max_tokens")) {
-    if (!request["max_tokens"].is_number_unsigned()) {
-      throw std::invalid_argument("max_tokens must be a positive integer");
-    }
-    max_tokens = request["max_tokens"].get<std::size_t>();
+    parsed.max_tokens = positive_integer_field(request, "max_tokens");
   }
-  if (max_tokens == 0) {
-    throw std::invalid_argument("max_tokens must be positive");
-  }
+  return parsed;
+}
 
-  NativeResidentRequestOptions native_request;
-  native_request.input_token_ids = std::move(prompt);
-  native_request.max_new_tokens = max_tokens;
-  native_request.stop_token_ids = {tokenizer.eos_token_id()};
-  const NativeResidentRequestMetrics metrics = engine.run(native_request);
+Json usage_json(const NativeResidentRequestMetrics& metrics) {
+  return {{"prompt_tokens", metrics.prompt_tokens},
+          {"completion_tokens", metrics.completion_tokens},
+          {"total_tokens",
+           metrics.prompt_tokens + metrics.completion_tokens}};
+}
+
+Json tool_calls_json(const std::vector<NativeParsedToolCall>& calls) {
+  Json result = Json::array();
+  for (const NativeParsedToolCall& call : calls) {
+    result.push_back(
+        {{"id", call.id},
+         {"type", "function"},
+         {"function", {{"name", call.name},
+                       {"arguments", call.serialized_arguments}}}});
+  }
+  return result;
+}
+
+std::int64_t unix_time_seconds() {
+  return std::chrono::duration_cast<std::chrono::seconds>(
+             std::chrono::system_clock::now().time_since_epoch())
+      .count();
+}
+
+NativeAssistantOutput visible_assistant_output(
+    const NativeResidentRequestMetrics& metrics,
+    const NativeTokenizer& tokenizer, const NativePreparedChat& chat,
+    std::string_view call_id_prefix) {
   std::vector<std::uint32_t> visible = metrics.output_token_ids;
   if (metrics.stopped && !visible.empty() &&
       visible.back() == tokenizer.eos_token_id()) {
     visible.pop_back();
   }
-  const std::string content = tokenizer.decode(visible);
-  const std::int64_t created = std::chrono::duration_cast<std::chrono::seconds>(
-                                   std::chrono::system_clock::now()
-                                       .time_since_epoch())
-                                   .count();
+  const std::string text = tokenizer.decode(visible);
+  if (chat.tool_choice == NativeToolChoiceMode::kNone ||
+      chat.prompt_tools.empty()) {
+    return {text, {}};
+  }
+  NativeAssistantOutput output =
+      parse_qwen_tool_output(text, chat.function_tools, call_id_prefix);
+  if (!chat.parallel_tool_calls && output.tool_calls.size() > 1) {
+    output.tool_calls.resize(1);
+  }
+  if (chat.tool_choice == NativeToolChoiceMode::kSpecific) {
+    output.tool_calls.erase(
+        std::remove_if(
+            output.tool_calls.begin(), output.tool_calls.end(),
+            [&](const NativeParsedToolCall& call) {
+              return call.name != chat.required_function_name;
+            }),
+        output.tool_calls.end());
+  }
+  return output;
+}
+
+bool required_tool_choice_satisfied(
+    const NativePreparedChat& chat,
+    const NativeAssistantOutput& output) {
+  return (chat.tool_choice != NativeToolChoiceMode::kRequired &&
+          chat.tool_choice != NativeToolChoiceMode::kSpecific) ||
+         !output.tool_calls.empty();
+}
+
+Json chat_completion(NativeResidentEngine& engine, NativeTokenizer& tokenizer,
+                     ParsedCompletionRequest parsed) {
+  NativeResidentRequestOptions native_request;
+  native_request.input_token_ids = std::move(parsed.prompt);
+  native_request.max_new_tokens = parsed.max_tokens;
+  native_request.stop_token_ids = {tokenizer.eos_token_id()};
+  const NativeResidentRequestMetrics metrics = engine.run(native_request);
   const std::string id =
       "chatcmpl-native-" + std::to_string(metrics.request_index);
+  NativeAssistantOutput output = visible_assistant_output(
+      metrics, tokenizer, parsed.chat, id + "-call-");
+  if (!required_tool_choice_satisfied(parsed.chat, output)) {
+    throw std::runtime_error(
+        "model output did not satisfy the required tool_choice");
+  }
+  Json message = {{"role", "assistant"}};
+  if (output.tool_calls.empty() || !output.content.empty()) {
+    message["content"] = output.content;
+  } else {
+    message["content"] = nullptr;
+  }
+  if (!output.tool_calls.empty()) {
+    message["tool_calls"] = tool_calls_json(output.tool_calls);
+  }
   return {{"id", id},
           {"object", "chat.completion"},
-          {"created", created},
+          {"created", unix_time_seconds()},
           {"model", kModelId},
           {"choices", Json::array({{{"index", 0},
-                                     {"message", {{"role", "assistant"},
-                                                  {"content", content}}},
+                                     {"message", std::move(message)},
                                      {"finish_reason",
-                                      metrics.stopped ? "stop" : "length"}}})},
-          {"usage", {{"prompt_tokens", metrics.prompt_tokens},
-                     {"completion_tokens", metrics.completion_tokens},
-                     {"total_tokens", metrics.prompt_tokens +
-                                          metrics.completion_tokens}}},
+                                      !output.tool_calls.empty()
+                                          ? "tool_calls"
+                                          : (metrics.stopped ? "stop"
+                                                             : "length")}}})},
+          {"usage", usage_json(metrics)},
           {"aima_amd395", request_metrics_json(metrics)}};
+}
+
+Json stream_chunk_base(std::string_view id, std::int64_t created) {
+  return {{"id", id},
+          {"object", "chat.completion.chunk"},
+          {"created", created},
+          {"model", kModelId}};
+}
+
+bool stream_chat_completion(
+    int fd, NativeResidentEngine& engine, NativeTokenizer& tokenizer,
+    ParsedCompletionRequest parsed,
+    std::chrono::steady_clock::time_point http_started) {
+  const std::string id = "chatcmpl-native-" +
+                         std::to_string(engine.request_count() + 1);
+  const std::int64_t created = unix_time_seconds();
+  bool connected = begin_sse(fd);
+  auto send_chunk = [&](Json chunk) {
+    if (!connected) return false;
+    connected = send_sse_event(fd, chunk.dump());
+    return connected;
+  };
+  Json role = stream_chunk_base(id, created);
+  role["choices"] = Json::array(
+      {{{"index", 0},
+        {"delta", {{"role", "assistant"}}},
+        {"finish_reason", nullptr}}});
+  if (!send_chunk(std::move(role))) return false;
+
+  NativeIncrementalUtf8Decoder utf8;
+  NativeToolStreamGate gate;
+  const bool hold_content_for_required_tool =
+      parsed.chat.tool_choice == NativeToolChoiceMode::kRequired ||
+      parsed.chat.tool_choice == NativeToolChoiceMode::kSpecific;
+  NativeResidentRequestOptions native_request;
+  native_request.input_token_ids = std::move(parsed.prompt);
+  native_request.max_new_tokens = parsed.max_tokens;
+  native_request.stop_token_ids = {tokenizer.eos_token_id()};
+  native_request.token_callback =
+      [&](std::uint32_t token_id, std::size_t) -> bool {
+    if (!connected) return false;
+    if (token_id == tokenizer.eos_token_id()) return true;
+    const std::string decoded =
+        utf8.push(tokenizer.decode_token_bytes(token_id));
+    const std::string content = gate.push(decoded);
+    if (content.empty() || hold_content_for_required_tool) return true;
+    Json chunk = stream_chunk_base(id, created);
+    chunk["choices"] = Json::array(
+        {{{"index", 0},
+          {"delta", {{"content", content}}},
+          {"finish_reason", nullptr}}});
+    return send_chunk(std::move(chunk));
+  };
+
+  NativeResidentRequestMetrics metrics;
+  try {
+    metrics = engine.run(native_request);
+  } catch (const std::exception& error) {
+    if (connected) {
+      (void)send_sse_event(
+          fd, error_payload(error.what(), "native_engine_error",
+                            "server_error")
+                  .dump());
+      (void)send_sse_event(fd, "[DONE]");
+      (void)try_send_all(fd, "0\r\n\r\n");
+    }
+    return false;
+  }
+  if (!connected || metrics.client_cancelled) return false;
+
+  const std::string terminal_utf8 = utf8.finish();
+  std::string terminal_streamable;
+  if (!terminal_utf8.empty()) {
+    terminal_streamable = gate.push(terminal_utf8);
+  }
+  NativeAssistantOutput output;
+  if (parsed.chat.tool_choice != NativeToolChoiceMode::kNone &&
+      !parsed.chat.prompt_tools.empty()) {
+    output = parse_qwen_tool_output(
+        gate.complete_text(), parsed.chat.function_tools, id + "-call-");
+    if (!parsed.chat.parallel_tool_calls && output.tool_calls.size() > 1) {
+      output.tool_calls.resize(1);
+    }
+    if (parsed.chat.tool_choice == NativeToolChoiceMode::kSpecific) {
+      output.tool_calls.erase(
+          std::remove_if(
+              output.tool_calls.begin(), output.tool_calls.end(),
+              [&](const NativeParsedToolCall& call) {
+                return call.name != parsed.chat.required_function_name;
+              }),
+          output.tool_calls.end());
+    }
+  } else {
+    output.content = gate.complete_text();
+  }
+
+  if (!required_tool_choice_satisfied(parsed.chat, output)) {
+    (void)send_sse_event(
+        fd,
+        error_payload(
+            "model output did not satisfy the required tool_choice",
+            "tool_choice_not_satisfied", "server_error")
+            .dump());
+    (void)send_sse_event(fd, "[DONE]");
+    (void)try_send_all(fd, "0\r\n\r\n");
+    return false;
+  }
+  if (hold_content_for_required_tool && !output.content.empty()) {
+    Json chunk = stream_chunk_base(id, created);
+    chunk["choices"] = Json::array(
+        {{{"index", 0},
+          {"delta", {{"content", output.content}}},
+          {"finish_reason", nullptr}}});
+    if (!send_chunk(std::move(chunk))) return false;
+  }
+  std::string remaining;
+  if (!hold_content_for_required_tool) {
+    remaining = std::move(terminal_streamable);
+  }
+  remaining += gate.finish(!output.tool_calls.empty());
+  if (!remaining.empty()) {
+    Json chunk = stream_chunk_base(id, created);
+    chunk["choices"] = Json::array(
+        {{{"index", 0},
+          {"delta", {{"content", remaining}}},
+          {"finish_reason", nullptr}}});
+    if (!send_chunk(std::move(chunk))) return false;
+  }
+  if (!output.tool_calls.empty()) {
+    Json deltas = Json::array();
+    for (std::size_t index = 0; index < output.tool_calls.size(); ++index) {
+      const NativeParsedToolCall& call = output.tool_calls[index];
+      deltas.push_back(
+          {{"index", index},
+           {"id", call.id},
+           {"type", "function"},
+           {"function", {{"name", call.name},
+                         {"arguments", call.serialized_arguments}}}});
+    }
+    Json chunk = stream_chunk_base(id, created);
+    chunk["choices"] = Json::array(
+        {{{"index", 0},
+          {"delta", {{"tool_calls", std::move(deltas)}}},
+          {"finish_reason", nullptr}}});
+    if (!send_chunk(std::move(chunk))) return false;
+  }
+
+  Json terminal = stream_chunk_base(id, created);
+  terminal["choices"] = Json::array(
+      {{{"index", 0},
+        {"delta", Json::object()},
+        {"finish_reason",
+         !output.tool_calls.empty()
+             ? "tool_calls"
+             : (metrics.stopped ? "stop" : "length")}}});
+  terminal["aima_amd395"] = request_metrics_json(metrics);
+  terminal["aima_amd395"]["http_request_wall_ms"] =
+      elapsed_ms(http_started);
+  if (!send_chunk(std::move(terminal))) return false;
+  if (parsed.include_usage) {
+    Json usage = stream_chunk_base(id, created);
+    usage["choices"] = Json::array();
+    usage["usage"] = usage_json(metrics);
+    if (!send_chunk(std::move(usage))) return false;
+  }
+  if (!send_sse_event(fd, "[DONE]")) return false;
+  return try_send_all(fd, "0\r\n\r\n");
 }
 
 }  // namespace
@@ -582,12 +862,21 @@ int run_native_http_server(int argc, char** argv) {
         try {
           body = Json::parse(request.body);
           const auto started = std::chrono::steady_clock::now();
-          Json response = chat_completion(
-              engine, tokenizer, body, load.prompt_tokens);
-          response["aima_amd395"]["http_request_wall_ms"] =
-              elapsed_ms(started);
-          send_json(client.get(), 200, response);
-          ++served;
+          ParsedCompletionRequest parsed = parse_completion_request(
+              tokenizer, body, load.prompt_tokens);
+          if (parsed.stream) {
+            if (stream_chat_completion(client.get(), engine, tokenizer,
+                                       std::move(parsed), started)) {
+              ++served;
+            }
+          } else {
+            Json response =
+                chat_completion(engine, tokenizer, std::move(parsed));
+            response["aima_amd395"]["http_request_wall_ms"] =
+                elapsed_ms(started);
+            send_json(client.get(), 200, response);
+            ++served;
+          }
         } catch (const std::invalid_argument& error) {
           send_json(client.get(), 400,
                     error_payload(error.what(), "bad_request"));

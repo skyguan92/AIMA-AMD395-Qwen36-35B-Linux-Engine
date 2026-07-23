@@ -1,6 +1,6 @@
 # Portable native runtime
 
-AIMA v1.2 adds a relocatable native runtime for
+AIMA v1.3 provides a relocatable native runtime for
 `Qwen3.6-35B-A3B-BF16` on AMD Ryzen AI Max+ 395 / `gfx1151`. The runtime
 loads the standard 26-shard Safetensors checkpoint directly, keeps model and
 cache state resident, and serves a deterministic OpenAI Chat Completions
@@ -24,7 +24,7 @@ batch-1 envelope:
 The 262,144-token window endpoints at output1/output512/output1024 are also
 qualified. The machine-readable boundary is in
 [product-contract.json](product-contract.json), and the measurements are in
-[the v1.2 native result](../benchmarks/results/native-portable-product-v1.2.0.json).
+[the v1.3 native result](../benchmarks/results/native-portable-product-v1.3.0.json).
 
 ## Distribution shape
 
@@ -75,6 +75,13 @@ length is exactly the selected static context. A longer request is accepted
 only when it extends the one cached token prefix. Short prompts fail closed;
 the server never silently selects an unqualified schedule.
 
+`POST /v1/chat/completions` supports live SSE token output and OpenAI function
+tools. The native tokenizer renders the checkpoint's Qwen tool template,
+assistant tool-call history and grouped tool responses without Transformers.
+Generated Qwen XML is converted to structured `tool_calls`; it never leaks
+into content when a valid call is recognized. Client disconnects stop the
+remaining decode loop without unloading the model.
+
 ## Build
 
 Building is different from running. A qualified builder needs ROCm/HIP, Python
@@ -104,15 +111,17 @@ and one-token-or-longer prefix extension. On an extension hit it restores the
 cached state and executes only the suffix through the native decode path;
 cold-prefill launch count is zero.
 
-The final v1.2 qualification established:
+The final v1.3 qualification established:
 
 - KLD below `0.005` and matching top-1 at nine contexts through q261632;
 - exact 128-token completion identity on the frozen q8192 fixture;
 - all 19 prefill/decode cells at or above 97% of their frozen floor;
-- 42.52 s median q8192 command-to-ready versus the 51.41 s ceiling;
-- q32768 exact-cache TTFT speedup `2634x` with `1.0006` decode retention;
+- 44.69 s median q8192 command-to-ready versus the 51.41 s ceiling;
+- q32768 exact-cache TTFT speedup `2612x` with `1.0000` decode retention;
 - resident HTTP with one model load, health/models/chat endpoints, exact cache
-  reuse and clean shutdown.
+  reuse and clean shutdown;
+- live chunked SSE/non-stream token parity, structured function-tool parity
+  and healthy resident state after client-disconnect cancellation.
 
 Full values and component hashes live in the qualification JSON; rounded values
 in prose are not the source of truth.

@@ -83,23 +83,31 @@ There is no authentication. Keep the server on a trusted interface.
 Supported request fields:
 
 - `model`: if present, must be `aima-amd395-qwen36-35b`;
-- `messages`: leading system strings followed by one or more user strings;
+- `messages`: text-only `system`, `developer`, `user`, `assistant` and `tool`
+  history; assistant `tool_calls` and matching tool responses are accepted;
 - `max_tokens` or `max_completion_tokens`: positive integer;
 - `temperature`: exactly `0`;
 - `top_p`: exactly `1`;
 - `n`: exactly `1`;
-- `stream`: `false`.
+- `stream`: boolean;
+- `stream_options.include_usage`: boolean when `stream` is true;
+- `tools`: OpenAI function-tool definitions;
+- `tool_choice`: `auto`, `none`, `required`, or a named function object;
+- `parallel_tool_calls`: boolean.
 
 Not supported:
 
-- streaming;
 - custom stop values;
-- assistant/tool messages as input;
-- tools, functions or structured response formats;
+- image, audio or video message parts;
+- deprecated `functions` or structured response formats;
 - stochastic sampling;
 - batching or concurrent execution.
 
-The server applies the qualified Qwen chat template with thinking disabled.
+The server applies the model's qualified Qwen tool/chat template with thinking
+disabled. Its native renderer is byte-for-byte and token-for-token checked
+against the checkpoint template for plain, tool and assistant/tool-history
+fixtures.
+
 After tokenization:
 
 - a cold request must contain exactly the process's static context;
@@ -117,8 +125,29 @@ input/output pairs `262143/1`, `261632/512` and `261120/1024`.
 
 ### Response
 
-The response follows the non-streaming OpenAI shape: `id`, `object`,
-`created`, `model`, `choices` and `usage`. A terminal EOS token counts in
+With `stream:false`, the response follows the OpenAI shape: `id`, `object`,
+`created`, `model`, `choices` and `usage`. Plain generations return assistant
+`content`. A function generation returns `message.tool_calls` and ends with
+`finish_reason: "tool_calls"`:
+
+```json
+{
+  "role": "assistant",
+  "content": null,
+  "tool_calls": [{
+    "id": "chatcmpl-native-3-call-0",
+    "type": "function",
+    "function": {
+      "name": "get_weather",
+      "arguments": "{\"city\": \"Paris\"}"
+    }
+  }]
+}
+```
+
+Parameter strings, integers, numbers, booleans, objects and arrays are
+converted using the function JSON Schema. Unknown or malformed function markup
+is not exposed as a valid call. A terminal EOS token counts in
 `usage.completion_tokens` but is omitted from visible assistant content.
 
 `aima_amd395` adds:
@@ -131,7 +160,37 @@ The response follows the non-streaming OpenAI shape: `id`, `object`,
 - prefix lookup type, matched/suffix token counts, cumulative hits/misses,
   state-transfer bytes, suffix launch counts and suffix wall time.
 
-Example:
+### Streaming
+
+`stream:true` uses HTTP/1.1 chunked transfer and
+`Content-Type: text/event-stream`. The sequence is:
+
+1. an assistant-role `chat.completion.chunk`;
+2. content deltas as soon as generated token bytes form valid UTF-8;
+3. a structured `delta.tool_calls` when Qwen completes a function call;
+4. a terminal chunk with `stop`, `length` or `tool_calls`;
+5. an optional empty-choices usage chunk;
+6. `data: [DONE]`.
+
+This is live decode streaming, not post-generation text splitting. Closing the
+connection cancels remaining decode work while keeping the model and valid
+prefix state resident.
+
+```bash
+curl -N http://127.0.0.1:8000/v1/chat/completions \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "model": "aima-amd395-qwen36-35b",
+    "messages": [{"role": "user", "content": "EXACT_LENGTH_PROMPT"}],
+    "temperature": 0,
+    "top_p": 1,
+    "max_tokens": 512,
+    "stream": true,
+    "stream_options": {"include_usage": true}
+  }'
+```
+
+### Function tools
 
 ```bash
 curl -fsS http://127.0.0.1:8000/v1/chat/completions \
@@ -139,14 +198,56 @@ curl -fsS http://127.0.0.1:8000/v1/chat/completions \
   -d '{
     "model": "aima-amd395-qwen36-35b",
     "messages": [
-      {"role": "system", "content": "Answer concisely."},
-      {"role": "user", "content": "PROMPT_PREPARED_TO_THE_STATIC_TOKEN_LENGTH"}
+      {"role": "user", "content": "EXACT_LENGTH_TOOL_PROMPT"}
     ],
+    "tools": [{
+      "type": "function",
+      "function": {
+        "name": "get_weather",
+        "description": "Get weather for a city",
+        "parameters": {
+          "type": "object",
+          "properties": {"city": {"type": "string"}},
+          "required": ["city"]
+        }
+      }
+    }],
+    "tool_choice": "auto",
     "temperature": 0,
     "top_p": 1,
-    "max_tokens": 512
+    "max_tokens": 128
   }'
 ```
+
+Return the assistant call and its result in the next request as standard
+assistant and tool messages:
+
+```json
+[
+  {
+    "role": "assistant",
+    "content": null,
+    "tool_calls": [{
+      "id": "chatcmpl-native-3-call-0",
+      "type": "function",
+      "function": {
+        "name": "get_weather",
+        "arguments": "{\"city\":\"Paris\"}"
+      }
+    }]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "chatcmpl-native-3-call-0",
+    "content": "{\"temperature_c\":20,\"condition\":\"sunny\"}"
+  }
+]
+```
+
+Tool definitions and history count toward the selected static context. Prepare
+or pad the prompt after applying the complete tool template. Required and
+named `tool_choice` requests fail if generation does not produce an admitted
+function call.
 
 ## Errors
 

@@ -17,7 +17,7 @@ AOTRITON_LIBRARY_SHA256="e0638806efa5d35cef04fd7fb02c62cd038b3a38727ecb5d87a4904
 AOTRITON_IMAGE_RELATIVE="amd-gfx11xx/flash/attn_fwd/FONLY__＊bf16@16_256_F_F_3_0___gfx11xx.aks2"
 AOTRITON_IMAGE="${AOTRITON_ROOT}/lib/aotriton.images/${AOTRITON_IMAGE_RELATIVE}"
 AOTRITON_IMAGE_SHA256="0f3a6a2f9dee6620443ee2145ee1f8257bde65a378589952840d99bf3d485c10"
-QUALIFICATION_RECORD="${QUALIFICATION_RECORD:-${ROOT}/benchmarks/results/native-portable-product-v1.2.0.json}"
+QUALIFICATION_RECORD="${QUALIFICATION_RECORD:-${ROOT}/benchmarks/results/native-portable-product-v1.3.0.json}"
 release_metadata=(
   "${ROOT}/LICENSE"
   "${ROOT}/SECURITY.md"
@@ -251,7 +251,7 @@ install -Dm644 "${ROOT}/native/product-contract.json" \
 install -Dm644 "${QUALIFICATION_RECORD}" \
   "${STAGING}/share/aima/qualification.json"
 install -Dm644 "${QUALIFICATION_RECORD}" \
-  "${STAGING}/benchmarks/results/native-portable-product-v1.2.0.json"
+  "${STAGING}/benchmarks/results/native-portable-product-v1.3.0.json"
 for result in v1.0.0 v1.1.0 native-foundation-v0.1.0; do
   install -Dm644 "${ROOT}/benchmarks/results/${result}.json" \
     "${STAGING}/benchmarks/results/${result}.json"

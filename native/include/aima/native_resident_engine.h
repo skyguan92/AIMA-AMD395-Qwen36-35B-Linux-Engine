@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -70,6 +71,10 @@ struct NativeResidentRequestOptions {
   std::vector<std::uint32_t> input_token_ids;
   std::size_t max_new_tokens = 1;
   std::vector<std::uint32_t> stop_token_ids;
+  // Invoked synchronously as soon as each generated token is available.
+  // Returning false cancels the remaining decode work without invalidating
+  // resident model or prefix-cache state.
+  std::function<bool(std::uint32_t, std::size_t)> token_callback;
   // Qualification-only provider-mask override. The resident provider pair
   // stays loaded; only this cold request's full-attention dispatch changes.
   bool secondary_fmha_layers_override_provided = false;
@@ -93,6 +98,7 @@ struct NativeResidentRequestMetrics {
   std::vector<std::uint32_t> output_token_ids;
   std::string output_token_ids_sha256;
   bool stopped = false;
+  bool client_cancelled = false;
   std::uint32_t stop_token_id = 0;
   std::size_t oracle_tensor_reads = 0;
   std::vector<NativeOracleComparison> layer_tail_comparisons;

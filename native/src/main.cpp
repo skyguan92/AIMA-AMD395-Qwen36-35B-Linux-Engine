@@ -6,6 +6,7 @@
 #include "aima/bf16_wvsplitk.h"
 #include "aima/decode_schedule.h"
 #include "aima/native_derived_weights.h"
+#include "aima/native_chat_protocol.h"
 #include "aima/native_decode_bindings.h"
 #include "aima/native_decode_executor.h"
 #include "aima/native_decode_invocation.h"
@@ -45,7 +46,7 @@
 
 namespace {
 
-constexpr const char* kVersion = "1.2.0-native";
+constexpr const char* kVersion = "1.3.0-native";
 
 void configure_bundled_rocm() {
   std::error_code error;
@@ -147,7 +148,7 @@ void usage(std::ostream& output) {
       << "  aima-engine-native bf16-wvsplitk-probe\n"
       << "  aima-engine-native derived-weights-probe --model-dir PATH [options]\n"
       << "  aima-engine-native tokenizer-probe --model-dir PATH --text TEXT\n"
-      << "  aima-engine-native chat-template-probe --model-dir PATH --user TEXT [options]\n"
+      << "  aima-engine-native chat-template-probe --model-dir PATH (--user TEXT | --request-json JSON) [options]\n"
       << "  aima-engine-native weights-probe --model-dir PATH [options]\n\n"
       << "Options:\n"
       << "  --report PATH       Native loader report (default: native-weight-load.json)\n"
@@ -177,9 +178,11 @@ int run_tokenizer_probe(int argc, char** argv, bool chat) {
   std::string text;
   std::string system;
   std::string user;
+  std::string request_json;
   bool have_model_dir = false;
   bool have_text = false;
   bool have_user = false;
+  bool have_request_json = false;
   bool disable_thinking = false;
   for (int index = 2; index < argc; ++index) {
     const std::string argument = argv[index];
@@ -198,6 +201,9 @@ int run_tokenizer_probe(int argc, char** argv, bool chat) {
     } else if (argument == "--user" && chat) {
       user = next("--user");
       have_user = true;
+    } else if (argument == "--request-json" && chat) {
+      request_json = next("--request-json");
+      have_request_json = true;
     } else if (argument == "--disable-thinking" && chat) {
       disable_thinking = true;
     } else if (argument == "--help" || argument == "-h") {
@@ -209,7 +215,10 @@ int run_tokenizer_probe(int argc, char** argv, bool chat) {
   }
   if (!have_model_dir) throw std::runtime_error("--model-dir is required");
   if (!chat && !have_text) throw std::runtime_error("--text is required");
-  if (chat && !have_user) throw std::runtime_error("--user is required");
+  if (chat && have_user == have_request_json) {
+    throw std::runtime_error(
+        "exactly one of --user or --request-json is required");
+  }
 
   aima::NativeTokenizer tokenizer;
   const auto load_started = std::chrono::steady_clock::now();
@@ -219,7 +228,16 @@ int run_tokenizer_probe(int argc, char** argv, bool chat) {
   const auto encode_started = std::chrono::steady_clock::now();
   std::vector<std::uint32_t> token_ids;
   if (chat) {
-    rendered = tokenizer.render_chat_prompt(system, user, disable_thinking);
+    if (have_request_json) {
+      const aima::NativeOrderedJson request =
+          aima::NativeOrderedJson::parse(request_json);
+      aima::NativePreparedChat prepared =
+          aima::prepare_native_chat(request);
+      rendered = tokenizer.render_chat_prompt(
+          prepared.messages, prepared.prompt_tools, disable_thinking);
+    } else {
+      rendered = tokenizer.render_chat_prompt(system, user, disable_thinking);
+    }
     token_ids = tokenizer.encode(rendered);
   } else {
     rendered = text;

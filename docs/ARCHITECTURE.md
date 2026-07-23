@@ -2,7 +2,7 @@
 
 ## Product boundary
 
-The v1.2 runtime specializes one model, one GPU architecture and batch size one.
+The v1.3 runtime specializes one model, one GPU architecture and batch size one.
 It is a native resident engine, not a Python wrapper around the v1.1 stack.
 
 ```text
@@ -99,6 +99,12 @@ decode schedule plus native support kernels.
 Greedy decode stops on the model EOS or the requested length. EOS is included
 in token usage and omitted from visible text.
 
+An optional synchronous token callback sits immediately after each certified
+top-1 token. Non-streaming requests leave it empty. SSE requests use it to
+decode byte-level BPE fragments, retain incomplete UTF-8 sequences and emit
+content without waiting for the full completion. Returning false cancels the
+remaining decode loop while preserving resident ownership.
+
 ## Prefix cache
 
 The one-entry cache owns:
@@ -121,6 +127,18 @@ process handles one request at a time, retaining model and cache state. Health
 and model-list endpoints do not mutate the cache. `SIGINT`, `SIGTERM` and
 `POST /shutdown` lead to normal RAII cleanup.
 
+The tokenizer contains a parameterized implementation of the checkpoint's
+Qwen chat template, including function definitions, assistant calls and
+grouped tool responses. A bounded stream gate emits normal text immediately
+but retains a possible `<tool_call>` suffix. Complete calls are validated
+against admitted function names, converted with their JSON schemas and exposed
+as OpenAI `delta.tool_calls` or non-streaming `message.tool_calls`.
+
+Streaming uses HTTP/1.1 chunked SSE. Role, content, tool-call, terminal and
+optional usage chunks share one completion id, followed by `[DONE]`. A failed
+socket write returns cancellation through the token callback; the next request
+can reuse the same resident model.
+
 ## Portable userspace
 
 The archive includes a fully static launcher and a complete x86-64 dynamic
@@ -136,7 +154,7 @@ hardware contract.
 ## Evidence separation
 
 The full-envelope portable decision is recorded in
-[the v1.2 native result](../benchmarks/results/native-portable-product-v1.2.0.json).
+[the v1.3 native result](../benchmarks/results/native-portable-product-v1.3.0.json).
 The v1.1 complete-context matrix remains the frozen per-cell floor. A
 bundle-closure pass, a correctness pass and a performance pass are independent
 gates; none is used as a proxy for another.

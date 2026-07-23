@@ -1,8 +1,8 @@
 # Performance and correctness
 
-## v1.2 portable native full envelope
+## v1.3 portable native full envelope
 
-The v1.2 portable runtime covers the complete published batch-1 matrix without
+The v1.3 portable runtime covers the complete published batch-1 matrix without
 loading Python, PyTorch, vLLM, Triton, Transformers or a host ROCm userspace.
 Promotion uses three same-configuration runs, or two expensive runs when the
 first pair is within 3%.
@@ -13,25 +13,25 @@ decode is measured at the requested output length.
 
 | Input tokens | output512 prefill | output512 decode | output1024 prefill | output1024 decode |
 |---:|---:|---:|---:|---:|
-| 1,024 | 1636 | 33.99 | 1636 | 33.99 |
-| 2,048 | 1695 | 33.89 | 1695 | 33.87 |
-| 4,096 | 1576 | 33.27 | 1576 | 33.27 |
-| 8,192 | 1657 | 32.27 | 1657 | 32.26 |
-| 16,384 | 1429 | 30.69 | 1429 | 30.68 |
-| 32,768 | 1357 | 28.17 | 1357 | 28.16 |
-| 65,536 | 1168 | 24.63 | 1168 | 24.63 |
-| 131,072 | 874.4 | 19.52 | 874.4 | 19.52 |
+| 1,024 | 1636 | 34.02 | 1636 | 34.00 |
+| 2,048 | 1690 | 33.85 | 1690 | 33.83 |
+| 4,096 | 1574 | 33.28 | 1574 | 33.27 |
+| 8,192 | 1654 | 32.26 | 1654 | 32.26 |
+| 16,384 | 1433 | 30.67 | 1433 | 30.66 |
+| 32,768 | 1357 | 28.18 | 1357 | 28.17 |
+| 65,536 | 1183 | 24.61 | 1183 | 24.61 |
+| 131,072 | 871.4 | 19.53 | 871.4 | 19.53 |
 
 Units are tokens per second. Maximum-window results were:
 
 | Input/output | Prefill tok/s | Decode tok/s | Prefill retention | Decode retention |
 |---:|---:|---:|---:|---:|
-| 262143/1 | 537.4 | n/a | 1.4443 | n/a |
-| 261632/512 | 559.6 | 13.62 | 1.3834 | 0.9782 |
-| 261120/1024 | 554.9 | 13.60 | 1.3655 | 0.9740 |
+| 262143/1 | 554.1 | n/a | 1.4890 | n/a |
+| 261632/512 | 550.3 | 13.96 | 1.3603 | 1.0030 |
+| 261120/1024 | 565.8 | 13.91 | 1.3924 | 0.9958 |
 
 All 19 cells pass the independent `0.97x` prefill/decode floor. The minimum
-prefill retention is `1.0109`; the minimum decode retention is `0.9740`.
+prefill retention is `1.0136`; the minimum decode retention is `0.9839`.
 
 Full-vocabulary correctness is bound to the final engine SHA-256:
 
@@ -51,20 +51,28 @@ The frozen q8192 completion fixture also matched all 128 expected token IDs,
 with output-token SHA-256
 `aa910692fd03ed4a8e89c04497751e3a28eee36c6148237f7e97c74a6dd68201`.
 
-Three fresh q8192 HTTP processes reached readiness in `43.73`, `41.76` and
-`42.52` seconds. The `42.52 s` median is below the frozen `51.41 s` ceiling.
+Three fresh q8192 HTTP processes reached readiness in `46.21`, `44.69` and
+`43.52` seconds. The `44.69 s` median is below the frozen `51.41 s` ceiling.
 
-At q32768/output512, exact-prefix reuse reduced TTFT from `24.22 s` to
-`9.195 ms` (`2634x`) and retained `1.0006` of cold decode throughput. The
+At q32768/output512, exact-prefix reuse reduced TTFT from `23.98 s` to
+`9.180 ms` (`2612x`) and retained `1.0000` of cold decode throughput. The
 output-token hash was unchanged.
 
 The resident HTTP run used one model load, served a cold q8192 request and an
-exact repeat, reduced TTFT from `4.947 s` to `4.937 ms`, retained the output
+exact repeat, reduced TTFT from `4.938 s` to `4.953 ms`, retained the output
 hash, exposed health/model endpoints and exited through `POST /shutdown`.
+
+The OpenAI feature lifecycle run used live HTTP/1.1 chunked SSE. The cold
+q1024 stream produced its first content at `633.3 ms`, completed at
+`693.6 ms`, and matched both text and generated-token hashes with the
+non-stream response. Stream and non-stream tool requests both produced
+`get_weather({"city":"Paris"})`, assistant/tool history produced the expected
+final answer, an unavailable forced tool returned HTTP 400, and a reset client
+connection left the one-load resident server healthy.
 
 Exact components, per-run values, baselines, ratios and decision boundaries
 are in
-[`native-portable-product-v1.2.0.json`](../benchmarks/results/native-portable-product-v1.2.0.json).
+[`native-portable-product-v1.3.0.json`](../benchmarks/results/native-portable-product-v1.3.0.json).
 The archive packager rejects unresolved ELF dependencies and absolute RUNPATHs.
 The remaining host requirements are the Linux kernel AMDGPU/KFD driver,
 device nodes, x86-64 and `gfx1151`.

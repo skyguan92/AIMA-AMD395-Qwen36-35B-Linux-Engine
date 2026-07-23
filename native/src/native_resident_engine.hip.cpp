@@ -948,6 +948,10 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
   metrics.prefill_wall_ms = elapsed_ms(request_started);
   metrics.prefill_tokens_per_second =
       request.input_token_ids.size() * 1000.0 / metrics.prefill_wall_ms;
+  if (request.token_callback &&
+      !request.token_callback(first_token_id, 0)) {
+    metrics.client_cancelled = true;
+  }
   if (timeline_enabled) {
     double linear_attention_ms = 0.0;
     double full_attention_ms = 0.0;
@@ -993,7 +997,7 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
   if (metrics.stopped) metrics.stop_token_id = first_token_id;
 
   metrics.all_decode_tokens_certified = true;
-  while (!metrics.stopped &&
+  while (!metrics.stopped && !metrics.client_cancelled &&
          metrics.output_token_ids.size() < request.max_new_tokens) {
     const std::size_t position =
         request.input_token_ids.size() + metrics.output_token_ids.size() - 1;
@@ -1014,6 +1018,11 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
     metrics.all_decode_tokens_certified =
         metrics.all_decode_tokens_certified && token.lm_head_certified;
     metrics.output_token_ids.push_back(token.top1_token_id);
+    if (request.token_callback &&
+        !request.token_callback(token.top1_token_id,
+                                metrics.output_token_ids.size() - 1)) {
+      metrics.client_cancelled = true;
+    }
     metrics.stopped = contains(request.stop_token_ids, token.top1_token_id);
     if (metrics.stopped) metrics.stop_token_id = token.top1_token_id;
   }

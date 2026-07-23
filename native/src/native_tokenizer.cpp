@@ -374,21 +374,213 @@ std::string NativeTokenizer::decode(
   return output;
 }
 
-std::string NativeTokenizer::render_chat_prompt(
-    std::string_view system_prompt, std::string_view user_prompt,
-    bool disable_thinking) const {
+std::string NativeTokenizer::decode_token_bytes(std::uint32_t token_id) const {
   impl_->require_loaded();
-  const std::string system = trim_unicode(system_prompt);
-  const std::string user = trim_unicode(user_prompt);
-  if (user.empty()) throw std::runtime_error("native chat prompt requires a user message");
-  std::string prompt;
-  if (!system.empty()) {
-    prompt += "<|im_start|>system\n" + system + "<|im_end|>\n";
+  if (token_id >= impl_->id_to_token.size() ||
+      impl_->id_to_token[token_id].empty()) {
+    throw std::runtime_error(
+        "token id is outside the native tokenizer vocabulary");
   }
-  prompt += "<|im_start|>user\n" + user + "<|im_end|>\n";
+  if (impl_->added_ids.count(token_id) != 0) {
+    return impl_->id_to_token[token_id];
+  }
+  std::string output;
+  const icu::UnicodeString symbols =
+      icu::UnicodeString::fromUTF8(impl_->id_to_token[token_id]);
+  for (int32_t offset = 0; offset < symbols.length();) {
+    const UChar32 point = symbols.char32At(offset);
+    offset += U16_LENGTH(point);
+    const auto found = impl_->unicode_to_bytes.find(point);
+    if (found == impl_->unicode_to_bytes.end()) {
+      throw std::runtime_error(
+          "BPE vocabulary contains an invalid byte-level symbol");
+    }
+    output.push_back(static_cast<char>(found->second));
+  }
+  return output;
+}
+
+std::string NativeTokenizer::render_chat_prompt(
+    const std::vector<NativeChatMessage>& messages,
+    const std::vector<NativeChatTool>& tools, bool disable_thinking,
+    bool preserve_thinking) const {
+  impl_->require_loaded();
+  if (messages.empty()) {
+    throw std::runtime_error("native chat prompt requires messages");
+  }
+
+  std::size_t last_query_index = messages.size();
+  for (std::size_t reverse = messages.size(); reverse != 0; --reverse) {
+    const std::size_t index = reverse - 1;
+    if (messages[index].role != "user") continue;
+    const std::string content = trim_unicode(messages[index].content);
+    const bool tool_response =
+        content.rfind("<tool_response>", 0) == 0 &&
+        content.size() >= std::string("</tool_response>").size() &&
+        content.compare(content.size() - std::string("</tool_response>").size(),
+                        std::string("</tool_response>").size(),
+                        "</tool_response>") == 0;
+    if (!tool_response) {
+      last_query_index = index;
+      break;
+    }
+  }
+  if (last_query_index == messages.size()) {
+    throw std::runtime_error("native chat prompt requires a user query");
+  }
+
+  std::string prompt;
+  if (!tools.empty()) {
+    prompt += "<|im_start|>system\n";
+    prompt +=
+        "# Tools\n\nYou have access to the following functions:\n\n<tools>";
+    for (const NativeChatTool& tool : tools) {
+      if (tool.serialized_json.empty()) {
+        throw std::runtime_error("native chat tool JSON must not be empty");
+      }
+      prompt += '\n';
+      prompt += tool.serialized_json;
+    }
+    prompt += "\n</tools>";
+    prompt +=
+        "\n\nIf you choose to call a function ONLY reply in the following "
+        "format with NO suffix:\n\n<tool_call>\n"
+        "<function=example_function_name>\n"
+        "<parameter=example_parameter_1>\nvalue_1\n</parameter>\n"
+        "<parameter=example_parameter_2>\n"
+        "This is the value for the second parameter\nthat can span\n"
+        "multiple lines\n</parameter>\n</function>\n</tool_call>\n\n"
+        "<IMPORTANT>\nReminder:\n"
+        "- Function calls MUST follow the specified format: an inner "
+        "<function=...></function> block must be nested within "
+        "<tool_call></tool_call> XML tags\n"
+        "- Required parameters MUST be specified\n"
+        "- You may provide optional reasoning for your function call in "
+        "natural language BEFORE the function call, but NOT after\n"
+        "- If there is no function call available, answer the question like "
+        "normal with your current knowledge and do not tell the user about "
+        "function calls\n</IMPORTANT>";
+    if (messages.front().role == "system") {
+      const std::string content = trim_unicode(messages.front().content);
+      if (!content.empty()) prompt += "\n\n" + content;
+    }
+    prompt += "<|im_end|>\n";
+  } else if (messages.front().role == "system") {
+    prompt += "<|im_start|>system\n" +
+              trim_unicode(messages.front().content) + "<|im_end|>\n";
+  }
+
+  for (std::size_t index = 0; index < messages.size(); ++index) {
+    const NativeChatMessage& message = messages[index];
+    std::string content = trim_unicode(message.content);
+    if (message.role == "system") {
+      if (index != 0) {
+        throw std::runtime_error(
+            "native chat system message must be at the beginning");
+      }
+      continue;
+    }
+    if (message.role == "user") {
+      prompt += "<|im_start|>user\n" + content + "<|im_end|>\n";
+      continue;
+    }
+    if (message.role == "assistant") {
+      std::string reasoning;
+      if (message.reasoning_content_provided) {
+        reasoning = message.reasoning_content;
+      } else {
+        const std::size_t think_end = content.find("</think>");
+        if (think_end != std::string::npos) {
+          reasoning = content.substr(0, think_end);
+          const std::size_t think_begin = reasoning.rfind("<think>");
+          if (think_begin != std::string::npos) {
+            reasoning.erase(0, think_begin + std::string("<think>").size());
+          }
+          while (!reasoning.empty() && reasoning.front() == '\n') {
+            reasoning.erase(reasoning.begin());
+          }
+          while (!reasoning.empty() && reasoning.back() == '\n') {
+            reasoning.pop_back();
+          }
+          content.erase(0, think_end + std::string("</think>").size());
+          while (!content.empty() && content.front() == '\n') {
+            content.erase(content.begin());
+          }
+        }
+      }
+      reasoning = trim_unicode(reasoning);
+      if (preserve_thinking || index > last_query_index) {
+        prompt += "<|im_start|>assistant\n<think>\n" + reasoning +
+                  "\n</think>\n\n" + content;
+      } else {
+        prompt += "<|im_start|>assistant\n" + content;
+      }
+      for (std::size_t call_index = 0;
+           call_index < message.tool_calls.size(); ++call_index) {
+        const NativeChatToolCall& call = message.tool_calls[call_index];
+        if (call.name.empty()) {
+          throw std::runtime_error("native chat tool call name is empty");
+        }
+        if (call_index == 0) {
+          prompt += content.empty() ? "<tool_call>\n<function="
+                                    : "\n\n<tool_call>\n<function=";
+        } else {
+          prompt += "\n<tool_call>\n<function=";
+        }
+        prompt += call.name + ">\n";
+        for (const NativeChatToolCallArgument& argument : call.arguments) {
+          if (argument.name.empty()) {
+            throw std::runtime_error(
+                "native chat tool-call argument name is empty");
+          }
+          prompt += "<parameter=" + argument.name + ">\n" +
+                    argument.rendered_value + "\n</parameter>\n";
+        }
+        prompt += "</function>\n</tool_call>";
+      }
+      prompt += "<|im_end|>\n";
+      continue;
+    }
+    if (message.role == "tool") {
+      const bool starts_group =
+          index == 0 || messages[index - 1].role != "tool";
+      const bool ends_group =
+          index + 1 == messages.size() ||
+          messages[index + 1].role != "tool";
+      if (starts_group) prompt += "<|im_start|>user";
+      prompt += "\n<tool_response>\n" + content + "\n</tool_response>";
+      if (ends_group) prompt += "<|im_end|>\n";
+      continue;
+    }
+    throw std::runtime_error("unexpected native chat message role");
+  }
+
   prompt += "<|im_start|>assistant\n";
   prompt += disable_thinking ? "<think>\n\n</think>\n\n" : "<think>\n";
   return prompt;
+}
+
+std::vector<std::uint32_t> NativeTokenizer::encode_chat(
+    const std::vector<NativeChatMessage>& messages,
+    const std::vector<NativeChatTool>& tools, bool disable_thinking,
+    bool preserve_thinking) {
+  return encode(render_chat_prompt(messages, tools, disable_thinking,
+                                   preserve_thinking));
+}
+
+std::string NativeTokenizer::render_chat_prompt(
+    std::string_view system_prompt, std::string_view user_prompt,
+    bool disable_thinking) const {
+  if (trim_unicode(user_prompt).empty()) {
+    throw std::runtime_error(
+        "native chat prompt requires a user message");
+  }
+  std::vector<NativeChatMessage> messages;
+  if (!trim_unicode(system_prompt).empty()) {
+    messages.push_back({"system", std::string(system_prompt)});
+  }
+  messages.push_back({"user", std::string(user_prompt)});
+  return render_chat_prompt(messages, {}, disable_thinking);
 }
 
 std::vector<std::uint32_t> NativeTokenizer::encode_chat(
