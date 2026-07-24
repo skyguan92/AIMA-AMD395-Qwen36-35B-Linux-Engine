@@ -15,6 +15,18 @@ Triton、Transformers，也不依赖宿主机安装 ROCm userspace。发布包�
 
 English: [README.md](README.md)
 
+## 作者与仓库关系
+
+本项目由
+[关嘉伟 / Jiawei Guan（@skyguan92）](https://github.com/skyguan92)
+创建并维护。
+
+- **原始上游：** [skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine)
+- **组织 fork 与官网主展示版本：** [Approaching-AI/AIMA-AMD395-Qwen36-35B-Linux-Engine](https://github.com/Approaching-AI/AIMA-AMD395-Qwen36-35B-Linux-Engine)
+
+Python 包元数据和引用文件使用同一个、可由 GitHub 识别的个人作者身份；现有版权
+声明保持不变。
+
 ## 先看清楚支持边界
 
 原生便携版本已通过完整 batch-1 发布矩阵：

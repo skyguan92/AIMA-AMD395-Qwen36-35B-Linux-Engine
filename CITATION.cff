@@ -3,8 +3,12 @@ title: AIMA AMD395 Qwen3.6 35B Linux Engine
 message: If you use this engine, please cite this software release.
 type: software
 authors:
-  - name: Approaching AI Authors
-repository-code: https://github.com/approaching-ai/aima-amd395-qwen36-35b-linux-engine
+  - family-names: Guan
+    given-names: Jiawei
+    alias: skyguan92
+    website: https://guanjiawei.ai
+repository-code: https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine
+url: https://github.com/Approaching-AI/AIMA-AMD395-Qwen36-35B-Linux-Engine
 license: Apache-2.0
 version: 1.3.0
 date-released: 2026-07-23

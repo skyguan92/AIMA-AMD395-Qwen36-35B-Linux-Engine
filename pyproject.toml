@@ -9,7 +9,12 @@ description = "Batch-1 Qwen3.6-35B-A3B BF16 inference engine for AMD Ryzen AI Ma
 readme = "README.md"
 requires-python = ">=3.10"
 license = "Apache-2.0"
-authors = [{name = "Approaching AI"}]
+authors = [
+  {name = "Jiawei Guan", email = "128683929+skyguan92@users.noreply.github.com"},
+]
+maintainers = [
+  {name = "Jiawei Guan", email = "128683929+skyguan92@users.noreply.github.com"},
+]
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Operating System :: POSIX :: Linux",
@@ -18,9 +23,10 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/approaching-ai/aima-amd395-qwen36-35b-linux-engine"
-Repository = "https://github.com/approaching-ai/aima-amd395-qwen36-35b-linux-engine"
-Issues = "https://github.com/approaching-ai/aima-amd395-qwen36-35b-linux-engine/issues"
+Homepage = "https://github.com/Approaching-AI/AIMA-AMD395-Qwen36-35B-Linux-Engine"
+Repository = "https://github.com/Approaching-AI/AIMA-AMD395-Qwen36-35B-Linux-Engine"
+Upstream = "https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine"
+Issues = "https://github.com/Approaching-AI/AIMA-AMD395-Qwen36-35B-Linux-Engine/issues"
 
 [project.scripts]
 aima-engine = "aima_engine.cli:main"

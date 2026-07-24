@@ -17,6 +17,17 @@ weights are not redistributed.
 
 中文说明见 [README.zh-CN.md](README.zh-CN.md).
 
+## Author and repository structure
+
+This project was created and is maintained by
+[Jiawei Guan / 关嘉伟 (@skyguan92)](https://github.com/skyguan92).
+
+- **Original upstream:** [skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine)
+- **Organization fork and primary public showcase:** [Approaching-AI/AIMA-AMD395-Qwen36-35B-Linux-Engine](https://github.com/Approaching-AI/AIMA-AMD395-Qwen36-35B-Linux-Engine)
+
+The package metadata and citation file use the same GitHub-linked author
+identity. The existing copyright notices remain unchanged.
+
 ## Read this boundary first
 
 The portable native runtime is qualified for the complete published batch-1
