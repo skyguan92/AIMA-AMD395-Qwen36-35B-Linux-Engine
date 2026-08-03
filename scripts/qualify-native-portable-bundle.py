@@ -271,6 +271,8 @@ def main() -> None:
             not isinstance(manifest_source, dict)
             or manifest_source.get("release_tag") != source.get("release_tag")
             or manifest_source.get("commit") != source.get("release_commit")
+            or manifest_source.get("native_commit")
+            != source.get("native_source_commit")
             or manifest_source.get("dirty") is not False
         ):
             raise RuntimeError("bundle manifest source does not match product result")

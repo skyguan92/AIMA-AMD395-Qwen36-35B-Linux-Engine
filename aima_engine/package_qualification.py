@@ -33,6 +33,7 @@ def verify_package_qualification(
     release: str,
     release_tag: str,
     source_commit: str,
+    native_source_commit: str,
     components: Mapping[str, Path],
 ) -> list[str]:
     errors: list[str] = []
@@ -80,8 +81,10 @@ def verify_package_qualification(
             errors.append("qualification release tag does not match package tag")
         if source.get("release_commit") != source_commit:
             errors.append("qualification release commit does not match checkout")
-        if source.get("native_source_commit") != source_commit:
-            errors.append("qualification native source commit does not match checkout")
+        if source.get("native_source_commit") != native_source_commit:
+            errors.append(
+                "qualification native source commit does not match executable"
+            )
     elif release != "1.3.0":
         errors.append("qualification source provenance is missing")
     return errors

@@ -8,10 +8,10 @@ The native archive carries
 [`product-contract-v1.4.0.json`](../native/product-contract-v1.4.0.json) as
 `share/aima/product-contract.json`, together with the exact generated
 qualification as `share/aima/qualification.json`. The qualification binds the
-release/tag, clean source commit, native engine, launcher, all three FMHA
-providers, AOTriton runtime and selected `gfx1151` image by byte size and
-SHA-256. The recursive bundle manifest independently binds every packaged
-file.
+release/tag, clean release commit, embedded native source commit, native
+engine, launcher, all three FMHA providers, AOTriton runtime and selected
+`gfx1151` image by byte size and SHA-256. The recursive bundle manifest
+independently binds every packaged file.
 
 The v1.4.0 qualification reruns the complete 19-cell performance matrix,
 nine-context full-vocabulary correctness gate, exact 128-token completion,
@@ -35,17 +35,21 @@ commit.
 
 ## Fail-closed release flow
 
-1. Commit the release source and make the checkout clean.
-2. Build that commit, run the complete correctness/performance/surface matrix,
-   and generate the candidate product result under ignored `output/`; both its
-   release and native source commits must equal the clean checkout commit.
-3. Set `QUALIFICATION_RECORD`, `AIMA_RELEASE_VERSION` and `AIMA_RELEASE_TAG`,
+1. Commit the native release source and make the checkout clean.
+2. Build that commit and run the complete correctness/performance/surface
+   matrix against its exact binary.
+3. If packaging or documentation needs a release-only fix, commit it without
+   rebuilding the qualified executable. Generate the candidate product result
+   under ignored `output/` with the tag commit as `release_commit` and the
+   executable's embedded commit as `native_source_commit`; the component
+   hashes must remain unchanged.
+4. Set `QUALIFICATION_RECORD`, `AIMA_RELEASE_VERSION` and `AIMA_RELEASE_TAG`,
    then run `make package-native`. Packaging rejects a dirty checkout, a stale
-   binary commit, an incomplete result, or any executable/provider byte that
-   differs from the qualification.
-4. Tag that same commit in the personal upstream and publish the archive,
+   or unbound binary commit, an incomplete result, or any executable/provider
+   byte that differs from the qualification.
+5. Tag the release commit in the personal upstream and publish the archive,
    checksum and deterministic evidence asset there. Never move the tag.
-5. Synchronize the product commit to the Approaching AI showcase fork. Raw
+6. Synchronize the product commit to the Approaching AI showcase fork. Raw
    evidence may be added to `main` in a later commit without changing the
    immutable release tag; use an additive erratum for any later clarification.
 

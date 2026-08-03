@@ -212,9 +212,11 @@ make package-native
 ```
 
 Release packaging rejects a dirty source tree, including non-ignored untracked
-files, and records the exact
-source commit in `manifest.json`. It also requires the native engine, launcher,
-three providers, AOTriton runtime and selected GPU image to match the complete
+files, and records the exact release commit and the engine's embedded native
+source commit in `manifest.json`. A release-only packaging or documentation
+commit may follow the qualified native source; both roles remain explicit and
+hash-bound. The packager also requires the native engine, launcher, three
+providers, AOTriton runtime and selected GPU image to match the complete
 qualification byte-for-byte. `AIMA_ALLOW_DIRTY_PACKAGE=1` exists only for
 clearly marked local development bundles; do not publish such a bundle.
 

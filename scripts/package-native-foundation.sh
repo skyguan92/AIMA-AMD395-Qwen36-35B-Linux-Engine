@@ -54,6 +54,21 @@ release_metadata=(
   "${ROOT}/benchmarks/results/native-foundation-v0.1.0.json"
   "${QUALIFICATION_RECORD}"
 )
+release_results=("${ROOT}"/benchmarks/results/*.json)
+release_evidence_dirs=(
+  "${ROOT}/benchmarks/runs/native-correctness-20260723-v130"
+  "${ROOT}/benchmarks/runs/native-full-matrix-20260723-v130"
+  "${ROOT}/benchmarks/runs/native-openai-features-20260723-v130"
+  "${ROOT}/benchmarks/runs/native-portable-baiying-compat-20260723-v130"
+  "${ROOT}/benchmarks/runs/native-portable-bundle-20260723-v130"
+  "${ROOT}/benchmarks/runs/native-product-surfaces-20260723-v130"
+)
+release_metadata+=("${release_results[@]}")
+for evidence_dir in "${release_evidence_dirs[@]}"; do
+  while IFS= read -r -d '' evidence_file; do
+    release_metadata+=("${evidence_file}")
+  done < <(find "${evidence_dir}" -type f -print0 | sort -z)
+done
 if [[ -z "${AOTRITON_LICENSE:-}" || -z "${AOTRITON_NOTICE:-}" ]]; then
   shopt -s nullglob
   aotriton_license_candidates=(
@@ -77,8 +92,8 @@ if [[ ! -x "${BINARY}" ]]; then
 fi
 BINARY_SOURCE_COMMIT="$("${BINARY}" --build-info | python3 -c \
   'import json, sys; print(json.load(sys.stdin)["source_commit"])')"
-if [[ "${SOURCE_DIRTY}" == false && "${BINARY_SOURCE_COMMIT}" != "${SOURCE_COMMIT}" ]]; then
-  echo "native executable source commit does not match the clean checkout; rebuild it" >&2
+if [[ ! "${BINARY_SOURCE_COMMIT}" =~ ^[0-9a-f]{40}$ ]]; then
+  echo "native executable does not carry a clean source commit" >&2
   exit 1
 fi
 if [[ ! -x "${LAUNCHER}" ]]; then
@@ -110,6 +125,7 @@ python3 "${ROOT}/scripts/verify-native-package-inputs.py" \
   --release "${RELEASE_VERSION}" \
   --release-tag "${RELEASE_TAG}" \
   --source-commit "${SOURCE_COMMIT}" \
+  --native-source-commit "${BINARY_SOURCE_COMMIT}" \
   --component "native_engine=${BINARY}" \
   --component "static_launcher=${LAUNCHER}" \
   --component "aotriton_fmha_provider=${FMHA_AOTRITON_PROVIDER}" \
@@ -280,13 +296,19 @@ install -Dm644 "${PRODUCT_CONTRACT}" \
   "${STAGING}/share/aima/product-contract.json"
 install -Dm644 "${PRODUCT_CONTRACT}" \
   "${STAGING}/native/product-contract.json"
+install -Dm644 "${PRODUCT_CONTRACT}" \
+  "${STAGING}/native/$(basename "${PRODUCT_CONTRACT}")"
 install -Dm644 "${QUALIFICATION_RECORD}" \
   "${STAGING}/share/aima/qualification.json"
 install -Dm644 "${QUALIFICATION_RECORD}" \
   "${STAGING}/benchmarks/results/${QUALIFICATION_BASENAME}"
-for result in v1.0.0 v1.1.0 native-foundation-v0.1.0; do
-  install -Dm644 "${ROOT}/benchmarks/results/${result}.json" \
-    "${STAGING}/benchmarks/results/${result}.json"
+for result in "${release_results[@]}"; do
+  install -Dm644 "${result}" \
+    "${STAGING}/benchmarks/results/$(basename "${result}")"
+done
+mkdir -p "${STAGING}/benchmarks/runs"
+for evidence_dir in "${release_evidence_dirs[@]}"; do
+  cp -a "${evidence_dir}" "${STAGING}/benchmarks/runs/"
 done
 install -Dm644 "${ROOT}/packaging/systemd/aima-engine.service" \
   "${STAGING}/share/systemd/aima-engine.service"
@@ -299,6 +321,7 @@ manifest_args=(
   --release "${RELEASE_VERSION}"
   --release-tag "${RELEASE_TAG}"
   --source-commit "${SOURCE_COMMIT}"
+  --native-source-commit "${BINARY_SOURCE_COMMIT}"
 )
 if [[ "${SOURCE_DIRTY}" == true ]]; then
   manifest_args+=(--source-dirty)

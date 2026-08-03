@@ -63,7 +63,7 @@ class ReleaseContractTest(unittest.TestCase):
                 "source": {
                     "release_tag": "v2.0.0",
                     "release_commit": "a" * 40,
-                    "native_source_commit": "a" * 40,
+                    "native_source_commit": "b" * 40,
                 }
             }
             for index, name in enumerate(REQUIRED_COMPONENTS):
@@ -91,10 +91,21 @@ class ReleaseContractTest(unittest.TestCase):
                 "release": "2.0.0",
                 "release_tag": "v2.0.0",
                 "source_commit": "a" * 40,
+                "native_source_commit": "b" * 40,
                 "components": component_paths,
             }
             self.assertEqual(
                 verify_package_qualification(qualification, **arguments), []
+            )
+            native_mismatch = {
+                **arguments,
+                "native_source_commit": "c" * 40,
+            }
+            self.assertIn(
+                "qualification native source commit does not match executable",
+                verify_package_qualification(
+                    qualification, **native_mismatch
+                ),
             )
             component_paths["native_engine"].write_bytes(b"changed")
             errors = verify_package_qualification(qualification, **arguments)
@@ -116,6 +127,7 @@ class ReleaseContractTest(unittest.TestCase):
             source = {
                 "release_tag": "v2.0.0",
                 "commit": "a" * 40,
+                "native_commit": "b" * 40,
                 "dirty": False,
             }
             (bundle / "manifest.json").write_text(

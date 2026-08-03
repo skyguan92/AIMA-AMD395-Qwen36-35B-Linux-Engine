@@ -48,7 +48,7 @@
       {"input_tokens": 261120, "output_tokens": 1024}
     ],
     "qualification": "share/aima/qualification.json",
-    "component_integrity": "the packager requires the qualification release, tag and clean source commit plus the exact SHA-256 and byte size of all seven executable/provider inputs",
+    "component_integrity": "the packager requires the qualification release, tag, clean release commit and embedded native source commit plus the exact SHA-256 and byte size of all seven executable/provider inputs",
     "automatic_provider_selection": true,
     "legacy_full_context_envelope_replaced": true,
     "http_streaming": "live HTTP/1.1 chunked SSE with token-callback delivery, optional usage and disconnect cancellation",
@@ -111,6 +111,6 @@
     "native_vllm_fla_and_moe_replacement": "native_resident_decode_paths_qualified_without_vllm_runtime",
     "native_torch_tensor_and_dispatch_replacement": "native_weight_ownership_prefill_decode_and_lm_head_qualified_without_torch_runtime",
     "rocm_userspace_bundle": "complete_relocatable_gnu_rocm_aotriton_elf_closure_qualified",
-    "full_product_requalification": "required for the exact v1.4.0 source commit and package inputs before tag publication"
+    "full_product_requalification": "required for the exact v1.4.0 native source commit and package inputs before tag publication; a later release-only packaging or documentation commit is tracked separately"
   }
 }

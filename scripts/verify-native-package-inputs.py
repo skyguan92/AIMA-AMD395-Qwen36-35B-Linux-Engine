@@ -26,6 +26,7 @@ def main() -> int:
     parser.add_argument("--release", required=True)
     parser.add_argument("--release-tag", required=True)
     parser.add_argument("--source-commit", required=True)
+    parser.add_argument("--native-source-commit", required=True)
     parser.add_argument("--component", action="append", type=component, required=True)
     args = parser.parse_args()
     components = dict(args.component)
@@ -36,6 +37,7 @@ def main() -> int:
         release=args.release,
         release_tag=args.release_tag,
         source_commit=args.source_commit,
+        native_source_commit=args.native_source_commit,
         components=components,
     )
     if errors:

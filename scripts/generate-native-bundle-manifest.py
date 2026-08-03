@@ -69,6 +69,7 @@ def main() -> int:
     parser.add_argument("--release", required=True)
     parser.add_argument("--release-tag", required=True)
     parser.add_argument("--source-commit", required=True)
+    parser.add_argument("--native-source-commit", required=True)
     parser.add_argument("--source-dirty", action="store_true")
     args = parser.parse_args()
     bundle = args.bundle.resolve()
@@ -122,6 +123,7 @@ def main() -> int:
         "source": {
             "release_tag": args.release_tag,
             "commit": args.source_commit,
+            "native_commit": args.native_source_commit,
             "dirty": args.source_dirty,
         },
         "status": "portable_native_inference_runtime",
