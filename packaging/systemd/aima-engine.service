@@ -3,13 +3,14 @@ Description=AIMA AMD395 Qwen3.6 resident inference engine
 After=local-fs.target
 
 [Service]
-Type=simple
+Type=notify
+NotifyAccess=main
 User=aima
 Group=aima
 SupplementaryGroups=render video
 WorkingDirectory=/var/lib/aima-qwen36
 EnvironmentFile=/etc/aima-qwen36/engine.env
-ExecStart=/opt/aima-engine/bin/aima-engine serve --model-dir ${AIMA_MODEL_DIR} --context-tokens ${AIMA_CONTEXT_TOKENS} --host ${AIMA_HOST} --port ${AIMA_PORT} --report /var/lib/aima-qwen36/native-weight-load.json
+ExecStart=/opt/aima-engine/bin/aima-engine serve --model-dir ${AIMA_MODEL_DIR} --context-tokens ${AIMA_CONTEXT_TOKENS} --host ${AIMA_HOST} --port ${AIMA_PORT} --api-key-file ${AIMA_API_KEY_FILE} --request-timeout-ms ${AIMA_REQUEST_TIMEOUT_MS} --disable-http-shutdown --report /var/lib/aima-qwen36/native-weight-load.json
 Restart=on-failure
 RestartSec=5
 TimeoutStartSec=180
@@ -19,6 +20,7 @@ PrivateTmp=true
 ProtectHome=true
 ProtectSystem=strict
 ReadWritePaths=/var/lib/aima-qwen36
+UMask=0027
 
 [Install]
 WantedBy=multi-user.target

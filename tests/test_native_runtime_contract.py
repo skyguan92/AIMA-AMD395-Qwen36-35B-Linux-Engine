@@ -6,9 +6,12 @@ from pathlib import Path
 import subprocess
 import unittest
 
+from aima_engine.release_evidence import verify_release_evidence
+
 
 ROOT = Path(__file__).resolve().parents[1]
 PRODUCT_CONTRACT = ROOT / "native/product-contract.json"
+PRODUCT_CONTRACT_V140 = ROOT / "native/product-contract-v1.4.0.json"
 NATIVE_RESULT = ROOT / "benchmarks/results/native-foundation-v0.1.0.json"
 TOKENIZER_RESULT = ROOT / "benchmarks/results/native-tokenizer-v0.1.0.json"
 AOT_MANIFEST = ROOT / "native/aot/gfx1151/q8192-output2/manifest.json"
@@ -22,6 +25,9 @@ PORTABLE_BUNDLE_V130_RESULT = (
     ROOT / "benchmarks/results/native-portable-bundle-v1.3.0.json"
 )
 PORTABLE_PRODUCT_RESULT = ROOT / "benchmarks/results/native-portable-product-v1.3.0.json"
+RELEASE_PROVENANCE_RESULT = (
+    ROOT / "benchmarks/results/native-release-provenance-v1.3.0.json"
+)
 DECODE_SCHEDULE = ROOT / "native/aot/gfx1151/q8192-output2/decode-schedule.json"
 DECODE_SCHEDULE_RESULT = ROOT / "benchmarks/results/native-decode-schedule-v0.1.0.json"
 DECODE_BINDINGS_RESULT = ROOT / "benchmarks/results/native-decode-bindings-v0.1.0.json"
@@ -44,6 +50,7 @@ class NativeRuntimeContractTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.contract = load_json(PRODUCT_CONTRACT)
+        cls.contract_v140 = load_json(PRODUCT_CONTRACT_V140)
         cls.inference_baseline = load_json(ROOT / "benchmarks/results/v1.0.0.json")
         cls.startup_baseline = load_json(ROOT / "benchmarks/results/v1.1.0.json")
         cls.result = load_json(NATIVE_RESULT)
@@ -59,6 +66,7 @@ class NativeRuntimeContractTest(unittest.TestCase):
             PORTABLE_BUNDLE_V130_RESULT
         )
         cls.portable_product_result = load_json(PORTABLE_PRODUCT_RESULT)
+        cls.release_provenance = load_json(RELEASE_PROVENANCE_RESULT)
         cls.decode_schedule = load_json(DECODE_SCHEDULE)
         cls.decode_schedule_result = load_json(DECODE_SCHEDULE_RESULT)
         cls.decode_bindings_result = load_json(DECODE_BINDINGS_RESULT)
@@ -105,6 +113,19 @@ class NativeRuntimeContractTest(unittest.TestCase):
         self.assertTrue(profile["automatic_provider_selection"])
         self.assertTrue(profile["legacy_full_context_envelope_replaced"])
         self.assertEqual(profile["result"], str(PORTABLE_PRODUCT_RESULT.relative_to(ROOT)))
+
+    def test_v140_contract_is_bound_at_package_time(self) -> None:
+        contract = self.contract_v140
+        self.assertEqual(contract["release"], "1.4.0")
+        self.assertEqual(
+            contract["qualified_native_profile"]["qualification"],
+            "share/aima/qualification.json",
+        )
+        self.assertTrue(contract["artifact_integrity"]["qualification_required"])
+        self.assertTrue(contract["artifact_integrity"]["clean_source_required"])
+        self.assertTrue(
+            contract["artifact_integrity"]["embedded_source_commit_must_match"]
+        )
 
     def test_portable_native_product_profile_is_hash_bound_and_nonregressing(self) -> None:
         result = self.portable_product_result
@@ -222,6 +243,30 @@ class NativeRuntimeContractTest(unittest.TestCase):
             all(smoke["qualified"] for smoke in bundle["provider_smokes"])
         )
 
+    def test_v130_public_raw_evidence_is_present_and_hash_bound(self) -> None:
+        self.assertEqual(verify_release_evidence(ROOT), [])
+        provenance = self.release_provenance
+        self.assertEqual(provenance["release_tag"], "v1.3.0")
+        self.assertEqual(
+            provenance["release_commit"],
+            "032dc137992365649a47353910b76f93acb86d75",
+        )
+        self.assertEqual(
+            provenance["native_source_commit"],
+            "745930457f06629542ea996c8771ab38382fce98",
+        )
+        self.assertEqual(
+            self.portable_product_result["components"]["source_base_commit"],
+            provenance["derived_from_commit"],
+        )
+        self.assertEqual(
+            sum(
+                record["file_count"]
+                for record in provenance["public_evidence_trees"].values()
+            ),
+            92,
+        )
+
     def test_generated_layout_is_current_and_complete(self) -> None:
         check = subprocess.run(
             ["python3", "scripts/generate-native-layout.py", "--check"],
@@ -256,6 +301,8 @@ class NativeRuntimeContractTest(unittest.TestCase):
         self.assertIn("native_decode_invocation.cpp", script)
         self.assertIn("native_decode_workspace.hip.cpp", script)
         self.assertIn("native_lm_head.hip.cpp", script)
+        self.assertIn("native_doctor.cpp", script)
+        self.assertIn("AIMA_SOURCE_COMMIT", script)
         self.assertIn("portable_launcher.c", script)
         self.assertIn("-static", script)
         self.assertIn("-lhipblaslt", script)
@@ -304,7 +351,6 @@ class NativeRuntimeContractTest(unittest.TestCase):
             "libaima-fmha-ck.so",
             "libaima-fmha-q16384-hybrid.so",
             "libaotriton_v2.so.0.11.1",
-            "native-portable-product-v1.3.0.json",
             "product-contract.json",
             "aima-engine.service",
         ):
@@ -313,6 +359,20 @@ class NativeRuntimeContractTest(unittest.TestCase):
         self.assertIn("--zstd", package)
         self.assertIn("sha256sum", package)
         self.assertIn("native_bundle_closure.py", package)
+        self.assertIn("AIMA_ALLOW_DIRTY_PACKAGE", package)
+        self.assertIn("--source-commit", package)
+        self.assertIn("verify-native-package-inputs.py", package)
+        self.assertIn("product-contract-v${RELEASE_VERSION}.json", package)
+        for component in (
+            "native_engine",
+            "static_launcher",
+            "aotriton_fmha_provider",
+            "ck_fmha_provider",
+            "q16384_hybrid_fmha_provider",
+            "aotriton_runtime",
+            "aotriton_gfx1151_image",
+        ):
+            self.assertIn(f'--component "{component}=', package)
         launcher = (ROOT / "native/src/portable_launcher.c").read_text(
             encoding="utf-8"
         )
@@ -333,6 +393,41 @@ class NativeRuntimeContractTest(unittest.TestCase):
         self.assertIn('setenv("ROCM_PATH"', main)
         self.assertIn('setenv("HIP_DEVICE_LIB_PATH"', main)
         self.assertIn('setenv("HIPBLASLT_TENSILE_LIBPATH"', main)
+        self.assertIn('std::string(argv[1]) == "doctor"', main)
+        self.assertIn('std::string(argv[1]) == "--build-info"', main)
+        doctor = (ROOT / "native/src/native_doctor.cpp").read_text(
+            encoding="utf-8"
+        )
+        for check_id in (
+            "host.platform",
+            "device.kfd",
+            "device.render",
+            "gpu.architecture",
+            "memory.kernel_parameters",
+            "memory.vram",
+            "memory.gtt",
+            "runtime.bundle",
+            "model.shards",
+        ):
+            self.assertIn(check_id, doctor)
+        server = (ROOT / "native/src/native_http_server.cpp").read_text(
+            encoding="utf-8"
+        )
+        for option in (
+            "--api-key-file",
+            "--request-timeout-ms",
+            "--disable-http-shutdown",
+            "--allow-insecure-remote",
+            "WWW-Authenticate: Bearer",
+            "O_NOFOLLOW",
+            "::fstat",
+            "metadata.st_mode & 0027",
+            "receive_before",
+            "READY=1\\nSTATUS=Ready",
+            "STOPPING=1\\nSTATUS=Stopping",
+        ):
+            self.assertIn(option, server)
+        self.assertLess(server.index("::bind("), server.index("engine.load("))
 
     def test_native_weight_foundation_has_target_measurement(self) -> None:
         self.assertTrue(self.result["complete"])

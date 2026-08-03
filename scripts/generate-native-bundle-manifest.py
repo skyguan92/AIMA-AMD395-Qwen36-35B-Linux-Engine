@@ -66,6 +66,10 @@ def validate_local_markdown_links(bundle: Path) -> int:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("bundle", type=Path)
+    parser.add_argument("--release", required=True)
+    parser.add_argument("--release-tag", required=True)
+    parser.add_argument("--source-commit", required=True)
+    parser.add_argument("--source-dirty", action="store_true")
     args = parser.parse_args()
     bundle = args.bundle.resolve()
     launcher = bundle / "bin/aima-engine"
@@ -114,7 +118,12 @@ def main() -> int:
     payload = {
         "schema": "aima-amd395-qwen36/native-portable-bundle/v3",
         "complete": True,
-        "release": "1.3.0",
+        "release": args.release,
+        "source": {
+            "release_tag": args.release_tag,
+            "commit": args.source_commit,
+            "dirty": args.source_dirty,
+        },
         "status": "portable_native_inference_runtime",
         "target": "Linux x86_64, amdgpu/KFD host driver, AMD gfx1151",
         "runtime_python": False,

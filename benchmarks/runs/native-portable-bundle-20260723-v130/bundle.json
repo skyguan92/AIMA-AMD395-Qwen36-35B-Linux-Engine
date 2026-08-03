@@ -1,0 +1,104 @@
+{
+  "archive": {
+    "bytes": 105609455,
+    "checksum_sidecar": "aima-engine-native-portable-9442591da597.tar.zst.sha256",
+    "checksum_verified": true,
+    "name": "aima-engine-native-portable-9442591da597.tar.zst",
+    "root_mode": "0755",
+    "sha256": "a60800b573915e804ee00180ec66ebce14b10780e380ecb5aaf35e6c9d768ced"
+  },
+  "complete": true,
+  "elf_closure": {
+    "complete": true,
+    "host_userspace_dependencies": [],
+    "launcher_static": true,
+    "maximum_bundled_glibc_abi": "2.39",
+    "non_relocatable_runpaths": {},
+    "provided_soname_count": 25,
+    "unresolved_userspace_dependencies": {},
+    "x86_64_dynamic_object_count": 25
+  },
+  "host_requirements": [
+    "Linux x86_64 kernel ABI",
+    "amdgpu kernel driver with KFD and render nodes",
+    "AMD gfx1151 GPU"
+  ],
+  "isolated_environment": {
+    "host_ld_library_path": false,
+    "host_python_path": false,
+    "host_rocm_path": false,
+    "keys": [
+      "HOME",
+      "LANG",
+      "PATH"
+    ],
+    "version": "aima-engine-native 1.3.0-native"
+  },
+  "manifest": {
+    "attention_providers": {
+      "1024": "lib/libaima-fmha-aotriton.so",
+      "16384": "lib/libaima-fmha-q16384-hybrid.so",
+      "2048": "lib/libaima-fmha-aotriton.so",
+      "32768": "lib/libaima-fmha-ck.so",
+      "4096": "lib/libaima-fmha-aotriton.so",
+      "8192": "lib/libaima-fmha-ck.so",
+      "aotriton_runtime": "lib/libaotriton_v2.so.0.11.1",
+      "long_context_layer39": "lib/libaima-fmha-aotriton.so",
+      "long_context_primary": "lib/libaima-fmha-ck.so",
+      "selection": "automatic by admitted static context"
+    },
+    "checked_files": 240,
+    "checked_symlinks": 1,
+    "complete": true,
+    "payload_bytes_excluding_manifest": 385415835,
+    "schema": "aima-amd395-qwen36/native-portable-bundle/v3"
+  },
+  "provider_smokes": [
+    {
+      "command_to_ready_wall_ms": 47650.154199,
+      "context_tokens": 1024,
+      "output_token_ids_sha256": "54363ddee68f4a5db81c9d37e5fb738d28f5b67dc7f725ad7333172b1ea157da",
+      "output_tokens": 1,
+      "prefill_tokens_per_second": 1632.0264380122824,
+      "primary_provider": "AOTriton 0.11.1",
+      "qualified": true,
+      "report": "raw/q1024-output1.json",
+      "report_sha256": "57b181e99a07e347d38b4b045efd50ba1b42765017199424a7f09373b189b88a",
+      "secondary_layers": [],
+      "secondary_provider": ""
+    },
+    {
+      "command_to_ready_wall_ms": 44961.616649,
+      "context_tokens": 16384,
+      "output_token_ids_sha256": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
+      "output_tokens": 1,
+      "prefill_tokens_per_second": 1383.793815938326,
+      "primary_provider": "packed-GQA/CK-Tile hybrid",
+      "qualified": true,
+      "report": "raw/q16384-output1.json",
+      "report_sha256": "3428f54dd92adce1b40e1493c5b4c1557ec9b3a202c0744d40cdbdb777a0ea5c",
+      "secondary_layers": [
+        39
+      ],
+      "secondary_provider": "CK-Tile"
+    },
+    {
+      "command_to_ready_wall_ms": 44809.284512,
+      "context_tokens": 65536,
+      "output_token_ids_sha256": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
+      "output_tokens": 1,
+      "prefill_tokens_per_second": 1179.4625279393606,
+      "primary_provider": "CK-Tile",
+      "qualified": true,
+      "report": "raw/q65536-output1.json",
+      "report_sha256": "a9081ed4ec2438c7cb33339583001479692559e07511e5a0b07012e8c83a610d",
+      "secondary_layers": [
+        39
+      ],
+      "secondary_provider": "AOTriton 0.11.1"
+    }
+  ],
+  "qualified": true,
+  "release": "1.3.0",
+  "schema": "aima-amd395-qwen36/native-portable-bundle-qualification/v1"
+}

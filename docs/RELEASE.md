@@ -1,4 +1,53 @@
-# v1.3.0 release provenance
+# Release provenance and procedure
+
+## v1.4.0 boundary
+
+The personal upstream owns the immutable `v1.4.0` tag and release assets; the
+Approaching AI repository mirrors the product commit as the public showcase.
+The native archive carries
+[`product-contract-v1.4.0.json`](../native/product-contract-v1.4.0.json) as
+`share/aima/product-contract.json`, together with the exact generated
+qualification as `share/aima/qualification.json`. The qualification binds the
+release/tag, clean source commit, native engine, launcher, all three FMHA
+providers, AOTriton runtime and selected `gfx1151` image by byte size and
+SHA-256. The recursive bundle manifest independently binds every packaged
+file.
+
+The v1.4.0 qualification reruns the complete 19-cell performance matrix,
+nine-context full-vocabulary correctness gate, exact 128-token completion,
+startup, prefix cache, resident HTTP, SSE, tools and isolated portable-bundle
+smokes against the exact release binary before the tag is published. The
+machine-readable qualification and raw reports are release assets; an
+additive evidence commit may mirror them on `main` without moving the tag.
+
+## v1.3.0 provenance
+
+The immutable release tag is `v1.3.0` at commit
+`032dc137992365649a47353910b76f93acb86d75`. The native source and generated
+qualification record correspond to commit
+`745930457f06629542ea996c8771ab38382fce98`; that change was developed from
+v1.2 commit `e430e50dcb41af04465386287d696caa0ff22b10`. The already-published
+qualification JSON and product contract remain byte-for-byte immutable. These
+roles are recorded in the additive machine-readable
+[`native-release-provenance-v1.3.0.json`](../benchmarks/results/native-release-provenance-v1.3.0.json)
+erratum so a development base cannot be mistaken for the shipped release
+commit.
+
+## Fail-closed release flow
+
+1. Commit the release source and make the checkout clean.
+2. Build that commit, run the complete correctness/performance/surface matrix,
+   and generate the candidate product result under ignored `output/`; both its
+   release and native source commits must equal the clean checkout commit.
+3. Set `QUALIFICATION_RECORD`, `AIMA_RELEASE_VERSION` and `AIMA_RELEASE_TAG`,
+   then run `make package-native`. Packaging rejects a dirty checkout, a stale
+   binary commit, an incomplete result, or any executable/provider byte that
+   differs from the qualification.
+4. Tag that same commit in the personal upstream and publish the archive,
+   checksum and deterministic evidence asset there. Never move the tag.
+5. Synchronize the product commit to the Approaching AI showcase fork. Raw
+   evidence may be added to `main` in a later commit without changing the
+   immutable release tag; use an additive erratum for any later clarification.
 
 ## Portable native release boundary
 
@@ -44,6 +93,15 @@ The exact decision is in
 [`native-portable-product-v1.3.0.json`](../benchmarks/results/native-portable-product-v1.3.0.json).
 The result records that the published v1.1 long-context envelope is replaced
 by the native package.
+
+The five compact raw qualification directories referenced by the product and
+portable-bundle results are published under `benchmarks/runs/`. Run
+`make verify-evidence` to verify every summary and recursively referenced raw
+report. The provenance erratum also binds the exact 92-file inventory, byte
+count and sorted-path tree hash of all five directories, so extra, missing or
+modified raw files fail verification. Run `make package-evidence` to create a deterministic checksummed
+release asset containing that public evidence. Licensed oracle logits, model
+weights and prompt content remain excluded.
 
 ## Native build provenance
 

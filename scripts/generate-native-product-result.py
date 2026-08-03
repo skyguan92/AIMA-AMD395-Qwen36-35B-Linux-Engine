@@ -69,9 +69,7 @@ def main() -> None:
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path(
-            "benchmarks/results/native-portable-product-v1.3.0.json"
-        ),
+        default=Path("output/native-portable-product-candidate.json"),
     )
     parser.add_argument(
         "--engine",
@@ -111,6 +109,12 @@ def main() -> None:
             "FONLY__＊bf16@16_256_F_F_3_0___gfx11xx.aks2"
         ),
     )
+    parser.add_argument("--release-tag", required=True)
+    parser.add_argument("--release", required=True)
+    parser.add_argument("--date-utc", required=True)
+    parser.add_argument("--release-commit", required=True)
+    parser.add_argument("--native-source-commit", required=True)
+    parser.add_argument("--derived-from-commit", required=True)
     cli = parser.parse_args()
 
     matrix_path = cli.matrix.resolve()
@@ -204,8 +208,8 @@ def main() -> None:
     http = surfaces["http"]
     result = {
         "schema": "aima-amd395-qwen36/native-portable-product-result/v1",
-        "release": "1.3.0",
-        "date_utc": "2026-07-23",
+        "release": cli.release,
+        "date_utc": cli.date_utc,
         "complete": True,
         "qualified": True,
         "scope": {
@@ -244,7 +248,12 @@ def main() -> None:
             ),
         },
         "components": {
-            "source_base_commit": "e430e50dcb41af04465386287d696caa0ff22b10",
+            "source": {
+                "release_tag": cli.release_tag,
+                "release_commit": cli.release_commit,
+                "native_source_commit": cli.native_source_commit,
+                "derived_from_commit": cli.derived_from_commit,
+            },
             "native_engine": component(
                 engine, "build/native/aima-engine-native"
             ),

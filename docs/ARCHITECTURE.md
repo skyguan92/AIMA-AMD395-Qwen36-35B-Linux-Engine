@@ -122,10 +122,17 @@ lookups and report that no prefill launches occurred on a hit.
 
 ## HTTP residency
 
-The server loads the native tokenizer and engine before binding/listening. One
-process handles one request at a time, retaining model and cache state. Health
-and model-list endpoints do not mutate the cache. `SIGINT`, `SIGTERM` and
-`POST /shutdown` lead to normal RAII cleanup.
+The server binds its address, loads the native tokenizer and engine, then starts
+listening. One process handles one request at a time, retaining model and cache
+state. Health and model-list endpoints do not mutate the cache. Binding before
+the expensive model load makes address conflicts fail immediately, while
+listening only after the load preserves readiness semantics. `SIGINT`, `SIGTERM` and an
+enabled `POST /shutdown` lead to normal RAII cleanup. The complete request read
+has an absolute `--request-timeout-ms` deadline, each socket write is bounded,
+and client send failures do not terminate the resident process.
+The native process sends systemd `STATUS`, `READY=1` and `STOPPING=1`
+datagrams when `NOTIFY_SOCKET` is present; no libsystemd runtime dependency is
+introduced.
 
 The tokenizer contains a parameterized implementation of the checkpoint's
 Qwen chat template, including function definitions, assistant calls and
@@ -138,6 +145,11 @@ Streaming uses HTTP/1.1 chunked SSE. Role, content, tool-call, terminal and
 optional usage chunks share one completion id, followed by `[DONE]`. A failed
 socket write returns cancellation through the token callback; the next request
 can reuse the same resident model.
+
+The optional Python distribution is a dependency-free remote client, not a
+second packaged inference runtime. Its wheel exposes only health/model/chat/
+shutdown operations. Repository-only compatibility commands are registered
+only when the source runtime configuration is present.
 
 ## Portable userspace
 

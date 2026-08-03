@@ -1,7 +1,8 @@
 # AIMA AMD395 Qwen3.6 35B Linux 推理引擎
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![Release](https://img.shields.io/badge/release-v1.3.0-green.svg)](CHANGELOG.md)
+[![CI](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/actions/workflows/ci.yml/badge.svg)](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/badge/release-v1.4.0-green.svg)](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.4.0)
 [![Hardware](https://img.shields.io/badge/GPU-gfx1151-orange.svg)](docs/INSTALL.md)
 
 这是一个面向 AMD Ryzen AI Max+ 395 / Radeon 8060S 的 batch-1
@@ -12,6 +13,10 @@ v1.3 提供真正的 SSE 流式输出与 OpenAI function tools，同时保持可
 Triton、Transformers，也不依赖宿主机安装 ROCm userspace。发布包内含静态
 启动器、原生引擎、固定版本的 ROCm/AOTriton/CK 动态库、glibc loader、许可证
 和资格验证记录。模型权重不随项目分发。
+
+> **版本边界：**v1.4.0 新增 `doctor`、`--build-info`、bearer 鉴权、socket
+> 超时和加固后的 systemd 模板。更早的运行包不包含这些控制项，请以所部署
+> 版本随包文档为准。
 
 English: [README.md](README.md)
 
@@ -26,6 +31,8 @@ English: [README.md](README.md)
 
 Python 包元数据和引用文件使用同一个、可由 GitHub 识别的个人作者身份；现有版权
 声明保持不变。
+发布资产与 CI 由个人原始上游发布；组织 fork 作为稳定的公开展示与 issue 入口。
+产品改动在两个仓库间保持同步，组织专属的身份元数据可以不同。
 
 ## 先看清楚支持边界
 
@@ -69,7 +76,11 @@ HTTP cold prompt 经 chat template 编码后必须正好等于所选固定上下
 
 ## 快速启动
 
+先从[个人上游 v1.4.0 Release](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.4.0)
+下载运行包与校验文件：
+
 ```bash
+sha256sum -c aima-engine-native-portable-*.tar.zst.sha256
 tar --zstd -xf aima-engine-native-portable-*.tar.zst
 cd aima-engine-native-portable-*
 
@@ -136,7 +147,11 @@ curl -fsS -X POST http://127.0.0.1:8000/shutdown
 
 ## 原生 CLI
 
+已发布的 v1.4.0 CLI 提供：
+
 ```text
+aima-engine --build-info
+aima-engine doctor [--model-dir PATH] [--device INDEX] [--json]
 aima-engine --version
 aima-engine serve --model-dir PATH --context-tokens N
 aima-engine resident-session-probe --model-dir PATH [验证参数]
@@ -151,10 +166,17 @@ aima-engine chat-template-probe --model-dir PATH --request-json JSON
 源码安装后的可选控制 CLI 也可以直接作为客户端：
 
 ```bash
+export AIMA_API_KEY_FILE=/path/to/client-readable-api-key
+aima-engine models
 aima-engine chat --stream "PROMPT"
 aima-engine chat --stream --tools-json tools.json --tool-choice auto "PROMPT"
 aima-engine chat --messages-json conversation.json --tools-json tools.json
 ```
+
+纯 Python wheel 有意保持为无运行时依赖的客户端，只暴露 `status`、`models`、
+`chat` 和 `shutdown`。旧的 Python 服务端/镜像管理命令只在完整源码 checkout
+中出现；实际部署使用单独验证过的原生运行包。可通过 `--api-key-file` 或
+`AIMA_API_KEY_FILE` 提供 bearer token，不需要把 token 放进进程参数。
 
 ## 原生成品性能
 
@@ -201,13 +223,17 @@ aima-engine chat --messages-json conversation.json --tools-json tools.json
 ```bash
 export CK_DIR=/path/to/composable-kernel
 export AOTRITON_ROOT=/path/to/distribution/root/containing/include-and-lib
+export QUALIFICATION_RECORD=/path/to/qualified-product-result.json
+export AIMA_RELEASE_VERSION=X.Y.Z
+export AIMA_RELEASE_TAG=vX.Y.Z
 
 make check
 make package-native
 ```
 
-打包器会拒绝绝对 RUNPATH 和未闭合 ELF 依赖，收集第三方许可证，生成递归
-SHA-256 manifest，并在 `dist/` 输出一个确定性的 `.tar.zst` 包。
+打包器会拒绝绝对 RUNPATH、未闭合 ELF 依赖以及任何与完整 qualification
+哈希不一致的可执行文件/provider，收集第三方许可证，生成递归 SHA-256
+manifest，并在 `dist/` 输出一个确定性的 `.tar.zst` 包。
 
 安装与构建细节见 [docs/INSTALL.md](docs/INSTALL.md)。
 
@@ -225,8 +251,9 @@ aima_engine/                 保留的 v1.1 兼容控制面
 
 ## 安全与许可证
 
-HTTP 服务没有内建鉴权，并提供 `POST /shutdown`。默认只监听
-`127.0.0.1`，不要直接暴露到不可信网络。
+HTTP 服务默认只监听 `127.0.0.1`，支持从 `--api-key-file` 读取 bearer
+token；默认拒绝未鉴权的非 loopback 监听，并可通过
+`--disable-http-shutdown` 移除停服接口。TLS、限流和多用户授权仍应由网关提供。
 
 AIMA 项目代码采用 [Apache License 2.0](LICENSE)。随包第三方组件继续遵循各自
 许可证，见 [NOTICE](NOTICE)、[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)

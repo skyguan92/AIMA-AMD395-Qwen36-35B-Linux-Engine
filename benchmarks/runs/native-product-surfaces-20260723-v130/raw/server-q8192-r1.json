@@ -1,0 +1,184 @@
+{
+  "chat": [
+    {
+      "body": {
+        "aima_amd395": {
+          "client_cancelled": false,
+          "decode_tokens_per_second": 32.291607857818335,
+          "http_request_wall_ms": 5034.58946,
+          "model_loads": 1,
+          "oracle_tensor_reads": 0,
+          "output_token_ids_sha256": "ab94289cd2d2b4b39ba5110cf12855605322afd2fc9a1bb78687455ccd55827c",
+          "prefill_tokens_per_second": 1659.0464609160747,
+          "prefix_cache": {
+            "hits": 0,
+            "implemented": true,
+            "lookup": "miss",
+            "matched_tokens": 0,
+            "misses": 1,
+            "scope": "one-entry-exact-or-append",
+            "suffix_aot_launches": 0,
+            "suffix_decode_tokens": 0,
+            "suffix_native_launches": 0,
+            "suffix_tokens": 8192,
+            "suffix_wall_ms": 0.0,
+            "transfer_bytes": 232165376
+          },
+          "request_index": 1,
+          "request_wall_ms": 5033.182812,
+          "runtime": "native-resident-q8192",
+          "ttft_ms": 4937.776122
+        },
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "message": {
+              "content": "It looks like you",
+              "role": "assistant"
+            }
+          }
+        ],
+        "created": 1784812821,
+        "id": "chatcmpl-native-1",
+        "model": "aima-amd395-qwen36-35b",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 4,
+          "prompt_tokens": 8192,
+          "total_tokens": 8196
+        }
+      },
+      "status": 200
+    },
+    {
+      "body": {
+        "aima_amd395": {
+          "client_cancelled": false,
+          "decode_tokens_per_second": 32.23622880394081,
+          "http_request_wall_ms": 99.386832,
+          "model_loads": 1,
+          "oracle_tensor_reads": 0,
+          "output_token_ids_sha256": "ab94289cd2d2b4b39ba5110cf12855605322afd2fc9a1bb78687455ccd55827c",
+          "prefill_tokens_per_second": 1653883.6588138149,
+          "prefix_cache": {
+            "hits": 1,
+            "implemented": true,
+            "lookup": "exact",
+            "matched_tokens": 8192,
+            "misses": 1,
+            "scope": "one-entry-exact-or-append",
+            "suffix_aot_launches": 0,
+            "suffix_decode_tokens": 0,
+            "suffix_native_launches": 0,
+            "suffix_tokens": 0,
+            "suffix_wall_ms": 0.0,
+            "transfer_bytes": 232165376
+          },
+          "request_index": 2,
+          "request_wall_ms": 98.032615,
+          "runtime": "native-resident-q8192",
+          "ttft_ms": 4.95319
+        },
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "message": {
+              "content": "It looks like you",
+              "role": "assistant"
+            }
+          }
+        ],
+        "created": 1784812821,
+        "id": "chatcmpl-native-2",
+        "model": "aima-amd395-qwen36-35b",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 4,
+          "prompt_tokens": 8192,
+          "total_tokens": 8196
+        }
+      },
+      "status": 200
+    }
+  ],
+  "command": [
+    "${AIMA_REPO_ROOT}/build/native/aima-engine-native",
+    "serve",
+    "--model-dir",
+    "${AIMA_MODEL_DIR}",
+    "--context-tokens",
+    "8192",
+    "--host",
+    "127.0.0.1",
+    "--port",
+    "18201",
+    "--report",
+    "${AIMA_REPO_ROOT}/benchmarks/runs/native-product-surfaces-20260723-v130/raw/server-q8192-r1.load.json"
+  ],
+  "complete": true,
+  "engine_sha256": "7b8ae090a80b90a066c39539313ebed92c899d370fc2ccf7021cda03cec0a81d",
+  "health": {
+    "body": {
+      "admitted_prompt_tokens": 8192,
+      "command_to_ready_wall_ms": 46205.316185,
+      "fmha_provider_backend": "CK-Tile",
+      "model": "aima-amd395-qwen36-35b",
+      "model_loaded": true,
+      "resident": true,
+      "runtime": "native",
+      "secondary_fmha_layers": [],
+      "secondary_fmha_provider_backend": "",
+      "served": 0,
+      "status": "ok",
+      "uptime_ms": 46208.979899
+    },
+    "status": 200
+  },
+  "load_report": "${AIMA_REPO_ROOT}/benchmarks/runs/native-product-surfaces-20260723-v130/raw/server-q8192-r1.load.json",
+  "load_report_sha256": "19bbbffff066c6c9b64b0fcf6ad43296200336f8c80013e4edcadea71c669586",
+  "models": {
+    "body": {
+      "data": [
+        {
+          "id": "aima-amd395-qwen36-35b",
+          "object": "model",
+          "owned_by": "approaching-ai"
+        }
+      ],
+      "object": "list"
+    },
+    "status": 200
+  },
+  "ready": {
+    "command_to_ready_wall_ms": 46205.316185,
+    "engine_load_wall_ms": 45884.903911,
+    "event": "ready",
+    "fmha_provider_backend": "CK-Tile",
+    "fmha_provider_path": "${AIMA_REPO_ROOT}/build/native/libaima-fmha-ck.so",
+    "host": "127.0.0.1",
+    "model": "aima-amd395-qwen36-35b",
+    "port": 18201,
+    "runtime_python": false,
+    "runtime_torch": false,
+    "runtime_triton": false,
+    "runtime_vllm": false,
+    "secondary_fmha_layers": [],
+    "secondary_fmha_provider_backend": "",
+    "secondary_fmha_provider_path": ""
+  },
+  "schema": "aima-amd395-qwen36/native-server-qualification-run/v1",
+  "shutdown": {
+    "body": {
+      "status": "shutting_down"
+    },
+    "status": 200
+  },
+  "stderr": "${AIMA_REPO_ROOT}/benchmarks/runs/native-product-surfaces-20260723-v130/raw/server-q8192-r1.stderr.txt",
+  "stopped": {
+    "event": "stopped",
+    "model_loads": 1,
+    "served": 2
+  }
+}

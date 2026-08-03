@@ -1,5 +1,8 @@
 # Native CLI and HTTP API
 
+This page documents the v1.4.0 native CLI and HTTP API. Earlier binaries do
+not include every command and hardening control described here.
+
 ## CLI
 
 The user-facing `bin/aima-engine` is a fully static launcher. It resolves the
@@ -10,7 +13,25 @@ through the bundled glibc loader.
 
 ```bash
 bin/aima-engine --version
+bin/aima-engine --build-info
 ```
+
+`--build-info` returns machine-readable version and embedded source commit.
+The release packager rejects a clean-tree binary whose embedded commit differs
+from the checkout being packaged.
+
+### Deployment doctor
+
+```bash
+bin/aima-engine doctor --model-dir /srv/models/Qwen3.6-35B-A3B --json
+```
+
+`doctor` does not load weights or allocate the inference workspace. It checks
+Linux/x86-64, KFD/render access, the HIP-visible `gfx1151` device, the two
+required kernel parameters, 512 MiB fixed VRAM, the 96 GiB GTT pool, portable
+bundle completeness and—when `--model-dir` is supplied—the four metadata
+hashes plus all 26 readable shards. Exit status is zero only when every
+required check passes.
 
 ### Resident server
 
@@ -35,10 +56,30 @@ Options:
 | `--chunk-bytes N` | checkpoint read chunk | 512 MiB |
 | `--report PATH` | native weight-load report | working directory |
 | `--max-requests N` | stop after N successful chat requests | unlimited |
+| `--request-timeout-ms N` | absolute request-read deadline and per-write timeout (maximum 600000) | 15000 |
+| `--api-key-file PATH` | read one bearer token from a non-symlink file with mode `0640` or stricter | disabled on loopback |
+| `--disable-http-shutdown` | remove the HTTP shutdown route | false |
+| `--allow-insecure-remote` | explicitly permit a non-loopback bind without a token | false |
 | `--fmha-provider PATH` | qualification-only provider override | automatic |
 
 The process stays in the foreground and handles `SIGINT` / `SIGTERM`.
 Use systemd, a container runtime or another supervisor for detached operation.
+A non-loopback `--host` requires `--api-key-file` unless the explicit unsafe
+override is present. `/health` remains available for liveness; the model list,
+chat and enabled shutdown routes require `Authorization: Bearer TOKEN` whenever
+an API key is configured. The engine never logs the token or its file contents.
+
+The optional dependency-free Python client accepts the same protected API:
+
+```bash
+export AIMA_API_KEY_FILE=/path/to/client-readable-api-key
+aima-engine models --endpoint http://127.0.0.1:8000
+aima-engine chat --stream "PROMPT" --endpoint http://127.0.0.1:8000
+```
+
+Each client command also accepts `--api-key-file`. The file must be a regular,
+non-symlink file with mode `0640` or stricter and one printable-ASCII token;
+the token is never placed in the command line.
 
 ### Qualification probes
 
@@ -76,9 +117,17 @@ Returns the single id `aima-amd395-qwen36-35b`.
 ### `POST /shutdown`
 
 Returns `{"status":"shutting_down"}`, then exits after the response is sent.
-There is no authentication. Keep the server on a trusted interface.
+It requires the configured bearer token and returns 404 when
+`--disable-http-shutdown` is active. The packaged systemd unit disables this
+route; use `systemctl stop aima-engine` there.
 
 ## `POST /v1/chat/completions`
+
+When `--api-key-file` is configured, add this header to every `/v1` example:
+
+```text
+Authorization: Bearer YOUR_API_KEY
+```
 
 Supported request fields:
 

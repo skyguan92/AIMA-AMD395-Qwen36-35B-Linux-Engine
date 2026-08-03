@@ -211,9 +211,7 @@ def main() -> None:
     parser.add_argument(
         "--product-result",
         type=Path,
-        default=Path(
-            "benchmarks/results/native-portable-product-v1.3.0.json"
-        ),
+        required=True,
     )
     cli = parser.parse_args()
 
@@ -221,6 +219,12 @@ def main() -> None:
     model_dir = cli.model_dir.expanduser().resolve()
     output_dir = cli.output_dir.expanduser().resolve()
     product_result = load_json(cli.product_result.resolve())
+    release = product_result.get("release")
+    source = product_result.get("components", {}).get("source", {})
+    if not isinstance(release, str) or not release:
+        raise SystemExit("product result release is missing")
+    if not isinstance(source, dict) or not source.get("release_commit"):
+        raise SystemExit("product result source provenance is missing")
     if not archive.is_file():
         raise SystemExit(f"archive is missing: {archive}")
     if not model_dir.is_dir():
@@ -258,6 +262,16 @@ def main() -> None:
         ]:
             raise RuntimeError("archive launcher does not match product result")
         manifest = verify_manifest(bundle)
+        if manifest.get("release") != release:
+            raise RuntimeError("bundle manifest release does not match product result")
+        manifest_source = manifest.get("source", {})
+        if (
+            not isinstance(manifest_source, dict)
+            or manifest_source.get("release_tag") != source.get("release_tag")
+            or manifest_source.get("commit") != source.get("release_commit")
+            or manifest_source.get("dirty") is not False
+        ):
+            raise RuntimeError("bundle manifest source does not match product result")
         closure = audit_bundle(bundle)
         isolated_home = Path(tmp) / "home"
         isolated_home.mkdir()
@@ -281,7 +295,7 @@ def main() -> None:
             check=True,
         ).stdout
         if (
-            version != "aima-engine-native 1.3.0-native"
+            version != f"aima-engine-native {release}-native"
             or "131072" not in help_text
             or "input261120/output1024" not in help_text
         ):
@@ -311,7 +325,8 @@ def main() -> None:
 
     result = {
         "schema": "aima-amd395-qwen36/native-portable-bundle-qualification/v1",
-        "release": "1.3.0",
+        "release": release,
+        "source": source,
         "complete": True,
         "qualified": True,
         "archive": {

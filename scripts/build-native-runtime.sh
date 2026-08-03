@@ -47,6 +47,10 @@ else
 fi
 PREFILL_REGISTRY_CPP="${OUT_DIR}/prefill_schedule_registry.cpp"
 OBJCOPY="${OBJCOPY:-/usr/bin/objcopy}"
+SOURCE_COMMIT="${SOURCE_COMMIT:-$(git -C "${ROOT}" rev-parse HEAD)}"
+if [[ -n "$(git -C "${ROOT}" status --porcelain --untracked-files=normal)" ]]; then
+  SOURCE_COMMIT="${SOURCE_COMMIT}-dirty"
+fi
 
 for archive in libicui18n.a libicuuc.a libicudata.a; do
   if [[ ! -f "${ICU_STATIC_DIR}/${archive}" ]]; then
@@ -107,6 +111,7 @@ while IFS=$'\t' read -r image_path object_name image_name; do
 done < "${AOT_OBJECT_PLAN}"
 
 "${HIPCC}" -O3 -DNDEBUG -DU_STATIC_IMPLEMENTATION -std=c++17 --offload-arch=gfx1151 \
+  -DAIMA_SOURCE_COMMIT=\"${SOURCE_COMMIT}\" \
   -DHIP_ENABLE_WARP_SYNC_BUILTINS=1 -fno-gpu-rdc \
   -fno-rtlib-add-rpath -ffunction-sections -fdata-sections -pthread \
   -I "${ROOT}/native/include" \
@@ -128,6 +133,7 @@ done < "${AOT_OBJECT_PLAN}"
   "${ROOT}/native/src/native_prefill_gemm_plans.hip.cpp" \
   "${ROOT}/native/src/native_resident_engine.hip.cpp" \
   "${ROOT}/native/src/native_chat_protocol.cpp" \
+  "${ROOT}/native/src/native_doctor.cpp" \
   "${ROOT}/native/src/native_http_server.cpp" \
   "${ROOT}/native/src/native_pointwise.hip.cpp" \
   "${ROOT}/native/src/native_full_prefill.hip.cpp" \

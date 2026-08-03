@@ -115,7 +115,8 @@ done
 
 id
 ls -l /dev/kfd /dev/dri/renderD* 2>/dev/null
-/opt/rocm/bin/rocminfo | grep -m1 gfx1151
+/opt/aima-engine/bin/aima-engine doctor \
+  --model-dir /srv/models/Qwen3.6-35B-A3B --json
 ```
 
 The acceptance values are:
@@ -124,13 +125,11 @@ The acceptance values are:
 - fixed VRAM is `536870912` bytes;
 - GTT is `103079215104` bytes;
 - `id` contains `render` and `video`;
-- `rocminfo` succeeds and reports `gfx1151`.
+- native `doctor` reports `qualified: true`, a HIP-visible `gfx1151`, a
+  complete portable bundle and matching model metadata/shards.
 
-Only after these host checks pass should you run:
-
-```bash
-./aima-engine doctor
-```
+`doctor` does not load the 69.3 GB payload or allocate inference state, and it
+does not require a host `/opt/rocm` installation.
 
 ## Common failure states
 

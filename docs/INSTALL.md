@@ -1,8 +1,13 @@
 # Install the portable native runtime
 
+This page documents the v1.4.0 portable package. Earlier archives do not
+contain the deployment doctor, bearer authentication, socket timeouts or the
+hardened systemd template; use the documentation bundled with the version you
+deploy.
+
 ## 1. Qualified platform
 
-The v1.3 native profile is qualified on:
+The v1.4 native profile is qualified on:
 
 - AMD Ryzen AI Max+ 395 with Radeon 8060S (`gfx1151`);
 - 128 GB installed unified memory;
@@ -62,6 +67,8 @@ sudo tar --zstd -xf aima-engine-native-portable-*.tar.zst \
   --strip-components=1 -C /opt/aima-engine
 
 /opt/aima-engine/bin/aima-engine --version
+/opt/aima-engine/bin/aima-engine doctor \
+  --model-dir /srv/models/Qwen3.6-35B-A3B --json
 ```
 
 The archive is relocatable. Moving the extracted directory does not invalidate
@@ -107,6 +114,12 @@ The process then stays resident. Stop it with `Ctrl-C`, `SIGTERM`, or:
 curl -fsS -X POST http://127.0.0.1:8000/shutdown
 ```
 
+For a bearer-protected foreground service, create a non-world-readable key
+file and add `--api-key-file PATH`. Binding a non-loopback address without a
+key fails closed. `--disable-http-shutdown` removes the lifecycle endpoint;
+`--request-timeout-ms` applies an absolute deadline to the complete request
+read and bounds each socket write.
+
 ## 5. Install the systemd service
 
 The archive includes templates under `share/systemd/`:
@@ -117,18 +130,25 @@ getent passwd aima >/dev/null || \
     --home-dir /var/lib/aima-qwen36 --shell /usr/sbin/nologin aima
 sudo usermod -aG render,video aima
 sudo install -d -o aima -g aima /var/lib/aima-qwen36
+sudo install -d -m 0750 -o root -g aima /etc/aima-qwen36
 sudo install -Dm644 \
   /opt/aima-engine/share/systemd/aima-engine.service \
   /etc/systemd/system/aima-engine.service
 sudo install -Dm640 \
   /opt/aima-engine/share/systemd/aima-engine.env.example \
   /etc/aima-qwen36/engine.env
+openssl rand -hex 32 | sudo tee /etc/aima-qwen36/api-key >/dev/null
+sudo chown root:aima /etc/aima-qwen36/api-key
+sudo chmod 0640 /etc/aima-qwen36/api-key
 sudo systemctl daemon-reload
 ```
 
 Edit `/etc/aima-qwen36/engine.env` and grant `aima` read access to the model
 directory. The commands above create a non-login service account and add it to
-the GPU device groups. Then start the service:
+the GPU device groups. The systemd template requires the bearer key, sets a
+15-second socket-operation timeout and disables HTTP shutdown. It uses native
+systemd readiness notification, so `systemctl start` completes only after the
+model is loaded and the socket is listening. Then start the service:
 
 ```bash
 sudo systemctl enable --now aima-engine
@@ -147,7 +167,9 @@ sudo systemctl stop aima-engine
 
 ```bash
 curl -fsS http://127.0.0.1:8000/health
-curl -fsS http://127.0.0.1:8000/v1/models
+API_KEY="$(sudo cat /etc/aima-qwen36/api-key)"
+curl -fsS http://127.0.0.1:8000/v1/models \
+  -H "Authorization: Bearer ${API_KEY}"
 ```
 
 The current native route is exact-length specialized. A cold chat prompt must
@@ -181,10 +203,20 @@ Build-time requirements are intentionally separate from runtime requirements:
 ```bash
 export CK_DIR=/src/composable-kernel
 export AOTRITON_ROOT=/path/to/qualified/distribution/root
+export QUALIFICATION_RECORD=/path/to/qualified-product-result.json
+export AIMA_RELEASE_VERSION=X.Y.Z
+export AIMA_RELEASE_TAG=vX.Y.Z
 
 make check
 make package-native
 ```
+
+Release packaging rejects a dirty source tree, including non-ignored untracked
+files, and records the exact
+source commit in `manifest.json`. It also requires the native engine, launcher,
+three providers, AOTriton runtime and selected GPU image to match the complete
+qualification byte-for-byte. `AIMA_ALLOW_DIRTY_PACKAGE=1` exists only for
+clearly marked local development bundles; do not publish such a bundle.
 
 If the AOTriton distribution does not expose conventional `LICENSE*` and
 `NOTICE*` paths, also set `AOTRITON_LICENSE` and `AOTRITON_NOTICE` to the exact
@@ -217,7 +249,8 @@ performance envelope.
   The engine does not silently fall back to an unqualified length.
 - **Short HTTP prompt:** pre-tokenize the full chat template and choose an
   admitted fixture length.
-- **Remote clients cannot connect:** localhost is the safe default. If binding
-  another interface, put authentication and TLS in a reverse proxy.
+- **Remote bind is rejected:** configure `--api-key-file`; the unsafe override
+  exists only for isolated diagnostics. Put TLS and network policy in a reverse
+  proxy even when the built-in bearer token is enabled.
 - **Different GPU or kernel:** the bundled userspace removes host software
   coupling, not the `gfx1151` and AMDGPU/KFD hardware/driver contract.

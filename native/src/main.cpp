@@ -6,6 +6,7 @@
 #include "aima/bf16_wvsplitk.h"
 #include "aima/decode_schedule.h"
 #include "aima/native_derived_weights.h"
+#include "aima/native_doctor.h"
 #include "aima/native_chat_protocol.h"
 #include "aima/native_decode_bindings.h"
 #include "aima/native_decode_executor.h"
@@ -46,7 +47,11 @@
 
 namespace {
 
-constexpr const char* kVersion = "1.3.0-native";
+constexpr const char* kVersion = "1.4.0-native";
+#ifndef AIMA_SOURCE_COMMIT
+#define AIMA_SOURCE_COMMIT "unknown"
+#endif
+constexpr const char* kSourceCommit = AIMA_SOURCE_COMMIT;
 
 void configure_bundled_rocm() {
   std::error_code error;
@@ -126,6 +131,8 @@ void usage(std::ostream& output) {
   output
       << "Usage:\n"
       << "  aima-engine-native --version\n"
+      << "  aima-engine-native --build-info\n"
+      << "  aima-engine-native doctor [--model-dir PATH] [--device INDEX] [--json]\n"
       << "  aima-engine-native aot-closure-probe\n"
       << "  aima-engine-native decode-schedule-probe\n"
       << "  aima-engine-native prefill-schedule-probe\n"
@@ -4799,6 +4806,12 @@ int main(int argc, char** argv) {
       std::cout << "aima-engine-native " << kVersion << "\n";
       return 0;
     }
+    if (argc == 2 && std::string(argv[1]) == "--build-info") {
+      std::cout << "{\"version\":\"" << kVersion
+                << "\",\"source_commit\":\""
+                << json_escape(kSourceCommit) << "\"}\n";
+      return 0;
+    }
     if (argc < 2 || std::string(argv[1]) == "--help" ||
         std::string(argv[1]) == "-h") {
       usage(std::cout);
@@ -4806,6 +4819,9 @@ int main(int argc, char** argv) {
     }
     if (std::string(argv[1]) == "weights-probe") {
       return run_weights_probe(argc, argv);
+    }
+    if (std::string(argv[1]) == "doctor") {
+      return aima::run_native_doctor(argc, argv, kVersion, kSourceCommit);
     }
     if (std::string(argv[1]) == "aot-closure-probe" && argc == 2) {
       return run_aot_closure_probe();

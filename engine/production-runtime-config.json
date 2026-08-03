@@ -1,6 +1,6 @@
 {
   "schema": "aima-amd395-qwen36/production-runtime-config/v1",
-  "release_version": "1.3.0",
+  "release_version": "1.4.0",
   "model_id": "aima-amd395-qwen36-35b",
   "model_family": "Qwen3.6-35B-A3B-BF16",
   "runtime_python": null,

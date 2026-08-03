@@ -1,6 +1,8 @@
 # Portable native runtime
 
-AIMA v1.3 provides a relocatable native runtime for
+This page documents the v1.4.0 portable native runtime.
+
+AIMA v1.4 provides a relocatable native runtime for
 `Qwen3.6-35B-A3B-BF16` on AMD Ryzen AI Max+ 395 / `gfx1151`. The runtime
 loads the standard 26-shard Safetensors checkpoint directly, keeps model and
 cache state resident, and serves a deterministic OpenAI Chat Completions
@@ -24,7 +26,9 @@ batch-1 envelope:
 The 262,144-token window endpoints at output1/output512/output1024 are also
 qualified. The machine-readable boundary is in
 [product-contract.json](product-contract.json), and the measurements are in
-[the v1.3 native result](../benchmarks/results/native-portable-product-v1.3.0.json).
+[the retained v1.3 native baseline](../benchmarks/results/native-portable-product-v1.3.0.json).
+Each v1.4.0 archive also carries its exact qualification at
+`share/aima/qualification.json`.
 
 ## Distribution shape
 
@@ -58,6 +62,7 @@ Extract the archive anywhere and point it at a separately licensed model:
 tar --zstd -xf aima-engine-native-portable-*.tar.zst
 cd aima-engine-native-portable-*
 ./bin/aima-engine --version
+./bin/aima-engine doctor --model-dir /srv/models/Qwen3.6-35B-A3B --json
 ./bin/aima-engine serve \
   --model-dir /srv/models/Qwen3.6-35B-A3B \
   --context-tokens 8192 \
@@ -67,8 +72,11 @@ cd aima-engine-native-portable-*
 
 The model is loaded once and remains resident until the process stops.
 Use `Ctrl-C`, send `SIGTERM`, call `POST /shutdown`, or use the packaged
-systemd unit. The safe default is localhost; there is no built-in
-authentication.
+systemd unit. The safe default is localhost. `--api-key-file` enables bearer
+authentication for `/v1/models`, chat and shutdown; a non-loopback bind
+requires it unless the explicit unsafe override is supplied. The packaged
+systemd unit enables the token, a socket timeout and
+`--disable-http-shutdown` by default.
 
 The current native route admits cold prompts whose encoded chat-template
 length is exactly the selected static context. A longer request is accepted
@@ -93,14 +101,18 @@ host.
 ```bash
 export CK_DIR=/path/to/composable-kernel
 export AOTRITON_ROOT=/path/to/distribution/root/containing/include-and-lib
+export QUALIFICATION_RECORD=/path/to/qualified-product-result.json
+export AIMA_RELEASE_VERSION=X.Y.Z
+export AIMA_RELEASE_TAG=vX.Y.Z
 make build-native-runtime
 make build-native
 make package-native
 ```
 
 The packager verifies the exact AOTriton library and gfx1151 image hashes,
-copies all upstream notices, closes the complete ELF graph, generates a
-recursive SHA-256 manifest, and writes the relocatable archive under `dist/`.
+binds every executable/provider input to the complete qualification, copies all
+upstream notices, closes the complete ELF graph, generates a recursive SHA-256
+manifest, and writes the relocatable archive under `dist/`.
 
 ## Qualified behavior
 

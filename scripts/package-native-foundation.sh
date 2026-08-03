@@ -4,6 +4,15 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SOURCE_COMMIT="$(git -C "${ROOT}" rev-parse HEAD)"
+SOURCE_DIRTY=false
+if [[ -n "$(git -C "${ROOT}" status --porcelain --untracked-files=normal)" ]]; then
+  SOURCE_DIRTY=true
+fi
+if [[ "${SOURCE_DIRTY}" == true && "${AIMA_ALLOW_DIRTY_PACKAGE:-0}" != 1 ]]; then
+  echo "refusing to package a dirty source tree; commit or remove all non-ignored changes, or set AIMA_ALLOW_DIRTY_PACKAGE=1 for a non-release build" >&2
+  exit 1
+fi
 ROCM_ROOT="$(readlink -f "${ROCM_ROOT:-/opt/rocm}")"
 BINARY="${BINARY:-${ROOT}/build/native/aima-engine-native}"
 LAUNCHER="${LAUNCHER:-${ROOT}/build/native/aima-engine-launcher}"
@@ -17,7 +26,11 @@ AOTRITON_LIBRARY_SHA256="e0638806efa5d35cef04fd7fb02c62cd038b3a38727ecb5d87a4904
 AOTRITON_IMAGE_RELATIVE="amd-gfx11xx/flash/attn_fwd/FONLY__＊bf16@16_256_F_F_3_0___gfx11xx.aks2"
 AOTRITON_IMAGE="${AOTRITON_ROOT}/lib/aotriton.images/${AOTRITON_IMAGE_RELATIVE}"
 AOTRITON_IMAGE_SHA256="0f3a6a2f9dee6620443ee2145ee1f8257bde65a378589952840d99bf3d485c10"
-QUALIFICATION_RECORD="${QUALIFICATION_RECORD:-${ROOT}/benchmarks/results/native-portable-product-v1.3.0.json}"
+RELEASE_VERSION="${AIMA_RELEASE_VERSION:-1.4.0}"
+RELEASE_TAG="${AIMA_RELEASE_TAG:-v${RELEASE_VERSION}}"
+QUALIFICATION_RECORD="${QUALIFICATION_RECORD:-${ROOT}/output/native-portable-product-v${RELEASE_VERSION}.json}"
+QUALIFICATION_BASENAME="$(basename "${QUALIFICATION_RECORD}")"
+PRODUCT_CONTRACT="${PRODUCT_CONTRACT:-${ROOT}/native/product-contract-v${RELEASE_VERSION}.json}"
 release_metadata=(
   "${ROOT}/LICENSE"
   "${ROOT}/SECURITY.md"
@@ -26,7 +39,7 @@ release_metadata=(
   "${ROOT}/README.zh-CN.md"
   "${ROOT}/NOTICE"
   "${ROOT}/THIRD_PARTY_NOTICES.md"
-  "${ROOT}/native/product-contract.json"
+  "${PRODUCT_CONTRACT}"
   "${ROOT}/docs/INSTALL.md"
   "${ROOT}/docs/API.md"
   "${ROOT}/docs/ARCHITECTURE.md"
@@ -62,6 +75,12 @@ if [[ ! -x "${BINARY}" ]]; then
   echo "native executable is missing; run make build-native-runtime" >&2
   exit 1
 fi
+BINARY_SOURCE_COMMIT="$("${BINARY}" --build-info | python3 -c \
+  'import json, sys; print(json.load(sys.stdin)["source_commit"])')"
+if [[ "${SOURCE_DIRTY}" == false && "${BINARY_SOURCE_COMMIT}" != "${SOURCE_COMMIT}" ]]; then
+  echo "native executable source commit does not match the clean checkout; rebuild it" >&2
+  exit 1
+fi
 if [[ ! -x "${LAUNCHER}" ]]; then
   echo "native portable launcher is missing; run make build-native-runtime" >&2
   exit 1
@@ -86,6 +105,18 @@ if [[ "$(sha256sum "${AOTRITON_IMAGE}" | awk '{print $1}')" != \
   echo "qualified AOTriton gfx1151 image SHA-256 mismatch" >&2
   exit 1
 fi
+python3 "${ROOT}/scripts/verify-native-package-inputs.py" \
+  --qualification "${QUALIFICATION_RECORD}" \
+  --release "${RELEASE_VERSION}" \
+  --release-tag "${RELEASE_TAG}" \
+  --source-commit "${SOURCE_COMMIT}" \
+  --component "native_engine=${BINARY}" \
+  --component "static_launcher=${LAUNCHER}" \
+  --component "aotriton_fmha_provider=${FMHA_AOTRITON_PROVIDER}" \
+  --component "ck_fmha_provider=${FMHA_CK_PROVIDER}" \
+  --component "q16384_hybrid_fmha_provider=${FMHA_HYBRID_PROVIDER}" \
+  --component "aotriton_runtime=${AOTRITON_LIBRARY}" \
+  --component "aotriton_gfx1151_image=${AOTRITON_IMAGE}"
 BUNDLE_ID="$(sha256sum "${BINARY}" "${LAUNCHER}" \
   "${FMHA_AOTRITON_PROVIDER}" "${FMHA_CK_PROVIDER}" \
   "${FMHA_HYBRID_PROVIDER}" \
@@ -93,6 +124,7 @@ BUNDLE_ID="$(sha256sum "${BINARY}" "${LAUNCHER}" \
   "${ROOT}/scripts/package-native-foundation.sh" \
   "${ROOT}/scripts/generate-native-bundle-manifest.py" \
   "${ROOT}/scripts/native_bundle_closure.py" \
+  "${ROOT}/scripts/verify-native-package-inputs.py" \
   "${release_metadata[@]}" | \
   awk '{print $1}' | sha256sum | awk '{print $1}')"
 OUTPUT="${OUTPUT:-${ROOT}/dist/aima-engine-native-portable-${BUNDLE_ID:0:12}}"
@@ -244,14 +276,14 @@ for document in INSTALL API ARCHITECTURE MEMORY MEMORY.zh-CN PERFORMANCE RELEASE
   install -Dm644 "${ROOT}/docs/${document}.md" \
     "${STAGING}/docs/${document}.md"
 done
-install -Dm644 "${ROOT}/native/product-contract.json" \
+install -Dm644 "${PRODUCT_CONTRACT}" \
   "${STAGING}/share/aima/product-contract.json"
-install -Dm644 "${ROOT}/native/product-contract.json" \
+install -Dm644 "${PRODUCT_CONTRACT}" \
   "${STAGING}/native/product-contract.json"
 install -Dm644 "${QUALIFICATION_RECORD}" \
   "${STAGING}/share/aima/qualification.json"
 install -Dm644 "${QUALIFICATION_RECORD}" \
-  "${STAGING}/benchmarks/results/native-portable-product-v1.3.0.json"
+  "${STAGING}/benchmarks/results/${QUALIFICATION_BASENAME}"
 for result in v1.0.0 v1.1.0 native-foundation-v0.1.0; do
   install -Dm644 "${ROOT}/benchmarks/results/${result}.json" \
     "${STAGING}/benchmarks/results/${result}.json"
@@ -262,7 +294,16 @@ install -Dm644 "${ROOT}/packaging/systemd/aima-engine.env.example" \
   "${STAGING}/share/systemd/aima-engine.env.example"
 
 python3 "${ROOT}/scripts/native_bundle_closure.py" "${STAGING}" >/dev/null
-python3 "${ROOT}/scripts/generate-native-bundle-manifest.py" "${STAGING}"
+manifest_args=(
+  "${STAGING}"
+  --release "${RELEASE_VERSION}"
+  --release-tag "${RELEASE_TAG}"
+  --source-commit "${SOURCE_COMMIT}"
+)
+if [[ "${SOURCE_DIRTY}" == true ]]; then
+  manifest_args+=(--source-dirty)
+fi
+python3 "${ROOT}/scripts/generate-native-bundle-manifest.py" "${manifest_args[@]}"
 chmod 0755 "${STAGING}"
 mv "${STAGING}" "${OUTPUT}"
 trap - EXIT

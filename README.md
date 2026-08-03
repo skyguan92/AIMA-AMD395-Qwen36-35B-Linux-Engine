@@ -1,8 +1,8 @@
 # AIMA AMD395 Qwen3.6 35B Linux Engine
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![CI](https://github.com/approaching-ai/aima-amd395-qwen36-35b-linux-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/approaching-ai/aima-amd395-qwen36-35b-linux-engine/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/release-v1.3.0-green.svg)](CHANGELOG.md)
+[![CI](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/actions/workflows/ci.yml/badge.svg)](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/badge/release-v1.4.0-green.svg)](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.4.0)
 [![Hardware](https://img.shields.io/badge/GPU-gfx1151-orange.svg)](docs/INSTALL.md)
 
 A batch-1 BF16 inference engine specialized for
@@ -14,6 +14,11 @@ Triton, Transformers, or host ROCm userspace is loaded at runtime. The package
 contains a static launcher, the native engine, pinned ROCm/AOTriton/CK
 userspace, its own glibc loader, licenses and qualification metadata. Model
 weights are not redistributed.
+
+> **Release boundary:** v1.4.0 adds `doctor`, `--build-info`, bearer
+> authentication, socket timeouts and the hardened systemd template. Earlier
+> archives do not contain those controls; use the documentation bundled with
+> the version you deploy.
 
 中文说明见 [README.zh-CN.md](README.zh-CN.md).
 
@@ -27,6 +32,10 @@ This project was created and is maintained by
 
 The package metadata and citation file use the same GitHub-linked author
 identity. The existing copyright notices remain unchanged.
+Release assets and CI are published from the original upstream; the
+organization fork is the stable public showcase and issue-tracking surface.
+Product changes are kept aligned across both repositories, while
+organization-only identity metadata may differ.
 
 ## Read this boundary first
 
@@ -74,9 +83,12 @@ Configure memory before loading the model:
 
 ## Quick start
 
-Extract the release archive anywhere:
+Download the archive and checksum from the
+[upstream v1.4.0 release](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.4.0),
+then extract it anywhere:
 
 ```bash
+sha256sum -c aima-engine-native-portable-*.tar.zst.sha256
 tar --zstd -xf aima-engine-native-portable-*.tar.zst
 cd aima-engine-native-portable-*
 
@@ -145,7 +157,11 @@ then `systemctl start|status|stop aima-engine` provides the lifecycle.
 
 ## Native CLI
 
+The published v1.4.0 CLI provides:
+
 ```text
+aima-engine --build-info
+aima-engine doctor [--model-dir PATH] [--device INDEX] [--json]
 aima-engine --version
 aima-engine serve --model-dir PATH --context-tokens N
 aima-engine resident-session-probe --model-dir PATH [qualification options]
@@ -162,10 +178,19 @@ framework runtime.
 The optional source-install control CLI can also act as a client:
 
 ```bash
+export AIMA_API_KEY_FILE=/path/to/client-readable-api-key
+aima-engine models
 aima-engine chat --stream "PROMPT"
 aima-engine chat --stream --tools-json tools.json --tool-choice auto "PROMPT"
 aima-engine chat --messages-json conversation.json --tools-json tools.json
 ```
+
+The pure-Python wheel is deliberately client-only and has no runtime
+dependencies: it exposes `status`, `models`, `chat` and `shutdown`. Legacy
+Python server/image-management commands appear only in a full source checkout;
+deployment uses the separately qualified native archive. `--api-key-file` (or
+`AIMA_API_KEY_FILE`) supplies bearer authentication without placing the token
+in process arguments.
 
 ## Qualified native results
 
@@ -218,12 +243,16 @@ AOTriton 0.11.1 development distribution:
 ```bash
 export CK_DIR=/path/to/composable-kernel
 export AOTRITON_ROOT=/path/to/distribution/root/containing/include-and-lib
+export QUALIFICATION_RECORD=/path/to/qualified-product-result.json
+export AIMA_RELEASE_VERSION=X.Y.Z
+export AIMA_RELEASE_TAG=vX.Y.Z
 
 make check
 make package-native
 ```
 
 The packager rejects absolute RUNPATHs and unresolved ELF dependencies,
+requires every executable/provider hash to match the complete qualification,
 includes all upstream notices, generates a recursive SHA-256 manifest, and
 emits one deterministic `.tar.zst` archive under `dist/`.
 
@@ -250,9 +279,11 @@ or dependency claims.
 
 ## Security
 
-The HTTP server has no built-in authentication and exposes `POST /shutdown`.
-It binds to `127.0.0.1` by default. Use an authenticated reverse proxy or an
-isolated host before exposing it to a network. See [SECURITY.md](SECURITY.md).
+The HTTP server binds to `127.0.0.1` by default. It supports a bearer token from
+`--api-key-file`, refuses an unauthenticated non-loopback bind by default,
+bounds socket operations and can remove `POST /shutdown`. TLS, rate limiting
+and multi-user authorization still belong in a gateway. See
+[SECURITY.md](SECURITY.md).
 
 ## License
 

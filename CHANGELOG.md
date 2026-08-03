@@ -5,6 +5,31 @@ Versioning.
 
 ## Unreleased
 
+## 1.4.0 - 2026-08-03
+
+- Added a native, no-model-load `doctor` command for host, KFD/render, HIP
+  `gfx1151`, memory-pool, portable-bundle and optional model integrity checks.
+- Added permission-checked bearer-token authentication, fail-closed remote
+  binding, configurable socket timeouts, optional HTTP shutdown removal and
+  graceful handling of disconnected non-stream clients. Request reads use an
+  absolute deadline, and address conflicts now fail before model loading.
+- Hardened the packaged systemd service with a required key file, disabled
+  HTTP shutdown, a bounded socket timeout, native readiness/stopping
+  notification and a restrictive umask.
+- Replaced credential-specific hygiene checks with a reusable public-tree
+  secret/private-host scanner enforced by CI and release verification.
+- Fixed the PEP 621 license metadata for the declared setuptools floor and
+  added an offline wheel build to the standard check. Installed wheels now
+  expose only their dependency-free HTTP client instead of broken source-only
+  runtime commands, with permission-checked bearer-key file support.
+- Added the compact raw v1.3 qualification reports, an immutable
+  provenance erratum, exact evidence-tree inventories and deterministic
+  checksummed evidence packaging.
+- Bound future bundle manifests to an exact source commit and every executable
+  or provider hash in the qualification, rejected dirty release packaging by
+  default and separated personal-upstream release/CI ownership from the
+  Approaching AI showcase fork.
+
 ## 1.3.0 - 2026-07-23
 
 - Added live HTTP/1.1 SSE token streaming with incremental UTF-8 handling,

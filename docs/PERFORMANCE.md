@@ -73,6 +73,10 @@ connection left the one-load resident server healthy.
 Exact components, per-run values, baselines, ratios and decision boundaries
 are in
 [`native-portable-product-v1.3.0.json`](../benchmarks/results/native-portable-product-v1.3.0.json).
+Its hash-bound summaries and raw reports are published under
+[`benchmarks/runs/`](../benchmarks/runs/). `make verify-evidence` checks every
+referenced report; `make package-evidence` emits a deterministic public
+evidence archive and SHA-256 sidecar under `dist/`.
 The archive packager rejects unresolved ELF dependencies and absolute RUNPATHs.
 The remaining host requirements are the Linux kernel AMDGPU/KFD driver,
 device nodes, x86-64 and `gfx1151`.

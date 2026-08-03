@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -10,6 +11,11 @@ import unittest
 
 from aima_engine import __version__
 from aima_engine import cli
+from aima_engine.package_qualification import (
+    REQUIRED_COMPONENTS,
+    verify_package_qualification,
+)
+from aima_engine.public_hygiene import scan_bytes, scan_public_tree
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -38,7 +44,7 @@ class ReleaseContractTest(unittest.TestCase):
         cls.context_policy = load_module("release_context_policy_test", CONTEXT_POLICY_PATH)
 
     def test_release_components_are_hash_qualified(self) -> None:
-        self.assertEqual(__version__, "1.3.0")
+        self.assertEqual(__version__, "1.4.0")
         checks = cli.verify_components(self.config)
         self.assertGreaterEqual(len(checks), 10)
         self.assertTrue(all(item["passed"] for item in checks), checks)
@@ -46,6 +52,51 @@ class ReleaseContractTest(unittest.TestCase):
             self.config["engine"]["sha256"],
             "79b5f070a30176af2a7a87a473fe578a15abd5177fb39b2ab9e188f66572fe0e",
         )
+
+    def test_package_inputs_are_bound_to_qualification(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            component_paths: dict[str, Path] = {}
+            component_records: dict[str, object] = {
+                "source": {
+                    "release_tag": "v2.0.0",
+                    "release_commit": "a" * 40,
+                    "native_source_commit": "a" * 40,
+                }
+            }
+            for index, name in enumerate(REQUIRED_COMPONENTS):
+                payload = f"synthetic-component-{index}\n".encode()
+                path = root / name
+                path.write_bytes(payload)
+                component_paths[name] = path
+                component_records[name] = {
+                    "bytes": len(payload),
+                    "sha256": hashlib.sha256(payload).hexdigest(),
+                }
+            qualification = root / "qualification.json"
+            qualification.write_text(
+                json.dumps(
+                    {
+                        "complete": True,
+                        "qualified": True,
+                        "release": "2.0.0",
+                        "components": component_records,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            arguments = {
+                "release": "2.0.0",
+                "release_tag": "v2.0.0",
+                "source_commit": "a" * 40,
+                "components": component_paths,
+            }
+            self.assertEqual(
+                verify_package_qualification(qualification, **arguments), []
+            )
+            component_paths["native_engine"].write_bytes(b"changed")
+            errors = verify_package_qualification(qualification, **arguments)
+            self.assertIn("qualification SHA-256 mismatch: native_engine", errors)
 
     def test_public_identity_and_request_subset(self) -> None:
         self.assertEqual(self.adapter.DEFAULT_MODEL_ID, "aima-amd395-qwen36-35b")
@@ -216,6 +267,8 @@ class ReleaseContractTest(unittest.TestCase):
                 "--tool-choice",
                 "required",
                 "--no-parallel-tool-calls",
+                "--api-key-file",
+                "client-key.txt",
                 "hello",
             ]
         )
@@ -223,6 +276,7 @@ class ReleaseContractTest(unittest.TestCase):
         self.assertEqual(chat.tools_json, "tools.json")
         self.assertEqual(chat.tool_choice, "required")
         self.assertFalse(chat.parallel_tool_calls)
+        self.assertEqual(chat.api_key_file, "client-key.txt")
         history_chat = parser.parse_args(
             ["chat", "--messages-json", "messages.json"]
         )
@@ -252,6 +306,73 @@ class ReleaseContractTest(unittest.TestCase):
         if direct_nm.returncode == 0:
             self.assertIn("torch_owned_safetensors_tensor_scatter_ingest", direct_nm.stdout)
 
+    def test_installed_wheel_exposes_only_dependency_free_client(self) -> None:
+        original = cli.DEFAULT_CONFIG
+        cli.DEFAULT_CONFIG = ROOT / "missing-wheel-runtime-config.json"
+        try:
+            parser = cli.build_parser()
+        finally:
+            cli.DEFAULT_CONFIG = original
+        command_action = next(
+            action for action in parser._actions if action.dest == "command"
+        )
+        self.assertEqual(
+            set(command_action.choices),
+            {"status", "models", "chat", "shutdown"},
+        )
+
+    def test_client_api_key_file_and_authorization_header(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "client-key"
+            token = "synthetic-" + "client-token-value-0001"
+            path.write_text(token + "\n", encoding="utf-8")
+            path.chmod(0o600)
+            self.assertEqual(cli.load_client_api_key(str(path)), token)
+            path.chmod(0o644)
+            with self.assertRaises(cli.UserError):
+                cli.load_client_api_key(str(path))
+
+            path.chmod(0o600)
+            link = Path(directory) / "client-key-link"
+            link.symlink_to(path.name)
+            with self.assertRaises(cli.UserError):
+                cli.load_client_api_key(str(link))
+
+            captured: dict[str, object] = {}
+
+            class Response:
+                def __enter__(self):
+                    return self
+
+                def __exit__(self, *_args):
+                    return False
+
+                def read(self) -> bytes:
+                    return b'{"status":"ok"}'
+
+            def urlopen(request, timeout):
+                captured["authorization"] = request.get_header("Authorization")
+                captured["timeout"] = timeout
+                return Response()
+
+            original = cli.urlrequest.urlopen
+            cli.urlrequest.urlopen = urlopen
+            try:
+                self.assertEqual(
+                    cli.http_json(
+                        "GET",
+                        "http://127.0.0.1:8000",
+                        "/v1/models",
+                        timeout=4.0,
+                        api_key=token,
+                    ),
+                    {"status": "ok"},
+                )
+            finally:
+                cli.urlrequest.urlopen = original
+            self.assertEqual(captured["authorization"], f"Bearer {token}")
+            self.assertEqual(captured["timeout"], 4.0)
+
     def test_runtime_python_preserves_virtualenv_symlink(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             base = Path(directory)
@@ -265,25 +386,19 @@ class ReleaseContractTest(unittest.TestCase):
             self.assertTrue(selected.is_symlink())
 
     def test_no_private_host_or_credential_markers(self) -> None:
-        forbidden = ["/home/" + "quings", "/data/home/" + "quings", "qujing" + "#$@21"]
-        suffixes = {".c", ".cc", ".cpp", ".h", ".hip", ".json", ".md", ".py", ".sh", ".toml", ".txt", ".yml", ".yaml"}
-        findings: list[str] = []
-        excluded = {".git", "__pycache__", "build", "dist", "output", "state"}
-        for path in ROOT.rglob("*"):
-            if (
-                not path.is_file()
-                or any(part in excluded for part in path.parts)
-                or path.suffix not in suffixes
-            ):
-                continue
-            try:
-                text = path.read_text(encoding="utf-8")
-            except UnicodeDecodeError:
-                continue
-            for marker in forbidden:
-                if marker in text:
-                    findings.append(f"{path.relative_to(ROOT)}: {marker}")
-        self.assertEqual(findings, [])
+        self.assertEqual(scan_public_tree(ROOT), [])
+
+    def test_public_hygiene_rules_use_synthetic_fixtures(self) -> None:
+        fixture = b'password="test-only-placeholder"\n'
+        self.assertEqual(scan_bytes("fixture.txt", fixture), [])
+        findings = scan_bytes(
+            "fixture.txt",
+            b"pass" + b'word="not-a-real-secret-123!"\nssh user@192.' + b"168.10.20\n",
+        )
+        self.assertEqual(
+            {finding.rule for finding in findings},
+            {"literal-credential", "private-ipv4"},
+        )
 
     def test_json_and_relative_document_links_are_valid(self) -> None:
         excluded = {".git", "__pycache__", "build", "dist", "output", "state"}
@@ -320,9 +435,16 @@ class ReleaseContractTest(unittest.TestCase):
         self.assertIn("--context-tokens ${AIMA_CONTEXT_TOKENS}", service)
         self.assertIn("--host ${AIMA_HOST}", service)
         self.assertIn("--port ${AIMA_PORT}", service)
+        self.assertIn("--api-key-file ${AIMA_API_KEY_FILE}", service)
+        self.assertIn("--request-timeout-ms ${AIMA_REQUEST_TIMEOUT_MS}", service)
+        self.assertIn("--disable-http-shutdown", service)
+        self.assertIn("Type=notify", service)
+        self.assertIn("NotifyAccess=main", service)
         self.assertNotIn("ExecStop=", service)
         self.assertIn("TimeoutStopSec=30", service)
         self.assertIn("AIMA_CONTEXT_TOKENS=8192", environment)
+        self.assertIn("AIMA_API_KEY_FILE=/etc/aima-qwen36/api-key", environment)
+        self.assertIn("AIMA_REQUEST_TIMEOUT_MS=15000", environment)
         self.assertNotIn("AIMA_LOAD_MODE=", environment)
         self.assertNotIn("AIMA_IMAGE_MANIFEST=", environment)
 

@@ -106,7 +106,8 @@ done
 
 id
 ls -l /dev/kfd /dev/dri/renderD* 2>/dev/null
-/opt/rocm/bin/rocminfo | grep -m1 gfx1151
+/opt/aima-engine/bin/aima-engine doctor \
+  --model-dir /srv/models/Qwen3.6-35B-A3B --json
 ```
 
 验收值：
@@ -115,13 +116,11 @@ ls -l /dev/kfd /dev/dri/renderD* 2>/dev/null
 - 固定 VRAM 为 `536870912` 字节；
 - GTT 为 `103079215104` 字节；
 - `id` 包含 `render` 和 `video`；
-- `rocminfo` 成功并报告 `gfx1151`。
+- 原生 `doctor` 返回 `qualified: true`，HIP 能看到 `gfx1151`，便携包完整，
+  模型元数据与 26 个 shard 均通过。
 
-主机检查通过后再运行：
-
-```bash
-./aima-engine doctor
-```
+`doctor` 不会装载 69.3 GB 权重或分配推理状态，也不要求宿主机安装
+`/opt/rocm`。
 
 ## 常见错误状态
 

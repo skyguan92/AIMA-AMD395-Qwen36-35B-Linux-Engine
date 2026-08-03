@@ -1,0 +1,108 @@
+{
+  "artifacts": {
+    "load_report": "${AIMA_OUTPUT_DIR}/features.load.json",
+    "load_report_sha256": "cd950d181f0e2153356af00f649aa1b64026951c5683497359057e493ab89b77",
+    "stderr": "${AIMA_OUTPUT_DIR}/features.stderr.txt"
+  },
+  "complete": true,
+  "context_tokens": 1024,
+  "disconnect": {
+    "pass": true,
+    "served_after": 5,
+    "served_before": 5,
+    "server_healthy": true
+  },
+  "engine": {
+    "path": "${AIMA_ENGINE}",
+    "sha256": "7b8ae090a80b90a066c39539313ebed92c899d370fc2ccf7021cda03cec0a81d"
+  },
+  "fixtures": {
+    "history_tokens": 1024,
+    "plain_tokens": 1024,
+    "tool_tokens": 1024
+  },
+  "host": {
+    "hostname": "quings",
+    "machine": "x86_64",
+    "release": "6.14.0-1020-oem"
+  },
+  "lifecycle": {
+    "pass": true,
+    "ready": {
+      "command_to_ready_wall_ms": 44858.119814,
+      "engine_load_wall_ms": 44547.896768,
+      "event": "ready",
+      "fmha_provider_backend": "AOTriton 0.11.1",
+      "fmha_provider_path": "${AIMA_REPO_ROOT}/build/native/libaima-fmha-aotriton.so",
+      "host": "127.0.0.1",
+      "model": "aima-amd395-qwen36-35b",
+      "port": 18210,
+      "runtime_python": false,
+      "runtime_torch": false,
+      "runtime_triton": false,
+      "runtime_vllm": false,
+      "secondary_fmha_layers": [],
+      "secondary_fmha_provider_backend": "",
+      "secondary_fmha_provider_path": ""
+    },
+    "stopped": {
+      "event": "stopped",
+      "model_loads": 1,
+      "served": 5
+    }
+  },
+  "model_dir": "${AIMA_MODEL_DIR}",
+  "qualified": true,
+  "schema": "aima-amd395-qwen36/native-openai-features/v1",
+  "streaming": {
+    "cold_prefix_lookup": "miss",
+    "content_matches_nonstream": true,
+    "content_type": "text/event-stream; charset=utf-8",
+    "done_ms": 693.6270436272025,
+    "first_content_ms": 633.3072236739099,
+    "pass": true,
+    "repeat_prefix_lookup": "exact",
+    "token_sha256_matches_nonstream": true,
+    "transfer_encoding": "chunked",
+    "usage": {
+      "completion_tokens": 3,
+      "prompt_tokens": 1024,
+      "total_tokens": 1027
+    }
+  },
+  "tools": {
+    "finish_reason": "tool_calls",
+    "history_response": {
+      "content": "The weather in Paris is sunny with a temperature of 20°C.",
+      "role": "assistant"
+    },
+    "nonstream": {
+      "function": {
+        "arguments": "{\"city\": \"Paris\"}",
+        "name": "get_weather"
+      },
+      "id": "chatcmpl-native-3-call-0",
+      "type": "function"
+    },
+    "pass": true,
+    "stream": {
+      "function": {
+        "arguments": "{\"city\": \"Paris\"}",
+        "name": "get_weather"
+      },
+      "id": "chatcmpl-native-4-call-0",
+      "type": "function"
+    },
+    "token_sha256_matches_nonstream": true
+  },
+  "validation": {
+    "error": {
+      "code": "bad_request",
+      "message": "tool_choice names a function absent from tools",
+      "param": null,
+      "type": "invalid_request_error"
+    },
+    "pass": true,
+    "unknown_forced_tool_status": 400
+  }
+}

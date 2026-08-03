@@ -1,0 +1,81 @@
+{
+  "chat": [],
+  "command": [
+    "${AIMA_REPO_ROOT}/build/native/aima-engine-native",
+    "serve",
+    "--model-dir",
+    "${AIMA_MODEL_DIR}",
+    "--context-tokens",
+    "8192",
+    "--host",
+    "127.0.0.1",
+    "--port",
+    "18203",
+    "--report",
+    "${AIMA_REPO_ROOT}/benchmarks/runs/native-product-surfaces-20260723-v130/raw/server-q8192-r3.load.json"
+  ],
+  "complete": true,
+  "engine_sha256": "7b8ae090a80b90a066c39539313ebed92c899d370fc2ccf7021cda03cec0a81d",
+  "health": {
+    "body": {
+      "admitted_prompt_tokens": 8192,
+      "command_to_ready_wall_ms": 43517.148765,
+      "fmha_provider_backend": "CK-Tile",
+      "model": "aima-amd395-qwen36-35b",
+      "model_loaded": true,
+      "resident": true,
+      "runtime": "native",
+      "secondary_fmha_layers": [],
+      "secondary_fmha_provider_backend": "",
+      "served": 0,
+      "status": "ok",
+      "uptime_ms": 43517.69842
+    },
+    "status": 200
+  },
+  "load_report": "${AIMA_REPO_ROOT}/benchmarks/runs/native-product-surfaces-20260723-v130/raw/server-q8192-r3.load.json",
+  "load_report_sha256": "5686487211730fa37e2cc943da1296bafbc697c2ef0d87730677db944f5ce8f8",
+  "models": {
+    "body": {
+      "data": [
+        {
+          "id": "aima-amd395-qwen36-35b",
+          "object": "model",
+          "owned_by": "approaching-ai"
+        }
+      ],
+      "object": "list"
+    },
+    "status": 200
+  },
+  "ready": {
+    "command_to_ready_wall_ms": 43517.148765,
+    "engine_load_wall_ms": 43183.347813,
+    "event": "ready",
+    "fmha_provider_backend": "CK-Tile",
+    "fmha_provider_path": "${AIMA_REPO_ROOT}/build/native/libaima-fmha-ck.so",
+    "host": "127.0.0.1",
+    "model": "aima-amd395-qwen36-35b",
+    "port": 18203,
+    "runtime_python": false,
+    "runtime_torch": false,
+    "runtime_triton": false,
+    "runtime_vllm": false,
+    "secondary_fmha_layers": [],
+    "secondary_fmha_provider_backend": "",
+    "secondary_fmha_provider_path": ""
+  },
+  "schema": "aima-amd395-qwen36/native-server-qualification-run/v1",
+  "shutdown": {
+    "body": {
+      "status": "shutting_down"
+    },
+    "status": 200
+  },
+  "stderr": "${AIMA_REPO_ROOT}/benchmarks/runs/native-product-surfaces-20260723-v130/raw/server-q8192-r3.stderr.txt",
+  "stopped": {
+    "event": "stopped",
+    "model_loads": 1,
+    "served": 0
+  }
+}

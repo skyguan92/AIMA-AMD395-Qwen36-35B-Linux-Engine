@@ -16,6 +16,7 @@ import os
 from pathlib import Path
 import platform
 import shutil
+import stat
 import subprocess
 import sys
 from typing import Any, Iterable
@@ -863,9 +864,12 @@ def http_json(
     path: str,
     payload: dict[str, Any] | None = None,
     timeout: float = 30.0,
+    api_key: str | None = None,
 ) -> dict[str, Any]:
     body = json.dumps(payload).encode("utf-8") if payload is not None else None
     headers = {"Content-Type": "application/json"} if body is not None else {}
+    if api_key is not None:
+        headers["Authorization"] = f"Bearer {api_key}"
     request = urlrequest.Request(
         endpoint.rstrip("/") + path,
         data=body,
@@ -887,15 +891,19 @@ def http_sse(
     path: str,
     payload: dict[str, Any],
     timeout: float,
+    api_key: str | None = None,
 ) -> Iterable[dict[str, Any]]:
     body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    headers = {
+        "Accept": "text/event-stream",
+        "Content-Type": "application/json",
+    }
+    if api_key is not None:
+        headers["Authorization"] = f"Bearer {api_key}"
     request = urlrequest.Request(
         endpoint.rstrip("/") + path,
         data=body,
-        headers={
-            "Accept": "text/event-stream",
-            "Content-Type": "application/json",
-        },
+        headers=headers,
         method="POST",
     )
     try:
@@ -923,13 +931,80 @@ def http_sse(
         raise UserError(f"stream request failed: {exc}") from exc
 
 
+def load_client_api_key(value: str | None) -> str | None:
+    if not value:
+        return None
+    path = Path(value).expanduser()
+    flags = os.O_RDONLY | os.O_CLOEXEC | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        descriptor = os.open(path, flags)
+    except OSError as error:
+        raise UserError("--api-key-file must name a readable, non-symlink file") from error
+    try:
+        metadata = os.fstat(descriptor)
+        if not stat.S_ISREG(metadata.st_mode):
+            raise UserError("--api-key-file must name a regular file")
+        if metadata.st_mode & 0o027:
+            raise UserError("--api-key-file must use mode 0640 or stricter")
+        if metadata.st_size <= 0 or metadata.st_size > 4097:
+            raise UserError("--api-key-file must contain 16 to 4096 bytes")
+        chunks: list[bytes] = []
+        remaining = 4098
+        while remaining:
+            block = os.read(descriptor, remaining)
+            if not block:
+                break
+            chunks.append(block)
+            remaining -= len(block)
+        payload = b"".join(chunks)
+    finally:
+        os.close(descriptor)
+    try:
+        key = payload.decode("ascii").strip()
+    except UnicodeDecodeError as error:
+        raise UserError("--api-key-file must contain printable ASCII") from error
+    key_bytes = key.encode("ascii")
+    if (
+        len(key_bytes) < 16
+        or len(key_bytes) > 4096
+        or "\n" in key
+        or "\r" in key
+        or any(byte < 0x21 or byte > 0x7E for byte in key_bytes)
+    ):
+        raise UserError(
+            "--api-key-file must contain one 16 to 4096 byte printable-ASCII token"
+        )
+    return key
+
+
 def status(args: argparse.Namespace) -> int:
-    print(json.dumps(http_json("GET", args.endpoint, "/health", timeout=args.timeout), indent=2))
+    print(
+        json.dumps(
+            http_json(
+                "GET",
+                args.endpoint,
+                "/health",
+                timeout=args.timeout,
+            ),
+            indent=2,
+        )
+    )
     return 0
 
 
 def models(args: argparse.Namespace) -> int:
-    print(json.dumps(http_json("GET", args.endpoint, "/v1/models", timeout=args.timeout), indent=2))
+    print(
+        json.dumps(
+            http_json(
+                "GET",
+                args.endpoint,
+                "/v1/models",
+                timeout=args.timeout,
+                api_key=load_client_api_key(args.api_key_file),
+            ),
+            indent=2,
+        )
+    )
     return 0
 
 
@@ -983,6 +1058,7 @@ def chat(args: argparse.Namespace) -> int:
             "/v1/chat/completions",
             payload,
             timeout=args.timeout,
+            api_key=load_client_api_key(args.api_key_file),
         ):
             if args.json:
                 print(json.dumps(event, ensure_ascii=False), flush=True)
@@ -1023,6 +1099,7 @@ def chat(args: argparse.Namespace) -> int:
         "/v1/chat/completions",
         payload,
         timeout=args.timeout,
+        api_key=load_client_api_key(args.api_key_file),
     )
     if args.json:
         print(json.dumps(response, indent=2, ensure_ascii=False))
@@ -1044,11 +1121,24 @@ def chat(args: argparse.Namespace) -> int:
 
 
 def shutdown(args: argparse.Namespace) -> int:
-    print(json.dumps(http_json("POST", args.endpoint, "/shutdown", timeout=args.timeout), indent=2))
+    print(
+        json.dumps(
+            http_json(
+                "POST",
+                args.endpoint,
+                "/shutdown",
+                timeout=args.timeout,
+                api_key=load_client_api_key(args.api_key_file),
+            ),
+            indent=2,
+        )
+    )
     return 0
 
 
 def verify_release(args: argparse.Namespace) -> int:
+    from aima_engine.public_hygiene import scan_public_tree
+
     config = load_config(Path(args.config).resolve())
     components = verify_components(config)
     required_files = [
@@ -1064,42 +1154,7 @@ def verify_release(args: argparse.Namespace) -> int:
         {"path": str(path), "passed": path.is_file() and path.stat().st_size > 0}
         for path in required_files
     ]
-    private_markers = [
-        "/home/" + "quings",
-        "/data/home/" + "quings",
-        "aima-" + "hidden-20260622",
-        "qujing" + "#$@21",
-    ]
-    hygiene_findings: list[dict[str, str]] = []
-    excluded_parts = {".git", "__pycache__", "output", "build", "state"}
-    text_suffixes = {
-        "",
-        ".c",
-        ".cc",
-        ".cpp",
-        ".h",
-        ".hip",
-        ".json",
-        ".md",
-        ".py",
-        ".sh",
-        ".toml",
-        ".txt",
-        ".yml",
-        ".yaml",
-    }
-    for path in ROOT.rglob("*"):
-        if not path.is_file() or any(part in excluded_parts for part in path.parts):
-            continue
-        if path.suffix.lower() not in text_suffixes and path.name not in {"Makefile", "NOTICE"}:
-            continue
-        try:
-            text = path.read_text(encoding="utf-8")
-        except UnicodeDecodeError:
-            continue
-        for marker in private_markers:
-            if marker in text:
-                hygiene_findings.append({"path": str(path.relative_to(ROOT)), "marker": marker})
+    hygiene_findings = [finding.__dict__ for finding in scan_public_tree(ROOT)]
     result = {
         "version": __version__,
         "components_passed": all(item["passed"] for item in components),
@@ -1146,16 +1201,14 @@ def add_runtime_arguments(parser: argparse.ArgumentParser) -> None:
 def add_http_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--endpoint", default=DEFAULT_ENDPOINT)
     parser.add_argument("--timeout", type=float, default=30.0)
-
-
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        prog="aima-engine",
-        description="AIMA batch-1 Qwen3.6-35B-A3B BF16 engine for AMD395 Linux",
+    parser.add_argument(
+        "--api-key-file",
+        default=os.environ.get("AIMA_API_KEY_FILE"),
+        help="read the bearer token from a mode-0640-or-stricter file",
     )
-    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
-    subparsers = parser.add_subparsers(dest="command", required=True)
 
+
+def add_source_control_commands(subparsers: Any) -> None:
     verify_parser = subparsers.add_parser("verify", help="verify release files and hashes")
     verify_parser.add_argument("--config", default=str(DEFAULT_CONFIG))
     verify_parser.add_argument("--json", action="store_true")
@@ -1207,6 +1260,22 @@ def build_parser() -> argparse.ArgumentParser:
     serve_parser.add_argument("--ready-file")
     serve_parser.add_argument("--max-requests", type=int, default=0)
     serve_parser.set_defaults(handler=serve)
+
+
+def build_parser() -> argparse.ArgumentParser:
+    source_checkout = DEFAULT_CONFIG.is_file()
+    parser = argparse.ArgumentParser(
+        prog="aima-engine",
+        description=(
+            "AIMA batch-1 Qwen3.6-35B-A3B BF16 engine for AMD395 Linux"
+            if source_checkout
+            else "Dependency-free client for the resident AIMA AMD395 engine"
+        ),
+    )
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+    if source_checkout:
+        add_source_control_commands(subparsers)
 
     status_parser = subparsers.add_parser("status", help="read server health")
     add_http_arguments(status_parser)

@@ -8,10 +8,14 @@
 #include "aima/native_tokenizer.h"
 
 #include <arpa/inet.h>
+#include <fcntl.h>
 #include <netinet/in.h>
 #include <nlohmann/json.hpp>
 #include <signal.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <sys/un.h>
 #include <unistd.h>
 
 #include <algorithm>
@@ -19,7 +23,9 @@
 #include <cerrno>
 #include <chrono>
 #include <cctype>
+#include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <filesystem>
 #include <iostream>
@@ -29,6 +35,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <system_error>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -68,6 +75,34 @@ class FileDescriptor {
   int value_ = -1;
 };
 
+void systemd_notify(std::string_view state) noexcept {
+  const char* value = std::getenv("NOTIFY_SOCKET");
+  if (value == nullptr || *value == '\0' || state.empty()) return;
+  const std::string socket_name(value);
+  const bool abstract = socket_name.front() == '@';
+  const std::size_t name_size = socket_name.size() - (abstract ? 1 : 0);
+  sockaddr_un address{};
+  if (name_size == 0 || name_size >= sizeof(address.sun_path)) return;
+  address.sun_family = AF_UNIX;
+  const char* name = socket_name.data() + (abstract ? 1 : 0);
+  const std::size_t prefix = offsetof(sockaddr_un, sun_path);
+  socklen_t address_size = 0;
+  if (abstract) {
+    address.sun_path[0] = '\0';
+    std::memcpy(address.sun_path + 1, name, name_size);
+    address_size = static_cast<socklen_t>(prefix + 1 + name_size);
+  } else {
+    std::memcpy(address.sun_path, name, name_size);
+    address.sun_path[name_size] = '\0';
+    address_size = static_cast<socklen_t>(prefix + name_size + 1);
+  }
+  FileDescriptor socket(
+      ::socket(AF_UNIX, SOCK_DGRAM | SOCK_CLOEXEC, 0));
+  if (socket.get() < 0) return;
+  (void)::sendto(socket.get(), state.data(), state.size(), MSG_NOSIGNAL,
+                 reinterpret_cast<const sockaddr*>(&address), address_size);
+}
+
 struct HttpRequest {
   std::string method;
   std::string path;
@@ -88,17 +123,6 @@ std::string trim_ascii(std::string value) {
   while (!value.empty() && space(value.front())) value.erase(value.begin());
   while (!value.empty() && space(value.back())) value.pop_back();
   return value;
-}
-
-void send_all(int fd, std::string_view value) {
-  std::size_t sent = 0;
-  while (sent < value.size()) {
-    const ssize_t result =
-        ::send(fd, value.data() + sent, value.size() - sent, MSG_NOSIGNAL);
-    if (result < 0 && errno == EINTR) continue;
-    if (result <= 0) throw std::runtime_error("HTTP response send failed");
-    sent += static_cast<std::size_t>(result);
-  }
 }
 
 bool try_send_all(int fd, std::string_view value) {
@@ -143,6 +167,8 @@ std::string status_text(int status) {
   switch (status) {
     case 200: return "OK";
     case 400: return "Bad Request";
+    case 401: return "Unauthorized";
+    case 408: return "Request Timeout";
     case 404: return "Not Found";
     case 405: return "Method Not Allowed";
     case 413: return "Payload Too Large";
@@ -151,15 +177,17 @@ std::string status_text(int status) {
   }
 }
 
-void send_json(int fd, int status, const Json& payload) {
+bool send_json(int fd, int status, const Json& payload,
+               std::string_view extra_headers = {}) {
   const std::string body = payload.dump();
   std::string header =
       "HTTP/1.1 " + std::to_string(status) + " " + status_text(status) +
       "\r\nContent-Type: application/json\r\nContent-Length: " +
       std::to_string(body.size()) +
-      "\r\nConnection: close\r\nX-Content-Type-Options: nosniff\r\n\r\n";
-  send_all(fd, header);
-  send_all(fd, body);
+      "\r\nConnection: close\r\nX-Content-Type-Options: nosniff\r\n";
+  header.append(extra_headers);
+  header += "\r\n";
+  return try_send_all(fd, header) && try_send_all(fd, body);
 }
 
 Json error_payload(const std::string& message, const std::string& code,
@@ -170,14 +198,45 @@ Json error_payload(const std::string& message, const std::string& code,
                       {"code", code}}}};
 }
 
-HttpRequest read_request(int fd) {
+ssize_t receive_before(int fd, void* buffer, std::size_t size,
+                       std::chrono::steady_clock::time_point deadline,
+                       const char* timeout_message) {
+  while (true) {
+    const auto now = std::chrono::steady_clock::now();
+    if (now >= deadline) {
+      throw std::system_error(std::make_error_code(std::errc::timed_out),
+                              timeout_message);
+    }
+    const auto remaining =
+        std::chrono::duration_cast<std::chrono::microseconds>(deadline - now);
+    timeval timeout{};
+    timeout.tv_sec = static_cast<time_t>(remaining.count() / 1000000);
+    timeout.tv_usec =
+        static_cast<suseconds_t>(std::max<std::int64_t>(1, remaining.count() % 1000000));
+    if (::setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout,
+                     sizeof(timeout)) != 0) {
+      throw std::runtime_error("failed to configure request read deadline");
+    }
+    const ssize_t count = ::recv(fd, buffer, size, 0);
+    if (count < 0 && errno == EINTR) continue;
+    if (count < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+      throw std::system_error(std::make_error_code(std::errc::timed_out),
+                              timeout_message);
+    }
+    return count;
+  }
+}
+
+HttpRequest read_request(int fd, std::size_t timeout_ms) {
+  const auto deadline = std::chrono::steady_clock::now() +
+                        std::chrono::milliseconds(timeout_ms);
   std::string wire;
   wire.reserve(8192);
   std::size_t header_end = std::string::npos;
   while (header_end == std::string::npos) {
     char buffer[8192];
-    const ssize_t count = ::recv(fd, buffer, sizeof(buffer), 0);
-    if (count < 0 && errno == EINTR) continue;
+    const ssize_t count = receive_before(
+        fd, buffer, sizeof(buffer), deadline, "HTTP request header timed out");
     if (count <= 0) throw std::runtime_error("incomplete HTTP request");
     wire.append(buffer, static_cast<std::size_t>(count));
     if (wire.size() > 65536) {
@@ -242,9 +301,9 @@ HttpRequest read_request(int fd) {
     char buffer[8192];
     const std::size_t remaining =
         content_length - (wire.size() - body_begin);
-    const ssize_t count =
-        ::recv(fd, buffer, std::min(sizeof(buffer), remaining), 0);
-    if (count < 0 && errno == EINTR) continue;
+    const ssize_t count = receive_before(
+        fd, buffer, std::min(sizeof(buffer), remaining), deadline,
+        "HTTP request body timed out");
     if (count <= 0) throw std::runtime_error("incomplete HTTP request body");
     wire.append(buffer, static_cast<std::size_t>(count));
   }
@@ -292,12 +351,112 @@ int parse_port(const std::string& value) {
   return static_cast<int>(parsed);
 }
 
+std::string read_api_key(const std::filesystem::path& path) {
+  FileDescriptor descriptor(
+      ::open(path.c_str(), O_RDONLY | O_CLOEXEC | O_NOFOLLOW));
+  if (descriptor.get() < 0) {
+    throw std::runtime_error(
+        "--api-key-file must name a readable, non-symlink regular file");
+  }
+  struct stat metadata {};
+  if (::fstat(descriptor.get(), &metadata) != 0 ||
+      !S_ISREG(metadata.st_mode)) {
+    throw std::runtime_error("--api-key-file must name a regular file");
+  }
+  if ((metadata.st_mode & 0027) != 0) {
+    throw std::runtime_error(
+        "--api-key-file must use mode 0640 or stricter");
+  }
+  if (metadata.st_size <= 0 || metadata.st_size > 4097) {
+    throw std::runtime_error("--api-key-file must contain 16 to 4096 bytes");
+  }
+  std::string content;
+  content.reserve(static_cast<std::size_t>(metadata.st_size));
+  char buffer[4097];
+  while (true) {
+    const ssize_t count = ::read(descriptor.get(), buffer, sizeof(buffer));
+    if (count < 0 && errno == EINTR) continue;
+    if (count < 0) {
+      throw std::runtime_error("failed to read --api-key-file");
+    }
+    if (count == 0) break;
+    content.append(buffer, static_cast<std::size_t>(count));
+    if (content.size() > sizeof(buffer)) {
+      throw std::runtime_error(
+          "--api-key-file must contain 16 to 4096 bytes");
+    }
+  }
+  std::string key = trim_ascii(std::move(content));
+  if (key.size() < 16 || key.size() > 4096 ||
+      key.find_first_of("\r\n") != std::string::npos) {
+    throw std::runtime_error(
+        "--api-key-file must contain one 16 to 4096 byte line");
+  }
+  return key;
+}
+
+bool is_loopback_address(const std::string& host) {
+  in_addr address{};
+  if (::inet_pton(AF_INET, host.c_str(), &address) != 1) return false;
+  return (ntohl(address.s_addr) & 0xff000000U) == 0x7f000000U;
+}
+
+bool constant_time_equal(std::string_view left, std::string_view right) {
+  std::size_t difference = left.size() ^ right.size();
+  const std::size_t count = std::max(left.size(), right.size());
+  for (std::size_t index = 0; index < count; ++index) {
+    const unsigned char lhs =
+        index < left.size() ? static_cast<unsigned char>(left[index]) : 0;
+    const unsigned char rhs =
+        index < right.size() ? static_cast<unsigned char>(right[index]) : 0;
+    difference |= static_cast<std::size_t>(lhs ^ rhs);
+  }
+  return difference == 0;
+}
+
+bool authorized(const HttpRequest& request, const std::string& api_key) {
+  if (api_key.empty()) return true;
+  const auto header = request.headers.find("authorization");
+  if (header == request.headers.end()) return false;
+  constexpr std::string_view prefix = "Bearer ";
+  if (header->second.size() < prefix.size() ||
+      lower_ascii(header->second.substr(0, prefix.size())) != "bearer ") {
+    return false;
+  }
+  return constant_time_equal(
+      std::string_view(header->second).substr(prefix.size()), api_key);
+}
+
+void configure_client_timeout(int fd, std::size_t milliseconds) {
+  timeval timeout{};
+  timeout.tv_sec = static_cast<time_t>(milliseconds / 1000);
+  timeout.tv_usec = static_cast<suseconds_t>((milliseconds % 1000) * 1000);
+  if (::setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout,
+                   sizeof(timeout)) != 0 ||
+      ::setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &timeout,
+                   sizeof(timeout)) != 0) {
+    throw std::runtime_error("failed to configure client socket timeout");
+  }
+}
+
 struct ServerOptions {
   NativeResidentEngineOptions engine;
   std::string host = "127.0.0.1";
   int port = 8000;
   std::size_t maximum_requests = 0;
+  std::size_t request_timeout_ms = 15000;
+  std::string api_key;
+  bool http_shutdown = true;
+  bool allow_insecure_remote = false;
 };
+
+bool requires_authentication(const HttpRequest& request,
+                             const ServerOptions& options) {
+  return !options.api_key.empty() &&
+         (request.path == "/v1/models" ||
+          request.path == "/v1/chat/completions" ||
+          (options.http_shutdown && request.path == "/shutdown"));
+}
 
 ServerOptions parse_options(int argc, char** argv) {
   ServerOptions options;
@@ -305,6 +464,7 @@ ServerOptions parse_options(int argc, char** argv) {
       std::filesystem::absolute("native-http-weight-load.json");
   bool have_model = false;
   bool cache_capacity_explicit = false;
+  std::filesystem::path api_key_file;
   for (int index = 2; index < argc; ++index) {
     const std::string argument = argv[index];
     auto next = [&](const char* name) {
@@ -335,6 +495,19 @@ ServerOptions parse_options(int argc, char** argv) {
     } else if (argument == "--max-requests") {
       options.maximum_requests =
           parse_size(next("--max-requests"), "--max-requests");
+    } else if (argument == "--request-timeout-ms") {
+      options.request_timeout_ms =
+          parse_size(next("--request-timeout-ms"), "--request-timeout-ms");
+      if (options.request_timeout_ms > 600000) {
+        throw std::runtime_error(
+            "--request-timeout-ms must not exceed 600000");
+      }
+    } else if (argument == "--api-key-file") {
+      api_key_file = std::filesystem::absolute(next("--api-key-file"));
+    } else if (argument == "--disable-http-shutdown") {
+      options.http_shutdown = false;
+    } else if (argument == "--allow-insecure-remote") {
+      options.allow_insecure_remote = true;
     } else if (argument == "--cache-capacity") {
       options.engine.cache_capacity =
           parse_size(next("--cache-capacity"), "--cache-capacity");
@@ -363,6 +536,13 @@ ServerOptions parse_options(int argc, char** argv) {
   }
   if (!cache_capacity_explicit) {
     options.engine.cache_capacity = options.engine.prompt_tokens + 1024;
+  }
+  if (!api_key_file.empty()) options.api_key = read_api_key(api_key_file);
+  if (!is_loopback_address(options.host) && options.api_key.empty() &&
+      !options.allow_insecure_remote) {
+    throw std::runtime_error(
+        "non-loopback --host requires --api-key-file; "
+        "--allow-insecure-remote is an explicit unsafe override");
   }
   return options;
 }
@@ -768,11 +948,6 @@ int run_native_http_server(int argc, char** argv) {
   g_shutdown.store(false);
   const auto process_started = std::chrono::steady_clock::now();
 
-  NativeTokenizer tokenizer;
-  tokenizer.load(options.engine.weights.model_dir);
-  NativeResidentEngine engine;
-  const NativeResidentLoadMetrics load = engine.load(options.engine);
-
   FileDescriptor server(::socket(AF_INET, SOCK_STREAM | SOCK_CLOEXEC, 0));
   if (server.get() < 0) throw std::runtime_error("socket creation failed");
   int reuse = 1;
@@ -791,11 +966,25 @@ int run_native_http_server(int argc, char** argv) {
     throw std::runtime_error("bind failed: " +
                              std::string(std::strerror(errno)));
   }
+
+  systemd_notify("STATUS=Loading tokenizer and model");
+  NativeTokenizer tokenizer;
+  tokenizer.load(options.engine.weights.model_dir);
+  NativeResidentEngine engine;
+  const NativeResidentLoadMetrics load = engine.load(options.engine);
+
   if (::listen(server.get(), 16) != 0) {
     throw std::runtime_error("listen failed");
   }
-  (void)::signal(SIGINT, signal_handler);
-  (void)::signal(SIGTERM, signal_handler);
+  struct sigaction action {};
+  action.sa_handler = signal_handler;
+  sigemptyset(&action.sa_mask);
+  action.sa_flags = 0;
+  if (::sigaction(SIGINT, &action, nullptr) != 0 ||
+      ::sigaction(SIGTERM, &action, nullptr) != 0) {
+    throw std::runtime_error("failed to install shutdown signal handlers");
+  }
+  systemd_notify("READY=1\nSTATUS=Ready");
   const double command_to_ready_ms = elapsed_ms(process_started);
   std::cout << Json({{"event", "ready"},
                      {"host", options.host},
@@ -811,6 +1000,10 @@ int run_native_http_server(int argc, char** argv) {
                       load.secondary_fmha_provider_path},
                      {"secondary_fmha_layers",
                       load.secondary_fmha_layers},
+                     {"authentication",
+                      options.api_key.empty() ? "none" : "bearer"},
+                     {"http_shutdown_enabled", options.http_shutdown},
+                     {"request_timeout_ms", options.request_timeout_ms},
                      {"runtime_python", false},
                      {"runtime_torch", false},
                      {"runtime_vllm", false},
@@ -831,9 +1024,19 @@ int run_native_http_server(int argc, char** argv) {
     }
     FileDescriptor client(accepted);
     try {
-      const HttpRequest request = read_request(client.get());
+      configure_client_timeout(client.get(), options.request_timeout_ms);
+      const HttpRequest request =
+          read_request(client.get(), options.request_timeout_ms);
+      if (requires_authentication(request, options) &&
+          !authorized(request, options.api_key)) {
+        (void)send_json(
+            client.get(), 401,
+            error_payload("a valid bearer token is required", "unauthorized"),
+            "WWW-Authenticate: Bearer\r\n");
+        continue;
+      }
       if (request.method == "GET" && request.path == "/health") {
-        send_json(client.get(), 200,
+        (void)send_json(client.get(), 200,
                   {{"status", "ok"},
                    {"model", kModelId},
                    {"model_loaded", engine.loaded()},
@@ -846,15 +1049,20 @@ int run_native_http_server(int argc, char** argv) {
                    {"secondary_fmha_provider_backend",
                     load.secondary_fmha_provider_backend},
                    {"secondary_fmha_layers", load.secondary_fmha_layers},
+                   {"authentication",
+                    options.api_key.empty() ? "none" : "bearer"},
+                   {"http_shutdown_enabled", options.http_shutdown},
+                   {"request_timeout_ms", options.request_timeout_ms},
                    {"admitted_prompt_tokens", load.prompt_tokens}});
       } else if (request.method == "GET" && request.path == "/v1/models") {
-        send_json(client.get(), 200,
+        (void)send_json(client.get(), 200,
                   {{"object", "list"},
                    {"data", Json::array({{{"id", kModelId},
                                            {"object", "model"},
                                            {"owned_by", "approaching-ai"}}})}});
-      } else if (request.method == "POST" && request.path == "/shutdown") {
-        send_json(client.get(), 200, {{"status", "shutting_down"}});
+      } else if (request.method == "POST" && request.path == "/shutdown" &&
+                 options.http_shutdown) {
+        (void)send_json(client.get(), 200, {{"status", "shutting_down"}});
         g_shutdown.store(true);
       } else if (request.method == "POST" &&
                  request.path == "/v1/chat/completions") {
@@ -874,43 +1082,51 @@ int run_native_http_server(int argc, char** argv) {
                 chat_completion(engine, tokenizer, std::move(parsed));
             response["aima_amd395"]["http_request_wall_ms"] =
                 elapsed_ms(started);
-            send_json(client.get(), 200, response);
-            ++served;
+            if (send_json(client.get(), 200, response)) ++served;
           }
         } catch (const std::invalid_argument& error) {
-          send_json(client.get(), 400,
+          (void)send_json(client.get(), 400,
                     error_payload(error.what(), "bad_request"));
         } catch (const Json::exception& error) {
-          send_json(client.get(), 400,
+          (void)send_json(client.get(), 400,
                     error_payload(error.what(), "invalid_json"));
         } catch (const std::exception& error) {
-          send_json(client.get(), 500,
+          (void)send_json(client.get(), 500,
                     error_payload(error.what(), "native_engine_error",
                                   "server_error"));
         }
       } else {
         const int status = request.path == "/health" ||
                                    request.path == "/v1/models" ||
-                                   request.path == "/shutdown" ||
+                                   (options.http_shutdown &&
+                                    request.path == "/shutdown") ||
                                    request.path == "/v1/chat/completions"
                                ? 405
                                : 404;
-        send_json(client.get(), status,
+        (void)send_json(client.get(), status,
                   error_payload("unsupported method or path",
                                 status == 404 ? "not_found"
                                               : "method_not_allowed"));
       }
     } catch (const std::length_error& error) {
-      send_json(client.get(), 413,
+      (void)send_json(client.get(), 413,
                 error_payload(error.what(), "request_too_large"));
+    } catch (const std::system_error& error) {
+      const bool timed_out =
+          error.code() == std::make_error_code(std::errc::timed_out);
+      (void)send_json(client.get(), timed_out ? 408 : 400,
+                      error_payload(error.what(),
+                                    timed_out ? "request_timeout"
+                                              : "bad_request"));
     } catch (const std::exception& error) {
-      send_json(client.get(), 400,
+      (void)send_json(client.get(), 400,
                 error_payload(error.what(), "bad_request"));
     }
     if (options.maximum_requests != 0 && served >= options.maximum_requests) {
       g_shutdown.store(true);
     }
   }
+  systemd_notify("STOPPING=1\nSTATUS=Stopping");
   std::cout << Json({{"event", "stopped"},
                      {"served", served},
                      {"model_loads", 1}})
