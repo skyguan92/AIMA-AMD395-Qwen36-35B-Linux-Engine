@@ -160,7 +160,7 @@ void usage(std::ostream& output) {
       << "Options:\n"
       << "  --report PATH       Native loader report (default: native-weight-load.json)\n"
       << "  --device INDEX      HIP device index (default: 0)\n"
-      << "  --workers COUNT     O_DIRECT reader workers (default: 2)\n"
+      << "  --workers COUNT     O_DIRECT reader workers (default: 1)\n"
       << "  --chunk-bytes N     Per-buffer bytes (default: 536870912)\n"
       << "  --compact           Omit long per-token arrays from oracle JSON\n";
 }

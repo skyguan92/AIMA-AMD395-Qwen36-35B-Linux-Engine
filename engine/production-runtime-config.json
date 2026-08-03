@@ -95,7 +95,7 @@
     "tensor_count": 693,
     "payload_bytes": 69321221376,
     "chunk_bytes": 536870912,
-    "workers": 2,
+    "workers": 1,
     "expected_xor": "0xca1d71472d45fd86",
     "expected_sum": "0xce0f5e958964415e"
   },

@@ -41,7 +41,7 @@ static void usage(void) {
       "  --cache-capacity N   Prompt plus generated-token capacity\n"
       "  --host IPv4          Listen address (default: 127.0.0.1)\n"
       "  --port N             Listen port (default: 8000)\n"
-      "  --workers N          Checkpoint reader workers (default: 2)\n"
+      "  --workers N          Checkpoint reader workers (default: 1)\n"
       "  --chunk-bytes N      Checkpoint read chunk (default: 536870912)\n"
       "  --report PATH        Native weight-load report\n"
       "  --max-requests N     Exit after N successful chat requests\n"

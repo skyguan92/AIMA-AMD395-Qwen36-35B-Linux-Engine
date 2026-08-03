@@ -29,6 +29,9 @@ Versioning.
   or provider hash in the qualification, rejected dirty release packaging by
   default and separated personal-upstream release/CI ownership from the
   Approaching AI showcase fork.
+- Changed the direct-checkpoint default to one O_DIRECT reader after the
+  qualified target showed same-NVMe contention with two or more readers;
+  `--workers` remains available for storage-specific tuning.
 
 ## 1.3.0 - 2026-07-23
 

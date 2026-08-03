@@ -24,7 +24,7 @@ struct NativeWeightLoadOptions {
   std::filesystem::path model_dir;
   std::filesystem::path native_report;
   int device = 0;
-  std::size_t worker_count = 2;
+  std::size_t worker_count = 1;
   std::size_t chunk_bytes = 536870912ULL;
 };
 

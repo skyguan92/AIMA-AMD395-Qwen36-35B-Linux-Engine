@@ -231,7 +231,7 @@ class ReleaseContractTest(unittest.TestCase):
         self.assertTrue(direct["default"])
         self.assertEqual(direct["tensor_count"], 693)
         self.assertEqual(direct["payload_bytes"], 69_321_221_376)
-        self.assertEqual(direct["workers"], 2)
+        self.assertEqual(direct["workers"], 1)
         self.assertEqual(
             direct["plan"]["path"],
             self.config["striped_image"]["template"]["path"],
@@ -285,7 +285,7 @@ class ReleaseContractTest(unittest.TestCase):
         self.assertEqual(serve.output_root, "/tmp/aima")
         self.assertEqual(serve.load_mode, "direct")
         self.assertIsNone(serve.image_manifest)
-        self.assertEqual(cli.direct_worker_count(serve, self.config), 2)
+        self.assertEqual(cli.direct_worker_count(serve, self.config), 1)
         invalid_workers = parser.parse_args(["serve", "--load-workers", "0"])
         with self.assertRaises(cli.UserError):
             cli.direct_worker_count(invalid_workers, self.config)

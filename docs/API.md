@@ -52,7 +52,7 @@ Options:
 | `--cache-capacity N` | prompt plus decode KV capacity | context + 1024 |
 | `--host IPv4` | listen address | 127.0.0.1 |
 | `--port N` | listen port | 8000 |
-| `--workers N` | checkpoint reader workers | 2 |
+| `--workers N` | O_DIRECT checkpoint readers; increase only after measuring the target storage | 1 |
 | `--chunk-bytes N` | checkpoint read chunk | 512 MiB |
 | `--report PATH` | native weight-load report | working directory |
 | `--max-requests N` | stop after N successful chat requests | unlimited |
