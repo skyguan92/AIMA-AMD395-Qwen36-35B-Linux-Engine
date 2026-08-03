@@ -23,7 +23,7 @@ check-cpu:
 	$(MAKE) check-python-package
 
 check-python-package:
-	python3 -m pip wheel --no-deps --no-build-isolation --wheel-dir build/wheel .
+	python3 -m pip wheel --no-deps --wheel-dir build/wheel .
 
 check-native-syntax:
 	mkdir -p build && g++ -std=c++17 -O2 -I native/include tests/native_chat_protocol_test.cpp native/src/native_chat_protocol.cpp -o build/native_chat_protocol_test
