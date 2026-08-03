@@ -86,6 +86,8 @@ def verify_manifest(bundle: Path) -> dict[str, Any]:
     return {
         "schema": manifest["schema"],
         "complete": True,
+        "release": manifest["release"],
+        "source": manifest["source"],
         "checked_files": checked_files,
         "checked_symlinks": checked_symlinks,
         "payload_bytes_excluding_manifest": manifest[

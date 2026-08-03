@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import re
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -23,6 +24,7 @@ ADAPTER_PATH = ROOT / "tools/aima_chat_contract.py"
 RESIDENT_PATH = ROOT / "tools/amd395-qwen36-35b-a3b-bf16-resident-chat-completions-request.py"
 SKELETON_PATH = ROOT / "benchmarks/shape-lab/run_full_model_skeleton.py"
 CONTEXT_POLICY_PATH = ROOT / "tools/amd395-qwen36-35b-a3b-bf16-aotriton-context-policy.py"
+PORTABLE_QUALIFIER_PATH = ROOT / "scripts/qualify-native-portable-bundle.py"
 
 
 def load_module(name: str, path: Path):
@@ -97,6 +99,53 @@ class ReleaseContractTest(unittest.TestCase):
             component_paths["native_engine"].write_bytes(b"changed")
             errors = verify_package_qualification(qualification, **arguments)
             self.assertIn("qualification SHA-256 mismatch: native_engine", errors)
+
+    def test_portable_qualifier_preserves_release_provenance(self) -> None:
+        scripts = str(ROOT / "scripts")
+        sys.path.insert(0, scripts)
+        try:
+            qualifier = load_module(
+                "portable_qualifier_test", PORTABLE_QUALIFIER_PATH
+            )
+        finally:
+            sys.path.remove(scripts)
+        with tempfile.TemporaryDirectory() as directory:
+            bundle = Path(directory)
+            payload = bundle / "payload.bin"
+            payload.write_bytes(b"qualified payload\n")
+            source = {
+                "release_tag": "v2.0.0",
+                "commit": "a" * 40,
+                "dirty": False,
+            }
+            (bundle / "manifest.json").write_text(
+                json.dumps(
+                    {
+                        "schema": "test/native-portable-bundle/v1",
+                        "complete": True,
+                        "release": "2.0.0",
+                        "source": source,
+                        "payload_bytes_excluding_manifest": (
+                            payload.stat().st_size
+                        ),
+                        "attention_providers": {},
+                        "files": [
+                            {
+                                "path": payload.name,
+                                "type": "file",
+                                "bytes": payload.stat().st_size,
+                                "sha256": hashlib.sha256(
+                                    payload.read_bytes()
+                                ).hexdigest(),
+                            }
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            verified = qualifier.verify_manifest(bundle)
+            self.assertEqual(verified["release"], "2.0.0")
+            self.assertEqual(verified["source"], source)
 
     def test_public_identity_and_request_subset(self) -> None:
         self.assertEqual(self.adapter.DEFAULT_MODEL_ID, "aima-amd395-qwen36-35b")
