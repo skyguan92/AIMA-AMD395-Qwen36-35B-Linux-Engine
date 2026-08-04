@@ -415,6 +415,14 @@ class NativeRuntimeContractTest(unittest.TestCase):
             "aotriton_gfx1151_image",
         ):
             self.assertIn(f'--component "{component}=', package)
+        product_generator = (
+            ROOT / "scripts/generate-native-product-result.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            '"variable_prompts": features["variable_prompts"]',
+            product_generator,
+        )
+        self.assertIn('"variable_length_prompts_pass":', product_generator)
         launcher = (ROOT / "native/src/portable_launcher.c").read_text(
             encoding="utf-8"
         )

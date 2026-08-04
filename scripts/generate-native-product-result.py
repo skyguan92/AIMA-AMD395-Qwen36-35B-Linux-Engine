@@ -346,6 +346,7 @@ def main() -> None:
         },
         "http": http,
         "openai_features": {
+            "variable_prompts": features["variable_prompts"],
             "streaming": features["streaming"],
             "tools": features["tools"],
             "disconnect": features["disconnect"],
@@ -377,14 +378,18 @@ def main() -> None:
             "prefix_cache_nonregression_pass": prefix["pass"],
             "portable_userspace_closure_pass": True,
             "http_residency_pass": http["pass"],
+            "variable_length_prompts_pass": features["variable_prompts"][
+                "pass"
+            ],
             "http_streaming_pass": features["streaming"]["pass"],
             "tool_calling_pass": features["tools"]["pass"],
             "disconnect_cancellation_pass": features["disconnect"]["pass"],
             "full_legacy_context_envelope_replacement_pass": True,
             "release_decision": (
                 "qualified portable native replacement for the complete "
-                "published batch-1 context/output envelope with live SSE "
-                "streaming and OpenAI function tools"
+                "published batch-1 context/output envelope with "
+                "variable-length prompts, live SSE streaming and OpenAI "
+                "function tools"
             ),
         },
     }
