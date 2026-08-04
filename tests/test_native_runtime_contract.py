@@ -29,7 +29,13 @@ PORTABLE_BUNDLE_V130_RESULT = (
 PORTABLE_BUNDLE_V140_RESULT = (
     ROOT / "benchmarks/results/native-portable-bundle-v1.4.0.json"
 )
-PORTABLE_PRODUCT_RESULT = ROOT / "benchmarks/results/native-portable-product-v1.4.0.json"
+PORTABLE_BUNDLE_V141_RESULT = (
+    ROOT / "benchmarks/results/native-portable-bundle-v1.4.1.json"
+)
+PORTABLE_PRODUCT_RESULT = ROOT / "benchmarks/results/native-portable-product-v1.4.1.json"
+PORTABLE_PRODUCT_V140_RESULT = (
+    ROOT / "benchmarks/results/native-portable-product-v1.4.0.json"
+)
 PORTABLE_PRODUCT_V130_RESULT = (
     ROOT / "benchmarks/results/native-portable-product-v1.3.0.json"
 )
@@ -38,6 +44,9 @@ RELEASE_PROVENANCE_V130_RESULT = (
 )
 RELEASE_PROVENANCE_V140_RESULT = (
     ROOT / "benchmarks/results/native-release-provenance-v1.4.0.json"
+)
+RELEASE_PROVENANCE_V141_RESULT = (
+    ROOT / "benchmarks/results/native-release-provenance-v1.4.1.json"
 )
 DECODE_SCHEDULE = ROOT / "native/aot/gfx1151/q8192-output2/decode-schedule.json"
 DECODE_SCHEDULE_RESULT = ROOT / "benchmarks/results/native-decode-schedule-v0.1.0.json"
@@ -81,10 +90,17 @@ class NativeRuntimeContractTest(unittest.TestCase):
         cls.portable_bundle_v140_result = load_json(
             PORTABLE_BUNDLE_V140_RESULT
         )
+        cls.portable_bundle_v141_result = load_json(
+            PORTABLE_BUNDLE_V141_RESULT
+        )
         cls.portable_product_result = load_json(PORTABLE_PRODUCT_RESULT)
+        cls.portable_product_v140_result = load_json(
+            PORTABLE_PRODUCT_V140_RESULT
+        )
         cls.portable_product_v130_result = load_json(PORTABLE_PRODUCT_V130_RESULT)
         cls.release_provenance_v130 = load_json(RELEASE_PROVENANCE_V130_RESULT)
         cls.release_provenance_v140 = load_json(RELEASE_PROVENANCE_V140_RESULT)
+        cls.release_provenance_v141 = load_json(RELEASE_PROVENANCE_V141_RESULT)
         cls.decode_schedule = load_json(DECODE_SCHEDULE)
         cls.decode_schedule_result = load_json(DECODE_SCHEDULE_RESULT)
         cls.decode_bindings_result = load_json(DECODE_BINDINGS_RESULT)
@@ -167,15 +183,15 @@ class NativeRuntimeContractTest(unittest.TestCase):
         profile = self.contract["qualified_native_profile"]
         self.assertTrue(result["complete"])
         self.assertTrue(result["qualified"])
-        self.assertEqual(result["release"], "1.4.0")
+        self.assertEqual(result["release"], "1.4.1")
         self.assertEqual(result["scope"]["input_tokens"], profile["input_tokens"])
         self.assertEqual(result["scope"]["output_tokens"], profile["output_tokens"])
         self.assertTrue(result["scope"]["matrix_complete_for_admitted_native_profile"])
         self.assertTrue(result["scope"]["legacy_v1_1_long_context_profile_replaced"])
-        self.assertEqual(result["components"]["source"]["release_tag"], "v1.4.0")
+        self.assertEqual(result["components"]["source"]["release_tag"], "v1.4.1")
         self.assertEqual(
             result["components"]["source"]["release_commit"],
-            self.release_provenance_v140["release_commit"],
+            self.release_provenance_v141["release_commit"],
         )
         self.assertEqual(len(result["performance"]["cells"]), 19)
         self.assertTrue(result["performance"]["all_cells_pass"])
@@ -198,6 +214,13 @@ class NativeRuntimeContractTest(unittest.TestCase):
         self.assertTrue(result["http"]["resident"])
         self.assertEqual(result["http"]["model_loads"], 1)
         self.assertTrue(result["openai_features"]["pass"])
+        self.assertTrue(result["openai_features"]["variable_prompts"]["pass"])
+        self.assertEqual(
+            result["openai_features"]["variable_prompts"][
+                "ordinary_turn_status"
+            ],
+            200,
+        )
         self.assertTrue(result["openai_features"]["streaming"]["pass"])
         self.assertTrue(
             result["openai_features"]["streaming"][
@@ -224,6 +247,7 @@ class NativeRuntimeContractTest(unittest.TestCase):
             self.assertFalse(result["runtime_dependency_gate"][f"runtime_{dependency}"])
         self.assertFalse(result["runtime_dependency_gate"]["host_rocm_userspace_required"])
         self.assertTrue(result["decision"]["native_profile_performance_nonregression_pass"])
+        self.assertTrue(result["decision"]["variable_length_prompts_pass"])
         self.assertTrue(result["decision"]["full_legacy_context_envelope_replacement_pass"])
         self.assertTrue(result["decision"]["http_streaming_pass"])
         self.assertTrue(result["decision"]["tool_calling_pass"])
@@ -287,8 +311,8 @@ class NativeRuntimeContractTest(unittest.TestCase):
             92,
         )
 
-    def test_v140_public_raw_evidence_is_the_default_and_hash_bound(self) -> None:
-        self.assertEqual(verify_release_evidence(ROOT), [])
+    def test_v140_public_raw_evidence_is_preserved_and_hash_bound(self) -> None:
+        self.assertEqual(verify_release_evidence(ROOT, release="1.4.0"), [])
         provenance = self.release_provenance_v140
         self.assertEqual(provenance["release_tag"], "v1.4.0")
         self.assertEqual(
@@ -296,11 +320,35 @@ class NativeRuntimeContractTest(unittest.TestCase):
             "db54224cfcb9dae60607ccf6481e412e5c3a991e",
         )
         self.assertEqual(
-            self.portable_product_result["components"]["source"]["native_source_commit"],
+            self.portable_product_v140_result["components"]["source"]["native_source_commit"],
             provenance["native_source_commit"],
         )
         self.assertEqual(self.portable_bundle_v140_result["release"], "1.4.0")
         self.assertTrue(self.portable_bundle_v140_result["qualified"])
+        self.assertEqual(
+            sum(
+                record["file_count"]
+                for record in provenance["public_evidence_trees"].values()
+            ),
+            90,
+        )
+
+    def test_v141_public_raw_evidence_is_the_default_and_hash_bound(self) -> None:
+        self.assertEqual(verify_release_evidence(ROOT), [])
+        provenance = self.release_provenance_v141
+        self.assertEqual(provenance["release_tag"], "v1.4.1")
+        self.assertEqual(
+            provenance["release_commit"],
+            "ba45639c178061f9bdadd22c86744f6924f5bf44",
+        )
+        self.assertEqual(
+            self.portable_product_result["components"]["source"][
+                "native_source_commit"
+            ],
+            provenance["native_source_commit"],
+        )
+        self.assertEqual(self.portable_bundle_v141_result["release"], "1.4.1")
+        self.assertTrue(self.portable_bundle_v141_result["qualified"])
         self.assertEqual(
             sum(
                 record["file_count"]

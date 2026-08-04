@@ -1,0 +1,200 @@
+{
+  "chat": [
+    {
+      "body": {
+        "aima_amd395": {
+          "client_cancelled": false,
+          "cold_prompt_decode_tokens": 0,
+          "cold_prompt_decode_wall_ms": 0.0,
+          "decode_tokens_per_second": 32.242667775527835,
+          "http_request_wall_ms": 5022.143518,
+          "model_loads": 1,
+          "oracle_tensor_reads": 0,
+          "output_token_ids_sha256": "ab94289cd2d2b4b39ba5110cf12855605322afd2fc9a1bb78687455ccd55827c",
+          "prefill_tokens_per_second": 1662.5087293580455,
+          "prefix_cache": {
+            "hits": 0,
+            "implemented": true,
+            "lookup": "miss",
+            "matched_tokens": 0,
+            "misses": 1,
+            "scope": "one-entry-variable-exact-or-append",
+            "suffix_aot_launches": 0,
+            "suffix_decode_tokens": 0,
+            "suffix_native_launches": 0,
+            "suffix_tokens": 8192,
+            "suffix_wall_ms": 0.0,
+            "transfer_bytes": 232165376
+          },
+          "prompt_execution": "cold-aot",
+          "request_index": 1,
+          "request_wall_ms": 5020.737168,
+          "runtime": "native-resident-q8192",
+          "ttft_ms": 4927.492924
+        },
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "message": {
+              "content": "It looks like you",
+              "role": "assistant"
+            }
+          }
+        ],
+        "created": 1785833841,
+        "id": "chatcmpl-native-1",
+        "model": "aima-amd395-qwen36-35b",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 4,
+          "prompt_tokens": 8192,
+          "total_tokens": 8196
+        }
+      },
+      "status": 200
+    },
+    {
+      "body": {
+        "aima_amd395": {
+          "client_cancelled": false,
+          "cold_prompt_decode_tokens": 0,
+          "cold_prompt_decode_wall_ms": 0.0,
+          "decode_tokens_per_second": 32.185196193714326,
+          "http_request_wall_ms": 99.501883,
+          "model_loads": 1,
+          "oracle_tensor_reads": 0,
+          "output_token_ids_sha256": "ab94289cd2d2b4b39ba5110cf12855605322afd2fc9a1bb78687455ccd55827c",
+          "prefill_tokens_per_second": 1673825.854684046,
+          "prefix_cache": {
+            "hits": 1,
+            "implemented": true,
+            "lookup": "exact",
+            "matched_tokens": 8192,
+            "misses": 1,
+            "scope": "one-entry-variable-exact-or-append",
+            "suffix_aot_launches": 0,
+            "suffix_decode_tokens": 0,
+            "suffix_native_launches": 0,
+            "suffix_tokens": 0,
+            "suffix_wall_ms": 0.0,
+            "transfer_bytes": 232161280
+          },
+          "prompt_execution": "prefix-cache-exact",
+          "request_index": 2,
+          "request_wall_ms": 98.114602,
+          "runtime": "native-resident-q8192",
+          "ttft_ms": 4.894177
+        },
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "message": {
+              "content": "It looks like you",
+              "role": "assistant"
+            }
+          }
+        ],
+        "created": 1785833841,
+        "id": "chatcmpl-native-2",
+        "model": "aima-amd395-qwen36-35b",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 4,
+          "prompt_tokens": 8192,
+          "total_tokens": 8196
+        }
+      },
+      "status": 200
+    }
+  ],
+  "command": [
+    "${AIMA_REPO_ROOT}/build/native/aima-engine-native",
+    "serve",
+    "--model-dir",
+    "${AIMA_MODEL_DIR}",
+    "--context-tokens",
+    "8192",
+    "--host",
+    "127.0.0.1",
+    "--port",
+    "18101",
+    "--report",
+    "${AIMA_REPO_ROOT}/output/native-product-surfaces-20260804-v141-release/raw/server-q8192-r1.load.json"
+  ],
+  "complete": true,
+  "engine_sha256": "90c55cb3185d37589c5b2f8afead9ecd4fb53759beae99a95ec763143f9ad7b0",
+  "health": {
+    "body": {
+      "admitted_prompt_tokens": 9216,
+      "authentication": "none",
+      "command_to_ready_wall_ms": 49476.752891,
+      "context_capacity": 9216,
+      "fmha_provider_backend": "CK-Tile",
+      "http_shutdown_enabled": true,
+      "model": "aima-amd395-qwen36-35b",
+      "model_loaded": true,
+      "request_timeout_ms": 15000,
+      "resident": true,
+      "runtime": "native",
+      "secondary_fmha_layers": [],
+      "secondary_fmha_provider_backend": "",
+      "served": 0,
+      "static_prefill_tokens": 8192,
+      "status": "ok",
+      "uptime_ms": 49478.649614
+    },
+    "status": 200
+  },
+  "load_report": "${AIMA_REPO_ROOT}/output/native-product-surfaces-20260804-v141-release/raw/server-q8192-r1.load.json",
+  "load_report_sha256": "06a8db5fe3ec92708ea7cb9bfacc9e0598007bcb66885ccd077ca2b97d251938",
+  "models": {
+    "body": {
+      "data": [
+        {
+          "id": "aima-amd395-qwen36-35b",
+          "object": "model",
+          "owned_by": "approaching-ai"
+        }
+      ],
+      "object": "list"
+    },
+    "status": 200
+  },
+  "ready": {
+    "authentication": "none",
+    "command_to_ready_wall_ms": 49476.752891,
+    "context_capacity": 9216,
+    "engine_load_wall_ms": 49163.166888,
+    "event": "ready",
+    "fmha_provider_backend": "CK-Tile",
+    "fmha_provider_path": "${AIMA_REPO_ROOT}/build/native/libaima-fmha-ck.so",
+    "host": "127.0.0.1",
+    "http_shutdown_enabled": true,
+    "model": "aima-amd395-qwen36-35b",
+    "port": 18101,
+    "request_timeout_ms": 15000,
+    "runtime_python": false,
+    "runtime_torch": false,
+    "runtime_triton": false,
+    "runtime_vllm": false,
+    "secondary_fmha_layers": [],
+    "secondary_fmha_provider_backend": "",
+    "secondary_fmha_provider_path": "",
+    "static_prefill_tokens": 8192
+  },
+  "schema": "aima-amd395-qwen36/native-server-qualification-run/v1",
+  "shutdown": {
+    "body": {
+      "status": "shutting_down"
+    },
+    "status": 200
+  },
+  "stderr": "${AIMA_REPO_ROOT}/output/native-product-surfaces-20260804-v141-release/raw/server-q8192-r1.stderr.txt",
+  "stopped": {
+    "event": "stopped",
+    "model_loads": 1,
+    "served": 2
+  }
+}

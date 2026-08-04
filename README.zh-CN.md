@@ -187,33 +187,37 @@ aima-engine chat --messages-json conversation.json --tools-json tools.json
 
 | 输入 | output512 prefill | output512 decode | output1024 prefill | output1024 decode |
 |---:|---:|---:|---:|---:|
-| 1,024 | 1633 | 34.05 | 1633 | 34.02 |
-| 2,048 | 1692 | 33.88 | 1692 | 33.88 |
-| 4,096 | 1585 | 33.32 | 1585 | 33.29 |
-| 8,192 | 1654 | 32.23 | 1654 | 32.23 |
-| 16,384 | 1438 | 30.68 | 1438 | 30.69 |
-| 32,768 | 1362 | 28.15 | 1362 | 28.14 |
-| 65,536 | 1175 | 24.62 | 1175 | 24.62 |
-| 131,072 | 873.2 | 19.52 | 873.2 | 19.53 |
+| 1,024 | 1638 | 34.04 | 1638 | 34.03 |
+| 2,048 | 1696 | 33.88 | 1696 | 33.87 |
+| 4,096 | 1572 | 33.28 | 1572 | 33.26 |
+| 8,192 | 1648 | 32.28 | 1648 | 32.28 |
+| 16,384 | 1432 | 30.79 | 1432 | 30.78 |
+| 32,768 | 1361 | 28.22 | 1361 | 28.22 |
+| 65,536 | 1177 | 24.67 | 1177 | 24.66 |
+| 131,072 | 867.9 | 19.62 | 867.9 | 19.62 |
 
-最大窗口端点分别达到：262143/output1 prefill `542.8` token/s，
-261632/output512 为 `562.5 / 13.60` prefill/decode token/s，
-261120/output1024 为 `561.0 / 13.61`。19 个 cell 全部达到冻结基线的
-97%；最低 prefill/decode 保留率分别是 `1.018x` 与 `0.9743x`。
+最大窗口端点分别达到：262143/output1 prefill `555.5` token/s，
+261632/output512 为 `559.5 / 14.00` prefill/decode token/s，
+261120/output1024 为 `548.2 / 14.04`。19 个 cell 全部达到冻结基线的
+97%；最低 prefill/decode 保留率分别是 `1.012x` 与 `0.9854x`。相对
+v1.4.0 完整矩阵，最差 prefill/decode 中位数变化为 `-2.283%` 与
+`-0.1143%`，均在 3% 协议范围内。
 
 其他门槛：
 
 - 9 个上下文直至 q261632 的全词表 KLD 全部小于 `0.005`，最大值
   `0.002174`，top-1 全一致；
 - 冻结 q8192 fixture 的 128-token 输出逐 token 完全一致；
-- q8192 command-to-ready 中位数 `48.59 s`，低于 `51.41 s` 上限；
-- q32768 exact-prefix TTFT 加速 `2611x`，decode 保留率 `0.99995`；
+- q8192 command-to-ready 中位数 `47.36 s`，低于 `51.41 s` 上限；
+- q32768 exact-prefix TTFT 加速 `2624x`，decode 保留率 `1.0002`；
 - HTTP 两次请求期间模型装载次数始终为 1，第二次命中 exact cache，并可干净关闭；
 - chunked SSE 与非流式的 token/text 哈希一致，stream/non-stream 工具调用一致，
   客户端断连后服务仍健康。
+- 16-token cold prompt、exact replay、36-token 普通下一轮用户请求，以及长上下文
+  后的无关短请求全部通过；两个独立 cache miss 都从干净状态执行并返回 HTTP 200。
 
 完整精度、每次测量值和组件哈希见
-[benchmarks/results/native-portable-product-v1.4.0.json](benchmarks/results/native-portable-product-v1.4.0.json)。
+[benchmarks/results/native-portable-product-v1.4.1.json](benchmarks/results/native-portable-product-v1.4.1.json)。
 
 ## 从源码构建
 

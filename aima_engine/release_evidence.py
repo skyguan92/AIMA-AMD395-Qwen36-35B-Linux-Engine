@@ -8,8 +8,20 @@ from pathlib import Path
 from typing import Any
 
 
-DEFAULT_RELEASE = "1.4.0"
+DEFAULT_RELEASE = "1.4.1"
 RELEASE_RECORDS: dict[str, dict[str, Path]] = {
+    "1.4.1": {
+        "product_result": Path(
+            "benchmarks/results/native-portable-product-v1.4.1.json"
+        ),
+        "bundle_result": Path(
+            "benchmarks/results/native-portable-bundle-v1.4.1.json"
+        ),
+        "provenance": Path(
+            "benchmarks/results/native-release-provenance-v1.4.1.json"
+        ),
+        "product_contract": Path("native/product-contract-v1.4.1.json"),
+    },
     "1.4.0": {
         "product_result": Path(
             "benchmarks/results/native-portable-product-v1.4.0.json"

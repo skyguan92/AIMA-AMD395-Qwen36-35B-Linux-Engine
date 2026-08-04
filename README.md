@@ -203,36 +203,41 @@ within 3%.
 
 | Input | output512 prefill | output512 decode | output1024 prefill | output1024 decode |
 |---:|---:|---:|---:|---:|
-| 1,024 | 1633 | 34.05 | 1633 | 34.02 |
-| 2,048 | 1692 | 33.88 | 1692 | 33.88 |
-| 4,096 | 1585 | 33.32 | 1585 | 33.29 |
-| 8,192 | 1654 | 32.23 | 1654 | 32.23 |
-| 16,384 | 1438 | 30.68 | 1438 | 30.69 |
-| 32,768 | 1362 | 28.15 | 1362 | 28.14 |
-| 65,536 | 1175 | 24.62 | 1175 | 24.62 |
-| 131,072 | 873.2 | 19.52 | 873.2 | 19.53 |
+| 1,024 | 1638 | 34.04 | 1638 | 34.03 |
+| 2,048 | 1696 | 33.88 | 1696 | 33.87 |
+| 4,096 | 1572 | 33.28 | 1572 | 33.26 |
+| 8,192 | 1648 | 32.28 | 1648 | 32.28 |
+| 16,384 | 1432 | 30.79 | 1432 | 30.78 |
+| 32,768 | 1361 | 28.22 | 1361 | 28.22 |
+| 65,536 | 1177 | 24.67 | 1177 | 24.66 |
+| 131,072 | 867.9 | 19.62 | 867.9 | 19.62 |
 
-Window endpoints reached `542.8` prefill tok/s at 262143/output1,
-`562.5 / 13.60` prefill/decode tok/s at 261632/output512, and
-`561.0 / 13.61` at 261120/output1024. All 19 cells retained at least 97% of
-their frozen baseline; the minimum prefill/decode retentions were `1.018x`
-and `0.9743x`.
+Window endpoints reached `555.5` prefill tok/s at 262143/output1,
+`559.5 / 14.00` prefill/decode tok/s at 261632/output512, and
+`548.2 / 14.04` at 261120/output1024. All 19 cells retained at least 97% of
+their frozen baseline; the minimum prefill/decode retentions were `1.012x`
+and `0.9854x`. Against the exact v1.4.0 release matrix, the worst median
+prefill/decode deltas were `-2.283%` and `-0.1143%`, inside the 3% protocol
+band.
 
 Other gates:
 
 - full-vocabulary KLD passed at nine contexts through q261632; the maximum was
   `0.002174`, with matching top-1 everywhere and the gate fixed at `0.005`;
 - exact 128-token completion identity passed on the frozen q8192 fixture;
-- q8192 command-to-ready median: `48.59 s` versus the `51.41 s` ceiling;
-- q32768 exact-prefix TTFT: `2611x` speedup with `0.99995` decode retention;
+- q8192 command-to-ready median: `47.36 s` versus the `51.41 s` ceiling;
+- q32768 exact-prefix TTFT: `2624x` speedup with `1.0002` decode retention;
 - resident HTTP: one model load across cold and cached requests, with clean
   shutdown;
 - live chunked SSE matched the non-stream token/text hashes, and structured
   tool calls matched across stream/non-stream paths; disconnect cancellation
   preserved server health.
+- a 16-token cold prompt, its exact replay, a 36-token ordinary next-user turn
+  and an unrelated short request after long-context work all passed; the two
+  independent cache misses restarted from clean state and returned HTTP 200.
 
 The auditable source of truth is
-[benchmarks/results/native-portable-product-v1.4.0.json](benchmarks/results/native-portable-product-v1.4.0.json).
+[benchmarks/results/native-portable-product-v1.4.1.json](benchmarks/results/native-portable-product-v1.4.1.json).
 The frozen baseline and optional striped-startup evidence remain documented in
 [docs/PERFORMANCE.md](docs/PERFORMANCE.md).
 

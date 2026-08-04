@@ -1,0 +1,79 @@
+{
+  "schema": "aima-amd395-qwen36/native-release-provenance/v1",
+  "release": "1.4.1",
+  "complete": true,
+  "release_tag": "v1.4.1",
+  "release_commit": "ba45639c178061f9bdadd22c86744f6924f5bf44",
+  "native_source_commit": "4536dbaeb6d1d013232db8150fbb6f7c3100b20a",
+  "derived_from_commit": "09298a7bb4a1ca366dfb6e546100c5a09c36ca7b",
+  "clarification": "The exact v1.4.1 qualification and sanitized raw reports are mirrored on main after the immutable release tag. The native binary is the fully qualified variable-prompt source commit; the tag additionally contains release-only qualification and packaging metadata fixes.",
+  "immutable_records": {
+    "product_result": {
+      "path": "benchmarks/results/native-portable-product-v1.4.1.json",
+      "sha256": "b26976119bf4cdc8d1bf1a8129fce676da2e1e86523e862676c695a331afafb3"
+    },
+    "portable_bundle_result": {
+      "path": "benchmarks/results/native-portable-bundle-v1.4.1.json",
+      "sha256": "f42f3c6e678b578d25cba06099fa8691d59f8b8bd28e52588d999c3dc8820705"
+    },
+    "product_contract": {
+      "path": "native/product-contract-v1.4.1.json",
+      "sha256": "9e8dfc0b1aa4694a29c3340ebb659d08702c38267b758347f3a27466da6ac83f"
+    }
+  },
+  "public_evidence": {
+    "matrix": {
+      "path": "benchmarks/runs/native-full-matrix-20260804-v141-release/matrix.json",
+      "sha256": "b74bdc404f9f5000fe397466ef88ef85bd6b6189f86528864d1025a40b139f39"
+    },
+    "correctness": {
+      "path": "benchmarks/runs/native-correctness-20260804-v141-release/correctness.json",
+      "sha256": "bd40fa50019f2563abab4df1774a81106ad383af0901f655f36b674f3050f928"
+    },
+    "surfaces": {
+      "path": "benchmarks/runs/native-product-surfaces-20260804-v141-release/surfaces.json",
+      "sha256": "be26e9a3d4e871dd6f46d18fa81ff67ca4b9dc5c61df62b0bb616cc0d0f37c5c"
+    },
+    "openai_features": {
+      "path": "benchmarks/runs/native-openai-features-20260804-v141-release/features.json",
+      "sha256": "0e792ae4ccffb0de9615380a51331d27d372ed558ef2b5864c132c94bb1e98d7"
+    },
+    "portable_bundle": {
+      "path": "benchmarks/runs/native-portable-bundle-20260804-v141-release-final/bundle.json",
+      "sha256": "f42f3c6e678b578d25cba06099fa8691d59f8b8bd28e52588d999c3dc8820705"
+    }
+  },
+  "public_evidence_trees": {
+    "matrix": {
+      "path": "benchmarks/runs/native-full-matrix-20260804-v141-release",
+      "file_count": 47,
+      "bytes": 518840,
+      "tree_sha256": "26d287729542652a6ea732c22b1a4a4f970ee9d990a58422436fbf58334a42c5"
+    },
+    "correctness": {
+      "path": "benchmarks/runs/native-correctness-20260804-v141-release",
+      "file_count": 21,
+      "bytes": 72138,
+      "tree_sha256": "ebe0c8cb80ae5f5c7bd799361b84d364ad26372243132f4c28c268b45c6b5684"
+    },
+    "surfaces": {
+      "path": "benchmarks/runs/native-product-surfaces-20260804-v141-release",
+      "file_count": 12,
+      "bytes": 35740,
+      "tree_sha256": "3f5df5e5e451d1c6ce321f758df997ef40a89909226813b85f1e423cf63fc69d"
+    },
+    "openai_features": {
+      "path": "benchmarks/runs/native-openai-features-20260804-v141-release",
+      "file_count": 3,
+      "bytes": 4847,
+      "tree_sha256": "bb9df593b71d1e86ae82cf9ee64419a3f75826389ee2d5ca7be0b77e29102a12"
+    },
+    "portable_bundle": {
+      "path": "benchmarks/runs/native-portable-bundle-20260804-v141-release-final",
+      "file_count": 7,
+      "bytes": 21632,
+      "tree_sha256": "41e4f36b1a3c778ab6904456f0829ec2baab716a957166b7a81d0ce5173a6dd5"
+    }
+  },
+  "claim_effect": "v1.4.1 admits variable-length cold prompts and ordinary multi-turn cache misses while retaining the complete v1.4 static performance/correctness envelope and portable dependency boundary"
+}

@@ -18,6 +18,15 @@ throughput for that portion. Release qualification reruns the complete
 startup/prefix/HTTP surfaces, variable-prompt isolation, SSE, tools and
 portable-bundle isolation against the exact tagged binary.
 
+The immutable tag is `v1.4.1` at release commit
+`ba45639c178061f9bdadd22c86744f6924f5bf44`. The qualified native executable
+embeds source commit `4536dbaeb6d1d013232db8150fbb6f7c3100b20a`; the later
+release-only commits bind the generated qualification and preserve historical
+contracts without rebuilding that executable. The archive carries
+[`product-contract-v1.4.1.json`](../native/product-contract-v1.4.1.json) as
+`share/aima/product-contract.json` and the exact generated product result as
+`share/aima/qualification.json`.
+
 ## v1.4.0 boundary
 
 The personal upstream owns the immutable `v1.4.0` tag and release assets; the
@@ -73,7 +82,7 @@ commit.
 
 ## Portable native release boundary
 
-The v1.4 deployment unit is the deterministic
+The current v1.4.1 deployment unit is the deterministic
 `aima-engine-native-portable-*.tar.zst` archive produced by
 `make package-native`. The archive includes a recursive `manifest.json`, the
 machine product contract and the qualification record.
@@ -82,8 +91,8 @@ Qualified executable components:
 
 | Component | SHA-256 |
 |---|---|
-| native engine | `a9095e5889304381ae8d716ebb262141998f72a254fc7235c290e127b85da872` |
-| static launcher | `ddcca94be2d272493d8ab6847da8372eb85e0a01e75f9992d610ddb8ca414d7a` |
+| native engine | `90c55cb3185d37589c5b2f8afead9ecd4fb53759beae99a95ec763143f9ad7b0` |
+| static launcher | `ac43fb95a8bad8f9fb4e0f4eac9cadc4fb92f22189f4f35ce21a81f1d56fcf98` |
 | AOTriton adapter | `8f42d7b17a778168a1bb66b34eff282e13955541ededfa838355ffbc176b43a5` |
 | CK-Tile adapter | `77f6f6429ed7ef2e34a33372f6096a6d62957ba46f1866e7f40c39da9add25b4` |
 | q16384 packed-GQA/CK hybrid | `ab48a7d605d92aaaf9dc17a10f217538e57974f0fdce9f06ddc5536cae601858` |
@@ -110,20 +119,28 @@ The admitted release profile contains all eight standard contexts from q1024
 through q131072 plus the three valid 262144-token-window endpoints. All 19
 performance cells, nine full-vocabulary correctness contexts, exact 128-token
 identity, startup, prefix cache, resident HTTP, live SSE and function tools
-passed their independent frozen gates.
+passed their independent frozen gates. Variable-prompt qualification also
+passed a 16-token cold request and exact replay, an ordinary 36-token next-user
+turn and an unrelated short request after a long-context request; both cache
+misses restarted from clean state and returned HTTP 200.
 The exact decision is in
-[`native-portable-product-v1.4.0.json`](../benchmarks/results/native-portable-product-v1.4.0.json).
+[`native-portable-product-v1.4.1.json`](../benchmarks/results/native-portable-product-v1.4.1.json).
 The result records that the published v1.1 long-context envelope is replaced
 by the native package.
 
 The five compact raw qualification directories referenced by the product and
 portable-bundle results are published under `benchmarks/runs/`. Run
 `make verify-evidence` to verify every summary and recursively referenced raw
-report. The v1.4 provenance binds the exact 90-file inventory, byte count and
+report. The v1.4.1 provenance binds the exact 90-file inventory, byte count and
 sorted-path tree hash of all five directories, so extra, missing or modified
 raw files fail verification. Run `make package-evidence` to create a
 deterministic checksummed release asset containing that public evidence.
 Licensed oracle logits, model weights and prompt content remain excluded.
+
+The published portable archive is
+`aima-engine-native-portable-b98b7bc698ae.tar.zst` (105,743,424 bytes), with
+SHA-256
+`f75562537277af8b3a0e1a92fb012761a1522b7021f3014bc1f5b8355f650d1b`.
 
 ## Native build provenance
 

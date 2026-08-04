@@ -1,0 +1,83 @@
+{
+  "complete": true,
+  "engine": {
+    "path": "${AIMA_REPO_ROOT}/build/native/aima-engine-native",
+    "sha256": "90c55cb3185d37589c5b2f8afead9ecd4fb53759beae99a95ec763143f9ad7b0"
+  },
+  "host": {
+    "hostname": "quings",
+    "machine": "x86_64",
+    "release": "6.14.0-1020-oem",
+    "sysname": "Linux"
+  },
+  "http": {
+    "chat_fixture_token_count": 8192,
+    "first_request": {
+      "completion_tokens": 4,
+      "decode_tps": 32.242667775527835,
+      "prefix_lookup": "miss",
+      "prompt_tokens": 8192,
+      "ttft_ms": 4927.492924
+    },
+    "health_before_request": true,
+    "model_loads": 1,
+    "models_endpoint": true,
+    "output_token_sha256_equal": true,
+    "pass": true,
+    "resident": true,
+    "runtime_python": false,
+    "runtime_torch": false,
+    "runtime_triton": false,
+    "runtime_vllm": false,
+    "second_identical_request": {
+      "completion_tokens": 4,
+      "decode_tps": 32.185196193714326,
+      "prefix_lookup": "exact",
+      "prompt_tokens": 8192,
+      "ttft_ms": 4.894177
+    },
+    "served_requests": 2,
+    "server_report_sha256": [
+      "7e2f6d8c40b2cc79f0a9e9e96d2fa12509d813ae64e2398ce5faf480a6cdec13",
+      "e94e026b87589fec5cb3c8bdc1ea8e36dfe5a9d39561ce01647d703105269b2f",
+      "d722583bb9e5e6572a269f073d6a8a8a32efaa4a5155ee1949c398757c443448"
+    ],
+    "server_reports": [
+      "raw/server-q8192-r1.json",
+      "raw/server-q8192-r2.json",
+      "raw/server-q8192-r3.json"
+    ],
+    "shutdown_endpoint": true
+  },
+  "model_dir": "${AIMA_MODEL_DIR}",
+  "prefix_cache": {
+    "cold_decode_tps": 28.30002634863708,
+    "cold_ttft_ms": 24122.744664,
+    "context_tokens": 32768,
+    "decode_retention": 1.0001971210078695,
+    "hit_decode_tps": 28.305604878353655,
+    "hit_ttft_ms": 9.194763,
+    "minimum_decode_retention": 0.999653457424567,
+    "minimum_ttft_speedup": 110.11994260509346,
+    "output_token_sha256_equal": true,
+    "output_tokens": 512,
+    "pass": true,
+    "report": "raw/prefix-cache-q32768-o512.json",
+    "report_sha256": "c36f81fa077a870d16be800725609be4ac7bc1aacc0c3f0e1b3b948ad84f5ac9",
+    "ttft_speedup": 2623.5308799150125
+  },
+  "qualified": true,
+  "schema": "aima-amd395-qwen36/native-product-surfaces/v1",
+  "startup": {
+    "ceiling_ms": 51408.20149378851,
+    "command_to_ready_median_ms": 47364.572726,
+    "command_to_ready_runs_ms": [
+      49476.752891,
+      47364.572726,
+      45843.384911
+    ],
+    "context_tokens": 8192,
+    "pass": true,
+    "protocol": "three fresh resident HTTP processes"
+  }
+}

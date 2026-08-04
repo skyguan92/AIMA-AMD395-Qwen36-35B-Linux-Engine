@@ -1,0 +1,131 @@
+{
+  "artifacts": {
+    "load_report": "${AIMA_OUTPUT_DIR}/features.load.json",
+    "load_report_sha256": "d4e8e279a338b3ec17932d9c4f4404ce21177fef317408969ebb6b02be2f8658",
+    "stderr": "${AIMA_OUTPUT_DIR}/features.stderr.txt"
+  },
+  "complete": true,
+  "context_tokens": 8192,
+  "disconnect": {
+    "pass": true,
+    "served_after": 7,
+    "served_before": 7,
+    "server_healthy": true
+  },
+  "engine": {
+    "path": "${AIMA_ENGINE}",
+    "sha256": "90c55cb3185d37589c5b2f8afead9ecd4fb53759beae99a95ec763143f9ad7b0"
+  },
+  "fixtures": {
+    "history_tokens": 8192,
+    "plain_tokens": 16,
+    "tool_tokens": 8192
+  },
+  "host": {
+    "hostname": "quings",
+    "machine": "x86_64",
+    "release": "6.14.0-1020-oem"
+  },
+  "lifecycle": {
+    "pass": true,
+    "ready": {
+      "authentication": "none",
+      "command_to_ready_wall_ms": 48231.228534,
+      "context_capacity": 9216,
+      "engine_load_wall_ms": 47921.590512,
+      "event": "ready",
+      "fmha_provider_backend": "CK-Tile",
+      "fmha_provider_path": "${AIMA_REPO_ROOT}/build/native/libaima-fmha-ck.so",
+      "host": "127.0.0.1",
+      "http_shutdown_enabled": true,
+      "model": "aima-amd395-qwen36-35b",
+      "port": 18200,
+      "request_timeout_ms": 15000,
+      "runtime_python": false,
+      "runtime_torch": false,
+      "runtime_triton": false,
+      "runtime_vllm": false,
+      "secondary_fmha_layers": [],
+      "secondary_fmha_provider_backend": "",
+      "secondary_fmha_provider_path": "",
+      "static_prefill_tokens": 8192
+    },
+    "stopped": {
+      "event": "stopped",
+      "model_loads": 1,
+      "served": 7
+    }
+  },
+  "model_dir": "${AIMA_MODEL_DIR}",
+  "qualified": true,
+  "schema": "aima-amd395-qwen36/native-openai-features/v2",
+  "streaming": {
+    "cold_prefix_lookup": "miss",
+    "content_matches_nonstream": true,
+    "content_type": "text/event-stream; charset=utf-8",
+    "done_ms": 572.3370020277798,
+    "first_content_ms": 510.57625422254205,
+    "pass": true,
+    "repeat_prefix_lookup": "exact",
+    "token_sha256_matches_nonstream": true,
+    "transfer_encoding": "chunked",
+    "usage": {
+      "completion_tokens": 3,
+      "prompt_tokens": 16,
+      "total_tokens": 19
+    }
+  },
+  "tools": {
+    "finish_reason": "tool_calls",
+    "history_response": {
+      "content": "The weather in Paris is currently sunny with a temperature of 20°C.",
+      "role": "assistant"
+    },
+    "nonstream": {
+      "function": {
+        "arguments": "{\"city\": \"Paris\"}",
+        "name": "get_weather"
+      },
+      "id": "chatcmpl-native-4-call-0",
+      "type": "function"
+    },
+    "pass": true,
+    "stream": {
+      "function": {
+        "arguments": "{\"city\": \"Paris\"}",
+        "name": "get_weather"
+      },
+      "id": "chatcmpl-native-5-call-0",
+      "type": "function"
+    },
+    "token_sha256_matches_nonstream": true
+  },
+  "validation": {
+    "error": {
+      "code": "bad_request",
+      "message": "tool_choice names a function absent from tools",
+      "param": null,
+      "type": "invalid_request_error"
+    },
+    "pass": true,
+    "unknown_forced_tool_status": 400
+  },
+  "variable_prompts": {
+    "ordinary_turn_execution": "cold-decode-fallback",
+    "ordinary_turn_prefix_lookup": "miss",
+    "ordinary_turn_status": 200,
+    "ordinary_turn_usage": {
+      "completion_tokens": 2,
+      "prompt_tokens": 36,
+      "total_tokens": 38
+    },
+    "pass": true,
+    "post_long_execution": "cold-decode-fallback",
+    "post_long_prefix_lookup": "miss",
+    "post_long_status": 200,
+    "post_long_token_sha256_matches": true,
+    "short_cold_execution": "cold-decode-fallback",
+    "short_cold_tokens": 16,
+    "short_exact_execution": "prefix-cache-exact"
+  }
+}

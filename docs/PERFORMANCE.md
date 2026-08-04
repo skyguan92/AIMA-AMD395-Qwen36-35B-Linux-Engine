@@ -1,6 +1,6 @@
 # Performance and correctness
 
-## v1.4 portable native full envelope
+## v1.4.1 portable native full envelope
 
 The v1.4 portable runtime covers the complete published batch-1 matrix without
 loading Python, PyTorch, vLLM, Triton, Transformers or a host ROCm userspace.
@@ -13,25 +13,27 @@ decode is measured at the requested output length.
 
 | Input tokens | output512 prefill | output512 decode | output1024 prefill | output1024 decode |
 |---:|---:|---:|---:|---:|
-| 1,024 | 1633 | 34.05 | 1633 | 34.02 |
-| 2,048 | 1692 | 33.88 | 1692 | 33.88 |
-| 4,096 | 1585 | 33.32 | 1585 | 33.29 |
-| 8,192 | 1654 | 32.23 | 1654 | 32.23 |
-| 16,384 | 1438 | 30.68 | 1438 | 30.69 |
-| 32,768 | 1362 | 28.15 | 1362 | 28.14 |
-| 65,536 | 1175 | 24.62 | 1175 | 24.62 |
-| 131,072 | 873.2 | 19.52 | 873.2 | 19.53 |
+| 1,024 | 1638 | 34.04 | 1638 | 34.03 |
+| 2,048 | 1696 | 33.88 | 1696 | 33.87 |
+| 4,096 | 1572 | 33.28 | 1572 | 33.26 |
+| 8,192 | 1648 | 32.28 | 1648 | 32.28 |
+| 16,384 | 1432 | 30.79 | 1432 | 30.78 |
+| 32,768 | 1361 | 28.22 | 1361 | 28.22 |
+| 65,536 | 1177 | 24.67 | 1177 | 24.66 |
+| 131,072 | 867.9 | 19.62 | 867.9 | 19.62 |
 
 Units are tokens per second. Maximum-window results were:
 
 | Input/output | Prefill tok/s | Decode tok/s | Prefill retention | Decode retention |
 |---:|---:|---:|---:|---:|
-| 262143/1 | 542.8 | n/a | 1.4587 | n/a |
-| 261632/512 | 562.5 | 13.60 | 1.3905 | 0.9770 |
-| 261120/1024 | 561.0 | 13.61 | 1.3805 | 0.9743 |
+| 262143/1 | 555.5 | n/a | 1.4929 | n/a |
+| 261632/512 | 559.5 | 14.00 | 1.3829 | 1.0054 |
+| 261120/1024 | 548.2 | 14.04 | 1.3489 | 1.0052 |
 
 All 19 cells pass the independent `0.97x` prefill/decode floor. The minimum
-prefill retention is `1.0175`; the minimum decode retention is `0.9743`.
+prefill retention is `1.012`; the minimum decode retention is `0.9854`.
+Against v1.4.0, the worst median prefill/decode changes are `-2.283%` and
+`-0.1143%`; both stay inside the 3% measurement protocol band.
 
 Full-vocabulary correctness is bound to the final engine SHA-256:
 
@@ -51,34 +53,38 @@ The frozen q8192 completion fixture also matched all 128 expected token IDs,
 with output-token SHA-256
 `aa910692fd03ed4a8e89c04497751e3a28eee36c6148237f7e97c74a6dd68201`.
 
-Three fresh q8192 HTTP processes reached readiness in `50.25`, `48.59` and
-`48.07` seconds. The `48.59 s` median is below the frozen `51.41 s` ceiling.
+Three fresh q8192 HTTP processes reached readiness in `49.48`, `47.36` and
+`45.84` seconds. The `47.36 s` median is below the frozen `51.41 s` ceiling.
 
-At q32768/output512, exact-prefix reuse reduced TTFT from `24.00 s` to
-`9.190 ms` (`2611x`) and retained `0.99995` of cold decode throughput. The
+At q32768/output512, exact-prefix reuse reduced TTFT from `24.12 s` to
+`9.195 ms` (`2624x`) and retained `1.0002` of cold decode throughput. The
 output-token hash was unchanged.
 
 The resident HTTP run used one model load, served a cold q8192 request and an
-exact repeat, reduced TTFT from `4.922 s` to `5.045 ms`, retained the output
+exact repeat, reduced TTFT from `4.927 s` to `4.894 ms`, retained the output
 hash, exposed health/model endpoints and exited through `POST /shutdown`.
 
-The OpenAI feature lifecycle run used live HTTP/1.1 chunked SSE. The cold
-q8192 stream produced its first content at `4963 ms`, completed at
-`5028 ms`, and matched both text and generated-token hashes with the
-non-stream response. Stream and non-stream tool requests both produced
+The OpenAI feature lifecycle run used live HTTP/1.1 chunked SSE. A 16-token
+cold prompt produced first content at `510.6 ms`, completed at `572.3 ms`,
+and matched both text and generated-token hashes with its exact-cache
+non-stream response. A normal 36-token next-user turn and an unrelated short
+request after long-context work both executed as clean cache misses with HTTP
+200. Stream and non-stream tool requests both produced
 `get_weather({"city":"Paris"})`, assistant/tool history produced the expected
 final answer, an unavailable forced tool returned HTTP 400, and a reset client
 connection left the one-load resident server healthy.
 
 Exact components, per-run values, baselines, ratios and decision boundaries
 are in
-[`native-portable-product-v1.4.0.json`](../benchmarks/results/native-portable-product-v1.4.0.json).
+[`native-portable-product-v1.4.1.json`](../benchmarks/results/native-portable-product-v1.4.1.json).
 Its hash-bound summaries and raw reports are published under
 [`benchmarks/runs/`](../benchmarks/runs/). `make verify-evidence` checks every
 referenced report; `make package-evidence` emits a deterministic public
 evidence archive and SHA-256 sidecar under `dist/`.
 The v1.3 result remains available as a historical release record in
 [`native-portable-product-v1.3.0.json`](../benchmarks/results/native-portable-product-v1.3.0.json).
+The v1.4.0 result is retained in
+[`native-portable-product-v1.4.0.json`](../benchmarks/results/native-portable-product-v1.4.0.json).
 The archive packager rejects unresolved ELF dependencies and absolute RUNPATHs.
 The remaining host requirements are the Linux kernel AMDGPU/KFD driver,
 device nodes, x86-64 and `gfx1151`.
