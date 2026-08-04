@@ -48,6 +48,10 @@ class NativeFullAttentionState {
   void* attention_output() const { return attention_output_; }
   void* gated_attention() const { return gated_attention_; }
   void* projected_attention() const { return projected_attention_; }
+  // Decode PV is planned at cache capacity while softmax only rewrites the
+  // live prefix.  Clear the probability scratch once per request so values
+  // from a longer previous request cannot leak into a shorter one.
+  std::uint64_t clear_request_scratch(void* stream = nullptr);
   void launch_grouped_qk(const void* q, const void* k_cache, void* scores,
                          void* stream) const;
   void launch_grouped_pv(const void* probabilities, const void* v_cache,
@@ -61,6 +65,7 @@ class NativeFullAttentionState {
   std::uint64_t allocation_bytes_ = 0;
   std::size_t cache_capacity_ = 0;
   std::size_t maximum_pv_splits_ = 0;
+  std::uint64_t probabilities_bytes_ = 0;
   std::array<void*, 10> k_caches_{};
   std::array<void*, 10> v_caches_{};
   void* scores_ = nullptr;

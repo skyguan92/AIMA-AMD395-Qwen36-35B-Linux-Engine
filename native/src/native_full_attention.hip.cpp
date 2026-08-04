@@ -604,6 +604,7 @@ NativeFullAttentionStateMetrics NativeFullAttentionState::build(
     }
     scores_ = base + scores_offset;
     probabilities_ = base + probabilities_offset;
+    probabilities_bytes_ = score_bytes;
     softmax_exponentials_ = base + softmax_exponentials_offset;
     pv_partials_ = base + partials_offset;
     attention_output_ = base + attention_offset;
@@ -632,6 +633,18 @@ void* NativeFullAttentionState::v_cache(std::size_t layer_index) const {
   return v_caches_[layer_slot(layer_index)];
 }
 
+std::uint64_t NativeFullAttentionState::clear_request_scratch(
+    void* stream_value) {
+  if (!built() || probabilities_ == nullptr || probabilities_bytes_ == 0) {
+    throw std::runtime_error(
+        "native full-attention request scratch is not built");
+  }
+  check_hip(hipMemsetAsync(probabilities_, 0, probabilities_bytes_,
+                           static_cast<hipStream_t>(stream_value)),
+            "hipMemsetAsync native full-attention probabilities");
+  return probabilities_bytes_;
+}
+
 void NativeFullAttentionState::launch_grouped_qk(
     const void* q, const void* k_cache, void* scores,
     void* stream_value) const {
@@ -658,6 +671,7 @@ void NativeFullAttentionState::reset() noexcept {
   allocation_bytes_ = 0;
   cache_capacity_ = 0;
   maximum_pv_splits_ = 0;
+  probabilities_bytes_ = 0;
   k_caches_.fill(nullptr);
   v_caches_.fill(nullptr);
   scores_ = probabilities_ = softmax_exponentials_ = pv_partials_ = nullptr;

@@ -46,7 +46,7 @@ class ReleaseContractTest(unittest.TestCase):
         cls.context_policy = load_module("release_context_policy_test", CONTEXT_POLICY_PATH)
 
     def test_release_components_are_hash_qualified(self) -> None:
-        self.assertEqual(__version__, "1.4.0")
+        self.assertEqual(__version__, "1.4.1")
         checks = cli.verify_components(self.config)
         self.assertGreaterEqual(len(checks), 10)
         self.assertTrue(all(item["passed"] for item in checks), checks)

@@ -1,6 +1,6 @@
 # Native CLI and HTTP API
 
-This page documents the v1.4.0 native CLI and HTTP API. Earlier binaries do
+This page documents the v1.4.1 native CLI and HTTP API. Earlier binaries do
 not include every command and hardening control described here.
 
 ## CLI
@@ -48,8 +48,8 @@ Options:
 | Option | Meaning | Default |
 |---|---|---|
 | `--model-dir PATH` | qualified model directory | required |
-| `--context-tokens N` | qualified static cold context or valid long-window endpoint | 8192 |
-| `--cache-capacity N` | prompt plus decode KV capacity | context + 1024 |
+| `--context-tokens N` | preferred qualified AOT prefill context or valid long-window endpoint | 8192 |
+| `--cache-capacity N` | maximum prompt-plus-output context capacity | context + 1024 |
 | `--host IPv4` | listen address | 127.0.0.1 |
 | `--port N` | listen port | 8000 |
 | `--workers N` | O_DIRECT checkpoint readers; increase only after measuring the target storage | 1 |
@@ -106,7 +106,7 @@ Returns:
 - status and model id;
 - whether the model is loaded and resident;
 - successful request count and uptime;
-- admitted static context;
+- total context capacity and selected static AOT prefill specialization;
 - selected FMHA provider;
 - command-to-ready time.
 
@@ -159,14 +159,22 @@ fixtures.
 
 After tokenization:
 
-- a cold request must contain exactly the process's static context;
-- an exact repeat restores the cached state;
-- a longer request must begin with the one cached token sequence, then the
-  suffix is executed through native decode;
-- prompt plus requested output must fit the 262,144-token window;
-- all other lengths fail with HTTP 400.
+- every positive prompt length is admitted when prompt plus requested output
+  fits `--cache-capacity`;
+- an exact repeat restores the cached state and a genuine token-prefix append
+  restores that state before executing only the suffix;
+- a cache miss shorter than the selected AOT specialization starts from empty
+  recurrent/KV state and executes the prompt through the qualified token path;
+- a cache miss at or above the specialization runs the AOT prefix and executes
+  only the remaining prompt tail through native decode;
+- independent and ordinary `user -> assistant -> user` conversations therefore
+  fall back to cold execution instead of being rejected;
+- the absolute model/runtime window remains 262,144 tokens.
 
-This is an exact token-prefix contract, not a text-prefix heuristic.
+Prefix matching is exact token matching, not a text-prefix heuristic. It only
+changes latency. For peak cold-prefill throughput, select a published standard
+context matching the workload; variable cold prompts are correctness-admitted
+but their token-decoded portion runs at decode throughput.
 
 The published standard contexts are `1024`, `2048`, `4096`, `8192`, `16384`,
 `32768`, `65536` and `131072`. Maximum-window qualifications use
@@ -205,6 +213,7 @@ is not exposed as a valid call. A terminal EOS token counts in
 - `model_loads`;
 - prefill/decode throughput and total latency;
 - TTFT;
+- prompt execution mode and token-decoded cold-tail timing;
 - output-token SHA-256;
 - prefix lookup type, matched/suffix token counts, cumulative hits/misses,
   state-transfer bytes, suffix launch counts and suffix wall time.

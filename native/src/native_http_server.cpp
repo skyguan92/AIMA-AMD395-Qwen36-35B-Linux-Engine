@@ -568,8 +568,12 @@ Json request_metrics_json(const NativeResidentRequestMetrics& metrics) {
           {"decode_tokens_per_second", metrics.decode_tokens_per_second},
           {"ttft_ms", metrics.prefill_wall_ms},
           {"request_wall_ms", metrics.request_wall_ms},
+          {"prompt_execution", metrics.prompt_execution},
+          {"cold_prompt_decode_tokens", metrics.cold_prompt_decode_tokens},
+          {"cold_prompt_decode_wall_ms",
+           metrics.cold_prompt_decode_wall_ms},
           {"prefix_cache", {{"implemented", true},
-                            {"scope", "one-entry-exact-or-append"},
+                            {"scope", "one-entry-variable-exact-or-append"},
                             {"lookup", metrics.prefix_cache_lookup},
                             {"matched_tokens",
                              metrics.prefix_cache_matched_tokens},
@@ -611,8 +615,7 @@ std::size_t positive_integer_field(const Json& request, const char* field) {
 }
 
 ParsedCompletionRequest parse_completion_request(
-    NativeTokenizer& tokenizer, const Json& request,
-    std::size_t admitted_prompt_tokens) {
+    NativeTokenizer& tokenizer, const Json& request) {
   if (!request.is_object()) {
     throw std::invalid_argument("request body must be a JSON object");
   }
@@ -654,14 +657,6 @@ ParsedCompletionRequest parse_completion_request(
   parsed.chat = prepare_native_chat(request);
   parsed.prompt = tokenizer.encode_chat(
       parsed.chat.messages, parsed.chat.prompt_tools, true);
-  if (parsed.prompt.size() < admitted_prompt_tokens) {
-    throw std::invalid_argument(
-        "the current native product route requires a cold prompt of " +
-        std::to_string(admitted_prompt_tokens) +
-        " tokens or a longer prompt extending that cached prefix; encoded "
-        "prompt has " +
-        std::to_string(parsed.prompt.size()));
-  }
   if (request.contains("max_completion_tokens")) {
     parsed.max_tokens =
         positive_integer_field(request, "max_completion_tokens");
@@ -1004,6 +999,8 @@ int run_native_http_server(int argc, char** argv) {
                       options.api_key.empty() ? "none" : "bearer"},
                      {"http_shutdown_enabled", options.http_shutdown},
                      {"request_timeout_ms", options.request_timeout_ms},
+                     {"context_capacity", load.cache_capacity},
+                     {"static_prefill_tokens", load.prompt_tokens},
                      {"runtime_python", false},
                      {"runtime_torch", false},
                      {"runtime_vllm", false},
@@ -1053,7 +1050,9 @@ int run_native_http_server(int argc, char** argv) {
                     options.api_key.empty() ? "none" : "bearer"},
                    {"http_shutdown_enabled", options.http_shutdown},
                    {"request_timeout_ms", options.request_timeout_ms},
-                   {"admitted_prompt_tokens", load.prompt_tokens}});
+                   {"admitted_prompt_tokens", load.cache_capacity},
+                   {"context_capacity", load.cache_capacity},
+                   {"static_prefill_tokens", load.prompt_tokens}});
       } else if (request.method == "GET" && request.path == "/v1/models") {
         (void)send_json(client.get(), 200,
                   {{"object", "list"},
@@ -1070,8 +1069,8 @@ int run_native_http_server(int argc, char** argv) {
         try {
           body = Json::parse(request.body);
           const auto started = std::chrono::steady_clock::now();
-          ParsedCompletionRequest parsed = parse_completion_request(
-              tokenizer, body, load.prompt_tokens);
+          ParsedCompletionRequest parsed =
+              parse_completion_request(tokenizer, body);
           if (parsed.stream) {
             if (stream_chat_completion(client.get(), engine, tokenizer,
                                        std::move(parsed), started)) {

@@ -73,9 +73,13 @@ state across chunks, and use one of the admitted tail schedules.
 Provider selection is derived from the admitted context and the executable's
 own location. `--fmha-provider` is an explicit qualification override.
 
-The fixed schedule is why arbitrary cold prompt lengths are rejected. The
-engine never interpolates between unmeasured policies. Published standard
-contexts and the three maximum-window endpoints are fully qualified.
+Fixed schedules remain the fast path for the published standard contexts and
+three maximum-window endpoints. Variable cache misses are also admitted: the
+engine starts from empty recurrent/KV state, uses the selected AOT schedule for
+a complete specialized prefix when available, and executes the unmatched
+prompt portion through the same qualified token path used for continuation.
+This preserves correctness without pretending that an unmeasured padded AOT
+shape is equivalent; the token-decoded portion runs at decode throughput.
 
 ## Correctness-sensitive arithmetic
 
@@ -90,11 +94,13 @@ but are not substituted for the end-to-end gate.
 
 ## Request execution
 
-A cold request runs the selected prefill schedule, writes full-attention KV
-directly into the resident cache, retains all linear recurrent/conv state, runs
-the native LM head, and captures one cache checkpoint. The first completion
-token comes from the prefill distribution; later tokens execute the 402-launch
-decode schedule plus native support kernels.
+A cold request starts from clean resident state. When the prompt reaches the
+selected specialization it runs that prefill schedule, writes full-attention KV
+directly into the resident cache and retains all linear recurrent/conv state;
+short prompts and any remaining tail run through the 402-launch token schedule
+plus native support kernels. The native LM head produces the first completion
+token, then the engine captures one variable-length cache checkpoint. Cache
+misses and one-entry eviction change latency, not admission.
 
 Greedy decode stops on the model EOS or the requested length. EOS is included
 in token usage and omitted from visible text.

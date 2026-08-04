@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "aima-amd395-qwen36-engine"
-version = "1.4.0"
+version = "1.4.1"
 description = "Batch-1 Qwen3.6-35B-A3B BF16 inference engine for AMD Ryzen AI Max+ 395"
 readme = "README.md"
 requires-python = ">=3.10"

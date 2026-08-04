@@ -1,6 +1,6 @@
 # Portable native runtime
 
-This page documents the v1.4.0 portable native runtime.
+This page documents the v1.4.1 portable native runtime.
 
 AIMA v1.4 provides a relocatable native runtime for
 `Qwen3.6-35B-A3B-BF16` on AMD Ryzen AI Max+ 395 / `gfx1151`. The runtime
@@ -27,7 +27,7 @@ The 262,144-token window endpoints at output1/output512/output1024 are also
 qualified. The machine-readable boundary is in
 [product-contract.json](product-contract.json), and the measurements are in
 [the v1.4 native qualification](../benchmarks/results/native-portable-product-v1.4.0.json).
-Each v1.4.0 archive also carries its exact qualification at
+Each v1.4.1 archive also carries its exact qualification at
 `share/aima/qualification.json`.
 
 ## Distribution shape
@@ -78,10 +78,13 @@ requires it unless the explicit unsafe override is supplied. The packaged
 systemd unit enables the token, a socket timeout and
 `--disable-http-shutdown` by default.
 
-The current native route admits cold prompts whose encoded chat-template
-length is exactly the selected static context. A longer request is accepted
-only when it extends the one cached token prefix. Short prompts fail closed;
-the server never silently selects an unqualified schedule.
+The selected context is the preferred AOT prefill specialization, not a
+mandatory request length. Every positive prompt is admitted when prompt plus
+requested output fits the cache capacity. A cache miss starts from clean
+resident state: shorter prompts use the qualified token path, while longer
+prompts use the selected AOT prefix and execute only the unmatched tail token
+by token. Exact and append prefix hits reduce latency but never determine
+admission.
 
 `POST /v1/chat/completions` supports live SSE token output and OpenAI function
 tools. The native tokenizer renders the checkpoint's Qwen tool template,

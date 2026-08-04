@@ -186,6 +186,16 @@ const NativeDecodeWorkspaceView* NativeDecodeWorkspace::find(
   return found == name_to_index_.end() ? nullptr : &views_[found->second];
 }
 
+std::uint64_t NativeDecodeWorkspace::clear(void* stream_value) {
+  if (!built()) {
+    throw std::runtime_error("native decode workspace is not built");
+  }
+  check_hip(hipMemsetAsync(allocation_, 0, allocation_bytes_,
+                           static_cast<hipStream_t>(stream_value)),
+            "hipMemsetAsync native decode workspace");
+  return allocation_bytes_;
+}
+
 void NativeDecodeWorkspace::reset() noexcept {
   (void)hipSetDevice(device_);
   if (allocation_) (void)hipFree(allocation_);

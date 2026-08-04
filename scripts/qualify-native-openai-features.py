@@ -316,16 +316,12 @@ def main() -> None:
             },
         },
     }
-    plain, plain_probe = exact_request(
-        engine,
-        model_dir,
-        cli.context_tokens,
-        {
-            "messages": [
-                {"role": "user", "content": "Say hello briefly."}
-            ]
-        },
-    )
+    plain = {
+        "messages": [{"role": "user", "content": "Say hello briefly."}]
+    }
+    plain_probe = probe_prompt(engine, model_dir, plain)
+    if len(plain_probe["token_ids"]) >= cli.context_tokens:
+        raise RuntimeError("variable-prompt fixture is not below the AOT context")
     tool_request, tool_probe = exact_request(
         engine,
         model_dir,
@@ -435,6 +431,30 @@ def main() -> None:
                 "/v1/chat/completions",
                 plain_nonstream_request,
             )
+            ordinary_turn_status, ordinary_turn = request_json(
+                cli.port,
+                "POST",
+                "/v1/chat/completions",
+                {
+                    "model": MODEL_ID,
+                    "messages": [
+                        plain["messages"][0],
+                        {
+                            "role": "assistant",
+                            "content": plain_nonstream["choices"][0][
+                                "message"
+                            ]["content"],
+                        },
+                        {
+                            "role": "user",
+                            "content": "Now answer with one word: ready?",
+                        },
+                    ],
+                    "temperature": 0,
+                    "top_p": 1,
+                    "max_tokens": 8,
+                },
+            )
             tool_payload = {
                 "model": MODEL_ID,
                 **tool_request,
@@ -464,6 +484,12 @@ def main() -> None:
                     "top_p": 1,
                     "max_tokens": 64,
                 },
+            )
+            post_long_status, post_long_short = request_json(
+                cli.port,
+                "POST",
+                "/v1/chat/completions",
+                plain_nonstream_request,
             )
             invalid_status, invalid_response = request_json(
                 cli.port,
@@ -530,7 +556,32 @@ def main() -> None:
         and plain_stream["metrics"]["output_token_ids_sha256"]
         == plain_metrics["output_token_ids_sha256"]
         and plain_stream["metrics"]["prefix_cache"]["lookup"] == "miss"
+        and plain_stream["metrics"]["prompt_execution"]
+        == "cold-decode-fallback"
         and plain_metrics["prefix_cache"]["lookup"] == "exact"
+        and plain_metrics["prompt_execution"] == "prefix-cache-exact"
+    )
+    ordinary_turn_metrics = ordinary_turn.get("aima_amd395") or {}
+    ordinary_turn_pass = bool(
+        ordinary_turn_status == 200
+        and ordinary_turn_metrics.get("prefix_cache", {}).get("lookup")
+        == "miss"
+        and ordinary_turn_metrics.get("prompt_execution")
+        == "cold-decode-fallback"
+        and ordinary_turn.get("usage", {}).get("prompt_tokens", 0)
+        > len(plain_probe["token_ids"])
+        and isinstance(
+            ordinary_turn["choices"][0]["message"]["content"], str
+        )
+    )
+    post_long_metrics = post_long_short.get("aima_amd395") or {}
+    post_long_pass = bool(
+        post_long_status == 200
+        and post_long_metrics.get("prefix_cache", {}).get("lookup") == "miss"
+        and post_long_metrics.get("prompt_execution")
+        == "cold-decode-fallback"
+        and post_long_metrics.get("output_token_ids_sha256")
+        == plain_metrics["output_token_ids_sha256"]
     )
     nonstream_call = tool_nonstream["choices"][0]["message"]["tool_calls"][0]
     stream_call = tool_stream["tool_calls"][0]
@@ -574,15 +625,17 @@ def main() -> None:
         and shutdown["status"] == "shutting_down"
         and stopped["event"] == "stopped"
         and stopped["model_loads"] == 1
-        and stopped["served"] == 5
+        and stopped["served"] == 7
         and returncode == 0
     )
     result = {
-        "schema": "aima-amd395-qwen36/native-openai-features/v1",
+        "schema": "aima-amd395-qwen36/native-openai-features/v2",
         "complete": True,
         "qualified": all(
             (
                 plain_pass,
+                ordinary_turn_pass,
+                post_long_pass,
                 tool_pass,
                 history_pass,
                 disconnect_pass,
@@ -624,6 +677,33 @@ def main() -> None:
             "repeat_prefix_lookup": plain_metrics["prefix_cache"]["lookup"],
             "usage": plain_stream["usage"],
             "pass": plain_pass,
+        },
+        "variable_prompts": {
+            "short_cold_tokens": len(plain_probe["token_ids"]),
+            "short_cold_execution": plain_stream["metrics"][
+                "prompt_execution"
+            ],
+            "short_exact_execution": plain_metrics["prompt_execution"],
+            "ordinary_turn_status": ordinary_turn_status,
+            "ordinary_turn_usage": ordinary_turn.get("usage"),
+            "ordinary_turn_execution": ordinary_turn_metrics.get(
+                "prompt_execution"
+            ),
+            "ordinary_turn_prefix_lookup": ordinary_turn_metrics.get(
+                "prefix_cache", {}
+            ).get("lookup"),
+            "post_long_status": post_long_status,
+            "post_long_execution": post_long_metrics.get(
+                "prompt_execution"
+            ),
+            "post_long_prefix_lookup": post_long_metrics.get(
+                "prefix_cache", {}
+            ).get("lookup"),
+            "post_long_token_sha256_matches": (
+                post_long_metrics.get("output_token_ids_sha256")
+                == plain_metrics["output_token_ids_sha256"]
+            ),
+            "pass": ordinary_turn_pass and post_long_pass,
         },
         "tools": {
             "nonstream": nonstream_call,

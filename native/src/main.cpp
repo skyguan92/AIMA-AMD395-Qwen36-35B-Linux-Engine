@@ -47,7 +47,7 @@
 
 namespace {
 
-constexpr const char* kVersion = "1.4.0-native";
+constexpr const char* kVersion = "1.4.1-native";
 #ifndef AIMA_SOURCE_COMMIT
 #define AIMA_SOURCE_COMMIT "unknown"
 #endif
@@ -4417,7 +4417,7 @@ int run_resident_session_probe(int argc, char** argv) {
   if (!cache_capacity_explicit) {
     options.cache_capacity =
         options.prompt_tokens + cached_suffix_token_ids.size() +
-        std::max<std::size_t>(1, max_new_tokens - 1);
+        max_new_tokens;
   }
 
   std::vector<std::uint32_t> prompt(options.prompt_tokens);

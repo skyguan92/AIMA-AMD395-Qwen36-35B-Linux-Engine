@@ -28,7 +28,9 @@ struct NativeResidentEngineOptions {
   // correctness-sensitive layers to use a different qualified backend.
   std::filesystem::path secondary_fmha_provider;
   std::vector<std::size_t> secondary_fmha_layers;
-  // Static prefill schedule selected for this resident process.
+  // Preferred AOT prefill schedule selected for this resident process.  This
+  // is not a mandatory request length; variable prompts fall back to the
+  // resident token path around the specialized prefix.
   std::size_t prompt_tokens = 8192;
   // Includes prompt and decoded cache entries.
   std::size_t cache_capacity = 9216;
@@ -111,6 +113,14 @@ struct NativeResidentRequestMetrics {
   std::size_t decode_aot_launches = 0;
   std::size_t decode_native_launches = 0;
   std::size_t state_orientation_resets = 0;
+  // How the input prompt reached resident state.  Variable cold prompts use
+  // the admitted AOT prefix when possible and token-decode only the remainder.
+  std::string prompt_execution = "cold-aot";
+  std::size_t cold_prompt_decode_tokens = 0;
+  std::size_t cold_prompt_decode_aot_launches = 0;
+  std::size_t cold_prompt_decode_native_launches = 0;
+  std::uint64_t request_state_reset_bytes = 0;
+  double cold_prompt_decode_wall_ms = 0.0;
   std::string prefix_cache_lookup = "miss";
   std::size_t prefix_cache_matched_tokens = 0;
   std::size_t prefix_cache_suffix_tokens = 0;
@@ -132,8 +142,9 @@ struct NativeResidentRequestMetrics {
 
 // One model/device owner. All model weights, derived layouts, AOT modules,
 // hipBLASLt plans, KV/state buffers and transient workspaces survive between
-// run() calls. The initial specialization is exact batch-1 q8192; broader
-// context schedules are admitted independently by the product matrix.
+// run() calls. The fast-path specialization is batch-1 q8192; variable prompt
+// lengths are correctness-admitted through AOT-prefix plus resident-token
+// fallback, while broader fast schedules are qualified independently.
 class NativeResidentEngine {
  public:
   NativeResidentEngine();

@@ -37,7 +37,7 @@ static void usage(void) {
       "  aima-engine chat-template-probe --model-dir PATH --user TEXT\n"
       "\n"
       "Serve options:\n"
-      "  --context-tokens N  Static cold-prompt length (default: 8192)\n"
+      "  --context-tokens N  Preferred AOT prefill context (default: 8192)\n"
       "  --cache-capacity N   Prompt plus generated-token capacity\n"
       "  --host IPv4          Listen address (default: 127.0.0.1)\n"
       "  --port N             Listen port (default: 8000)\n"

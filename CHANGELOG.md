@@ -5,6 +5,13 @@ Versioning.
 
 ## Unreleased
 
+## 1.4.1 - 2026-08-04
+
+- Fixed variable-length cold prompts and ordinary multi-turn cache misses:
+  every request that fits the configured context now falls back to correct
+  resident cold execution, while exact/append hits remain optional latency
+  optimizations. Variable-length checkpoints and per-request attention-scratch
+  reset prevent stale state from crossing independent conversations.
 - Made the v1.4 qualification, product contract, raw reports and evidence
   verifier the repository defaults while retaining v1.3 as a versioned
   historical record.

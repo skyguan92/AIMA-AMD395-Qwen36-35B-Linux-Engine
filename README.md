@@ -2,23 +2,23 @@
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![CI](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/actions/workflows/ci.yml/badge.svg)](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/release-v1.4.0-green.svg)](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.4.0)
+[![Release](https://img.shields.io/badge/release-v1.4.1-green.svg)](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.4.1)
 [![Hardware](https://img.shields.io/badge/GPU-gfx1151-orange.svg)](docs/INSTALL.md)
 
 A batch-1 BF16 inference engine specialized for
 `Qwen3.6-35B-A3B` on AMD Ryzen AI Max+ 395 / Radeon 8060S Linux.
 
-Version 1.3 provides a relocatable native package with live SSE streaming and
+Version 1.4.1 provides a relocatable native package with live SSE streaming and
 OpenAI function tools: no Python, PyTorch, vLLM,
 Triton, Transformers, or host ROCm userspace is loaded at runtime. The package
 contains a static launcher, the native engine, pinned ROCm/AOTriton/CK
 userspace, its own glibc loader, licenses and qualification metadata. Model
 weights are not redistributed.
 
-> **Release boundary:** v1.4.0 adds `doctor`, `--build-info`, bearer
-> authentication, socket timeouts and the hardened systemd template. Earlier
-> archives do not contain those controls; use the documentation bundled with
-> the version you deploy.
+> **Release boundary:** v1.4.0 added `doctor`, `--build-info`, bearer
+> authentication, socket timeouts and the hardened systemd template. v1.4.1
+> admits variable-length cold prompts and ordinary multi-turn cache misses.
+> Earlier archives retain their documented exact-static-context boundary.
 
 中文说明见 [README.zh-CN.md](README.zh-CN.md).
 
@@ -56,11 +56,14 @@ envelope:
 | 261,632 | 512 | qualified window endpoint |
 | 261,120 | 1,024 | qualified window endpoint |
 
-Cold HTTP prompts must encode to exactly the selected static context. Longer
-requests are accepted only when they extend the cached token prefix. Input plus
-generated tokens may not exceed 262,144. The native runtime now replaces the
-published v1.1 performance envelope; the Python implementation remains only as
-a compatibility and provenance reference. See
+HTTP prompts may have any positive token length that fits the configured cache
+capacity together with the requested output. The selected context remains the
+fast AOT prefill specialization: shorter cache misses use the correct resident
+decode fallback, while longer misses run the AOT prefix and decode only the
+tail. Prefix hits are an optimization, never an admission requirement. Input
+plus generated tokens may not exceed 262,144. The native runtime now replaces
+the published v1.1 performance envelope; the Python implementation remains only
+as a compatibility and provenance reference. See
 [native/product-contract.json](native/product-contract.json).
 
 ## Runtime contract
@@ -84,7 +87,7 @@ Configure memory before loading the model:
 ## Quick start
 
 Download the archive and checksum from the
-[upstream v1.4.0 release](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.4.0),
+[upstream v1.4.1 release](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.4.1),
 then extract it anywhere:
 
 ```bash
@@ -118,7 +121,7 @@ curl -fsS http://127.0.0.1:8000/v1/chat/completions \
   -H 'Content-Type: application/json' \
   -d '{
     "model": "aima-amd395-qwen36-35b",
-    "messages": [{"role": "user", "content": "PROMPT_WITH_EXACT_ADMITTED_TOKEN_LENGTH"}],
+    "messages": [{"role": "user", "content": "Hello"}],
     "temperature": 0,
     "top_p": 1,
     "max_tokens": 512
@@ -132,7 +135,7 @@ curl -N http://127.0.0.1:8000/v1/chat/completions \
   -H 'Content-Type: application/json' \
   -d '{
     "model": "aima-amd395-qwen36-35b",
-    "messages": [{"role": "user", "content": "PROMPT_WITH_EXACT_ADMITTED_TOKEN_LENGTH"}],
+    "messages": [{"role": "user", "content": "Hello"}],
     "temperature": 0,
     "top_p": 1,
     "max_tokens": 512,
@@ -143,8 +146,8 @@ curl -N http://127.0.0.1:8000/v1/chat/completions \
 
 The same endpoint accepts OpenAI function `tools`, `tool_choice`,
 `parallel_tool_calls`, assistant tool-call history and tool responses. See
-[docs/API.md](docs/API.md) for request/response examples and the exact static
-context rule.
+[docs/API.md](docs/API.md) for request/response examples and variable-prompt
+execution details.
 
 Stop it with `Ctrl-C` / `SIGTERM`, or:
 
@@ -157,7 +160,7 @@ then `systemctl start|status|stop aima-engine` provides the lifecycle.
 
 ## Native CLI
 
-The published v1.4.0 CLI provides:
+The published v1.4.1 CLI provides:
 
 ```text
 aima-engine --build-info

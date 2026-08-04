@@ -18,6 +18,7 @@
 #include "aima/native_prefill_gemm_plans.h"
 #include "aima/native_prefill_invocation.h"
 #include "aima/native_prefill_workspace.h"
+#include "aima/native_prompt_plan.h"
 #include "aima/sha256.h"
 
 #include <hip/hip_runtime.h>
@@ -131,26 +132,30 @@ class NativeExactPrefixCache {
 
   std::uint64_t build(const NativeDecodeWorkspace& decode_workspace,
                       NativeFullAttentionState& attention_state,
-                      int device, std::size_t prompt_tokens) {
+                      int device, std::size_t max_cache_tokens) {
     if (allocation_ != nullptr) {
       throw std::runtime_error("native exact-prefix cache is already built");
     }
-    if (prompt_tokens == 0 || prompt_tokens > 262144) {
+    if (max_cache_tokens == 0 || max_cache_tokens > 262144) {
       throw std::invalid_argument(
           "native exact-prefix context is unsupported");
     }
     device_ = device;
-    prompt_tokens_ = prompt_tokens;
+    max_cache_tokens_ = max_cache_tokens;
     constexpr std::uint64_t kConvBytes =
         8192ULL * 3ULL * sizeof(std::uint16_t);
     constexpr std::uint64_t kRecurrentBytes =
         32ULL * 128ULL * 128ULL * sizeof(float);
     const std::uint64_t kKvBytes =
-        prompt_tokens_ * 2ULL * 256ULL * sizeof(std::uint16_t);
+        max_cache_tokens_ * 2ULL * 256ULL * sizeof(std::uint16_t);
+    constexpr std::uint64_t kKvBytesPerToken =
+        2ULL * 256ULL * sizeof(std::uint16_t);
     for (std::size_t layer = 0; layer < 40; ++layer) {
       if (layer % 4 == 3) {
-        add_slice(attention_state.k_cache(layer), kKvBytes);
-        add_slice(attention_state.v_cache(layer), kKvBytes);
+        add_slice(attention_state.k_cache(layer), kKvBytes,
+                  kKvBytesPerToken);
+        add_slice(attention_state.v_cache(layer), kKvBytes,
+                  kKvBytesPerToken);
       } else {
         const std::string index = std::to_string(layer);
         const NativeDecodeWorkspaceView* conv = decode_workspace.find(
@@ -164,8 +169,8 @@ class NativeExactPrefixCache {
           throw std::runtime_error(
               "native exact-prefix linear state geometry is incomplete");
         }
-        add_slice(conv->device_pointer, kConvBytes);
-        add_slice(recurrent->device_pointer, kRecurrentBytes);
+        add_slice(conv->device_pointer, kConvBytes, 0);
+        add_slice(recurrent->device_pointer, kRecurrentBytes, 0);
       }
     }
     terminal_offset_ = bytes_;
@@ -193,16 +198,23 @@ class NativeExactPrefixCache {
                         const void* terminal_hidden,
                         void* stream_value = nullptr) {
     if (allocation_ == nullptr || terminal_hidden == nullptr ||
-        tokens.size() != prompt_tokens_) {
+        tokens.empty() || tokens.size() > max_cache_tokens_) {
       throw std::invalid_argument(
           "native exact-prefix capture is incomplete");
     }
     hipStream_t stream = static_cast<hipStream_t>(stream_value);
     auto* destination = static_cast<unsigned char*>(allocation_);
+    std::uint64_t transfer_bytes = 0;
+    valid_ = false;
     for (const Slice& slice : slices_) {
+      const std::uint64_t copy_bytes = slice.bytes_per_token == 0
+                                           ? slice.capacity_bytes
+                                           : tokens.size() *
+                                                 slice.bytes_per_token;
       check_hip(hipMemcpyAsync(destination + slice.offset, slice.live,
-                               slice.bytes, hipMemcpyDeviceToDevice, stream),
+                               copy_bytes, hipMemcpyDeviceToDevice, stream),
                 "hipMemcpyAsync exact-prefix capture");
+      transfer_bytes += copy_bytes;
     }
     check_hip(hipMemcpyAsync(destination + terminal_offset_, terminal_hidden,
                              kHidden * sizeof(std::uint16_t),
@@ -212,7 +224,7 @@ class NativeExactPrefixCache {
               "hipStreamSynchronize exact-prefix capture");
     tokens_ = tokens;
     valid_ = true;
-    return bytes_;
+    return transfer_bytes + kHidden * sizeof(std::uint16_t);
   }
 
   std::uint64_t restore(void* stream_value = nullptr) const {
@@ -221,12 +233,18 @@ class NativeExactPrefixCache {
     }
     hipStream_t stream = static_cast<hipStream_t>(stream_value);
     const auto* source = static_cast<const unsigned char*>(allocation_);
+    std::uint64_t transfer_bytes = 0;
     for (const Slice& slice : slices_) {
+      const std::uint64_t copy_bytes = slice.bytes_per_token == 0
+                                           ? slice.capacity_bytes
+                                           : tokens_.size() *
+                                                 slice.bytes_per_token;
       check_hip(hipMemcpyAsync(slice.live, source + slice.offset,
-                               slice.bytes, hipMemcpyDeviceToDevice, stream),
+                               copy_bytes, hipMemcpyDeviceToDevice, stream),
                 "hipMemcpyAsync exact-prefix restore");
+      transfer_bytes += copy_bytes;
     }
-    return bytes_;
+    return transfer_bytes;
   }
 
   const void* terminal_hidden() const {
@@ -237,26 +255,70 @@ class NativeExactPrefixCache {
  private:
   struct Slice {
     void* live = nullptr;
-    std::uint64_t bytes = 0;
+    std::uint64_t capacity_bytes = 0;
+    std::uint64_t bytes_per_token = 0;
     std::uint64_t offset = 0;
   };
-  void add_slice(void* live, std::uint64_t bytes) {
-    if (live == nullptr || bytes == 0) {
+  void add_slice(void* live, std::uint64_t capacity_bytes,
+                 std::uint64_t bytes_per_token) {
+    if (live == nullptr || capacity_bytes == 0 ||
+        (bytes_per_token != 0 &&
+         capacity_bytes != max_cache_tokens_ * bytes_per_token)) {
       throw std::invalid_argument("native exact-prefix slice is invalid");
     }
-    slices_.push_back({live, bytes, bytes_});
-    bytes_ += bytes;
+    slices_.push_back(
+        {live, capacity_bytes, bytes_per_token, bytes_});
+    bytes_ += capacity_bytes;
   }
 
   int device_ = 0;
   void* allocation_ = nullptr;
   std::uint64_t bytes_ = 0;
   std::uint64_t terminal_offset_ = 0;
-  std::size_t prompt_tokens_ = 0;
+  std::size_t max_cache_tokens_ = 0;
   std::vector<Slice> slices_;
   std::vector<std::uint32_t> tokens_;
   bool valid_ = false;
 };
+
+std::size_t normalize_linear_decode_state(
+    NativeDecodeInvocations& invocations,
+    const NativeDecodeWorkspace& workspace, void* stream_value = nullptr) {
+  if (!invocations.linear_decode_state_buffers_swapped()) return 0;
+  hipStream_t stream = static_cast<hipStream_t>(stream_value);
+  for (std::size_t layer = 0; layer < 40; ++layer) {
+    if (layer % 4 == 3) continue;
+    const std::string index = std::to_string(layer);
+    const NativeDecodeWorkspaceView* canonical_conv = workspace.find(
+        "linear_attention_initial_conv_states." + index);
+    const NativeDecodeWorkspaceView* canonical_recurrent = workspace.find(
+        "linear_attention_initial_ssm_states_vllm." + index);
+    const std::size_t base = layer * 10;
+    void* current_conv = invocations.tensor_pointer(base + 1, "state_in");
+    void* current_recurrent = invocations.tensor_pointer(base + 2, "h0");
+    if (canonical_conv == nullptr || canonical_recurrent == nullptr ||
+        canonical_conv->device_pointer == nullptr ||
+        canonical_recurrent->device_pointer == nullptr ||
+        current_conv == nullptr || current_recurrent == nullptr) {
+      throw std::runtime_error(
+          "native linear state normalization bindings are incomplete");
+    }
+    if (current_conv != canonical_conv->device_pointer) {
+      check_hip(hipMemcpyAsync(canonical_conv->device_pointer, current_conv,
+                               canonical_conv->payload_bytes,
+                               hipMemcpyDeviceToDevice, stream),
+                "hipMemcpyAsync normalize linear conv state");
+    }
+    if (current_recurrent != canonical_recurrent->device_pointer) {
+      check_hip(hipMemcpyAsync(canonical_recurrent->device_pointer,
+                               current_recurrent,
+                               canonical_recurrent->payload_bytes,
+                               hipMemcpyDeviceToDevice, stream),
+                "hipMemcpyAsync normalize linear recurrent state");
+    }
+  }
+  return invocations.reset_linear_decode_state_buffers();
+}
 
 }  // namespace
 
@@ -424,7 +486,7 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
       impl_->attention_state.build(options.cache_capacity, impl_->device);
   const std::uint64_t prefix_cache_bytes = impl_->prefix_cache.build(
       impl_->decode_workspace, impl_->attention_state, impl_->device,
-      impl_->prompt_tokens);
+      options.cache_capacity);
 
   const auto plan_started = std::chrono::steady_clock::now();
   impl_->prefill_gemm_plans->prepare_all();
@@ -530,10 +592,10 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
 
 NativeResidentRequestMetrics NativeResidentEngine::run(
     const NativeResidentRequestOptions& request) {
-  if (!impl_->ready || request.input_token_ids.empty() ||
-      request.max_new_tokens == 0 ||
-      request.input_token_ids.size() + request.max_new_tokens - 1 >
-          impl_->attention_state.cache_capacity()) {
+  if (!impl_->ready ||
+      !native_request_fits_capacity(
+          request.input_token_ids.size(), request.max_new_tokens,
+          impl_->attention_state.cache_capacity())) {
     throw std::invalid_argument(
         "native resident request context or output length is not admitted");
   }
@@ -554,20 +616,20 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
           ? 0
           : impl_->prefix_cache.matched_prefix_tokens(
                 request.input_token_ids);
-  const bool prefix_hit = matched_prefix_tokens != 0;
-  const bool exact_prefix_hit =
-      prefix_hit && matched_prefix_tokens == request.input_token_ids.size();
-  const bool prefix_extension_hit =
-      prefix_hit && matched_prefix_tokens < request.input_token_ids.size();
-  if (request.input_token_ids.size() != impl_->prompt_tokens &&
-      !prefix_extension_hit) {
-    throw std::invalid_argument(
-        "native resident cold prefill requires the static context; a longer "
-        "prompt must extend the cached static prefix");
-  }
+  const NativePromptExecutionPlan prompt_plan =
+      plan_native_prompt_execution(request.input_token_ids.size(),
+                                   matched_prefix_tokens,
+                                   impl_->prompt_tokens);
+  const bool prefix_hit = prompt_plan.prefix_hit;
+  const bool exact_prefix_hit = prompt_plan.exact_prefix_hit;
+  const bool prefix_extension_hit = prompt_plan.prefix_extension_hit;
+  const std::size_t cold_aot_tokens = prompt_plan.cold_aot_tokens;
+  const std::size_t prompt_decode_start = prompt_plan.prompt_decode_start;
+  const bool prompt_decode_required =
+      prompt_plan.prompt_decode_required(request.input_token_ids.size());
   const bool chunked_prefill =
       impl_->prefill_tokens != impl_->prompt_tokens;
-  if (chunked_prefill &&
+  if (chunked_prefill && cold_aot_tokens != 0 &&
       (!request.layer_tail_oracle_dir.empty() ||
        !request.layer_sequence_oracle_dir.empty())) {
     throw std::invalid_argument(
@@ -581,6 +643,13 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
   metrics.oracle_tensor_reads = 0;
   metrics.state_orientation_resets =
       impl_->decode_invocations.reset_linear_decode_state_buffers();
+  metrics.request_state_reset_bytes =
+      impl_->attention_state.clear_request_scratch();
+  if (!prefix_hit && cold_aot_tokens == 0) {
+    metrics.request_state_reset_bytes += impl_->decode_workspace.clear();
+  }
+  metrics.prompt_execution =
+      native_prompt_execution_mode_name(prompt_plan.mode);
   std::array<bool, 40> request_secondary_fmha_layers =
       impl_->secondary_fmha_layers;
   if (request.secondary_fmha_layers_override_provided) {
@@ -595,7 +664,8 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
     }
   }
   const auto request_started = std::chrono::steady_clock::now();
-  const bool timeline_enabled = prefill_timeline_enabled() && !prefix_hit;
+  const bool timeline_enabled =
+      prefill_timeline_enabled() && !prefix_hit && cold_aot_tokens != 0;
   std::vector<double> attention_wall_ms;
   std::vector<double> moe_wall_ms;
   double embedding_wall_ms = 0.0;
@@ -620,9 +690,10 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
     metrics.prefix_cache_lookup =
         request.disable_prefix_cache ? "disabled" : "miss";
     metrics.prefix_cache_matched_tokens = 0;
-    metrics.prefix_cache_suffix_tokens = impl_->prompt_tokens;
+    metrics.prefix_cache_suffix_tokens = request.input_token_ids.size();
     if (!request.disable_prefix_cache) ++impl_->prefix_cache_misses;
 
+    if (cold_aot_tokens != 0) {
     const NativeTensorView* embedding =
         impl_->weights.find("model.language_model.embed_tokens.weight");
     const NativePrefillWorkspaceView* token_ids =
@@ -905,31 +976,50 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
     last_hidden = terminal_bytes +
                   (impl_->prompt_tokens - 1) * kHidden *
                       sizeof(std::uint16_t);
+    }
   }
   std::uint32_t first_token_id = 0;
-  if (prefix_extension_hit) {
-    NativeDecodeRunMetrics suffix_last;
-    const auto suffix_started = std::chrono::steady_clock::now();
-    for (std::size_t token_index = matched_prefix_tokens;
+  const void* prompt_terminal_hidden = last_hidden;
+  if (prompt_decode_required) {
+    NativeDecodeRunMetrics prompt_last;
+    const auto prompt_decode_started = std::chrono::steady_clock::now();
+    for (std::size_t token_index = prompt_decode_start;
          token_index < request.input_token_ids.size(); ++token_index) {
       (void)prepare_native_decode_step(
           token_index, request.input_token_ids[token_index], impl_->weights,
           impl_->decode_invocations);
-      suffix_last = run_native_decode_token(
+      prompt_last = run_native_decode_token(
           token_index, token_index + 1, impl_->weights, impl_->lm_head,
           impl_->decode_workspace, impl_->decode_invocations,
           impl_->executor, impl_->attention_state, impl_->cu_count);
-      ++metrics.prefix_cache_suffix_decode_tokens;
-      metrics.prefix_cache_suffix_aot_launches += suffix_last.aot_launches;
-      metrics.prefix_cache_suffix_native_launches +=
-          suffix_last.native_attention_launches +
-          suffix_last.native_projection_launches +
-          suffix_last.native_pointwise_launches +
-          suffix_last.native_lm_head_certificate_launches + 2;
+      const std::size_t native_launches =
+          prompt_last.native_attention_launches +
+          prompt_last.native_projection_launches +
+          prompt_last.native_pointwise_launches +
+          prompt_last.native_lm_head_certificate_launches + 2;
+      if (prefix_extension_hit) {
+        ++metrics.prefix_cache_suffix_decode_tokens;
+        metrics.prefix_cache_suffix_aot_launches +=
+            prompt_last.aot_launches;
+        metrics.prefix_cache_suffix_native_launches += native_launches;
+      } else {
+        ++metrics.cold_prompt_decode_tokens;
+        metrics.cold_prompt_decode_aot_launches +=
+            prompt_last.aot_launches;
+        metrics.cold_prompt_decode_native_launches += native_launches;
+      }
     }
-    metrics.prefix_cache_suffix_wall_ms = elapsed_ms(suffix_started);
-    metrics.first_token_certified = suffix_last.lm_head_certified;
-    first_token_id = suffix_last.top1_token_id;
+    const double prompt_decode_wall_ms =
+        elapsed_ms(prompt_decode_started);
+    if (prefix_extension_hit) {
+      metrics.prefix_cache_suffix_wall_ms = prompt_decode_wall_ms;
+    } else {
+      metrics.cold_prompt_decode_wall_ms = prompt_decode_wall_ms;
+    }
+    metrics.first_token_certified = prompt_last.lm_head_certified;
+    first_token_id = prompt_last.top1_token_id;
+    prompt_terminal_hidden =
+        impl_->decode_invocations.tensor_pointer(400, "x");
   } else {
     const auto first_token_started = std::chrono::steady_clock::now();
     const NativeLmHeadTop1Metrics first = run_native_lm_head_top1(
@@ -943,6 +1033,14 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
                 "hipDeviceSynchronize after first-token LM head");
       first_token_wall_ms = elapsed_ms(first_token_started);
     }
+  }
+  if (!request.disable_prefix_cache && !exact_prefix_hit) {
+    if (prompt_decode_required) {
+      metrics.state_orientation_resets += normalize_linear_decode_state(
+          impl_->decode_invocations, impl_->decode_workspace);
+    }
+    metrics.prefix_cache_transfer_bytes += impl_->prefix_cache.capture(
+        request.input_token_ids, prompt_terminal_hidden);
   }
   metrics.output_token_ids.push_back(first_token_id);
   metrics.prefill_wall_ms = elapsed_ms(request_started);
@@ -986,10 +1084,6 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
       std::cerr << moe_wall_ms[index];
     }
     std::cerr << "]}\n";
-  }
-  if (!prefix_hit && !request.disable_prefix_cache) {
-    metrics.prefix_cache_transfer_bytes = impl_->prefix_cache.capture(
-        request.input_token_ids, last_hidden);
   }
   metrics.prefix_cache_hits = impl_->prefix_cache_hits;
   metrics.prefix_cache_misses = impl_->prefix_cache_misses;

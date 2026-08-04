@@ -1,6 +1,6 @@
 # Install the portable native runtime
 
-This page documents the v1.4.0 portable package. Earlier archives do not
+This page documents the v1.4.1 portable package. Earlier archives do not
 contain the deployment doctor, bearer authentication, socket timeouts or the
 hardened systemd template; use the documentation bundled with the version you
 deploy.
@@ -172,10 +172,13 @@ curl -fsS http://127.0.0.1:8000/v1/models \
   -H "Authorization: Bearer ${API_KEY}"
 ```
 
-The current native route is exact-length specialized. A cold chat prompt must
-encode to precisely the selected context after the Qwen chat template is
-applied. A shorter prompt returns HTTP 400. A longer prompt is admitted only if
-its token sequence extends the one cached static prefix.
+The selected context is the preferred AOT prefill specialization, not a
+mandatory request length. Any positive chat prompt is admitted when prompt plus
+requested output fits the configured cache capacity. A cache miss starts from
+empty resident state: prompts below the specialization use the token path;
+prompts at or above it use AOT prefill for the specialized prefix and the token
+path for any tail. Exact and append cache hits reduce latency but do not affect
+correctness or admission.
 
 Use the native tokenizer probes when preparing deterministic fixtures:
 

@@ -11,6 +11,7 @@ from aima_engine.release_evidence import verify_release_evidence
 
 ROOT = Path(__file__).resolve().parents[1]
 PRODUCT_CONTRACT = ROOT / "native/product-contract.json"
+PRODUCT_CONTRACT_V141 = ROOT / "native/product-contract-v1.4.1.json"
 PRODUCT_CONTRACT_V140 = ROOT / "native/product-contract-v1.4.0.json"
 PRODUCT_CONTRACT_V130 = ROOT / "native/product-contract-v1.3.0.json"
 NATIVE_RESULT = ROOT / "benchmarks/results/native-foundation-v0.1.0.json"
@@ -60,6 +61,7 @@ class NativeRuntimeContractTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.contract = load_json(PRODUCT_CONTRACT)
+        cls.contract_v141 = load_json(PRODUCT_CONTRACT_V141)
         cls.contract_v140 = load_json(PRODUCT_CONTRACT_V140)
         cls.contract_v130 = load_json(PRODUCT_CONTRACT_V130)
         cls.inference_baseline = load_json(ROOT / "benchmarks/results/v1.0.0.json")
@@ -90,8 +92,8 @@ class NativeRuntimeContractTest(unittest.TestCase):
     def test_product_contract_is_bound_to_qualified_evidence(self) -> None:
         model = self.contract["model"]
         gates = self.contract["promotion_gates"]
-        self.assertEqual(self.contract, self.contract_v140)
-        self.assertEqual(self.contract["release"], "1.4.0")
+        self.assertEqual(self.contract, self.contract_v141)
+        self.assertEqual(self.contract["release"], "1.4.1")
         self.assertEqual(
             self.contract["status"],
             "qualification_bound_portable_native_full_envelope",
@@ -132,6 +134,20 @@ class NativeRuntimeContractTest(unittest.TestCase):
         self.assertTrue(profile["automatic_provider_selection"])
         self.assertTrue(profile["legacy_full_context_envelope_replaced"])
         self.assertEqual(profile["qualification"], "share/aima/qualification.json")
+        self.assertIn("every positive prompt", profile["variable_length_prompts"])
+        openai = gates["openai_features"]
+        self.assertTrue(openai["variable_length_cold_prompt_required"])
+        self.assertTrue(openai["ordinary_multi_turn_cache_miss_required"])
+        self.assertTrue(openai["post_long_short_request_isolation_required"])
+
+    def test_v141_contract_is_bound_at_package_time(self) -> None:
+        contract = self.contract_v141
+        self.assertEqual(contract["release"], "1.4.1")
+        self.assertTrue(contract["artifact_integrity"]["qualification_required"])
+        self.assertTrue(contract["artifact_integrity"]["clean_source_required"])
+        self.assertTrue(
+            contract["artifact_integrity"]["embedded_source_commit_must_match"]
+        )
 
     def test_v140_contract_is_bound_at_package_time(self) -> None:
         contract = self.contract_v140
@@ -454,6 +470,27 @@ class NativeRuntimeContractTest(unittest.TestCase):
         ):
             self.assertIn(option, server)
         self.assertLess(server.index("::bind("), server.index("engine.load("))
+
+    def test_variable_prompt_fallback_is_part_of_the_native_contract(self) -> None:
+        server = (ROOT / "native/src/native_http_server.cpp").read_text(
+            encoding="utf-8"
+        )
+        resident = (
+            ROOT / "native/src/native_resident_engine.hip.cpp"
+        ).read_text(encoding="utf-8")
+        planner = (ROOT / "native/include/aima/native_prompt_plan.h").read_text(
+            encoding="utf-8"
+        )
+        qualification = (
+            ROOT / "scripts/qualify-native-openai-features.py"
+        ).read_text(encoding="utf-8")
+        self.assertNotIn("requires a cold prompt of", server)
+        self.assertNotIn("cold prefill requires the static context", resident)
+        self.assertIn("plan_native_prompt_execution", resident)
+        self.assertIn("cold-decode-fallback", planner)
+        self.assertIn("cold-aot-plus-decode", planner)
+        self.assertIn("clear_request_scratch", resident)
+        self.assertIn("ordinary_turn_pass", qualification)
 
     def test_native_weight_foundation_has_target_measurement(self) -> None:
         self.assertTrue(self.result["complete"])

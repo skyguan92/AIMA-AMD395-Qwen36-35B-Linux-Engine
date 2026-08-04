@@ -1,5 +1,23 @@
 # Release provenance and procedure
 
+## v1.4.1 boundary
+
+The personal upstream owns the immutable `v1.4.1` patch tag and release
+assets; the Approaching AI repository mirrors the product commit and remains
+the public issue surface. This release removes the exact-static-length request
+admission restriction without weakening the existing correctness gate. Every
+positive prompt that fits the configured cache capacity is accepted, ordinary
+multi-turn cache misses restart from clean resident state, and exact/append
+prefix hits remain latency optimizations.
+
+The fast published AOT contexts and provider policies are unchanged. A cold
+prompt shorter than the selected specialization, or a tail beyond it, uses the
+qualified token path and therefore runs at decode rather than AOT-prefill
+throughput for that portion. Release qualification reruns the complete
+19-cell performance matrix, nine-context full-vocabulary correctness gate,
+startup/prefix/HTTP surfaces, variable-prompt isolation, SSE, tools and
+portable-bundle isolation against the exact tagged binary.
+
 ## v1.4.0 boundary
 
 The personal upstream owns the immutable `v1.4.0` tag and release assets; the

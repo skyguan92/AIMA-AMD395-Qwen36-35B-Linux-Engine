@@ -47,6 +47,11 @@ class NativeDecodeWorkspace {
   const NativeDecodeWorkspaceView* find(std::string_view name) const;
   const std::vector<NativeDecodeWorkspaceView>& views() const { return views_; }
   bool built() const { return allocation_ != nullptr; }
+  // Restore the empty recurrent/conv state used when an unrelated prompt has
+  // no admitted AOT prefill prefix.  The allocation also contains transient
+  // tensors, so clearing it is both simpler and safer than maintaining a
+  // second per-binding reset list.
+  std::uint64_t clear(void* stream = nullptr);
   void reset() noexcept;
 
  private:

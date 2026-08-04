@@ -2,21 +2,21 @@
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![CI](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/actions/workflows/ci.yml/badge.svg)](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/release-v1.4.0-green.svg)](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.4.0)
+[![Release](https://img.shields.io/badge/release-v1.4.1-green.svg)](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.4.1)
 [![Hardware](https://img.shields.io/badge/GPU-gfx1151-orange.svg)](docs/INSTALL.md)
 
 这是一个面向 AMD Ryzen AI Max+ 395 / Radeon 8060S 的 batch-1
 `Qwen3.6-35B-A3B-BF16` 专用推理引擎。
 
-v1.4 提供真正的 SSE 流式输出与 OpenAI function tools，同时保持可搬移原生
+v1.4.1 提供真正的 SSE 流式输出与 OpenAI function tools，同时保持可搬移原生
 运行包：运行时不加载 Python、PyTorch、vLLM、
 Triton、Transformers，也不依赖宿主机安装 ROCm userspace。发布包内含静态
 启动器、原生引擎、固定版本的 ROCm/AOTriton/CK 动态库、glibc loader、许可证
 和资格验证记录。模型权重不随项目分发。
 
 > **版本边界：**v1.4.0 新增 `doctor`、`--build-info`、bearer 鉴权、socket
-> 超时和加固后的 systemd 模板。更早的运行包不包含这些控制项，请以所部署
-> 版本随包文档为准。
+> 超时和加固后的 systemd 模板；v1.4.1 新增变长 cold prompt 与普通多轮
+> cache miss 回退。更早版本仍遵循其文档中的固定上下文限制。
 
 English: [README.md](README.md)
 
@@ -52,10 +52,12 @@ Python 包元数据和引用文件使用同一个、可由 GitHub 识别的个�
 | 261,632 | 512 | 最大窗口端点已验证 |
 | 261,120 | 1,024 | 最大窗口端点已验证 |
 
-HTTP cold prompt 经 chat template 编码后必须正好等于所选固定上下文。只有当更长
-请求严格延续已缓存 token 前缀时，才会走 prefix extension。输入与输出总长度不得
-超过 262,144 token。原生版本现已替代 v1.1 的公开性能矩阵；Python 版本仅保留为
-兼容与来源参考。机器可读边界见
+HTTP prompt 可以是任意正 token 长度，只要 prompt 与请求输出总和不超过配置的
+cache capacity。所选上下文是高性能 AOT prefill 专用长度：较短 cache miss 使用
+正确的常驻逐 token 回退，较长 miss 先执行 AOT 前缀，再只逐 token 执行尾部。
+Prefix hit 只影响时延，不再决定请求能否执行。绝对窗口上限仍为 262,144 token。
+原生版本现已替代 v1.1 的公开性能矩阵；Python 版本仅保留为兼容与来源参考。
+机器可读边界见
 [native/product-contract.json](native/product-contract.json)。
 
 ## 运行环境
@@ -76,7 +78,7 @@ HTTP cold prompt 经 chat template 编码后必须正好等于所选固定上下
 
 ## 快速启动
 
-先从[个人上游 v1.4.0 Release](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.4.0)
+先从[个人上游 v1.4.1 Release](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.4.1)
 下载运行包与校验文件：
 
 ```bash
@@ -109,7 +111,7 @@ curl -fsS http://127.0.0.1:8000/v1/chat/completions \
   -H 'Content-Type: application/json' \
   -d '{
     "model": "aima-amd395-qwen36-35b",
-    "messages": [{"role": "user", "content": "编码后长度正好命中所选固定上下文的提示词"}],
+    "messages": [{"role": "user", "content": "你好"}],
     "temperature": 0,
     "top_p": 1,
     "max_tokens": 512
@@ -123,7 +125,7 @@ curl -N http://127.0.0.1:8000/v1/chat/completions \
   -H 'Content-Type: application/json' \
   -d '{
     "model": "aima-amd395-qwen36-35b",
-    "messages": [{"role": "user", "content": "编码后长度正好命中固定上下文的提示词"}],
+    "messages": [{"role": "user", "content": "你好"}],
     "temperature": 0,
     "top_p": 1,
     "max_tokens": 512,
@@ -134,7 +136,7 @@ curl -N http://127.0.0.1:8000/v1/chat/completions \
 
 同一接口也支持 OpenAI function `tools`、`tool_choice`、
 `parallel_tool_calls`、assistant 工具调用历史以及 tool 响应。完整请求与返回示例、
-静态上下文计数规则见 [docs/API.md](docs/API.md)。
+变长 prompt 执行规则见 [docs/API.md](docs/API.md)。
 
 前台运行时可用 `Ctrl-C` 或 `SIGTERM` 关闭，也可以：
 
@@ -147,7 +149,7 @@ curl -fsS -X POST http://127.0.0.1:8000/shutdown
 
 ## 原生 CLI
 
-已发布的 v1.4.0 CLI 提供：
+已发布的 v1.4.1 CLI 提供：
 
 ```text
 aima-engine --build-info
