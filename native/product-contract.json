@@ -1,6 +1,7 @@
 {
-  "schema": "aima-amd395-qwen36/native-product-contract/v1",
-  "status": "qualified_native_full_envelope",
+  "schema": "aima-amd395-qwen36/native-product-contract/v2",
+  "release": "1.4.0",
+  "status": "qualification_bound_portable_native_full_envelope",
   "target": {
     "artifact": "one relocatable archive containing a static launcher, native engine and complete pinned userspace bundle",
     "executable": "bin/aima-engine",
@@ -35,6 +36,7 @@
   "qualified_baseline": {
     "inference_results": "benchmarks/results/v1.0.0.json",
     "direct_startup_results": "benchmarks/results/v1.1.0.json",
+    "v1_3_native_results": "benchmarks/results/native-portable-product-v1.3.0.json",
     "engine_sha256": "79b5f070a30176af2a7a87a473fe578a15abd5177fb39b2ab9e188f66572fe0e"
   },
   "qualified_native_profile": {
@@ -45,16 +47,21 @@
       {"input_tokens": 261632, "output_tokens": 512},
       {"input_tokens": 261120, "output_tokens": 1024}
     ],
-    "result": "benchmarks/results/native-portable-product-v1.3.0.json",
-    "native_engine_sha256": "7b8ae090a80b90a066c39539313ebed92c899d370fc2ccf7021cda03cec0a81d",
-    "static_launcher_sha256": "7d945e0306299b4878b33b26f82d9b2d5c463bdca2422019e986abe1edd8e960",
-    "aotriton_provider_sha256": "8f42d7b17a778168a1bb66b34eff282e13955541ededfa838355ffbc176b43a5",
-    "ck_provider_sha256": "77f6f6429ed7ef2e34a33372f6096a6d62957ba46f1866e7f40c39da9add25b4",
-    "q16384_hybrid_provider_sha256": "ab48a7d605d92aaaf9dc17a10f217538e57974f0fdce9f06ddc5536cae601858",
+    "qualification": "share/aima/qualification.json",
+    "component_integrity": "the packager requires the qualification release, tag, clean release commit and embedded native source commit plus the exact SHA-256 and byte size of all seven executable/provider inputs",
     "automatic_provider_selection": true,
     "legacy_full_context_envelope_replaced": true,
     "http_streaming": "live HTTP/1.1 chunked SSE with token-callback delivery, optional usage and disconnect cancellation",
-    "function_tools": "OpenAI tools, tool_choice, parallel_tool_calls, assistant/tool history and schema-aware Qwen call parsing"
+    "function_tools": "OpenAI tools, tool_choice, parallel_tool_calls, assistant/tool history and schema-aware Qwen call parsing",
+    "deployment_hardening": "no-load doctor, permission-checked bearer key, fail-closed remote bind, bounded request I/O, optional HTTP shutdown removal and native systemd readiness"
+  },
+  "artifact_integrity": {
+    "qualification_required": true,
+    "clean_source_required": true,
+    "embedded_source_commit_must_match": true,
+    "recursive_bundle_manifest": "manifest.json",
+    "checksum_sidecar_required": true,
+    "immutable_release_tag_required": true
   },
   "promotion_gates": {
     "measurement": {
@@ -98,12 +105,12 @@
   "migration_state": {
     "native_weight_ownership": "implemented_qualified_and_target_measured",
     "native_tokenizer_and_chat_template": "implemented_and_reference_parity_85_plain_cases_plus_byte_exact_qwen_tool_and_history_fixtures",
-    "native_http_and_cli": "resident_http_health_models_chat_live_sse_function_tools_disconnect_cancellation_shutdown_and_foreground_cli_qualified",
+    "native_http_and_cli": "resident_http_health_models_chat_live_sse_function_tools_disconnect_cancellation_bearer_auth_shutdown_and_foreground_cli_qualified",
     "aot_triton_provider_replacement": "embedded_decode_prefill_closure_plus_bundled_aotriton_ck_and_q16384_hybrid_providers_qualified_for_full_envelope",
     "native_decode_executor": "complete_402_launch_resident_decode_loop_plus_long_context_split_softmax_qualified_for_full_envelope",
     "native_vllm_fla_and_moe_replacement": "native_resident_decode_paths_qualified_without_vllm_runtime",
     "native_torch_tensor_and_dispatch_replacement": "native_weight_ownership_prefill_decode_and_lm_head_qualified_without_torch_runtime",
     "rocm_userspace_bundle": "complete_relocatable_gnu_rocm_aotriton_elf_closure_qualified",
-    "full_product_requalification": "all_19_published_matrix_cells_correctness_startup_prefix_cache_http_streaming_function_tools_and_portable_runtime gates passed; legacy_long_context_envelope_replaced"
+    "full_product_requalification": "required for the exact v1.4.0 native source commit and package inputs before tag publication; a later release-only packaging or documentation commit is tracked separately"
   }
 }

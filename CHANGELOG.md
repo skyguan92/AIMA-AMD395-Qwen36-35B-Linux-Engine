@@ -5,6 +5,10 @@ Versioning.
 
 ## Unreleased
 
+- Made the v1.4 qualification, product contract, raw reports and evidence
+  verifier the repository defaults while retaining v1.3 as a versioned
+  historical record.
+
 ## 1.4.0 - 2026-08-03
 
 - Added a native, no-model-load `doctor` command for host, KFD/render, HIP

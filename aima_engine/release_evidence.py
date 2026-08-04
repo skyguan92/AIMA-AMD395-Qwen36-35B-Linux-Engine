@@ -1,4 +1,4 @@
-"""Verification helpers for the public v1.3 qualification evidence."""
+"""Verification helpers for published native qualification evidence."""
 
 from __future__ import annotations
 
@@ -8,25 +8,32 @@ from pathlib import Path
 from typing import Any
 
 
-PUBLIC_RESULT = Path("benchmarks/results/native-portable-product-v1.3.0.json")
-BUNDLE_RESULT = Path("benchmarks/results/native-portable-bundle-v1.3.0.json")
-PROVENANCE_RESULT = Path(
-    "benchmarks/results/native-release-provenance-v1.3.0.json"
-)
-EVIDENCE_SUMMARIES = {
-    "matrix": Path("benchmarks/runs/native-full-matrix-20260723-v130/matrix.json"),
-    "correctness": Path(
-        "benchmarks/runs/native-correctness-20260723-v130/correctness.json"
-    ),
-    "surfaces": Path(
-        "benchmarks/runs/native-product-surfaces-20260723-v130/surfaces.json"
-    ),
-    "openai_features": Path(
-        "benchmarks/runs/native-openai-features-20260723-v130/features.json"
-    ),
-    "portable_bundle": Path(
-        "benchmarks/runs/native-portable-bundle-20260723-v130/bundle.json"
-    ),
+DEFAULT_RELEASE = "1.4.0"
+RELEASE_RECORDS: dict[str, dict[str, Path]] = {
+    "1.4.0": {
+        "product_result": Path(
+            "benchmarks/results/native-portable-product-v1.4.0.json"
+        ),
+        "bundle_result": Path(
+            "benchmarks/results/native-portable-bundle-v1.4.0.json"
+        ),
+        "provenance": Path(
+            "benchmarks/results/native-release-provenance-v1.4.0.json"
+        ),
+        "product_contract": Path("native/product-contract-v1.4.0.json"),
+    },
+    "1.3.0": {
+        "product_result": Path(
+            "benchmarks/results/native-portable-product-v1.3.0.json"
+        ),
+        "bundle_result": Path(
+            "benchmarks/results/native-portable-bundle-v1.3.0.json"
+        ),
+        "provenance": Path(
+            "benchmarks/results/native-release-provenance-v1.3.0.json"
+        ),
+        "product_contract": Path("native/product-contract-v1.3.0.json"),
+    },
 }
 
 
@@ -41,9 +48,7 @@ def sha256(path: Path) -> str:
 def evidence_tree(path: Path) -> dict[str, Any]:
     digest = hashlib.sha256()
     total_bytes = 0
-    files = sorted(
-        candidate for candidate in path.rglob("*") if candidate.is_file()
-    )
+    files = sorted(candidate for candidate in path.rglob("*") if candidate.is_file())
     for candidate in files:
         total_bytes += candidate.stat().st_size
         line = f"{sha256(candidate)}  {candidate.relative_to(path).as_posix()}\n"
@@ -63,10 +68,20 @@ def _load(path: Path) -> dict[str, Any]:
     return value
 
 
-def _resolve_recorded_path(root: Path, owner: Path, value: str) -> Path | None:
+def _public_mirror_path(value: str) -> Path | None:
     marker = "benchmarks/runs/"
     if marker in value:
-        return root / marker / value.split(marker, 1)[1]
+        return Path(marker + value.split(marker, 1)[1])
+    for prefix in ("${AIMA_REPO_ROOT}/output/", "output/"):
+        if value.startswith(prefix):
+            return Path("benchmarks/runs") / value.removeprefix(prefix)
+    return None
+
+
+def _resolve_recorded_path(root: Path, owner: Path, value: str) -> Path | None:
+    mirrored = _public_mirror_path(value)
+    if mirrored is not None:
+        return root / mirrored
     if value.startswith("raw/"):
         return owner.parent / value
     if value.startswith("${AIMA_OUTPUT_DIR}/"):
@@ -100,7 +115,11 @@ def _verify_recorded_artifacts(root: Path, owner: Path, value: Any) -> list[str]
             paths = [paths]
         if isinstance(digests, str):
             digests = [digests]
-        if not isinstance(paths, list) or not isinstance(digests, list) or len(paths) != len(digests):
+        if (
+            not isinstance(paths, list)
+            or not isinstance(digests, list)
+            or len(paths) != len(digests)
+        ):
             errors.append(f"{owner}: malformed {path_key}/{digest_key} pair")
             continue
         for recorded_path, expected in zip(paths, digests, strict=True):
@@ -119,71 +138,133 @@ def _verify_recorded_artifacts(root: Path, owner: Path, value: Any) -> list[str]
     return errors
 
 
-def verify_release_evidence(root: Path) -> list[str]:
+def _release_record(release: str) -> dict[str, Path] | None:
+    return RELEASE_RECORDS.get(release)
+
+
+def verify_release_evidence(
+    root: Path, release: str = DEFAULT_RELEASE
+) -> list[str]:
     root = root.resolve()
-    public_result = _load(root / PUBLIC_RESULT)
-    provenance = _load(root / PROVENANCE_RESULT)
+    release_record = _release_record(release)
+    if release_record is None:
+        return [f"unsupported release evidence: {release}"]
+
+    public_result = _load(root / release_record["product_result"])
+    bundle_result = _load(root / release_record["bundle_result"])
+    provenance = _load(root / release_record["provenance"])
     errors: list[str] = []
 
-    for record in provenance["immutable_records"].values():
-        path = root / record["path"]
-        if not path.is_file():
-            errors.append(f"missing immutable release record: {record['path']}")
-        elif sha256(path) != record["sha256"]:
-            errors.append(f"immutable release record changed: {record['path']}")
+    for label, value in (
+        ("product result", public_result),
+        ("portable bundle result", bundle_result),
+        ("release provenance", provenance),
+    ):
+        if value.get("release") != release:
+            errors.append(f"{label} release mismatch")
+        if value.get("complete") is not True:
+            errors.append(f"{label} is incomplete")
+    if public_result.get("qualified") is not True:
+        errors.append("product result is not qualified")
+    if bundle_result.get("qualified") is not True:
+        errors.append("portable bundle result is not qualified")
+
+    expected_immutable = {
+        "product_result": release_record["product_result"],
+        "portable_bundle_result": release_record["bundle_result"],
+        "product_contract": release_record["product_contract"],
+    }
+    immutable_records = provenance.get("immutable_records")
+    if not isinstance(immutable_records, dict):
+        errors.append("immutable release records are missing")
+    else:
+        for key, expected_path in expected_immutable.items():
+            record = immutable_records.get(key)
+            if not isinstance(record, dict):
+                errors.append(f"immutable release record is missing: {key}")
+                continue
+            if record.get("path") != expected_path.as_posix():
+                errors.append(f"immutable release record path mismatch: {key}")
+                continue
+            path = root / expected_path
+            if not path.is_file():
+                errors.append(f"missing immutable release record: {expected_path}")
+            elif sha256(path) != record.get("sha256"):
+                errors.append(f"immutable release record changed: {expected_path}")
+
+    public_evidence = provenance.get("public_evidence")
+    expected_keys = {"matrix", "correctness", "surfaces", "openai_features", "portable_bundle"}
+    if not isinstance(public_evidence, dict) or set(public_evidence) != expected_keys:
+        errors.append("public evidence records are missing or incomplete")
+        public_evidence = {}
 
     for key in ("matrix", "correctness", "surfaces", "openai_features"):
-        path = root / EVIDENCE_SUMMARIES[key]
-        record = public_result["evidence"][key]
-        provenance_record = provenance["public_evidence"][key]
-        if record["path"] != EVIDENCE_SUMMARIES[key].as_posix():
+        provenance_record = public_evidence.get(key)
+        result_record = public_result.get("evidence", {}).get(key)
+        if not isinstance(provenance_record, dict) or not isinstance(result_record, dict):
+            errors.append(f"public evidence record is missing: {key}")
+            continue
+        recorded_path = result_record.get("path")
+        mirrored = (
+            _public_mirror_path(recorded_path)
+            if isinstance(recorded_path, str)
+            else None
+        )
+        if mirrored is None or mirrored.as_posix() != provenance_record.get("path"):
             errors.append(f"public result path mismatch: {key}")
-        if provenance_record != record:
+        if result_record.get("sha256") != provenance_record.get("sha256"):
             errors.append(f"provenance evidence mismatch: {key}")
+        path = root / str(provenance_record.get("path", ""))
         if not path.is_file():
-            errors.append(f"missing evidence summary: {EVIDENCE_SUMMARIES[key]}")
-        elif sha256(path) != record["sha256"]:
+            errors.append(f"missing evidence summary: {provenance_record.get('path')}")
+        elif sha256(path) != provenance_record.get("sha256"):
             errors.append(f"evidence summary hash mismatch: {key}")
 
-    bundle_record = provenance["public_evidence"]["portable_bundle"]
-    bundle_summary = root / EVIDENCE_SUMMARIES["portable_bundle"]
-    if bundle_record.get("path") != EVIDENCE_SUMMARIES["portable_bundle"].as_posix():
-        errors.append("portable bundle evidence path mismatch")
-    if not bundle_summary.is_file():
-        errors.append(f"missing evidence summary: {EVIDENCE_SUMMARIES['portable_bundle']}")
-    elif sha256(bundle_summary) != bundle_record.get("sha256"):
-        errors.append("portable bundle evidence hash mismatch")
+    bundle_record = public_evidence.get("portable_bundle")
+    if not isinstance(bundle_record, dict):
+        errors.append("portable bundle evidence record is missing")
+    else:
+        bundle_summary = root / str(bundle_record.get("path", ""))
+        if not bundle_summary.is_file():
+            errors.append(f"missing evidence summary: {bundle_record.get('path')}")
+        elif sha256(bundle_summary) != bundle_record.get("sha256"):
+            errors.append("portable bundle evidence hash mismatch")
 
-    for relative in EVIDENCE_SUMMARIES.values():
-        path = root / relative
+    for record in public_evidence.values():
+        if not isinstance(record, dict) or not isinstance(record.get("path"), str):
+            continue
+        path = root / record["path"]
         if path.is_file():
             errors.extend(_verify_recorded_artifacts(root, path, _load(path)))
         directory = path.parent
         if directory.is_dir():
             for raw_json in sorted(directory.rglob("*.json")):
                 errors.extend(_verify_recorded_artifacts(root, raw_json, _load(raw_json)))
+
     tree_records = provenance.get("public_evidence_trees")
-    if not isinstance(tree_records, dict):
-        errors.append("public evidence tree records are missing")
+    if not isinstance(tree_records, dict) or set(tree_records) != expected_keys:
+        errors.append("public evidence tree records are missing or incomplete")
     else:
-        if set(tree_records) != set(EVIDENCE_SUMMARIES):
-            errors.append("public evidence tree record keys mismatch")
-        for key, summary in EVIDENCE_SUMMARIES.items():
-            directory = root / summary.parent
+        for key, record in public_evidence.items():
+            if not isinstance(record, dict) or not isinstance(record.get("path"), str):
+                continue
+            directory = (root / record["path"]).parent
             actual = evidence_tree(directory)
-            actual["path"] = summary.parent.as_posix()
+            actual["path"] = directory.relative_to(root).as_posix()
             if tree_records.get(key) != actual:
                 errors.append(f"public evidence tree mismatch: {key}")
     return sorted(set(errors))
 
 
-def evidence_paths(root: Path) -> list[Path]:
+def evidence_paths(root: Path, release: str = DEFAULT_RELEASE) -> list[Path]:
     root = root.resolve()
-    paths = [
-        root / PUBLIC_RESULT,
-        root / BUNDLE_RESULT,
-        root / PROVENANCE_RESULT,
-        root / "native/product-contract.json",
-    ]
-    paths.extend(root / relative.parent for relative in EVIDENCE_SUMMARIES.values())
-    return paths
+    release_record = _release_record(release)
+    if release_record is None:
+        raise ValueError(f"unsupported release evidence: {release}")
+    provenance = _load(root / release_record["provenance"])
+    paths = [root / release_record["provenance"]]
+    for record in provenance["immutable_records"].values():
+        paths.append(root / record["path"])
+    for record in provenance["public_evidence"].values():
+        paths.append((root / record["path"]).parent)
+    return list(dict.fromkeys(paths))

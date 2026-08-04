@@ -26,7 +26,7 @@ batch-1 envelope:
 The 262,144-token window endpoints at output1/output512/output1024 are also
 qualified. The machine-readable boundary is in
 [product-contract.json](product-contract.json), and the measurements are in
-[the retained v1.3 native baseline](../benchmarks/results/native-portable-product-v1.3.0.json).
+[the v1.4 native qualification](../benchmarks/results/native-portable-product-v1.4.0.json).
 Each v1.4.0 archive also carries its exact qualification at
 `share/aima/qualification.json`.
 
@@ -123,13 +123,13 @@ and one-token-or-longer prefix extension. On an extension hit it restores the
 cached state and executes only the suffix through the native decode path;
 cold-prefill launch count is zero.
 
-The final v1.3 qualification established:
+The final v1.4 qualification established:
 
 - KLD below `0.005` and matching top-1 at nine contexts through q261632;
 - exact 128-token completion identity on the frozen q8192 fixture;
 - all 19 prefill/decode cells at or above 97% of their frozen floor;
-- 44.69 s median q8192 command-to-ready versus the 51.41 s ceiling;
-- q32768 exact-cache TTFT speedup `2612x` with `1.0000` decode retention;
+- 48.59 s median q8192 command-to-ready versus the 51.41 s ceiling;
+- q32768 exact-cache TTFT speedup `2611x` with `0.99995` decode retention;
 - resident HTTP with one model load, health/models/chat endpoints, exact cache
   reuse and clean shutdown;
 - live chunked SSE/non-stream token parity, structured function-tool parity

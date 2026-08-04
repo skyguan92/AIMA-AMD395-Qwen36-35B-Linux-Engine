@@ -35,7 +35,7 @@ projection algorithm.
 
 The retained v1.1 compatibility runtime uses ROCm, PyTorch, Triton, vLLM,
 Transformers and Safetensors. They are not copied into this repository and
-their upstream licenses continue to apply. The v1.3 portable native runtime
+their upstream licenses continue to apply. The v1.4 portable native runtime
 does not load them.
 
 ## Portable native bundle

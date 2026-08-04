@@ -1,0 +1,109 @@
+{
+  "schema": "aima-amd395-qwen36/native-product-contract/v1",
+  "status": "qualified_native_full_envelope",
+  "target": {
+    "artifact": "one relocatable archive containing a static launcher, native engine and complete pinned userspace bundle",
+    "executable": "bin/aima-engine",
+    "model_format": "standard Hugging Face Safetensors",
+    "system_requirements": [
+      "Linux x86_64 kernel ABI",
+      "amdgpu kernel driver with KFD and render nodes",
+      "AMD gfx1151 GPU"
+    ],
+    "forbidden_runtime_dependencies": [
+      "Python",
+      "PyTorch",
+      "vLLM",
+      "Triton JIT",
+      "Transformers",
+      "a system-installed ROCm userspace"
+    ],
+    "runtime_rocm_policy": "required ROCm and GNU userspace shared libraries are shipped beside the executable; a static launcher invokes the bundled glibc loader with an isolated bundle-local library path"
+  },
+  "model": {
+    "id": "Qwen3.6-35B-A3B-BF16",
+    "config_sha256": "93a4693fa9d8392fbfccd4b3c9873f4bfdcb14fdede978b123d07d19675efe99",
+    "checkpoint_index_sha256": "41b9356101ebf8e7519e150dc811f80c4226e727301fbb032b890f006ed0be83",
+    "tokenizer_sha256": "5f9e4d4901a92b997e463c1f46055088b6cca5ca61a6522d1b9f64c4bb81cb42",
+    "tokenizer_config_sha256": "5186f0defcd7f232382c7f0aebcd2252d073bb921ab240e407b7ae8745d2b29b",
+    "tensor_count": 693,
+    "payload_bytes": 69321221376,
+    "checkpoint_shards": 26,
+    "expected_payload_xor": "0xca1d71472d45fd86",
+    "expected_payload_sum": "0xce0f5e958964415e"
+  },
+  "qualified_baseline": {
+    "inference_results": "benchmarks/results/v1.0.0.json",
+    "direct_startup_results": "benchmarks/results/v1.1.0.json",
+    "engine_sha256": "79b5f070a30176af2a7a87a473fe578a15abd5177fb39b2ab9e188f66572fe0e"
+  },
+  "qualified_native_profile": {
+    "input_tokens": [1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072],
+    "output_tokens": [512, 1024],
+    "valid_window_endpoints": [
+      {"input_tokens": 262143, "output_tokens": 1},
+      {"input_tokens": 261632, "output_tokens": 512},
+      {"input_tokens": 261120, "output_tokens": 1024}
+    ],
+    "result": "benchmarks/results/native-portable-product-v1.3.0.json",
+    "native_engine_sha256": "7b8ae090a80b90a066c39539313ebed92c899d370fc2ccf7021cda03cec0a81d",
+    "static_launcher_sha256": "7d945e0306299b4878b33b26f82d9b2d5c463bdca2422019e986abe1edd8e960",
+    "aotriton_provider_sha256": "8f42d7b17a778168a1bb66b34eff282e13955541ededfa838355ffbc176b43a5",
+    "ck_provider_sha256": "77f6f6429ed7ef2e34a33372f6096a6d62957ba46f1866e7f40c39da9add25b4",
+    "q16384_hybrid_provider_sha256": "ab48a7d605d92aaaf9dc17a10f217538e57974f0fdce9f06ddc5536cae601858",
+    "automatic_provider_selection": true,
+    "legacy_full_context_envelope_replaced": true,
+    "http_streaming": "live HTTP/1.1 chunked SSE with token-callback delivery, optional usage and disconnect cancellation",
+    "function_tools": "OpenAI tools, tool_choice, parallel_tool_calls, assistant/tool history and schema-aware Qwen call parsing"
+  },
+  "promotion_gates": {
+    "measurement": {
+      "rule": "median of three same-configuration runs, or two expensive runs within three percent",
+      "minimum_native_to_qualified_ratio": 0.97,
+      "scope": "every prefill and decode cell independently; no aggregate may hide a regressed cell"
+    },
+    "correctness": {
+      "maximum_kld": 0.005,
+      "minimum_top1_agreement": 1.0,
+      "required_exact_completion_tokens": 128,
+      "required_exact_completion_identity": true,
+      "required_http_conformance": "76/76"
+    },
+    "matrix": {
+      "input_tokens": [1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072],
+      "output_tokens": [512, 1024],
+      "valid_window_endpoints": [
+        {"input_tokens": 262143, "output_tokens": 1},
+        {"input_tokens": 261632, "output_tokens": 512},
+        {"input_tokens": 261120, "output_tokens": 1024}
+      ]
+    },
+    "startup": {
+      "standard_safetensors_command_to_ready_median_ms_max": 51408.20149378851,
+      "optional_striped_command_to_ready_median_ms_max": 27313.878294313326
+    },
+    "prefix_cache": {
+      "input_tokens": 32768,
+      "minimum_ttft_speedup": 110.11994260509346,
+      "minimum_decode_retention": 0.999653457424567
+    },
+    "openai_features": {
+      "stream_content_must_match_nonstream": true,
+      "stream_token_sha256_must_match_nonstream": true,
+      "tool_nonstream_and_stream_must_match": true,
+      "tool_history_round_trip_required": true,
+      "disconnect_must_preserve_server_health": true
+    }
+  },
+  "migration_state": {
+    "native_weight_ownership": "implemented_qualified_and_target_measured",
+    "native_tokenizer_and_chat_template": "implemented_and_reference_parity_85_plain_cases_plus_byte_exact_qwen_tool_and_history_fixtures",
+    "native_http_and_cli": "resident_http_health_models_chat_live_sse_function_tools_disconnect_cancellation_shutdown_and_foreground_cli_qualified",
+    "aot_triton_provider_replacement": "embedded_decode_prefill_closure_plus_bundled_aotriton_ck_and_q16384_hybrid_providers_qualified_for_full_envelope",
+    "native_decode_executor": "complete_402_launch_resident_decode_loop_plus_long_context_split_softmax_qualified_for_full_envelope",
+    "native_vllm_fla_and_moe_replacement": "native_resident_decode_paths_qualified_without_vllm_runtime",
+    "native_torch_tensor_and_dispatch_replacement": "native_weight_ownership_prefill_decode_and_lm_head_qualified_without_torch_runtime",
+    "rocm_userspace_bundle": "complete_relocatable_gnu_rocm_aotriton_elf_closure_qualified",
+    "full_product_requalification": "all_19_published_matrix_cells_correctness_startup_prefix_cache_http_streaming_function_tools_and_portable_runtime gates passed; legacy_long_context_envelope_replaced"
+  }
+}

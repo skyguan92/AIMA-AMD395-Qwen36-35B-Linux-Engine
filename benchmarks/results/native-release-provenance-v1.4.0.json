@@ -1,0 +1,79 @@
+{
+  "schema": "aima-amd395-qwen36/native-release-provenance/v1",
+  "release": "1.4.0",
+  "complete": true,
+  "release_tag": "v1.4.0",
+  "release_commit": "db54224cfcb9dae60607ccf6481e412e5c3a991e",
+  "native_source_commit": "4d6c3ce48fd419f404b1a80d8e2ac6202972cec9",
+  "derived_from_commit": "032dc137992365649a47353910b76f93acb86d75",
+  "clarification": "The exact v1.4 release records and sanitized raw reports are mirrored on main under benchmarks so the current release is the default auditable evidence set. Recorded output paths map to the corresponding benchmarks/runs mirror without changing the published measurements.",
+  "immutable_records": {
+    "product_result": {
+      "path": "benchmarks/results/native-portable-product-v1.4.0.json",
+      "sha256": "bf28f94ec4b0c4bc45905e38488b5076d4110058123f97577308de698ca96c7f"
+    },
+    "portable_bundle_result": {
+      "path": "benchmarks/results/native-portable-bundle-v1.4.0.json",
+      "sha256": "be7acd68bab0bc2a20b083982cf4e418851d39822e4ebbd832a628d6510baf53"
+    },
+    "product_contract": {
+      "path": "native/product-contract-v1.4.0.json",
+      "sha256": "d7f7ce4fea8b58ef7955db8b13bddd24a1e25b81fb33c6760f51c9f1ed8ff893"
+    }
+  },
+  "public_evidence": {
+    "matrix": {
+      "path": "benchmarks/runs/native-full-matrix-20260803-v140-release/matrix.json",
+      "sha256": "ee380c6a644cefca6acc75032721a05a0b744f9540515cade9fabcca070a0abe"
+    },
+    "correctness": {
+      "path": "benchmarks/runs/native-correctness-20260803-v140-release/correctness.json",
+      "sha256": "aeb95e9d29f4f355b45e4614da11363529b7a66076989cfecb1856a97c3ed689"
+    },
+    "surfaces": {
+      "path": "benchmarks/runs/native-product-surfaces-20260803-v140-release/surfaces.json",
+      "sha256": "284fdd8a54b51569e6ccdefada9b2b25f90ea01977fc29e9bde3c5545b99e49a"
+    },
+    "openai_features": {
+      "path": "benchmarks/runs/native-openai-features-20260803-v140-release/features.json",
+      "sha256": "df9d40dbf7b9832ae0f49927e00a14ca8be4d221abf27f1ae33a3c65f210ea5e"
+    },
+    "portable_bundle": {
+      "path": "benchmarks/runs/native-portable-bundle-20260803-v140-release-final/bundle.json",
+      "sha256": "be7acd68bab0bc2a20b083982cf4e418851d39822e4ebbd832a628d6510baf53"
+    }
+  },
+  "public_evidence_trees": {
+    "matrix": {
+      "path": "benchmarks/runs/native-full-matrix-20260803-v140-release",
+      "file_count": 47,
+      "bytes": 509435,
+      "tree_sha256": "b2639e4d2e47448234cb471575f6e0d2b8aa66e06ecc69c8a231e78b3e8e11d5"
+    },
+    "correctness": {
+      "path": "benchmarks/runs/native-correctness-20260803-v140-release",
+      "file_count": 21,
+      "bytes": 72148,
+      "tree_sha256": "d52de7ab17e1b6148934905e094312363cf1331bc16b8921d638cb238fa058f5"
+    },
+    "surfaces": {
+      "path": "benchmarks/runs/native-product-surfaces-20260803-v140-release",
+      "file_count": 12,
+      "bytes": 35045,
+      "tree_sha256": "fd86bb40203e3c523493bc2cfc7ced698a7360ac95f666abd7a31a8bb0509936"
+    },
+    "openai_features": {
+      "path": "benchmarks/runs/native-openai-features-20260803-v140-release",
+      "file_count": 3,
+      "bytes": 4194,
+      "tree_sha256": "f12b08e6fedabf58bc9b9b9091b536391f48689ad524fcec16a538363ea0e28d"
+    },
+    "portable_bundle": {
+      "path": "benchmarks/runs/native-portable-bundle-20260803-v140-release-final",
+      "file_count": 7,
+      "bytes": 21637,
+      "tree_sha256": "dd3baf110dc8bb508b53305ee98e8cea36405934633609aef76548f6b9a227fd"
+    }
+  },
+  "claim_effect": "evidence alignment only; component hashes, measurements and promotion decisions are unchanged"
+}

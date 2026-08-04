@@ -17,8 +17,8 @@ The v1.4.0 qualification reruns the complete 19-cell performance matrix,
 nine-context full-vocabulary correctness gate, exact 128-token completion,
 startup, prefix cache, resident HTTP, SSE, tools and isolated portable-bundle
 smokes against the exact release binary before the tag is published. The
-machine-readable qualification and raw reports are release assets; an
-additive evidence commit may mirror them on `main` without moving the tag.
+machine-readable qualification and raw reports are release assets and are
+mirrored by an additive evidence commit on `main` without moving the tag.
 
 ## v1.3.0 provenance
 
@@ -55,7 +55,7 @@ commit.
 
 ## Portable native release boundary
 
-The v1.3 deployment unit is the deterministic
+The v1.4 deployment unit is the deterministic
 `aima-engine-native-portable-*.tar.zst` archive produced by
 `make package-native`. The archive includes a recursive `manifest.json`, the
 machine product contract and the qualification record.
@@ -64,8 +64,8 @@ Qualified executable components:
 
 | Component | SHA-256 |
 |---|---|
-| native engine | `7b8ae090a80b90a066c39539313ebed92c899d370fc2ccf7021cda03cec0a81d` |
-| static launcher | `7d945e0306299b4878b33b26f82d9b2d5c463bdca2422019e986abe1edd8e960` |
+| native engine | `a9095e5889304381ae8d716ebb262141998f72a254fc7235c290e127b85da872` |
+| static launcher | `ddcca94be2d272493d8ab6847da8372eb85e0a01e75f9992d610ddb8ca414d7a` |
 | AOTriton adapter | `8f42d7b17a778168a1bb66b34eff282e13955541ededfa838355ffbc176b43a5` |
 | CK-Tile adapter | `77f6f6429ed7ef2e34a33372f6096a6d62957ba46f1866e7f40c39da9add25b4` |
 | q16384 packed-GQA/CK hybrid | `ab48a7d605d92aaaf9dc17a10f217538e57974f0fdce9f06ddc5536cae601858` |
@@ -94,18 +94,18 @@ performance cells, nine full-vocabulary correctness contexts, exact 128-token
 identity, startup, prefix cache, resident HTTP, live SSE and function tools
 passed their independent frozen gates.
 The exact decision is in
-[`native-portable-product-v1.3.0.json`](../benchmarks/results/native-portable-product-v1.3.0.json).
+[`native-portable-product-v1.4.0.json`](../benchmarks/results/native-portable-product-v1.4.0.json).
 The result records that the published v1.1 long-context envelope is replaced
 by the native package.
 
 The five compact raw qualification directories referenced by the product and
 portable-bundle results are published under `benchmarks/runs/`. Run
 `make verify-evidence` to verify every summary and recursively referenced raw
-report. The provenance erratum also binds the exact 92-file inventory, byte
-count and sorted-path tree hash of all five directories, so extra, missing or
-modified raw files fail verification. Run `make package-evidence` to create a deterministic checksummed
-release asset containing that public evidence. Licensed oracle logits, model
-weights and prompt content remain excluded.
+report. The v1.4 provenance binds the exact 90-file inventory, byte count and
+sorted-path tree hash of all five directories, so extra, missing or modified
+raw files fail verification. Run `make package-evidence` to create a
+deterministic checksummed release asset containing that public evidence.
+Licensed oracle logits, model weights and prompt content remain excluded.
 
 ## Native build provenance
 

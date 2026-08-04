@@ -19,6 +19,16 @@ benchmarks/runs/*
 !benchmarks/runs/native-portable-bundle-20260723-v130/**
 !benchmarks/runs/native-product-surfaces-20260723-v130/
 !benchmarks/runs/native-product-surfaces-20260723-v130/**
+!benchmarks/runs/native-correctness-20260803-v140-release/
+!benchmarks/runs/native-correctness-20260803-v140-release/**
+!benchmarks/runs/native-full-matrix-20260803-v140-release/
+!benchmarks/runs/native-full-matrix-20260803-v140-release/**
+!benchmarks/runs/native-openai-features-20260803-v140-release/
+!benchmarks/runs/native-openai-features-20260803-v140-release/**
+!benchmarks/runs/native-portable-bundle-20260803-v140-release-final/
+!benchmarks/runs/native-portable-bundle-20260803-v140-release-final/**
+!benchmarks/runs/native-product-surfaces-20260803-v140-release/
+!benchmarks/runs/native-product-surfaces-20260803-v140-release/**
 *.log
 *.pid
 *.so

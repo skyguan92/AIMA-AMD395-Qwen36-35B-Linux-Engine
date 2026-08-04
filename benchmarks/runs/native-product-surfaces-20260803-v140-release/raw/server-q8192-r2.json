@@ -1,0 +1,87 @@
+{
+  "chat": [],
+  "command": [
+    "${AIMA_REPO_ROOT}/build/native/aima-engine-native",
+    "serve",
+    "--model-dir",
+    "${AIMA_MODEL_DIR}",
+    "--context-tokens",
+    "8192",
+    "--host",
+    "127.0.0.1",
+    "--port",
+    "18582",
+    "--report",
+    "${AIMA_REPO_ROOT}/output/native-product-surfaces-20260803-v140-release/raw/server-q8192-r2.load.json"
+  ],
+  "complete": true,
+  "engine_sha256": "a9095e5889304381ae8d716ebb262141998f72a254fc7235c290e127b85da872",
+  "health": {
+    "body": {
+      "admitted_prompt_tokens": 8192,
+      "authentication": "none",
+      "command_to_ready_wall_ms": 48589.048097,
+      "fmha_provider_backend": "CK-Tile",
+      "http_shutdown_enabled": true,
+      "model": "aima-amd395-qwen36-35b",
+      "model_loaded": true,
+      "request_timeout_ms": 15000,
+      "resident": true,
+      "runtime": "native",
+      "secondary_fmha_layers": [],
+      "secondary_fmha_provider_backend": "",
+      "served": 0,
+      "status": "ok",
+      "uptime_ms": 48589.649407
+    },
+    "status": 200
+  },
+  "load_report": "${AIMA_REPO_ROOT}/output/native-product-surfaces-20260803-v140-release/raw/server-q8192-r2.load.json",
+  "load_report_sha256": "d732f730ac93cf53f05ad56a80626483467e6522b51611ffe6fa0844259fd769",
+  "models": {
+    "body": {
+      "data": [
+        {
+          "id": "aima-amd395-qwen36-35b",
+          "object": "model",
+          "owned_by": "approaching-ai"
+        }
+      ],
+      "object": "list"
+    },
+    "status": 200
+  },
+  "ready": {
+    "authentication": "none",
+    "command_to_ready_wall_ms": 48589.048097,
+    "engine_load_wall_ms": 48277.711021,
+    "event": "ready",
+    "fmha_provider_backend": "CK-Tile",
+    "fmha_provider_path": "${AIMA_REPO_ROOT}/build/native/libaima-fmha-ck.so",
+    "host": "127.0.0.1",
+    "http_shutdown_enabled": true,
+    "model": "aima-amd395-qwen36-35b",
+    "port": 18582,
+    "request_timeout_ms": 15000,
+    "runtime_python": false,
+    "runtime_torch": false,
+    "runtime_triton": false,
+    "runtime_vllm": false,
+    "secondary_fmha_layers": [],
+    "secondary_fmha_provider_backend": "",
+    "secondary_fmha_provider_path": ""
+  },
+  "schema": "aima-amd395-qwen36/native-server-qualification-run/v1",
+  "shutdown": {
+    "body": {
+      "status": "shutting_down"
+    },
+    "status": 200
+  },
+  "stderr": "${AIMA_REPO_ROOT}/output/native-product-surfaces-20260803-v140-release/raw/server-q8192-r2.stderr.txt",
+  "stopped": {
+    "event": "stopped",
+    "model_loads": 1,
+    "served": 0
+  }
+}

@@ -200,28 +200,28 @@ within 3%.
 
 | Input | output512 prefill | output512 decode | output1024 prefill | output1024 decode |
 |---:|---:|---:|---:|---:|
-| 1,024 | 1636 | 34.02 | 1636 | 34.00 |
-| 2,048 | 1690 | 33.85 | 1690 | 33.83 |
-| 4,096 | 1574 | 33.28 | 1574 | 33.27 |
-| 8,192 | 1654 | 32.26 | 1654 | 32.26 |
-| 16,384 | 1433 | 30.67 | 1433 | 30.66 |
-| 32,768 | 1357 | 28.18 | 1357 | 28.17 |
-| 65,536 | 1183 | 24.61 | 1183 | 24.61 |
-| 131,072 | 871.4 | 19.53 | 871.4 | 19.53 |
+| 1,024 | 1633 | 34.05 | 1633 | 34.02 |
+| 2,048 | 1692 | 33.88 | 1692 | 33.88 |
+| 4,096 | 1585 | 33.32 | 1585 | 33.29 |
+| 8,192 | 1654 | 32.23 | 1654 | 32.23 |
+| 16,384 | 1438 | 30.68 | 1438 | 30.69 |
+| 32,768 | 1362 | 28.15 | 1362 | 28.14 |
+| 65,536 | 1175 | 24.62 | 1175 | 24.62 |
+| 131,072 | 873.2 | 19.52 | 873.2 | 19.53 |
 
-Window endpoints reached `554.1` prefill tok/s at 262143/output1,
-`550.3 / 13.96` prefill/decode tok/s at 261632/output512, and
-`565.8 / 13.91` at 261120/output1024. All 19 cells retained at least 97% of
-their frozen baseline; the minimum prefill/decode retentions were `1.014x`
-and `0.9839x`.
+Window endpoints reached `542.8` prefill tok/s at 262143/output1,
+`562.5 / 13.60` prefill/decode tok/s at 261632/output512, and
+`561.0 / 13.61` at 261120/output1024. All 19 cells retained at least 97% of
+their frozen baseline; the minimum prefill/decode retentions were `1.018x`
+and `0.9743x`.
 
 Other gates:
 
 - full-vocabulary KLD passed at nine contexts through q261632; the maximum was
   `0.002174`, with matching top-1 everywhere and the gate fixed at `0.005`;
 - exact 128-token completion identity passed on the frozen q8192 fixture;
-- q8192 command-to-ready median: `44.69 s` versus the `51.41 s` ceiling;
-- q32768 exact-prefix TTFT: `2612x` speedup with `1.0000` decode retention;
+- q8192 command-to-ready median: `48.59 s` versus the `51.41 s` ceiling;
+- q32768 exact-prefix TTFT: `2611x` speedup with `0.99995` decode retention;
 - resident HTTP: one model load across cold and cached requests, with clean
   shutdown;
 - live chunked SSE matched the non-stream token/text hashes, and structured
@@ -229,7 +229,7 @@ Other gates:
   preserved server health.
 
 The auditable source of truth is
-[benchmarks/results/native-portable-product-v1.3.0.json](benchmarks/results/native-portable-product-v1.3.0.json).
+[benchmarks/results/native-portable-product-v1.4.0.json](benchmarks/results/native-portable-product-v1.4.0.json).
 The frozen baseline and optional striped-startup evidence remain documented in
 [docs/PERFORMANCE.md](docs/PERFORMANCE.md).
 

@@ -12,6 +12,7 @@ from aima_engine.release_evidence import verify_release_evidence
 ROOT = Path(__file__).resolve().parents[1]
 PRODUCT_CONTRACT = ROOT / "native/product-contract.json"
 PRODUCT_CONTRACT_V140 = ROOT / "native/product-contract-v1.4.0.json"
+PRODUCT_CONTRACT_V130 = ROOT / "native/product-contract-v1.3.0.json"
 NATIVE_RESULT = ROOT / "benchmarks/results/native-foundation-v0.1.0.json"
 TOKENIZER_RESULT = ROOT / "benchmarks/results/native-tokenizer-v0.1.0.json"
 AOT_MANIFEST = ROOT / "native/aot/gfx1151/q8192-output2/manifest.json"
@@ -24,9 +25,18 @@ PORTABLE_BUNDLE_RESULT = ROOT / "benchmarks/results/native-portable-bundle-v0.1.
 PORTABLE_BUNDLE_V130_RESULT = (
     ROOT / "benchmarks/results/native-portable-bundle-v1.3.0.json"
 )
-PORTABLE_PRODUCT_RESULT = ROOT / "benchmarks/results/native-portable-product-v1.3.0.json"
-RELEASE_PROVENANCE_RESULT = (
+PORTABLE_BUNDLE_V140_RESULT = (
+    ROOT / "benchmarks/results/native-portable-bundle-v1.4.0.json"
+)
+PORTABLE_PRODUCT_RESULT = ROOT / "benchmarks/results/native-portable-product-v1.4.0.json"
+PORTABLE_PRODUCT_V130_RESULT = (
+    ROOT / "benchmarks/results/native-portable-product-v1.3.0.json"
+)
+RELEASE_PROVENANCE_V130_RESULT = (
     ROOT / "benchmarks/results/native-release-provenance-v1.3.0.json"
+)
+RELEASE_PROVENANCE_V140_RESULT = (
+    ROOT / "benchmarks/results/native-release-provenance-v1.4.0.json"
 )
 DECODE_SCHEDULE = ROOT / "native/aot/gfx1151/q8192-output2/decode-schedule.json"
 DECODE_SCHEDULE_RESULT = ROOT / "benchmarks/results/native-decode-schedule-v0.1.0.json"
@@ -51,6 +61,7 @@ class NativeRuntimeContractTest(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.contract = load_json(PRODUCT_CONTRACT)
         cls.contract_v140 = load_json(PRODUCT_CONTRACT_V140)
+        cls.contract_v130 = load_json(PRODUCT_CONTRACT_V130)
         cls.inference_baseline = load_json(ROOT / "benchmarks/results/v1.0.0.json")
         cls.startup_baseline = load_json(ROOT / "benchmarks/results/v1.1.0.json")
         cls.result = load_json(NATIVE_RESULT)
@@ -65,8 +76,13 @@ class NativeRuntimeContractTest(unittest.TestCase):
         cls.portable_bundle_v130_result = load_json(
             PORTABLE_BUNDLE_V130_RESULT
         )
+        cls.portable_bundle_v140_result = load_json(
+            PORTABLE_BUNDLE_V140_RESULT
+        )
         cls.portable_product_result = load_json(PORTABLE_PRODUCT_RESULT)
-        cls.release_provenance = load_json(RELEASE_PROVENANCE_RESULT)
+        cls.portable_product_v130_result = load_json(PORTABLE_PRODUCT_V130_RESULT)
+        cls.release_provenance_v130 = load_json(RELEASE_PROVENANCE_V130_RESULT)
+        cls.release_provenance_v140 = load_json(RELEASE_PROVENANCE_V140_RESULT)
         cls.decode_schedule = load_json(DECODE_SCHEDULE)
         cls.decode_schedule_result = load_json(DECODE_SCHEDULE_RESULT)
         cls.decode_bindings_result = load_json(DECODE_BINDINGS_RESULT)
@@ -74,8 +90,11 @@ class NativeRuntimeContractTest(unittest.TestCase):
     def test_product_contract_is_bound_to_qualified_evidence(self) -> None:
         model = self.contract["model"]
         gates = self.contract["promotion_gates"]
+        self.assertEqual(self.contract, self.contract_v140)
+        self.assertEqual(self.contract["release"], "1.4.0")
         self.assertEqual(
-            self.contract["status"], "qualified_native_full_envelope"
+            self.contract["status"],
+            "qualification_bound_portable_native_full_envelope",
         )
         self.assertEqual(model["tensor_count"], 693)
         self.assertEqual(model["checkpoint_shards"], 26)
@@ -112,7 +131,7 @@ class NativeRuntimeContractTest(unittest.TestCase):
         )
         self.assertTrue(profile["automatic_provider_selection"])
         self.assertTrue(profile["legacy_full_context_envelope_replaced"])
-        self.assertEqual(profile["result"], str(PORTABLE_PRODUCT_RESULT.relative_to(ROOT)))
+        self.assertEqual(profile["qualification"], "share/aima/qualification.json")
 
     def test_v140_contract_is_bound_at_package_time(self) -> None:
         contract = self.contract_v140
@@ -132,30 +151,15 @@ class NativeRuntimeContractTest(unittest.TestCase):
         profile = self.contract["qualified_native_profile"]
         self.assertTrue(result["complete"])
         self.assertTrue(result["qualified"])
-        self.assertEqual(result["release"], "1.3.0")
+        self.assertEqual(result["release"], "1.4.0")
         self.assertEqual(result["scope"]["input_tokens"], profile["input_tokens"])
         self.assertEqual(result["scope"]["output_tokens"], profile["output_tokens"])
         self.assertTrue(result["scope"]["matrix_complete_for_admitted_native_profile"])
         self.assertTrue(result["scope"]["legacy_v1_1_long_context_profile_replaced"])
+        self.assertEqual(result["components"]["source"]["release_tag"], "v1.4.0")
         self.assertEqual(
-            result["components"]["native_engine"]["sha256"],
-            profile["native_engine_sha256"],
-        )
-        self.assertEqual(
-            result["components"]["static_launcher"]["sha256"],
-            profile["static_launcher_sha256"],
-        )
-        self.assertEqual(
-            result["components"]["aotriton_fmha_provider"]["sha256"],
-            profile["aotriton_provider_sha256"],
-        )
-        self.assertEqual(
-            result["components"]["ck_fmha_provider"]["sha256"],
-            profile["ck_provider_sha256"],
-        )
-        self.assertEqual(
-            result["components"]["q16384_hybrid_fmha_provider"]["sha256"],
-            profile["q16384_hybrid_provider_sha256"],
+            result["components"]["source"]["release_commit"],
+            self.release_provenance_v140["release_commit"],
         )
         self.assertEqual(len(result["performance"]["cells"]), 19)
         self.assertTrue(result["performance"]["all_cells_pass"])
@@ -244,8 +248,8 @@ class NativeRuntimeContractTest(unittest.TestCase):
         )
 
     def test_v130_public_raw_evidence_is_present_and_hash_bound(self) -> None:
-        self.assertEqual(verify_release_evidence(ROOT), [])
-        provenance = self.release_provenance
+        self.assertEqual(verify_release_evidence(ROOT, release="1.3.0"), [])
+        provenance = self.release_provenance_v130
         self.assertEqual(provenance["release_tag"], "v1.3.0")
         self.assertEqual(
             provenance["release_commit"],
@@ -256,7 +260,7 @@ class NativeRuntimeContractTest(unittest.TestCase):
             "745930457f06629542ea996c8771ab38382fce98",
         )
         self.assertEqual(
-            self.portable_product_result["components"]["source_base_commit"],
+            self.portable_product_v130_result["components"]["source_base_commit"],
             provenance["derived_from_commit"],
         )
         self.assertEqual(
@@ -265,6 +269,28 @@ class NativeRuntimeContractTest(unittest.TestCase):
                 for record in provenance["public_evidence_trees"].values()
             ),
             92,
+        )
+
+    def test_v140_public_raw_evidence_is_the_default_and_hash_bound(self) -> None:
+        self.assertEqual(verify_release_evidence(ROOT), [])
+        provenance = self.release_provenance_v140
+        self.assertEqual(provenance["release_tag"], "v1.4.0")
+        self.assertEqual(
+            provenance["release_commit"],
+            "db54224cfcb9dae60607ccf6481e412e5c3a991e",
+        )
+        self.assertEqual(
+            self.portable_product_result["components"]["source"]["native_source_commit"],
+            provenance["native_source_commit"],
+        )
+        self.assertEqual(self.portable_bundle_v140_result["release"], "1.4.0")
+        self.assertTrue(self.portable_bundle_v140_result["qualified"])
+        self.assertEqual(
+            sum(
+                record["file_count"]
+                for record in provenance["public_evidence_trees"].values()
+            ),
+            90,
         )
 
     def test_generated_layout_is_current_and_complete(self) -> None:

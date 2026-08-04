@@ -17,7 +17,7 @@
       "sha256": "be43bab04bd28aa9824d79b4e9a6a486acdef35063a50c5b4acbbb0af5695b40"
     },
     "product_contract": {
-      "path": "native/product-contract.json",
+      "path": "native/product-contract-v1.3.0.json",
       "sha256": "38b113de3bd0e51af1e42265dfda54830be95e8226460e7619bacdd5675c515d"
     }
   },

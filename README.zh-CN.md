@@ -8,7 +8,7 @@
 这是一个面向 AMD Ryzen AI Max+ 395 / Radeon 8060S 的 batch-1
 `Qwen3.6-35B-A3B-BF16` 专用推理引擎。
 
-v1.3 提供真正的 SSE 流式输出与 OpenAI function tools，同时保持可搬移原生
+v1.4 提供真正的 SSE 流式输出与 OpenAI function tools，同时保持可搬移原生
 运行包：运行时不加载 Python、PyTorch、vLLM、
 Triton、Transformers，也不依赖宿主机安装 ROCm userspace。发布包内含静态
 启动器、原生引擎、固定版本的 ROCm/AOTriton/CK 动态库、glibc loader、许可证
@@ -185,33 +185,33 @@ aima-engine chat --messages-json conversation.json --tools-json tools.json
 
 | 输入 | output512 prefill | output512 decode | output1024 prefill | output1024 decode |
 |---:|---:|---:|---:|---:|
-| 1,024 | 1636 | 34.02 | 1636 | 34.00 |
-| 2,048 | 1690 | 33.85 | 1690 | 33.83 |
-| 4,096 | 1574 | 33.28 | 1574 | 33.27 |
-| 8,192 | 1654 | 32.26 | 1654 | 32.26 |
-| 16,384 | 1433 | 30.67 | 1433 | 30.66 |
-| 32,768 | 1357 | 28.18 | 1357 | 28.17 |
-| 65,536 | 1183 | 24.61 | 1183 | 24.61 |
-| 131,072 | 871.4 | 19.53 | 871.4 | 19.53 |
+| 1,024 | 1633 | 34.05 | 1633 | 34.02 |
+| 2,048 | 1692 | 33.88 | 1692 | 33.88 |
+| 4,096 | 1585 | 33.32 | 1585 | 33.29 |
+| 8,192 | 1654 | 32.23 | 1654 | 32.23 |
+| 16,384 | 1438 | 30.68 | 1438 | 30.69 |
+| 32,768 | 1362 | 28.15 | 1362 | 28.14 |
+| 65,536 | 1175 | 24.62 | 1175 | 24.62 |
+| 131,072 | 873.2 | 19.52 | 873.2 | 19.53 |
 
-最大窗口端点分别达到：262143/output1 prefill `554.1` token/s，
-261632/output512 为 `550.3 / 13.96` prefill/decode token/s，
-261120/output1024 为 `565.8 / 13.91`。19 个 cell 全部达到冻结基线的
-97%；最低 prefill/decode 保留率分别是 `1.014x` 与 `0.9839x`。
+最大窗口端点分别达到：262143/output1 prefill `542.8` token/s，
+261632/output512 为 `562.5 / 13.60` prefill/decode token/s，
+261120/output1024 为 `561.0 / 13.61`。19 个 cell 全部达到冻结基线的
+97%；最低 prefill/decode 保留率分别是 `1.018x` 与 `0.9743x`。
 
 其他门槛：
 
 - 9 个上下文直至 q261632 的全词表 KLD 全部小于 `0.005`，最大值
   `0.002174`，top-1 全一致；
 - 冻结 q8192 fixture 的 128-token 输出逐 token 完全一致；
-- q8192 command-to-ready 中位数 `44.69 s`，低于 `51.41 s` 上限；
-- q32768 exact-prefix TTFT 加速 `2612x`，decode 保留率 `1.0000`；
+- q8192 command-to-ready 中位数 `48.59 s`，低于 `51.41 s` 上限；
+- q32768 exact-prefix TTFT 加速 `2611x`，decode 保留率 `0.99995`；
 - HTTP 两次请求期间模型装载次数始终为 1，第二次命中 exact cache，并可干净关闭；
 - chunked SSE 与非流式的 token/text 哈希一致，stream/non-stream 工具调用一致，
   客户端断连后服务仍健康。
 
 完整精度、每次测量值和组件哈希见
-[benchmarks/results/native-portable-product-v1.3.0.json](benchmarks/results/native-portable-product-v1.3.0.json)。
+[benchmarks/results/native-portable-product-v1.4.0.json](benchmarks/results/native-portable-product-v1.4.0.json)。
 
 ## 从源码构建
 

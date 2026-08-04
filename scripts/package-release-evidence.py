@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a deterministic, checksum-bound archive of public v1.3 evidence."""
+"""Build a deterministic, checksum-bound archive of public release evidence."""
 
 from __future__ import annotations
 
@@ -13,29 +13,41 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from aima_engine.public_hygiene import scan_bytes
-from aima_engine.release_evidence import evidence_paths, verify_release_evidence
+from aima_engine.release_evidence import (
+    DEFAULT_RELEASE,
+    evidence_paths,
+    verify_release_evidence,
+)
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=ROOT)
+    parser.add_argument("--release", default=DEFAULT_RELEASE)
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("dist/aima-engine-v1.3.0-public-evidence.tar.zst"),
+        default=None,
     )
     parser.add_argument("--source-date-epoch", default="1784678400")
     args = parser.parse_args()
     root = args.root.resolve()
-    output = args.output if args.output.is_absolute() else root / args.output
+    requested_output = args.output or Path(
+        f"dist/aima-engine-v{args.release}-public-evidence.tar.zst"
+    )
+    output = (
+        requested_output
+        if requested_output.is_absolute()
+        else root / requested_output
+    )
     checksum = output.with_name(output.name + ".sha256")
     if output.exists() or checksum.exists():
         raise SystemExit(f"refusing to replace existing evidence asset: {output}")
 
-    errors = verify_release_evidence(root)
+    errors = verify_release_evidence(root, release=args.release)
     if errors:
         raise SystemExit("\n".join(errors))
-    inputs = evidence_paths(root)
+    inputs = evidence_paths(root, release=args.release)
     for entry in inputs:
         candidates = entry.rglob("*") if entry.is_dir() else (entry,)
         for path in candidates:

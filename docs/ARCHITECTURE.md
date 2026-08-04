@@ -2,7 +2,7 @@
 
 ## Product boundary
 
-The v1.3 runtime specializes one model, one GPU architecture and batch size one.
+The v1.4 runtime specializes one model, one GPU architecture and batch size one.
 It is a native resident engine, not a Python wrapper around the v1.1 stack.
 
 ```text
@@ -166,7 +166,7 @@ hardware contract.
 ## Evidence separation
 
 The full-envelope portable decision is recorded in
-[the v1.3 native result](../benchmarks/results/native-portable-product-v1.3.0.json).
+[the v1.4 native result](../benchmarks/results/native-portable-product-v1.4.0.json).
 The v1.1 complete-context matrix remains the frozen per-cell floor. A
 bundle-closure pass, a correctness pass and a performance pass are independent
 gates; none is used as a proxy for another.
