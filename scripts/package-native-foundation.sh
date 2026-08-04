@@ -55,6 +55,7 @@ release_metadata=(
   "${QUALIFICATION_RECORD}"
 )
 release_results=("${ROOT}"/benchmarks/results/*.json)
+release_contracts=("${ROOT}"/native/product-contract-v*.json)
 release_evidence_dirs=(
   "${ROOT}/benchmarks/runs/native-correctness-20260723-v130"
   "${ROOT}/benchmarks/runs/native-full-matrix-20260723-v130"
@@ -63,7 +64,7 @@ release_evidence_dirs=(
   "${ROOT}/benchmarks/runs/native-portable-bundle-20260723-v130"
   "${ROOT}/benchmarks/runs/native-product-surfaces-20260723-v130"
 )
-release_metadata+=("${release_results[@]}")
+release_metadata+=("${release_results[@]}" "${release_contracts[@]}")
 for evidence_dir in "${release_evidence_dirs[@]}"; do
   while IFS= read -r -d '' evidence_file; do
     release_metadata+=("${evidence_file}")
@@ -296,8 +297,10 @@ install -Dm644 "${PRODUCT_CONTRACT}" \
   "${STAGING}/share/aima/product-contract.json"
 install -Dm644 "${PRODUCT_CONTRACT}" \
   "${STAGING}/native/product-contract.json"
-install -Dm644 "${PRODUCT_CONTRACT}" \
-  "${STAGING}/native/$(basename "${PRODUCT_CONTRACT}")"
+for contract in "${release_contracts[@]}"; do
+  install -Dm644 "${contract}" \
+    "${STAGING}/native/$(basename "${contract}")"
+done
 install -Dm644 "${QUALIFICATION_RECORD}" \
   "${STAGING}/share/aima/qualification.json"
 install -Dm644 "${QUALIFICATION_RECORD}" \

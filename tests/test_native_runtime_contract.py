@@ -405,6 +405,7 @@ class NativeRuntimeContractTest(unittest.TestCase):
         self.assertIn("--source-commit", package)
         self.assertIn("verify-native-package-inputs.py", package)
         self.assertIn("product-contract-v${RELEASE_VERSION}.json", package)
+        self.assertIn('release_contracts=("${ROOT}"/native/product-contract-v*.json)', package)
         for component in (
             "native_engine",
             "static_launcher",
