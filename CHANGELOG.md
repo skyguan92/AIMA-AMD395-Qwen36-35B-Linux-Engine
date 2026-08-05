@@ -24,6 +24,9 @@ Versioning.
   a release-evidence pull-request checklist.
 - Pinned the qualified Hugging Face checkpoint revision and metadata hashes in
   the deployment guide.
+- Published the exact 19-cell matrix, nine-context KLD gate, MMLU-256/GB10
+  paired scorecard, isolated bundle check and checksum-identical second-AMD395
+  reproduction as hash-bound release evidence.
 
 ## 1.4.1 - 2026-08-04
 

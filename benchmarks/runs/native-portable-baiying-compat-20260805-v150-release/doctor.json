@@ -1,0 +1,169 @@
+{
+  "schema": "aima-amd395-qwen36/native-doctor/v1",
+  "complete": true,
+  "qualified": true,
+  "version": "1.5.0-native",
+  "source_commit": "2c4178ad95845b9a8ee00536f52671c77390c4b9",
+  "model_checked": true,
+  "checks": [
+    {
+      "id": "host.platform",
+      "required": true,
+      "passed": true,
+      "actual": {
+        "sysname": "Linux",
+        "machine": "x86_64"
+      },
+      "expected": {
+        "sysname": "Linux",
+        "machine": "x86_64"
+      },
+      "remediation": "use a Linux x86-64 host"
+    },
+    {
+      "id": "device.kfd",
+      "required": true,
+      "passed": true,
+      "actual": {
+        "exists": true,
+        "read_write": true
+      },
+      "expected": {
+        "exists": true,
+        "read_write": true
+      },
+      "remediation": "load amdgpu/KFD and add the service user to the render group"
+    },
+    {
+      "id": "device.render",
+      "required": true,
+      "passed": true,
+      "actual": {
+        "count": 1,
+        "read_write": true
+      },
+      "expected": {
+        "minimum_count": 1,
+        "read_write": true
+      },
+      "remediation": "load amdgpu DRM and add the service user to render/video groups"
+    },
+    {
+      "id": "hip.devices",
+      "required": true,
+      "passed": true,
+      "actual": {
+        "count": 1,
+        "status": "success"
+      },
+      "expected": {
+        "minimum_count": 1
+      },
+      "remediation": "verify the bundled HIP userspace and amdgpu device permissions"
+    },
+    {
+      "id": "gpu.architecture",
+      "required": true,
+      "passed": true,
+      "actual": {
+        "device": "Radeon 8060S Graphics",
+        "architecture": "gfx1151"
+      },
+      "expected": {
+        "architecture_prefix": "gfx1151"
+      },
+      "remediation": "run the portable engine on Radeon 8060S / gfx1151"
+    },
+    {
+      "id": "memory.kernel_parameters",
+      "required": true,
+      "passed": true,
+      "actual": {
+        "ttm_pages_limit": true,
+        "amdgpu_gttsize": true
+      },
+      "expected": {
+        "ttm.pages_limit": 25165824,
+        "amdgpu.gttsize": 98304
+      },
+      "remediation": "apply the documented GRUB parameters and reboot"
+    },
+    {
+      "id": "memory.vram",
+      "required": true,
+      "passed": true,
+      "actual": 536870912,
+      "expected": 536870912,
+      "remediation": "set the BIOS UMA frame buffer to 512 MiB"
+    },
+    {
+      "id": "memory.gtt",
+      "required": true,
+      "passed": true,
+      "actual": 103079215104,
+      "expected": {
+        "minimum_bytes": 103079215104
+      },
+      "remediation": "configure the documented 96 GiB AMDGPU GTT pool and reboot"
+    },
+    {
+      "id": "runtime.bundle",
+      "required": true,
+      "passed": true,
+      "actual": {
+        "detected": true,
+        "complete": true
+      },
+      "expected": {
+        "complete": true
+      },
+      "remediation": "re-extract the checksummed portable release archive"
+    },
+    {
+      "id": "model.config",
+      "required": true,
+      "passed": true,
+      "actual": "93a4693fa9d8392fbfccd4b3c9873f4bfdcb14fdede978b123d07d19675efe99",
+      "expected": "93a4693fa9d8392fbfccd4b3c9873f4bfdcb14fdede978b123d07d19675efe99",
+      "remediation": "install the qualified config.json"
+    },
+    {
+      "id": "model.index",
+      "required": true,
+      "passed": true,
+      "actual": "41b9356101ebf8e7519e150dc811f80c4226e727301fbb032b890f006ed0be83",
+      "expected": "41b9356101ebf8e7519e150dc811f80c4226e727301fbb032b890f006ed0be83",
+      "remediation": "install the qualified model.safetensors.index.json"
+    },
+    {
+      "id": "model.tokenizer",
+      "required": true,
+      "passed": true,
+      "actual": "5f9e4d4901a92b997e463c1f46055088b6cca5ca61a6522d1b9f64c4bb81cb42",
+      "expected": "5f9e4d4901a92b997e463c1f46055088b6cca5ca61a6522d1b9f64c4bb81cb42",
+      "remediation": "install the qualified tokenizer.json"
+    },
+    {
+      "id": "model.tokenizer_config",
+      "required": true,
+      "passed": true,
+      "actual": "5186f0defcd7f232382c7f0aebcd2252d073bb921ab240e407b7ae8745d2b29b",
+      "expected": "5186f0defcd7f232382c7f0aebcd2252d073bb921ab240e407b7ae8745d2b29b",
+      "remediation": "install the qualified tokenizer_config.json"
+    },
+    {
+      "id": "model.shards",
+      "required": true,
+      "passed": true,
+      "actual": {
+        "readable": 26,
+        "bytes": 71903776776
+      },
+      "expected": {
+        "readable": 26,
+        "minimum_payload_bytes": 69321221376
+      },
+      "remediation": "install all 26 qualified Safetensors shards and grant read access"
+    }
+  ]
+}

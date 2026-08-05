@@ -1,0 +1,117 @@
+{
+  "archive": {
+    "bytes": 105761430,
+    "checksum_sidecar": "aima-engine-native-portable-86e806e8bc5d.tar.zst.sha256",
+    "checksum_verified": true,
+    "name": "aima-engine-native-portable-86e806e8bc5d.tar.zst",
+    "root_mode": "0755",
+    "sha256": "5ca97a234c1132ec0e715f463107faa7bdce6dab6ab053918cf1465b8d2ea62b"
+  },
+  "complete": true,
+  "elf_closure": {
+    "complete": true,
+    "host_userspace_dependencies": [],
+    "launcher_static": true,
+    "maximum_bundled_glibc_abi": "2.39",
+    "non_relocatable_runpaths": {},
+    "provided_soname_count": 25,
+    "unresolved_userspace_dependencies": {},
+    "x86_64_dynamic_object_count": 25
+  },
+  "host_requirements": [
+    "Linux x86_64 kernel ABI",
+    "amdgpu kernel driver with KFD and render nodes",
+    "AMD gfx1151 GPU"
+  ],
+  "isolated_environment": {
+    "host_ld_library_path": false,
+    "host_python_path": false,
+    "host_rocm_path": false,
+    "keys": [
+      "HOME",
+      "LANG",
+      "PATH"
+    ],
+    "version": "aima-engine-native 1.5.0-native"
+  },
+  "manifest": {
+    "attention_providers": {
+      "1024": "lib/libaima-fmha-aotriton.so",
+      "16384": "lib/libaima-fmha-q16384-hybrid.so",
+      "2048": "lib/libaima-fmha-aotriton.so",
+      "32768": "lib/libaima-fmha-ck.so",
+      "4096": "lib/libaima-fmha-aotriton.so",
+      "8192": "lib/libaima-fmha-ck.so",
+      "aotriton_runtime": "lib/libaotriton_v2.so.0.11.1",
+      "long_context_layer39": "lib/libaima-fmha-aotriton.so",
+      "long_context_primary": "lib/libaima-fmha-ck.so",
+      "selection": "automatic by admitted static context"
+    },
+    "checked_files": 461,
+    "checked_symlinks": 1,
+    "complete": true,
+    "payload_bytes_excluding_manifest": 387155162,
+    "release": "1.5.0",
+    "schema": "aima-amd395-qwen36/native-portable-bundle/v3",
+    "source": {
+      "commit": "d82e6943bc50d821011ce79e95afee06f6b12a36",
+      "dirty": false,
+      "native_commit": "2c4178ad95845b9a8ee00536f52671c77390c4b9",
+      "release_tag": "v1.5.0"
+    }
+  },
+  "provider_smokes": [
+    {
+      "command_to_ready_wall_ms": 43958.059206,
+      "context_tokens": 1024,
+      "output_token_ids_sha256": "54363ddee68f4a5db81c9d37e5fb738d28f5b67dc7f725ad7333172b1ea157da",
+      "output_tokens": 1,
+      "prefill_tokens_per_second": 1632.490132358394,
+      "primary_provider": "AOTriton 0.11.1",
+      "qualified": true,
+      "report": "raw/q1024-output1.json",
+      "report_sha256": "9991b02cf342fefc54c6cbab9874091fb79eae81151c578b880cdfd95ff6cdca",
+      "secondary_layers": [],
+      "secondary_provider": ""
+    },
+    {
+      "command_to_ready_wall_ms": 42463.547967,
+      "context_tokens": 16384,
+      "output_token_ids_sha256": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
+      "output_tokens": 1,
+      "prefill_tokens_per_second": 1439.85825253564,
+      "primary_provider": "packed-GQA/CK-Tile hybrid",
+      "qualified": true,
+      "report": "raw/q16384-output1.json",
+      "report_sha256": "bdea4aa7438f4ede576a6d28efec380709922f6dcdc051c6127a0436b39bb8d1",
+      "secondary_layers": [
+        39
+      ],
+      "secondary_provider": "CK-Tile"
+    },
+    {
+      "command_to_ready_wall_ms": 42180.015134,
+      "context_tokens": 65536,
+      "output_token_ids_sha256": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
+      "output_tokens": 1,
+      "prefill_tokens_per_second": 1183.1208680379705,
+      "primary_provider": "CK-Tile",
+      "qualified": true,
+      "report": "raw/q65536-output1.json",
+      "report_sha256": "49051a986999f606861ab4771f774864850fb6c32de6fbeb24f131df49fe4ece",
+      "secondary_layers": [
+        39
+      ],
+      "secondary_provider": "AOTriton 0.11.1"
+    }
+  ],
+  "qualified": true,
+  "release": "1.5.0",
+  "schema": "aima-amd395-qwen36/native-portable-bundle-qualification/v1",
+  "source": {
+    "derived_from_commit": "c22aee94fff6bed34384642f3a1f4e358a2043a3",
+    "native_source_commit": "2c4178ad95845b9a8ee00536f52671c77390c4b9",
+    "release_commit": "d82e6943bc50d821011ce79e95afee06f6b12a36",
+    "release_tag": "v1.5.0"
+  }
+}

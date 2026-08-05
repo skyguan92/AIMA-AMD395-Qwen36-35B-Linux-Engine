@@ -1,0 +1,27 @@
+{
+  "admitted_prompt_tokens": 9216,
+  "authentication": "none",
+  "command_to_ready_wall_ms": 20156.977273,
+  "context_capacity": 9216,
+  "fmha_provider_backend": "CK-Tile",
+  "http_shutdown_enabled": true,
+  "model": "aima-amd395-qwen36-35b",
+  "model_loaded": true,
+  "prefix_cache_entries": 4,
+  "prompt_token_ids_extension": true,
+  "request_timeout_ms": 15000,
+  "resident": true,
+  "resident_prefill_buckets": [
+    1024,
+    2048,
+    4096,
+    8192
+  ],
+  "runtime": "native",
+  "secondary_fmha_layers": [],
+  "secondary_fmha_provider_backend": "",
+  "served": 0,
+  "static_prefill_tokens": 8192,
+  "status": "ok",
+  "uptime_ms": 202226.402667
+}

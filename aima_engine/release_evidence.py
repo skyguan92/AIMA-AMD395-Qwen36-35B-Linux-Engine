@@ -8,8 +8,20 @@ from pathlib import Path
 from typing import Any
 
 
-DEFAULT_RELEASE = "1.4.1"
+DEFAULT_RELEASE = "1.5.0"
 RELEASE_RECORDS: dict[str, dict[str, Path]] = {
+    "1.5.0": {
+        "product_result": Path(
+            "benchmarks/results/native-portable-product-v1.5.0.json"
+        ),
+        "bundle_result": Path(
+            "benchmarks/results/native-portable-bundle-v1.5.0.json"
+        ),
+        "provenance": Path(
+            "benchmarks/results/native-release-provenance-v1.5.0.json"
+        ),
+        "product_contract": Path("native/product-contract-v1.5.0.json"),
+    },
     "1.4.1": {
         "product_result": Path(
             "benchmarks/results/native-portable-product-v1.4.1.json"
@@ -46,6 +58,19 @@ RELEASE_RECORDS: dict[str, dict[str, Path]] = {
         ),
         "product_contract": Path("native/product-contract-v1.3.0.json"),
     },
+}
+
+CORE_PRODUCT_EVIDENCE_KEYS = {
+    "matrix",
+    "correctness",
+    "surfaces",
+    "openai_features",
+}
+PRODUCT_EVIDENCE_KEYS = {
+    "1.5.0": CORE_PRODUCT_EVIDENCE_KEYS | {"capability_eval"},
+}
+STANDALONE_EVIDENCE_KEYS = {
+    "1.5.0": {"portable_bundle", "second_host_compat"},
 }
 
 
@@ -93,7 +118,21 @@ def _public_mirror_path(value: str) -> Path | None:
 def _resolve_recorded_path(root: Path, owner: Path, value: str) -> Path | None:
     mirrored = _public_mirror_path(value)
     if mirrored is not None:
-        return root / mirrored
+        exact = root / mirrored
+        if exact.is_file():
+            return exact
+        runs_root = root / "benchmarks/runs"
+        try:
+            owner_relative = owner.relative_to(runs_root)
+            recorded_relative = mirrored.relative_to("benchmarks/runs")
+        except ValueError:
+            return exact
+        if len(owner_relative.parts) > 1 and len(recorded_relative.parts) > 1:
+            renamed_run = runs_root / owner_relative.parts[0]
+            rebased = renamed_run.joinpath(*recorded_relative.parts[1:])
+            if rebased.is_file():
+                return rebased
+        return exact
     if value.startswith("raw/"):
         return owner.parent / value
     if value.startswith("${AIMA_OUTPUT_DIR}/"):
@@ -205,12 +244,18 @@ def verify_release_evidence(
                 errors.append(f"immutable release record changed: {expected_path}")
 
     public_evidence = provenance.get("public_evidence")
-    expected_keys = {"matrix", "correctness", "surfaces", "openai_features", "portable_bundle"}
+    product_evidence_keys = PRODUCT_EVIDENCE_KEYS.get(
+        release, CORE_PRODUCT_EVIDENCE_KEYS
+    )
+    standalone_evidence_keys = STANDALONE_EVIDENCE_KEYS.get(
+        release, {"portable_bundle"}
+    )
+    expected_keys = product_evidence_keys | standalone_evidence_keys
     if not isinstance(public_evidence, dict) or set(public_evidence) != expected_keys:
         errors.append("public evidence records are missing or incomplete")
         public_evidence = {}
 
-    for key in ("matrix", "correctness", "surfaces", "openai_features"):
+    for key in product_evidence_keys:
         provenance_record = public_evidence.get(key)
         result_record = public_result.get("evidence", {}).get(key)
         if not isinstance(provenance_record, dict) or not isinstance(result_record, dict):
@@ -232,15 +277,16 @@ def verify_release_evidence(
         elif sha256(path) != provenance_record.get("sha256"):
             errors.append(f"evidence summary hash mismatch: {key}")
 
-    bundle_record = public_evidence.get("portable_bundle")
-    if not isinstance(bundle_record, dict):
-        errors.append("portable bundle evidence record is missing")
-    else:
-        bundle_summary = root / str(bundle_record.get("path", ""))
-        if not bundle_summary.is_file():
-            errors.append(f"missing evidence summary: {bundle_record.get('path')}")
-        elif sha256(bundle_summary) != bundle_record.get("sha256"):
-            errors.append("portable bundle evidence hash mismatch")
+    for key in standalone_evidence_keys:
+        record = public_evidence.get(key)
+        if not isinstance(record, dict):
+            errors.append(f"standalone evidence record is missing: {key}")
+            continue
+        summary = root / str(record.get("path", ""))
+        if not summary.is_file():
+            errors.append(f"missing evidence summary: {record.get('path')}")
+        elif sha256(summary) != record.get("sha256"):
+            errors.append(f"standalone evidence hash mismatch: {key}")
 
     for record in public_evidence.values():
         if not isinstance(record, dict) or not isinstance(record.get("path"), str):

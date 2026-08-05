@@ -1,0 +1,10 @@
+{
+  "data": [
+    {
+      "id": "aima-amd395-qwen36-35b",
+      "object": "model",
+      "owned_by": "approaching-ai"
+    }
+  ],
+  "object": "list"
+}

@@ -78,7 +78,7 @@ The deployment host needs:
 - the separately obtained, hash-matching 26-shard BF16 model checkpoint.
 
 It does not need a system ROCm installation or a Python environment. The
-qualified package is approximately 366 MiB unpacked and 101 MiB as a `.tar.zst`
+qualified package is approximately 369 MiB unpacked and 101 MiB as a `.tar.zst`
 archive, including the complete userspace ELF closure. Cross-version
 compatibility comes from the bundled loader and libraries; kernel/GPU
 compatibility cannot be bundled away.
@@ -244,8 +244,11 @@ Other gates:
   AOT buckets, and an A/B/A request sequence proved four-entry LRU reuse.
 
 The auditable source of truth is mirrored after release at
-`benchmarks/results/native-portable-product-v1.5.0.json` and is embedded in
-the archive as `share/aima/qualification.json`.
+[`native-portable-product-v1.5.0.json`](benchmarks/results/native-portable-product-v1.5.0.json)
+and is embedded in the archive as `share/aima/qualification.json`. The
+checksum-identical archive also passed `doctor`, exact-completion, q8192
+performance, resident HTTP and prefix-cache checks on a second AMD395; see the
+[`independent-host summary`](benchmarks/runs/native-portable-baiying-compat-20260805-v150-release/summary.json).
 The frozen baseline and optional striped-startup evidence remain documented in
 [docs/PERFORMANCE.md](docs/PERFORMANCE.md).
 

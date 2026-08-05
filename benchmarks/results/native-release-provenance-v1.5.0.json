@@ -1,0 +1,99 @@
+{
+  "schema": "aima-amd395-qwen36/native-release-provenance/v1",
+  "release": "1.5.0",
+  "complete": true,
+  "release_tag": "v1.5.0",
+  "release_commit": "d82e6943bc50d821011ce79e95afee06f6b12a36",
+  "native_source_commit": "2c4178ad95845b9a8ee00536f52671c77390c4b9",
+  "derived_from_commit": "c22aee94fff6bed34384642f3a1f4e358a2043a3",
+  "clarification": "The immutable v1.5.0 tag contains the release contract and exact qualified native binary metadata. Sanitized qualification reports, the frozen answer-only capability scorecard, portable-bundle qualification and independent-host reproduction are mirrored on main after the release tag.",
+  "immutable_records": {
+    "product_result": {
+      "path": "benchmarks/results/native-portable-product-v1.5.0.json",
+      "sha256": "7b60c28b8a963a41851b5d718b9756287a4aec02f64c171924abb280b93c8681"
+    },
+    "portable_bundle_result": {
+      "path": "benchmarks/results/native-portable-bundle-v1.5.0.json",
+      "sha256": "fb97e064c6adfbbf32f9ec571ae4fabaf3a1f0663ab158ef1dcb53f7586a8415"
+    },
+    "product_contract": {
+      "path": "native/product-contract-v1.5.0.json",
+      "sha256": "ab39b606ea0c5f2569f94ab133c9cc1241358775bce3145f6d37a2dffe0f0280"
+    }
+  },
+  "public_evidence": {
+    "matrix": {
+      "path": "benchmarks/runs/native-full-matrix-20260805-v150-release/matrix.json",
+      "sha256": "82b28e03dcc65f80e9b48cadc03058efa260912313e062ef718f98e7f1b92372"
+    },
+    "correctness": {
+      "path": "benchmarks/runs/native-correctness-20260805-v150-release/correctness.json",
+      "sha256": "ae95699dbd3ca5b6b8bd9e462d82248920591576f00e14734665c6a2d2624935"
+    },
+    "surfaces": {
+      "path": "benchmarks/runs/native-product-surfaces-20260805-v150-release/surfaces.json",
+      "sha256": "19318348f29d315f293152d1bb8622a31b0ffc73d4968bda6bf8d270c225b0d3"
+    },
+    "openai_features": {
+      "path": "benchmarks/runs/native-openai-features-20260805-v150-release/features.json",
+      "sha256": "052b4d859604bc0d4272bfc60b257490feb1f05cf9c485137b0db6c143cb3cda"
+    },
+    "capability_eval": {
+      "path": "benchmarks/runs/native-mmlu256-eval-20260805-v150-release/mmlu256.json",
+      "sha256": "104a9f91923943ec5a08e765f2b54e5aaef548bad2a44f268bf961bbef892746"
+    },
+    "portable_bundle": {
+      "path": "benchmarks/runs/native-portable-bundle-20260805-v150-release/bundle.json",
+      "sha256": "fb97e064c6adfbbf32f9ec571ae4fabaf3a1f0663ab158ef1dcb53f7586a8415"
+    },
+    "second_host_compat": {
+      "path": "benchmarks/runs/native-portable-baiying-compat-20260805-v150-release/summary.json",
+      "sha256": "239cca90a888bcefa4c88da2b9b3102e445aa2a69958457a045c48f20192dc88"
+    }
+  },
+  "public_evidence_trees": {
+    "matrix": {
+      "path": "benchmarks/runs/native-full-matrix-20260805-v150-release",
+      "file_count": 45,
+      "bytes": 502995,
+      "tree_sha256": "24d2ac32fff3338bd22c411287791be5b3f019699970deb64f24222019186c6a"
+    },
+    "correctness": {
+      "path": "benchmarks/runs/native-correctness-20260805-v150-release",
+      "file_count": 21,
+      "bytes": 74836,
+      "tree_sha256": "1b4472215e94da1708f5bb50040c88e2fed2041fd12669d49e152427c11146f7"
+    },
+    "surfaces": {
+      "path": "benchmarks/runs/native-product-surfaces-20260805-v150-release",
+      "file_count": 12,
+      "bytes": 37340,
+      "tree_sha256": "7230a9e6a0e248cd921c00704f2c952630fc93cd8a4aa9ba20e9e409db3f686b"
+    },
+    "openai_features": {
+      "path": "benchmarks/runs/native-openai-features-20260805-v150-release",
+      "file_count": 3,
+      "bytes": 11132,
+      "tree_sha256": "0d79a0a936a9f37c5cc75e8cdc297ac87e781e116e5291b27c39c6a32286f5a2"
+    },
+    "capability_eval": {
+      "path": "benchmarks/runs/native-mmlu256-eval-20260805-v150-release",
+      "file_count": 3,
+      "bytes": 238694,
+      "tree_sha256": "15e8a3fef5c650b23654ef1958e535ca0b02e240784c96aa674c8b204f6819f7"
+    },
+    "portable_bundle": {
+      "path": "benchmarks/runs/native-portable-bundle-20260805-v150-release",
+      "file_count": 7,
+      "bytes": 22392,
+      "tree_sha256": "e824709d52100cf953991d16af05323cc8b0231356b8d4516c10a645ec6b33f5"
+    },
+    "second_host_compat": {
+      "path": "benchmarks/runs/native-portable-baiying-compat-20260805-v150-release",
+      "file_count": 23,
+      "bytes": 55015,
+      "tree_sha256": "0a0648dd26fa810bb82b40c2633d39a54f60b4b7bf7cfb8e0be8abb3493bb73c"
+    }
+  },
+  "claim_effect": "v1.5.0 retains the full published batch-1 correctness and speed envelope, adds resident short-context dispatch and a bounded multi-entry prefix LRU, matches the frozen GB10 vLLM answer score, and reproduces the q8192 target on a second AMD395 without Python, PyTorch, vLLM, Triton or host ROCm userspace"
+}

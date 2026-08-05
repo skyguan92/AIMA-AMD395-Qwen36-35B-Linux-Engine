@@ -1,0 +1,107 @@
+{
+  "chat": [],
+  "command": [
+    "${AIMA_REPO_ROOT}/build/native/aima-engine-native",
+    "serve",
+    "--model-dir",
+    "${AIMA_MODEL_DIR}",
+    "--context-tokens",
+    "8192",
+    "--host",
+    "127.0.0.1",
+    "--port",
+    "18203",
+    "--report",
+    "${AIMA_REPO_ROOT}/output/native-product-surfaces-20260805-v150-source/raw/server-q8192-r3.load.json"
+  ],
+  "complete": true,
+  "engine_sha256": "93be2f7f0c432c82df0ce516706b60ede73086158d6166b8e7ff78479ee1d2f5",
+  "health": {
+    "body": {
+      "admitted_prompt_tokens": 9216,
+      "authentication": "none",
+      "command_to_ready_wall_ms": 46667.765581,
+      "context_capacity": 9216,
+      "fmha_provider_backend": "CK-Tile",
+      "http_shutdown_enabled": true,
+      "model": "aima-amd395-qwen36-35b",
+      "model_loaded": true,
+      "prefix_cache_entries": 4,
+      "prompt_token_ids_extension": true,
+      "request_timeout_ms": 15000,
+      "resident": true,
+      "resident_prefill_buckets": [
+        1024,
+        2048,
+        4096,
+        8192
+      ],
+      "runtime": "native",
+      "secondary_fmha_layers": [],
+      "secondary_fmha_provider_backend": "",
+      "served": 0,
+      "static_prefill_tokens": 8192,
+      "status": "ok",
+      "uptime_ms": 46668.167639
+    },
+    "status": 200
+  },
+  "load_report": "${AIMA_REPO_ROOT}/output/native-product-surfaces-20260805-v150-source/raw/server-q8192-r3.load.json",
+  "load_report_sha256": "ff5cb3afea70ea5a59bc7f51643d8d124ab205e553882260cb907d5afe79f2e7",
+  "models": {
+    "body": {
+      "data": [
+        {
+          "id": "aima-amd395-qwen36-35b",
+          "object": "model",
+          "owned_by": "approaching-ai"
+        }
+      ],
+      "object": "list"
+    },
+    "status": 200
+  },
+  "ready": {
+    "authentication": "none",
+    "command_to_ready_wall_ms": 46667.765581,
+    "context_capacity": 9216,
+    "engine_load_wall_ms": 46340.989388,
+    "event": "ready",
+    "fmha_provider_backend": "CK-Tile",
+    "fmha_provider_path": "${AIMA_REPO_ROOT}/build/native/libaima-fmha-ck.so",
+    "host": "127.0.0.1",
+    "http_shutdown_enabled": true,
+    "model": "aima-amd395-qwen36-35b",
+    "port": 18203,
+    "prefix_cache_entries": 4,
+    "prompt_token_ids_extension": true,
+    "request_timeout_ms": 15000,
+    "resident_prefill_buckets": [
+      1024,
+      2048,
+      4096,
+      8192
+    ],
+    "runtime_python": false,
+    "runtime_torch": false,
+    "runtime_triton": false,
+    "runtime_vllm": false,
+    "secondary_fmha_layers": [],
+    "secondary_fmha_provider_backend": "",
+    "secondary_fmha_provider_path": "",
+    "static_prefill_tokens": 8192
+  },
+  "schema": "aima-amd395-qwen36/native-server-qualification-run/v1",
+  "shutdown": {
+    "body": {
+      "status": "shutting_down"
+    },
+    "status": 200
+  },
+  "stderr": "${AIMA_REPO_ROOT}/output/native-product-surfaces-20260805-v150-source/raw/server-q8192-r3.stderr.txt",
+  "stopped": {
+    "event": "stopped",
+    "model_loads": 1,
+    "served": 0
+  }
+}

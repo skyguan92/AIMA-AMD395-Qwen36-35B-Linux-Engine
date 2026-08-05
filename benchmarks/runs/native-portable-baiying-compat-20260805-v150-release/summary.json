@@ -1,0 +1,167 @@
+{
+  "schema": "aima-amd395-qwen36/native-portable-independent-host-check/v1",
+  "release": {
+    "version": "v1.5.0",
+    "release_commit": "d82e6943bc50d821011ce79e95afee06f6b12a36",
+    "native_source_commit": "2c4178ad95845b9a8ee00536f52671c77390c4b9",
+    "archive": "aima-engine-native-portable-86e806e8bc5d.tar.zst",
+    "archive_bytes": 105761430,
+    "archive_sha256": "5ca97a234c1132ec0e715f463107faa7bdce6dab6ab053918cf1465b8d2ea62b",
+    "native_engine_sha256": "93be2f7f0c432c82df0ce516706b60ede73086158d6166b8e7ff78479ee1d2f5"
+  },
+  "date_utc": "2026-08-05",
+  "host": {
+    "scope": "independent AMD395 compatibility host",
+    "os": "Ubuntu 24.04",
+    "kernel": "7.0.0-28-generic",
+    "architecture": "x86_64",
+    "gpu": "Radeon 8060S Graphics",
+    "gpu_arch": "gfx1151",
+    "vram_bytes": 536870912,
+    "gtt_bytes": 103079215104,
+    "render_and_video_group_access": true,
+    "filesystem": "ext4"
+  },
+  "deployment": {
+    "transport": "rsync --partial --append-verify of the exact release archive",
+    "archive_checksum_pass": true,
+    "doctor_pass": true,
+    "doctor_required_checks_passed": 14,
+    "host_rocm_userspace_required": false,
+    "runtime_python": false,
+    "runtime_torch": false,
+    "runtime_vllm": false,
+    "runtime_triton": false,
+    "resident_service": {
+      "state_at_evidence_capture": "running",
+      "bind": "127.0.0.1:1024",
+      "model_loads": 1,
+      "served_requests": 1,
+      "command_to_ready_wall_ms": 20165.645128,
+      "health_pass": true,
+      "ordinary_chat_smoke_pass": true
+    }
+  },
+  "correctness": {
+    "context_tokens": 8192,
+    "completion_tokens": 128,
+    "expected_tokens_match": true,
+    "first_token_certified": true,
+    "all_decode_tokens_certified": true,
+    "output_token_ids_sha256": "aa910692fd03ed4a8e89c04497751e3a28eee36c6148237f7e97c74a6dd68201",
+    "published_output_token_ids_sha256": "aa910692fd03ed4a8e89c04497751e3a28eee36c6148237f7e97c74a6dd68201",
+    "pass": true,
+    "claim_boundary": "Exact 128-token regression against the published qualification vector; full-vocabulary KLD is established by the primary-host correctness evidence."
+  },
+  "performance": {
+    "context_tokens": 8192,
+    "protocol": "two fresh processes; first pair within 3 percent",
+    "cold_prefill_tps": {
+      "runs": [
+        1722.1208768054162,
+        1722.3691890009693
+      ],
+      "median": 1722.2450329031926,
+      "spread": 0.00014417936519436236,
+      "published_v1_5_median": 1656.4976538864187,
+      "retention": 1.0396905959163418
+    },
+    "decode_512_tps": {
+      "runs": [
+        32.35593007478623,
+        32.36185331887905
+      ],
+      "median": 32.35889169683264,
+      "spread": 0.00018304842292851572,
+      "published_v1_5_median": 32.286763625187675,
+      "retention": 1.0022339827082793
+    },
+    "decode_1024_tps": {
+      "runs": [
+        32.35448485069051,
+        32.35433047674203
+      ],
+      "median": 32.35440766371627,
+      "spread": 0.000004771342133275318,
+      "published_v1_5_median": 32.28473912667761,
+      "retention": 1.0021579402195353
+    },
+    "fresh_process_startup_ms": {
+      "runs": [
+        19860.831367,
+        19941.994731
+      ],
+      "median": 19901.413049
+    },
+    "output_hash_stable_across_runs": true,
+    "nonregression_pass": true
+  },
+  "http": {
+    "temporary_qualification_service_shutdown_cleanly": true,
+    "resident_prefill_buckets": [
+      1024,
+      2048,
+      4096,
+      8192
+    ],
+    "prefix_cache_entries": 4,
+    "model_loads": 1,
+    "q1024_cold": {
+      "status": 200,
+      "prompt_execution": "cold-aot",
+      "prefill_tokens_per_second": 1658.7929456836382,
+      "ttft_ms": 617.316346,
+      "output_token_ids_sha256": "16dc368a89b428b2485484313ba67a3912ca03f2b2b42429174a4f8b3dc84e44"
+    },
+    "q1024_exact_prefix_hit": {
+      "status": 200,
+      "prompt_execution": "prefix-cache-exact",
+      "matched_tokens": 1024,
+      "ttft_ms": 5.423048,
+      "ttft_speedup": 113.83199005430157,
+      "output_token_ids_sha256": "16dc368a89b428b2485484313ba67a3912ca03f2b2b42429174a4f8b3dc84e44"
+    },
+    "pass": true
+  },
+  "decision": {
+    "portable_runtime_pass": true,
+    "correctness_regression_pass": true,
+    "published_performance_nonregression_pass": true,
+    "http_and_residency_pass": true,
+    "overall_pass": true
+  },
+  "raw_artifacts": {
+    "doctor.json": {
+      "bytes": 4611,
+      "sha256": "b187cb74d192c356fa6330a1750c0954440bf227a7c11a0cb0dbe6c429167f6f"
+    },
+    "q8192-exact128.json": {
+      "bytes": 4375,
+      "sha256": "bb678b9b6c8511747a68607f52c80eaa2c665d1ceefcdc6105573008af8f6c48"
+    },
+    "q8192-perf-r1.json": {
+      "bytes": 12838,
+      "sha256": "1b890e1b61d3799828cd3702d35baf745a066960431fecc07d3cc394d76b5ec2"
+    },
+    "q8192-perf-r2.json": {
+      "bytes": 12838,
+      "sha256": "abfa89940408b0da326dea297201d9f9f9c95ff1bd4086a4a066de09982382a2"
+    },
+    "http-q1024-response.json": {
+      "bytes": 1426,
+      "sha256": "d1feabbf5f998656b5f75e59fb4cf8813265f0e69cffec7cbf2397efe6ff21e3"
+    },
+    "http-q1024-prefix-hit-response.json": {
+      "bytes": 1428,
+      "sha256": "275fd909250caa4302c676bf3a6c32e358be561526201240595ffc176d518035"
+    },
+    "deployment-chat-smoke.json": {
+      "bytes": 1434,
+      "sha256": "22a2577719bc6f6c272d669c356c74ae85d36061a002cab4785359193d1cc546"
+    },
+    "deployment-q8192-health-after-smoke.json": {
+      "bytes": 653,
+      "sha256": "0e79fba7f9e2c276cbcef2d4cfeb7945d5f26e1fdaff2a3ff9f15577b4195911"
+    }
+  }
+}

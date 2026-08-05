@@ -71,7 +71,7 @@ Prefix hit 只影响时延，不再决定请求能否执行。绝对窗口上限
 - 用户自行取得且哈希匹配的 26-shard BF16 Safetensors 模型。
 
 不需要系统 ROCm 和 Python 虚拟环境。跨软件版本兼容来自随包 loader 与动态库；
-解压后约 366 MiB，`.tar.zst` 压缩包约 101 MiB。Linux 内核驱动和 GPU
+解压后约 369 MiB，`.tar.zst` 压缩包约 101 MiB。Linux 内核驱动和 GPU
 架构本身无法打包进去。
 
 加载模型前先完成内存设置：
@@ -222,9 +222,12 @@ v1.4.1 完整矩阵，最差 prefill/decode 中位数变化为 `-2.259%` 与
 - q1024/q2048/q4096/q8192 raw-token 请求都选中了对应的常驻 AOT bucket，
   A/B/A 请求序列验证了 4 条目 LRU 的复用。
 
-完整精度、每次测量值和组件哈希会在发布后镜像到
-`benchmarks/results/native-portable-product-v1.5.0.json`，同时随包保存为
-`share/aima/qualification.json`。
+完整精度、每次测量值和组件哈希见
+[`native-portable-product-v1.5.0.json`](benchmarks/results/native-portable-product-v1.5.0.json)，
+同时随包保存为 `share/aima/qualification.json`。同一份校验通过的压缩包也在第二台
+AMD395 上通过了 `doctor`、128-token 精确输出、q8192 性能、HTTP 常驻和 prefix
+cache 测试；完整脱敏结果见
+[`独立机器复现摘要`](benchmarks/runs/native-portable-baiying-compat-20260805-v150-release/summary.json)。
 
 ## 从源码构建
 

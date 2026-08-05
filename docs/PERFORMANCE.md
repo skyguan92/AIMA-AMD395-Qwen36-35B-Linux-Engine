@@ -85,7 +85,8 @@ answers, exactly matching the frozen GB10 vLLM reference score. All 256 prompt
 token hashes matched; 250/256 complete output-token hashes were identical and
 251/256 parsed answers were identical. The five answer changes had zero net
 score effect. The public scorecard contains item identifiers, answers, hashes
-and aggregate metrics, but no prompt text or prompt token IDs.
+and aggregate metrics, but no prompt text or prompt token IDs. It is published
+as [`mmlu256.json`](../benchmarks/runs/native-mmlu256-eval-20260805-v150-release/mmlu256.json).
 
 This is a deterministic regression subset, not an official leaderboard score.
 The pinned upstream model card separately reports `85.2` MMLU-Pro, `93.3`
@@ -96,11 +97,20 @@ greedy MMLU-256 gate. See the
 
 Exact components, per-run values, baselines, ratios and decision boundaries
 are embedded as `share/aima/qualification.json` and mirrored after release to
-`benchmarks/results/native-portable-product-v1.5.0.json`.
+[`native-portable-product-v1.5.0.json`](../benchmarks/results/native-portable-product-v1.5.0.json).
 Its hash-bound summaries and raw reports are published under
 [`benchmarks/runs/`](../benchmarks/runs/). `make verify-evidence` checks every
 referenced report; `make package-evidence` emits a deterministic public
 evidence archive and SHA-256 sidecar under `dist/`.
+
+The checksum-identical release archive was also deployed on a second AMD395
+with Ubuntu 24.04 and kernel 7.0.0-28. Two fresh q8192 runs reached a `1722`
+tok/s cold-prefill median, `32.36` tok/s output512 decode median and `32.35`
+tok/s output1024 decode median. Those retain `1.040x`, `1.002x` and `1.002x`
+of the primary-host v1.5 medians. The exact 128-token hash, portable doctor,
+one-load resident HTTP service and exact-prefix replay all passed; the complete
+sanitized record is in the
+[`independent-host summary`](../benchmarks/runs/native-portable-baiying-compat-20260805-v150-release/summary.json).
 The v1.3 result remains available as a historical release record in
 [`native-portable-product-v1.3.0.json`](../benchmarks/results/native-portable-product-v1.3.0.json).
 The v1.4.0 result is retained in

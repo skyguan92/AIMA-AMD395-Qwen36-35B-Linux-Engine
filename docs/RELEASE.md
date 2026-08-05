@@ -15,8 +15,19 @@ exact completion, startup/prefix/HTTP surfaces, variable-length bucket cases,
 SSE, tools, the frozen MMLU-256 score/nonregression pair against GB10 vLLM,
 portable-bundle isolation and a second-host AMD395 compatibility smoke. The
 public eval scorecard excludes prompt text and prompt token IDs. The immutable
-commit, component hashes and raw-evidence links are added only after those
-gates pass.
+commit, component hashes and raw-evidence links are recorded in
+[`native-release-provenance-v1.5.0.json`](../benchmarks/results/native-release-provenance-v1.5.0.json).
+
+The immutable tag is `v1.5.0` at release commit
+`d82e6943bc50d821011ce79e95afee06f6b12a36`. The native executable embeds
+source commit `2c4178ad95845b9a8ee00536f52671c77390c4b9`; release-only metadata
+was added without rebuilding it. The exact archive was checksum-verified and
+qualified in an isolated userspace, then reproduced on a second AMD395 running
+Ubuntu 24.04 and kernel 7.0.0-28. That host reached `1722` cold-prefill tok/s
+and `32.36` decode tok/s at q8192/output512, retaining `1.040x` and `1.002x`
+of the published medians. Its exact 128-token output hash matched, and the
+portable doctor, HTTP residency and exact-prefix replay all passed without
+host ROCm userspace or a framework runtime.
 
 ## v1.4.1 boundary
 
@@ -103,7 +114,7 @@ commit.
 
 ## Portable native release boundary
 
-The current v1.4.1 deployment unit is the deterministic
+The current v1.5.0 deployment unit is the deterministic
 `aima-engine-native-portable-*.tar.zst` archive produced by
 `make package-native`. The archive includes a recursive `manifest.json`, the
 machine product contract and the qualification record.
@@ -112,7 +123,7 @@ Qualified executable components:
 
 | Component | SHA-256 |
 |---|---|
-| native engine | `90c55cb3185d37589c5b2f8afead9ecd4fb53759beae99a95ec763143f9ad7b0` |
+| native engine | `93be2f7f0c432c82df0ce516706b60ede73086158d6166b8e7ff78479ee1d2f5` |
 | static launcher | `ac43fb95a8bad8f9fb4e0f4eac9cadc4fb92f22189f4f35ce21a81f1d56fcf98` |
 | AOTriton adapter | `8f42d7b17a778168a1bb66b34eff282e13955541ededfa838355ffbc176b43a5` |
 | CK-Tile adapter | `77f6f6429ed7ef2e34a33372f6096a6d62957ba46f1866e7f40c39da9add25b4` |
@@ -145,23 +156,27 @@ passed a 16-token cold request and exact replay, an ordinary 36-token next-user
 turn and an unrelated short request after a long-context request; both cache
 misses restarted from clean state and returned HTTP 200.
 The exact decision is in
-[`native-portable-product-v1.4.1.json`](../benchmarks/results/native-portable-product-v1.4.1.json).
+[`native-portable-product-v1.5.0.json`](../benchmarks/results/native-portable-product-v1.5.0.json).
 The result records that the published v1.1 long-context envelope is replaced
 by the native package.
 
-The five compact raw qualification directories referenced by the product and
-portable-bundle results are published under `benchmarks/runs/`. Run
+The seven compact qualification directories referenced by the product,
+portable-bundle and independent-host results are published under
+[`benchmarks/runs/`](../benchmarks/runs/). Run
 `make verify-evidence` to verify every summary and recursively referenced raw
-report. The v1.4.1 provenance binds the exact 90-file inventory, byte count and
-sorted-path tree hash of all five directories, so extra, missing or modified
+report. The v1.5.0 provenance binds the exact 114-file inventory, byte count and
+sorted-path tree hash of all seven directories, so extra, missing or modified
 raw files fail verification. Run `make package-evidence` to create a
 deterministic checksummed release asset containing that public evidence.
 Licensed oracle logits, model weights and prompt content remain excluded.
 
 The published portable archive is
-`aima-engine-native-portable-b98b7bc698ae.tar.zst` (105,743,424 bytes), with
+`aima-engine-native-portable-86e806e8bc5d.tar.zst` (105,761,430 bytes), with
 SHA-256
-`f75562537277af8b3a0e1a92fb012761a1522b7021f3014bc1f5b8355f650d1b`.
+`5ca97a234c1132ec0e715f463107faa7bdce6dab6ab053918cf1465b8d2ea62b`.
+The companion public-evidence asset is
+`aima-engine-v1.5.0-public-evidence.tar.zst` (82,339 bytes), with SHA-256
+`d47c49b874d8c421fdd270a0eaa698f6938348726576a20b2c5f0931eaac5e36`.
 
 ## Native build provenance
 

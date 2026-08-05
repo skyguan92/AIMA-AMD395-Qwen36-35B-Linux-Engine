@@ -1,0 +1,53 @@
+{
+  "aima_amd395": {
+    "aot_prefill_tokens": 1024,
+    "client_cancelled": false,
+    "cold_prompt_decode_tokens": 0,
+    "cold_prompt_decode_wall_ms": 0.0,
+    "decode_tokens_per_second": 0.0,
+    "http_request_wall_ms": 617.451784,
+    "model_loads": 1,
+    "oracle_tensor_reads": 0,
+    "output_token_ids_sha256": "16dc368a89b428b2485484313ba67a3912ca03f2b2b42429174a4f8b3dc84e44",
+    "prefill_tokens_per_second": 1658.7929456836382,
+    "prefix_cache": {
+      "hits": 0,
+      "implemented": true,
+      "lookup": "miss",
+      "matched_tokens": 0,
+      "misses": 1,
+      "scope": "capacity-bounded-variable-exact-or-append-lru",
+      "suffix_aot_launches": 0,
+      "suffix_decode_tokens": 0,
+      "suffix_native_launches": 0,
+      "suffix_tokens": 1024,
+      "suffix_wall_ms": 0.0,
+      "transfer_bytes": 85364736
+    },
+    "prompt_execution": "cold-aot",
+    "prompt_source": "token_ids",
+    "request_index": 1,
+    "request_wall_ms": 617.321016,
+    "runtime": "native-resident-q1024",
+    "ttft_ms": 617.316346
+  },
+  "choices": [
+    {
+      "finish_reason": "length",
+      "index": 0,
+      "message": {
+        "content": "\ufffd",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1785914090,
+  "id": "chatcmpl-native-1",
+  "model": "aima-amd395-qwen36-35b",
+  "object": "chat.completion",
+  "usage": {
+    "completion_tokens": 1,
+    "prompt_tokens": 1024,
+    "total_tokens": 1025
+  }
+}

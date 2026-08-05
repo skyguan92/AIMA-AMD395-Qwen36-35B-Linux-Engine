@@ -33,7 +33,13 @@ PORTABLE_BUNDLE_V140_RESULT = (
 PORTABLE_BUNDLE_V141_RESULT = (
     ROOT / "benchmarks/results/native-portable-bundle-v1.4.1.json"
 )
-PORTABLE_PRODUCT_RESULT = ROOT / "benchmarks/results/native-portable-product-v1.4.1.json"
+PORTABLE_BUNDLE_V150_RESULT = (
+    ROOT / "benchmarks/results/native-portable-bundle-v1.5.0.json"
+)
+PORTABLE_PRODUCT_RESULT = ROOT / "benchmarks/results/native-portable-product-v1.5.0.json"
+PORTABLE_PRODUCT_V141_RESULT = (
+    ROOT / "benchmarks/results/native-portable-product-v1.4.1.json"
+)
 PORTABLE_PRODUCT_V140_RESULT = (
     ROOT / "benchmarks/results/native-portable-product-v1.4.0.json"
 )
@@ -48,6 +54,9 @@ RELEASE_PROVENANCE_V140_RESULT = (
 )
 RELEASE_PROVENANCE_V141_RESULT = (
     ROOT / "benchmarks/results/native-release-provenance-v1.4.1.json"
+)
+RELEASE_PROVENANCE_V150_RESULT = (
+    ROOT / "benchmarks/results/native-release-provenance-v1.5.0.json"
 )
 DECODE_SCHEDULE = ROOT / "native/aot/gfx1151/q8192-output2/decode-schedule.json"
 DECODE_SCHEDULE_RESULT = ROOT / "benchmarks/results/native-decode-schedule-v0.1.0.json"
@@ -95,7 +104,13 @@ class NativeRuntimeContractTest(unittest.TestCase):
         cls.portable_bundle_v141_result = load_json(
             PORTABLE_BUNDLE_V141_RESULT
         )
+        cls.portable_bundle_v150_result = load_json(
+            PORTABLE_BUNDLE_V150_RESULT
+        )
         cls.portable_product_result = load_json(PORTABLE_PRODUCT_RESULT)
+        cls.portable_product_v141_result = load_json(
+            PORTABLE_PRODUCT_V141_RESULT
+        )
         cls.portable_product_v140_result = load_json(
             PORTABLE_PRODUCT_V140_RESULT
         )
@@ -103,6 +118,7 @@ class NativeRuntimeContractTest(unittest.TestCase):
         cls.release_provenance_v130 = load_json(RELEASE_PROVENANCE_V130_RESULT)
         cls.release_provenance_v140 = load_json(RELEASE_PROVENANCE_V140_RESULT)
         cls.release_provenance_v141 = load_json(RELEASE_PROVENANCE_V141_RESULT)
+        cls.release_provenance_v150 = load_json(RELEASE_PROVENANCE_V150_RESULT)
         cls.decode_schedule = load_json(DECODE_SCHEDULE)
         cls.decode_schedule_result = load_json(DECODE_SCHEDULE_RESULT)
         cls.decode_bindings_result = load_json(DECODE_BINDINGS_RESULT)
@@ -211,18 +227,18 @@ class NativeRuntimeContractTest(unittest.TestCase):
 
     def test_portable_native_product_profile_is_hash_bound_and_nonregressing(self) -> None:
         result = self.portable_product_result
-        profile = self.contract_v141["qualified_native_profile"]
+        profile = self.contract_v150["qualified_native_profile"]
         self.assertTrue(result["complete"])
         self.assertTrue(result["qualified"])
-        self.assertEqual(result["release"], "1.4.1")
+        self.assertEqual(result["release"], "1.5.0")
         self.assertEqual(result["scope"]["input_tokens"], profile["input_tokens"])
         self.assertEqual(result["scope"]["output_tokens"], profile["output_tokens"])
         self.assertTrue(result["scope"]["matrix_complete_for_admitted_native_profile"])
         self.assertTrue(result["scope"]["legacy_v1_1_long_context_profile_replaced"])
-        self.assertEqual(result["components"]["source"]["release_tag"], "v1.4.1")
+        self.assertEqual(result["components"]["source"]["release_tag"], "v1.5.0")
         self.assertEqual(
             result["components"]["source"]["release_commit"],
-            self.release_provenance_v141["release_commit"],
+            self.release_provenance_v150["release_commit"],
         )
         self.assertEqual(len(result["performance"]["cells"]), 19)
         self.assertTrue(result["performance"]["all_cells_pass"])
@@ -274,6 +290,20 @@ class NativeRuntimeContractTest(unittest.TestCase):
             "tool_calls",
         )
         self.assertTrue(result["openai_features"]["disconnect"]["pass"])
+        capability = result["capability_eval"]
+        self.assertTrue(capability["pass"])
+        self.assertEqual(capability["score"]["items"], 256)
+        self.assertEqual(capability["score"]["correct"], 216)
+        self.assertEqual(capability["score"]["invalid_answers"], 0)
+        self.assertEqual(capability["reference_comparison"]["reference_correct"], 216)
+        self.assertEqual(
+            capability["reference_comparison"]["prompt_token_hash_matches"], 256
+        )
+        self.assertTrue(
+            capability["reference_comparison"]["score_nonregression_pass"]
+        )
+        self.assertFalse(capability["source"]["prompt_text_in_scorecard"])
+        self.assertFalse(capability["source"]["prompt_token_ids_in_scorecard"])
         for dependency in ("python", "torch", "vllm", "triton", "transformers"):
             self.assertFalse(result["runtime_dependency_gate"][f"runtime_{dependency}"])
         self.assertFalse(result["runtime_dependency_gate"]["host_rocm_userspace_required"])
@@ -283,6 +313,9 @@ class NativeRuntimeContractTest(unittest.TestCase):
         self.assertTrue(result["decision"]["http_streaming_pass"])
         self.assertTrue(result["decision"]["tool_calling_pass"])
         self.assertTrue(result["decision"]["disconnect_cancellation_pass"])
+        self.assertTrue(result["decision"]["resident_prefill_dispatch_pass"])
+        self.assertTrue(result["decision"]["multi_entry_prefix_lru_pass"])
+        self.assertTrue(result["decision"]["frozen_capability_eval_pass"])
 
     def test_v130_release_archive_is_isolated_and_provider_complete(self) -> None:
         bundle = self.portable_bundle_v130_result
@@ -364,8 +397,8 @@ class NativeRuntimeContractTest(unittest.TestCase):
             90,
         )
 
-    def test_v141_public_raw_evidence_is_the_default_and_hash_bound(self) -> None:
-        self.assertEqual(verify_release_evidence(ROOT), [])
+    def test_v141_public_raw_evidence_is_preserved_and_hash_bound(self) -> None:
+        self.assertEqual(verify_release_evidence(ROOT, release="1.4.1"), [])
         provenance = self.release_provenance_v141
         self.assertEqual(provenance["release_tag"], "v1.4.1")
         self.assertEqual(
@@ -373,7 +406,7 @@ class NativeRuntimeContractTest(unittest.TestCase):
             "ba45639c178061f9bdadd22c86744f6924f5bf44",
         )
         self.assertEqual(
-            self.portable_product_result["components"]["source"][
+            self.portable_product_v141_result["components"]["source"][
                 "native_source_commit"
             ],
             provenance["native_source_commit"],
@@ -386,6 +419,55 @@ class NativeRuntimeContractTest(unittest.TestCase):
                 for record in provenance["public_evidence_trees"].values()
             ),
             90,
+        )
+
+    def test_v150_public_raw_evidence_is_the_default_and_hash_bound(self) -> None:
+        self.assertEqual(verify_release_evidence(ROOT), [])
+        provenance = self.release_provenance_v150
+        self.assertEqual(provenance["release_tag"], "v1.5.0")
+        self.assertEqual(
+            provenance["release_commit"],
+            "d82e6943bc50d821011ce79e95afee06f6b12a36",
+        )
+        self.assertEqual(
+            self.portable_product_result["components"]["source"][
+                "native_source_commit"
+            ],
+            provenance["native_source_commit"],
+        )
+        self.assertEqual(self.portable_bundle_v150_result["release"], "1.5.0")
+        self.assertTrue(self.portable_bundle_v150_result["qualified"])
+        self.assertEqual(
+            set(provenance["public_evidence"]),
+            {
+                "matrix",
+                "correctness",
+                "surfaces",
+                "openai_features",
+                "capability_eval",
+                "portable_bundle",
+                "second_host_compat",
+            },
+        )
+        self.assertEqual(
+            sum(
+                record["file_count"]
+                for record in provenance["public_evidence_trees"].values()
+            ),
+            114,
+        )
+        independent_host = load_json(
+            ROOT
+            / provenance["public_evidence"]["second_host_compat"]["path"]
+        )
+        self.assertTrue(independent_host["decision"]["overall_pass"])
+        self.assertGreaterEqual(
+            independent_host["performance"]["cold_prefill_tps"]["retention"],
+            0.97,
+        )
+        self.assertGreaterEqual(
+            independent_host["performance"]["decode_512_tps"]["retention"],
+            0.97,
         )
 
     def test_generated_layout_is_current_and_complete(self) -> None:
