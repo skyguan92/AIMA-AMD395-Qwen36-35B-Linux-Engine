@@ -1,8 +1,8 @@
 # Portable native runtime
 
-This page documents the v1.4.1 portable native runtime.
+This page documents the v1.5.0 portable native runtime.
 
-AIMA v1.4 provides a relocatable native runtime for
+AIMA v1.5 provides a relocatable native runtime for
 `Qwen3.6-35B-A3B-BF16` on AMD Ryzen AI Max+ 395 / `gfx1151`. The runtime
 loads the standard 26-shard Safetensors checkpoint directly, keeps model and
 cache state resident, and serves a deterministic OpenAI Chat Completions

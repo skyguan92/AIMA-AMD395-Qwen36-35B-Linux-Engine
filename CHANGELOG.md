@@ -5,6 +5,23 @@ Versioning.
 
 ## Unreleased
 
+## 1.5.0 - 2026-08-05
+
+- Added resident q1024/q2048/q4096/q8192 cold-prefill dispatch. A q8192
+  service now selects the largest fitting AOT bucket for each request and
+  token-decodes only the unmatched tail, without prompt padding.
+- Replaced the single request-prefix snapshot with a capacity-bounded LRU:
+  four entries for normal q8192 service, two for medium long-context profiles
+  and one for the largest windows so the 96 GiB GTT contract remains intact.
+- Exposed resident buckets, prefix-cache capacity and selected AOT-prefill
+  tokens through health, CLI and per-request HTTP metrics.
+- Added a hash-checked raw-token HTTP extension and resumable, prompt-free
+  answer-eval scorecard generator for exact release-binary regression tests.
+- Pinned GitHub Actions by immutable commit, added weekly update automation and
+  a release-evidence pull-request checklist.
+- Pinned the qualified Hugging Face checkpoint revision and metadata hashes in
+  the deployment guide.
+
 ## 1.4.1 - 2026-08-04
 
 - Fixed variable-length cold prompts and ordinary multi-turn cache misses:

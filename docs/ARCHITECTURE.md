@@ -2,7 +2,7 @@
 
 ## Product boundary
 
-The v1.4 runtime specializes one model, one GPU architecture and batch size one.
+The v1.5 runtime specializes one model, one GPU architecture and batch size one.
 It is a native resident engine, not a Python wrapper around the v1.1 stack.
 
 ```text
@@ -40,8 +40,10 @@ that reject direct I/O.
 Before readiness it verifies the complete 69,321,221,376-byte GPU payload,
 builds the shared derived weight layouts and int8 LM head, resolves every AOT
 weight binding, loads code objects, prepares hipBLASLt plans, allocates
-prefill/decode workspaces and creates the prefix-cache owner. Nothing performs a
-second full-weight copy.
+the configured endpoint plus smaller resident prefill workspaces, and creates
+up to four prefix-cache owners. Long-window profiles reduce the entry count so
+snapshots remain inside the 96 GiB GTT contract. Nothing performs a second
+full-weight copy.
 
 All owners live for the process lifetime. Normal request execution performs no
 checkpoint or oracle reads.
@@ -74,12 +76,12 @@ Provider selection is derived from the admitted context and the executable's
 own location. `--fmha-provider` is an explicit qualification override.
 
 Fixed schedules remain the fast path for the published standard contexts and
-three maximum-window endpoints. Variable cache misses are also admitted: the
-engine starts from empty recurrent/KV state, uses the selected AOT schedule for
-a complete specialized prefix when available, and executes the unmatched
-prompt portion through the same qualified token path used for continuation.
-This preserves correctness without pretending that an unmeasured padded AOT
-shape is equivalent; the token-decoded portion runs at decode throughput.
+three maximum-window endpoints. A default q8192 process also keeps q1024,
+q2048, q4096 and q8192 workspaces, invocations and GEMM plans resident.
+Variable cache misses start from empty recurrent/KV state, select the largest
+resident AOT bucket not exceeding the real prompt length, and execute only the
+unmatched tail through the same qualified token path used for continuation.
+No padded prompt is treated as equivalent to real input.
 
 ## Correctness-sensitive arithmetic
 
@@ -94,13 +96,13 @@ but are not substituted for the end-to-end gate.
 
 ## Request execution
 
-A cold request starts from clean resident state. When the prompt reaches the
-selected specialization it runs that prefill schedule, writes full-attention KV
-directly into the resident cache and retains all linear recurrent/conv state;
-short prompts and any remaining tail run through the 402-launch token schedule
-plus native support kernels. The native LM head produces the first completion
-token, then the engine captures one variable-length cache checkpoint. Cache
-misses and one-entry eviction change latency, not admission.
+A cold request starts from clean resident state. When the prompt reaches a
+resident bucket it runs that prefill schedule, writes full-attention KV directly
+into the resident cache and retains all linear recurrent/conv state; any
+remaining tail runs through the 402-launch token schedule plus native support
+kernels. The native LM head produces the first completion token, then the
+engine captures a variable-length request-prefix checkpoint. Cache misses and
+LRU eviction change latency, not admission.
 
 Greedy decode stops on the model EOS or the requested length. EOS is included
 in token usage and omitted from visible text.
@@ -113,15 +115,16 @@ remaining decode loop while preserving resident ownership.
 
 ## Prefix cache
 
-The one-entry cache owns:
+Each capacity-bounded LRU entry owns:
 
 - the static token sequence;
 - every linear-attention conv/recurrent state;
 - K/V state for all ten full-attention layers;
 - the terminal hidden row used for the cached first-token distribution.
 
-An exact hit restores the state and bypasses prefill. If a request begins with
-the cached tokens and adds a suffix, the engine restores the same state,
+The engine chooses the longest matching resident entry. An exact hit restores
+the state and bypasses prefill. If a request begins with the cached tokens and
+adds a suffix, the engine restores the same state,
 executes each suffix token through native decode at its real position, and then
 starts completion. Cache metrics distinguish miss, exact and prefix-extension
 lookups and report that no prefill launches occurred on a hit.

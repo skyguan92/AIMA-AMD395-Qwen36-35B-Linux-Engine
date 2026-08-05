@@ -1,5 +1,21 @@
 # Release provenance and procedure
 
+## v1.5.0 boundary
+
+The personal upstream owns the immutable `v1.5.0` feature tag and release
+assets; the Approaching AI repository mirrors the product commit and remains
+the public issue surface. The release adds resident q1024/q2048/q4096/q8192
+prefill dispatch for q8192 service and a capacity-bounded multi-entry exact-token
+request-prefix LRU. Neither feature changes the model arithmetic, correctness
+gate, batch-size-one contract or maximum context window.
+
+Release qualification must bind the exact tagged binary and rerun the complete
+19-cell performance matrix, nine-context full-vocabulary correctness gate,
+exact completion, startup/prefix/HTTP surfaces, variable-length bucket cases,
+SSE, tools, portable-bundle isolation and a second-host AMD395 compatibility
+smoke. The immutable commit, component hashes and raw-evidence links are added
+only after those gates pass.
+
 ## v1.4.1 boundary
 
 The personal upstream owns the immutable `v1.4.1` patch tag and release

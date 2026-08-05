@@ -1,6 +1,6 @@
 # Native CLI and HTTP API
 
-This page documents the v1.4.1 native CLI and HTTP API. Earlier binaries do
+This page documents the v1.5.0 native CLI and HTTP API. Earlier binaries do
 not include every command and hardening control described here.
 
 ## CLI
@@ -86,7 +86,8 @@ the token is never placed in the command line.
 `resident-session-probe` executes raw deterministic token fixtures and emits
 the complete load/request/cache/performance record as JSON. It supports
 `--max-new-tokens-sequence 512,1024` so output-length decode cells can share
-one cold context without reloading the model.
+one cold context without reloading the model. `--prompt-tokens N` exercises a
+variable request length inside a larger `--context-tokens` resident process.
 
 `tokenizer-probe` and `chat-template-probe` expose the native tokenizer for
 fixture preparation. These probes do not import Python or Transformers.
@@ -161,20 +162,44 @@ After tokenization:
 
 - every positive prompt length is admitted when prompt plus requested output
   fits `--cache-capacity`;
-- an exact repeat restores the cached state and a genuine token-prefix append
-  restores that state before executing only the suffix;
-- a cache miss shorter than the selected AOT specialization starts from empty
-  recurrent/KV state and executes the prompt through the qualified token path;
-- a cache miss at or above the specialization runs the AOT prefix and executes
-  only the remaining prompt tail through native decode;
+- the capacity-bounded LRU cache reuses exact or genuine token-prefix request
+  snapshots, restoring state before executing only the suffix (four entries at
+  q8192, fewer at very long windows to preserve the 96 GiB memory contract);
+- a q8192 process keeps q1024/q2048/q4096/q8192 AOT prefill buckets resident;
+- a cold cache miss selects the largest resident bucket no longer than the
+  prompt and executes only the remaining tail through native decode;
+- a prompt shorter than the smallest q1024 bucket starts from empty recurrent/
+  KV state and executes through the qualified token path;
 - independent and ordinary `user -> assistant -> user` conversations therefore
   fall back to cold execution instead of being rejected;
 - the absolute model/runtime window remains 262,144 tokens.
 
 Prefix matching is exact token matching, not a text-prefix heuristic. It only
-changes latency. For peak cold-prefill throughput, select a published standard
-context matching the workload; variable cold prompts are correctness-admitted
-but their token-decoded portion runs at decode throughput.
+changes latency. Cache entries are completed request-prefix snapshots, not
+arbitrary token checkpoints. For peak cold-prefill throughput, select a
+published standard context matching the workload; only the portion after the
+largest fitting resident AOT bucket runs at decode throughput.
+
+### Frozen-token eval extension
+
+For reproducible regression evaluation, the native endpoint accepts a
+non-standard top-level `prompt_token_ids` array. It replaces chat-template
+tokenization for that request and is rejected when combined with tools. The
+response reports `aima_amd395.prompt_source = "token_ids"`; ordinary OpenAI
+clients should continue to send `messages` without this field.
+
+The repository's resumable `scripts/qualify-native-eval.py` verifies every
+frozen prompt-token hash, sends deterministic batch-1 requests and writes a
+sanitized scorecard containing no questions or token IDs. Example:
+
+```bash
+python3 scripts/qualify-native-eval.py \
+  --items /private/eval/items.jsonl \
+  --requests-root /private/eval \
+  --engine-binary ./bin/aima-engine \
+  --output output/native-eval.json \
+  --minimum-correct 216
+```
 
 The published standard contexts are `1024`, `2048`, `4096`, `8192`, `16384`,
 `32768`, `65536` and `131072`. Maximum-window qualifications use
@@ -214,6 +239,7 @@ is not exposed as a valid call. A terminal EOS token counts in
 - prefill/decode throughput and total latency;
 - TTFT;
 - prompt execution mode and token-decoded cold-tail timing;
+- the selected `aot_prefill_tokens` bucket;
 - output-token SHA-256;
 - prefix lookup type, matched/suffix token counts, cumulative hits/misses,
   state-transfer bytes, suffix launch counts and suffix wall time.
@@ -239,7 +265,7 @@ curl -N http://127.0.0.1:8000/v1/chat/completions \
   -H 'Content-Type: application/json' \
   -d '{
     "model": "aima-amd395-qwen36-35b",
-    "messages": [{"role": "user", "content": "EXACT_LENGTH_PROMPT"}],
+    "messages": [{"role": "user", "content": "Explain prefix caching briefly."}],
     "temperature": 0,
     "top_p": 1,
     "max_tokens": 512,
@@ -256,7 +282,7 @@ curl -fsS http://127.0.0.1:8000/v1/chat/completions \
   -d '{
     "model": "aima-amd395-qwen36-35b",
     "messages": [
-      {"role": "user", "content": "EXACT_LENGTH_TOOL_PROMPT"}
+      {"role": "user", "content": "What is the weather in Paris?"}
     ],
     "tools": [{
       "type": "function",
@@ -302,10 +328,10 @@ assistant and tool messages:
 ]
 ```
 
-Tool definitions and history count toward the selected static context. Prepare
-or pad the prompt after applying the complete tool template. Required and
-named `tool_choice` requests fail if generation does not produce an admitted
-function call.
+Tool definitions and history count toward the cache capacity. No padding is
+required; the engine selects the largest fitting resident AOT bucket after the
+complete tool template is tokenized. Required and named `tool_choice` requests
+fail if generation does not produce an admitted function call.
 
 ## Errors
 
@@ -318,6 +344,6 @@ fatal.
 ## Concurrency
 
 One process owns one model and serializes requests. This preserves the measured
-batch-1 contract and the single-entry prefix state. Run separate isolated
-processes only when the machine has enough memory; a normal 128 GB AMD395 host
-does not have room for two copies of this BF16 model.
+batch-1 contract and the capacity-bounded exact-token prefix state. Run
+separate isolated processes only when the machine has enough memory; a normal
+128 GB AMD395 host does not have room for two copies of this BF16 model.

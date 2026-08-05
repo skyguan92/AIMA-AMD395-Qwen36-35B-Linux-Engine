@@ -2,13 +2,13 @@
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![CI](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/actions/workflows/ci.yml/badge.svg)](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/release-v1.4.1-green.svg)](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.4.1)
+[![Release](https://img.shields.io/badge/release-v1.5.0-green.svg)](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.5.0)
 [![Hardware](https://img.shields.io/badge/GPU-gfx1151-orange.svg)](docs/INSTALL.md)
 
 这是一个面向 AMD Ryzen AI Max+ 395 / Radeon 8060S 的 batch-1
 `Qwen3.6-35B-A3B-BF16` 专用推理引擎。
 
-v1.4.1 提供真正的 SSE 流式输出与 OpenAI function tools，同时保持可搬移原生
+v1.5.0 提供真正的 SSE 流式输出与 OpenAI function tools，同时保持可搬移原生
 运行包：运行时不加载 Python、PyTorch、vLLM、
 Triton、Transformers，也不依赖宿主机安装 ROCm userspace。发布包内含静态
 启动器、原生引擎、固定版本的 ROCm/AOTriton/CK 动态库、glibc loader、许可证
@@ -16,7 +16,8 @@ Triton、Transformers，也不依赖宿主机安装 ROCm userspace。发布包�
 
 > **版本边界：**v1.4.0 新增 `doctor`、`--build-info`、bearer 鉴权、socket
 > 超时和加固后的 systemd 模板；v1.4.1 新增变长 cold prompt 与普通多轮
-> cache miss 回退。更早版本仍遵循其文档中的固定上下文限制。
+> cache miss 回退；v1.5.0 新增常驻 q1024/q2048/q4096/q8192 prefill 调度与
+> 容量受限的多条目 prefix LRU。更早版本仍遵循其文档中的请求延迟边界。
 
 English: [README.md](README.md)
 
@@ -78,7 +79,7 @@ Prefix hit 只影响时延，不再决定请求能否执行。绝对窗口上限
 
 ## 快速启动
 
-先从[个人上游 v1.4.1 Release](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.4.1)
+先从[个人上游 v1.5.0 Release](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.5.0)
 下载运行包与校验文件：
 
 ```bash
@@ -149,7 +150,7 @@ curl -fsS -X POST http://127.0.0.1:8000/shutdown
 
 ## 原生 CLI
 
-已发布的 v1.4.1 CLI 提供：
+已发布的 v1.5.0 CLI 提供：
 
 ```text
 aima-engine --build-info

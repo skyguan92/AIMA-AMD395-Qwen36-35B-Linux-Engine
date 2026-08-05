@@ -20,7 +20,7 @@ void require_plan(std::size_t input_tokens, std::size_t matched_tokens,
                   std::size_t expected_aot_tokens,
                   std::size_t expected_decode_start) {
   const auto plan = aima::plan_native_prompt_execution(
-      input_tokens, matched_tokens, 8192);
+      input_tokens, matched_tokens, {1024, 2048, 4096, 8192});
   require(plan.mode == expected_mode, "execution mode changed");
   require(plan.cold_aot_tokens == expected_aot_tokens,
           "AOT prefix length changed");
@@ -36,10 +36,21 @@ void require_plan(std::size_t input_tokens, std::size_t matched_tokens,
 int main() {
   using Mode = aima::NativePromptExecutionMode;
   require_plan(13, 0, Mode::kColdDecodeFallback, 0, 0);
+  require_plan(1024, 0, Mode::kColdAot, 1024, 1024);
+  require_plan(1536, 0, Mode::kColdAotPlusDecode, 1024, 1024);
+  require_plan(4096, 0, Mode::kColdAot, 4096, 4096);
+  require_plan(5000, 0, Mode::kColdAotPlusDecode, 4096, 4096);
   require_plan(8192, 0, Mode::kColdAot, 8192, 8192);
   require_plan(8212, 0, Mode::kColdAotPlusDecode, 8192, 8192);
   require_plan(13, 13, Mode::kPrefixCacheExact, 0, 13);
   require_plan(20, 13, Mode::kPrefixCachePlusDecode, 0, 13);
+  bool rejected = false;
+  try {
+    (void)aima::plan_native_prompt_execution(4096, 0, {2048, 1024, 8192});
+  } catch (const std::invalid_argument&) {
+    rejected = true;
+  }
+  require(rejected, "unordered resident buckets were admitted");
   require(aima::native_request_fits_capacity(2047, 1, 2048),
           "maximum admitted window was rejected");
   require(!aima::native_request_fits_capacity(2048, 1, 2048),

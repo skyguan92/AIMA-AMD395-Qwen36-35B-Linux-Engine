@@ -11,6 +11,7 @@ from aima_engine.release_evidence import verify_release_evidence
 
 ROOT = Path(__file__).resolve().parents[1]
 PRODUCT_CONTRACT = ROOT / "native/product-contract.json"
+PRODUCT_CONTRACT_V150 = ROOT / "native/product-contract-v1.5.0.json"
 PRODUCT_CONTRACT_V141 = ROOT / "native/product-contract-v1.4.1.json"
 PRODUCT_CONTRACT_V140 = ROOT / "native/product-contract-v1.4.0.json"
 PRODUCT_CONTRACT_V130 = ROOT / "native/product-contract-v1.3.0.json"
@@ -70,6 +71,7 @@ class NativeRuntimeContractTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.contract = load_json(PRODUCT_CONTRACT)
+        cls.contract_v150 = load_json(PRODUCT_CONTRACT_V150)
         cls.contract_v141 = load_json(PRODUCT_CONTRACT_V141)
         cls.contract_v140 = load_json(PRODUCT_CONTRACT_V140)
         cls.contract_v130 = load_json(PRODUCT_CONTRACT_V130)
@@ -105,16 +107,21 @@ class NativeRuntimeContractTest(unittest.TestCase):
         cls.decode_schedule_result = load_json(DECODE_SCHEDULE_RESULT)
         cls.decode_bindings_result = load_json(DECODE_BINDINGS_RESULT)
 
-    def test_product_contract_is_bound_to_qualified_evidence(self) -> None:
+    def test_product_contract_defines_the_current_release(self) -> None:
         model = self.contract["model"]
         gates = self.contract["promotion_gates"]
-        self.assertEqual(self.contract, self.contract_v141)
-        self.assertEqual(self.contract["release"], "1.4.1")
+        self.assertEqual(self.contract, self.contract_v150)
+        self.assertEqual(self.contract["release"], "1.5.0")
         self.assertEqual(
             self.contract["status"],
             "qualification_bound_portable_native_full_envelope",
         )
         self.assertEqual(model["tensor_count"], 693)
+        self.assertEqual(model["source_repository"], "Qwen/Qwen3.6-35B-A3B")
+        self.assertEqual(
+            model["source_revision"],
+            "995ad96eacd98c81ed38be0c5b274b04031597b0",
+        )
         self.assertEqual(model["checkpoint_shards"], 26)
         self.assertEqual(model["payload_bytes"], 69_321_221_376)
         self.assertEqual(
@@ -151,6 +158,8 @@ class NativeRuntimeContractTest(unittest.TestCase):
         self.assertTrue(profile["legacy_full_context_envelope_replaced"])
         self.assertEqual(profile["qualification"], "share/aima/qualification.json")
         self.assertIn("every positive prompt", profile["variable_length_prompts"])
+        self.assertIn("q1024/q2048/q4096/q8192", profile["variable_length_prompts"])
+        self.assertIn("capacity-bounded", profile["prefix_cache"])
         openai = gates["openai_features"]
         self.assertTrue(openai["variable_length_cold_prompt_required"])
         self.assertTrue(openai["ordinary_multi_turn_cache_miss_required"])
@@ -159,6 +168,15 @@ class NativeRuntimeContractTest(unittest.TestCase):
     def test_v141_contract_is_bound_at_package_time(self) -> None:
         contract = self.contract_v141
         self.assertEqual(contract["release"], "1.4.1")
+        self.assertTrue(contract["artifact_integrity"]["qualification_required"])
+        self.assertTrue(contract["artifact_integrity"]["clean_source_required"])
+        self.assertTrue(
+            contract["artifact_integrity"]["embedded_source_commit_must_match"]
+        )
+
+    def test_v150_contract_is_bound_at_package_time(self) -> None:
+        contract = self.contract_v150
+        self.assertEqual(contract["release"], "1.5.0")
         self.assertTrue(contract["artifact_integrity"]["qualification_required"])
         self.assertTrue(contract["artifact_integrity"]["clean_source_required"])
         self.assertTrue(
@@ -180,7 +198,7 @@ class NativeRuntimeContractTest(unittest.TestCase):
 
     def test_portable_native_product_profile_is_hash_bound_and_nonregressing(self) -> None:
         result = self.portable_product_result
-        profile = self.contract["qualified_native_profile"]
+        profile = self.contract_v141["qualified_native_profile"]
         self.assertTrue(result["complete"])
         self.assertTrue(result["qualified"])
         self.assertEqual(result["release"], "1.4.1")
@@ -548,6 +566,29 @@ class NativeRuntimeContractTest(unittest.TestCase):
         self.assertIn("cold-aot-plus-decode", planner)
         self.assertIn("clear_request_scratch", resident)
         self.assertIn("ordinary_turn_pass", qualification)
+
+    def test_resident_prefill_dispatch_and_prefix_lru_are_bounded(self) -> None:
+        resident = (
+            ROOT / "native/src/native_resident_engine.hip.cpp"
+        ).read_text(encoding="utf-8")
+        server = (ROOT / "native/src/native_http_server.cpp").read_text(
+            encoding="utf-8"
+        )
+        header = (
+            ROOT / "native/include/aima/native_resident_engine.h"
+        ).read_text(encoding="utf-8")
+        for token_count in ("1024ULL", "2048ULL", "4096ULL", "8192ULL"):
+            self.assertIn(token_count, resident)
+        self.assertIn("resident_prefill_buckets", resident)
+        self.assertIn("auxiliary_prefill_buckets", resident)
+        self.assertIn("prefix_cache_entries", resident)
+        self.assertIn("kPrefixCacheEntries = 4", resident)
+        self.assertIn("options.cache_capacity <= 131072 ? 2 : 1", resident)
+        self.assertIn("resident_prefill_buckets", server)
+        self.assertIn("prefix_cache_entries", server)
+        self.assertIn("aot_prefill_tokens", server)
+        self.assertIn("resident_prefill_buckets", header)
+        self.assertIn("aot_prefill_tokens", header)
 
     def test_native_weight_foundation_has_target_measurement(self) -> None:
         self.assertTrue(self.result["complete"])

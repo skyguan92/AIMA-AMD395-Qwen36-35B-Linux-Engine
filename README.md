@@ -2,13 +2,13 @@
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![CI](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/actions/workflows/ci.yml/badge.svg)](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/release-v1.4.1-green.svg)](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.4.1)
+[![Release](https://img.shields.io/badge/release-v1.5.0-green.svg)](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.5.0)
 [![Hardware](https://img.shields.io/badge/GPU-gfx1151-orange.svg)](docs/INSTALL.md)
 
 A batch-1 BF16 inference engine specialized for
 `Qwen3.6-35B-A3B` on AMD Ryzen AI Max+ 395 / Radeon 8060S Linux.
 
-Version 1.4.1 provides a relocatable native package with live SSE streaming and
+Version 1.5.0 provides a relocatable native package with live SSE streaming and
 OpenAI function tools: no Python, PyTorch, vLLM,
 Triton, Transformers, or host ROCm userspace is loaded at runtime. The package
 contains a static launcher, the native engine, pinned ROCm/AOTriton/CK
@@ -18,7 +18,9 @@ weights are not redistributed.
 > **Release boundary:** v1.4.0 added `doctor`, `--build-info`, bearer
 > authentication, socket timeouts and the hardened systemd template. v1.4.1
 > admits variable-length cold prompts and ordinary multi-turn cache misses.
-> Earlier archives retain their documented exact-static-context boundary.
+> v1.5.0 adds resident q1024/q2048/q4096/q8192 prefill dispatch and a
+> capacity-bounded multi-entry prefix LRU. Earlier archives retain their
+> documented request-latency boundary.
 
 中文说明见 [README.zh-CN.md](README.zh-CN.md).
 
@@ -58,9 +60,9 @@ envelope:
 
 HTTP prompts may have any positive token length that fits the configured cache
 capacity together with the requested output. The selected context remains the
-fast AOT prefill specialization: shorter cache misses use the correct resident
-decode fallback, while longer misses run the AOT prefix and decode only the
-tail. Prefix hits are an optimization, never an admission requirement. Input
+fast AOT prefill endpoint. A q8192 process keeps q1024/q2048/q4096/q8192
+buckets resident, selects the largest fitting bucket, and decodes only the
+remainder. Prefix hits are an optimization, never an admission requirement. Input
 plus generated tokens may not exceed 262,144. The native runtime now replaces
 the published v1.1 performance envelope; the Python implementation remains only
 as a compatibility and provenance reference. See
@@ -87,7 +89,7 @@ Configure memory before loading the model:
 ## Quick start
 
 Download the archive and checksum from the
-[upstream v1.4.1 release](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.4.1),
+[upstream v1.5.0 release](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.5.0),
 then extract it anywhere:
 
 ```bash
@@ -160,7 +162,7 @@ then `systemctl start|status|stop aima-engine` provides the lifecycle.
 
 ## Native CLI
 
-The published v1.4.1 CLI provides:
+The published v1.5.0 CLI provides:
 
 ```text
 aima-engine --build-info

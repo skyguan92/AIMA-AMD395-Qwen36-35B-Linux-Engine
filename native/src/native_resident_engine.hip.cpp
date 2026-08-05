@@ -41,6 +41,7 @@ namespace {
 constexpr std::size_t kHidden = 2048;
 constexpr std::size_t kVocabulary = 248320;
 constexpr std::size_t kLongContextChunkTokens = 8192;
+constexpr std::size_t kPrefixCacheEntries = 4;
 
 bool admitted_long_context(std::size_t context_tokens) {
   if (context_tokens <= 32768 || context_tokens > 262143) return false;
@@ -185,6 +186,8 @@ class NativeExactPrefixCache {
     return valid_ && tokens == tokens_;
   }
 
+  bool valid() const { return valid_; }
+
   std::size_t matched_prefix_tokens(
       const std::vector<std::uint32_t>& tokens) const {
     if (!valid_ || tokens.size() < tokens_.size() ||
@@ -322,6 +325,19 @@ std::size_t normalize_linear_decode_state(
 
 }  // namespace
 
+struct NativeResidentAuxPrefillBucket {
+  explicit NativeResidentAuxPrefillBucket(std::size_t token_count)
+      : tokens(token_count),
+        gemm_plans(
+            std::make_unique<NativeQ8192PrefillGemmPlans>(token_count)) {}
+
+  std::size_t tokens = 0;
+  NativePrefillWorkspace workspace;
+  NativePrefillInvocations invocations;
+  std::unique_ptr<NativeQ8192PrefillGemmPlans> gemm_plans;
+  std::size_t start_sequence = 0;
+};
+
 struct NativeResidentEngine::Impl {
   NativeWeightStore weights;
   NativeDerivedWeightStore derived;
@@ -338,9 +354,14 @@ struct NativeResidentEngine::Impl {
   NativeDecodeExecutor executor;
   NativeQ8192CkProvider ck_provider;
   NativeQ8192CkProvider secondary_fmha_provider;
+  NativeQ8192CkProvider auxiliary_short_fmha_provider;
+  NativeQ8192CkProvider auxiliary_q8192_fmha_provider;
   std::array<bool, 40> secondary_fmha_layers{};
   NativeFullAttentionState attention_state;
-  NativeExactPrefixCache prefix_cache;
+  std::array<NativeExactPrefixCache, kPrefixCacheEntries> prefix_caches;
+  std::array<std::uint64_t, kPrefixCacheEntries> prefix_cache_use{};
+  std::uint64_t prefix_cache_clock = 0;
+  std::size_t prefix_cache_entries = 0;
   NativeResidentLoadMetrics metrics;
   int device = 0;
   int cu_count = 0;
@@ -351,6 +372,9 @@ struct NativeResidentEngine::Impl {
   std::uint64_t chunked_hidden_bytes = 0;
   std::size_t prefill_start_sequence = 0;
   std::size_t tail_prefill_start_sequence = 0;
+  std::vector<std::size_t> resident_prefill_buckets;
+  std::vector<std::unique_ptr<NativeResidentAuxPrefillBucket>>
+      auxiliary_prefill_buckets;
   std::size_t request_count = 0;
   std::size_t prefix_cache_hits = 0;
   std::size_t prefix_cache_misses = 0;
@@ -426,6 +450,12 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
                                    ? impl_->prompt_tokens %
                                          kLongContextChunkTokens
                                    : 0;
+  for (const std::size_t tokens : {1024ULL, 2048ULL, 4096ULL, 8192ULL}) {
+    if (tokens < impl_->prompt_tokens && tokens <= impl_->prefill_tokens) {
+      impl_->resident_prefill_buckets.push_back(tokens);
+    }
+  }
+  impl_->resident_prefill_buckets.push_back(impl_->prompt_tokens);
   if (impl_->prefill_tokens != impl_->prompt_tokens) {
     impl_->chunked_hidden_bytes =
         impl_->prompt_tokens * kHidden * sizeof(std::uint16_t);
@@ -450,6 +480,24 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
       impl_->lm_head.build(impl_->weights, impl_->device);
   const NativeDecodeBindingMetrics binding_metrics =
       impl_->bindings.build(impl_->weights, impl_->derived, impl_->lm_head);
+  NativePrefillWorkspaceMetrics auxiliary_prefill_workspace_metrics;
+  NativePrefillInvocationMetrics auxiliary_prefill_invocation_metrics;
+  for (const std::size_t tokens : impl_->resident_prefill_buckets) {
+    if (tokens == impl_->prompt_tokens || tokens == impl_->prefill_tokens) {
+      continue;
+    }
+    auto bucket =
+        std::make_unique<NativeResidentAuxPrefillBucket>(tokens);
+    const NativePrefillWorkspaceMetrics workspace_metrics =
+        bucket->workspace.build(impl_->device, tokens);
+    const NativePrefillInvocationMetrics invocation_metrics =
+        bucket->invocations.build(impl_->bindings, bucket->workspace, tokens);
+    auxiliary_prefill_workspace_metrics.allocation_bytes +=
+        workspace_metrics.allocation_bytes;
+    auxiliary_prefill_invocation_metrics.launch_count +=
+        invocation_metrics.launch_count;
+    impl_->auxiliary_prefill_buckets.push_back(std::move(bucket));
+  }
   const NativePrefillWorkspaceMetrics prefill_workspace_metrics =
       impl_->prefill_workspace.build(impl_->device, impl_->prefill_tokens);
   const NativePrefillInvocationMetrics prefill_invocation_metrics =
@@ -482,16 +530,44 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
     secondary_provider_metrics = impl_->secondary_fmha_provider.load(
         secondary_provider_path, impl_->prefill_tokens);
   }
+  const bool has_auxiliary_short = std::any_of(
+      impl_->auxiliary_prefill_buckets.begin(),
+      impl_->auxiliary_prefill_buckets.end(), [](const auto& bucket) {
+        return bucket->tokens <= 4096;
+      });
+  if (has_auxiliary_short) {
+    (void)impl_->auxiliary_short_fmha_provider.load(
+        default_fmha_provider(4096), 4096);
+  }
+  const bool has_auxiliary_q8192 = std::any_of(
+      impl_->auxiliary_prefill_buckets.begin(),
+      impl_->auxiliary_prefill_buckets.end(), [](const auto& bucket) {
+        return bucket->tokens == 8192;
+      });
+  if (has_auxiliary_q8192) {
+    (void)impl_->auxiliary_q8192_fmha_provider.load(
+        default_fmha_provider(8192), 8192);
+  }
   const NativeFullAttentionStateMetrics attention_metrics =
       impl_->attention_state.build(options.cache_capacity, impl_->device);
-  const std::uint64_t prefix_cache_bytes = impl_->prefix_cache.build(
-      impl_->decode_workspace, impl_->attention_state, impl_->device,
-      options.cache_capacity);
+  impl_->prefix_cache_entries =
+      options.cache_capacity <= 32768
+          ? 4
+          : (options.cache_capacity <= 131072 ? 2 : 1);
+  std::uint64_t prefix_cache_bytes = 0;
+  for (std::size_t index = 0; index < impl_->prefix_cache_entries; ++index) {
+    prefix_cache_bytes += impl_->prefix_caches[index].build(
+        impl_->decode_workspace, impl_->attention_state, impl_->device,
+        options.cache_capacity);
+  }
 
   const auto plan_started = std::chrono::steady_clock::now();
   impl_->prefill_gemm_plans->prepare_all();
   if (impl_->tail_prefill_gemm_plans != nullptr) {
     impl_->tail_prefill_gemm_plans->prepare_all();
+  }
+  for (const auto& bucket : impl_->auxiliary_prefill_buckets) {
+    bucket->gemm_plans->prepare_all();
   }
   const double plan_wall_ms = elapsed_ms(plan_started);
 
@@ -536,6 +612,14 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
           "native resident tail prefill entry binding is missing");
     }
   }
+  for (const auto& bucket : impl_->auxiliary_prefill_buckets) {
+    bucket->start_sequence = find_prefill_start(
+        bucket->invocations, bucket->invocations.launches().size());
+    if (bucket->start_sequence == bucket->invocations.launches().size()) {
+      throw std::runtime_error(
+          "native resident auxiliary prefill entry binding is missing");
+    }
+  }
 
   impl_->metrics.device_name = weight_metrics.device_name;
   impl_->metrics.gpu_arch = weight_metrics.gpu_arch;
@@ -545,7 +629,8 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
   impl_->metrics.decode_weight_bindings = binding_metrics.unique_bindings;
   impl_->metrics.prefill_prepared_launches =
       prefill_invocation_metrics.launch_count +
-      tail_prefill_invocation_metrics.launch_count;
+      tail_prefill_invocation_metrics.launch_count +
+      auxiliary_prefill_invocation_metrics.launch_count;
   impl_->metrics.decode_prepared_launches =
       decode_invocation_metrics.launch_count;
   impl_->metrics.aot_loaded_modules = executor_metrics.loaded_modules;
@@ -554,16 +639,24 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
       (impl_->tail_prefill_gemm_plans == nullptr
            ? 0
            : impl_->tail_prefill_gemm_plans->built_plan_count());
+  for (const auto& bucket : impl_->auxiliary_prefill_buckets) {
+    impl_->metrics.prefill_gemm_plans +=
+        bucket->gemm_plans->built_plan_count();
+  }
   impl_->metrics.prefill_workspace_bytes =
       prefill_workspace_metrics.allocation_bytes +
       tail_prefill_workspace_metrics.allocation_bytes +
+      auxiliary_prefill_workspace_metrics.allocation_bytes +
       impl_->chunked_hidden_bytes;
   impl_->metrics.decode_workspace_bytes =
       decode_workspace_metrics.allocation_bytes;
   impl_->metrics.attention_state_bytes = attention_metrics.allocation_bytes;
   impl_->metrics.exact_prefix_cache_bytes = prefix_cache_bytes;
+  impl_->metrics.prefix_cache_entries = impl_->prefix_cache_entries;
   impl_->metrics.cache_capacity = options.cache_capacity;
   impl_->metrics.prompt_tokens = impl_->prompt_tokens;
+  impl_->metrics.resident_prefill_buckets =
+      impl_->resident_prefill_buckets;
   impl_->metrics.fmha_provider_backend =
       fmha_provider_backend(provider_path);
   impl_->metrics.fmha_provider_path =
@@ -611,15 +704,23 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
           "native resident stop token is outside the vocabulary");
     }
   }
-  const std::size_t matched_prefix_tokens =
-      request.disable_prefix_cache
-          ? 0
-          : impl_->prefix_cache.matched_prefix_tokens(
-                request.input_token_ids);
+  std::size_t matched_prefix_tokens = 0;
+  std::size_t matched_prefix_cache_index = impl_->prefix_cache_entries;
+  if (!request.disable_prefix_cache) {
+    for (std::size_t index = 0; index < impl_->prefix_cache_entries; ++index) {
+      const std::size_t matched =
+          impl_->prefix_caches[index].matched_prefix_tokens(
+              request.input_token_ids);
+      if (matched > matched_prefix_tokens) {
+        matched_prefix_tokens = matched;
+        matched_prefix_cache_index = index;
+      }
+    }
+  }
   const NativePromptExecutionPlan prompt_plan =
       plan_native_prompt_execution(request.input_token_ids.size(),
                                    matched_prefix_tokens,
-                                   impl_->prompt_tokens);
+                                   impl_->resident_prefill_buckets);
   const bool prefix_hit = prompt_plan.prefix_hit;
   const bool exact_prefix_hit = prompt_plan.exact_prefix_hit;
   const bool prefix_extension_hit = prompt_plan.prefix_extension_hit;
@@ -628,7 +729,40 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
   const bool prompt_decode_required =
       prompt_plan.prompt_decode_required(request.input_token_ids.size());
   const bool chunked_prefill =
+      cold_aot_tokens == impl_->prompt_tokens &&
       impl_->prefill_tokens != impl_->prompt_tokens;
+  NativeResidentAuxPrefillBucket* auxiliary_bucket = nullptr;
+  for (const auto& candidate : impl_->auxiliary_prefill_buckets) {
+    if (candidate->tokens == cold_aot_tokens) {
+      auxiliary_bucket = candidate.get();
+      break;
+    }
+  }
+  NativePrefillWorkspace* direct_prefill_workspace =
+      auxiliary_bucket == nullptr ? &impl_->prefill_workspace
+                                  : &auxiliary_bucket->workspace;
+  NativePrefillInvocations* direct_prefill_invocations =
+      auxiliary_bucket == nullptr ? &impl_->prefill_invocations
+                                  : &auxiliary_bucket->invocations;
+  NativeQ8192PrefillGemmPlans* direct_prefill_gemm_plans =
+      auxiliary_bucket == nullptr ? impl_->prefill_gemm_plans.get()
+                                  : auxiliary_bucket->gemm_plans.get();
+  const std::size_t direct_prefill_start_sequence =
+      auxiliary_bucket == nullptr ? impl_->prefill_start_sequence
+                                  : auxiliary_bucket->start_sequence;
+  NativeQ8192CkProvider* direct_fmha_provider = &impl_->ck_provider;
+  if (auxiliary_bucket != nullptr && auxiliary_bucket->tokens <= 4096) {
+    direct_fmha_provider = &impl_->auxiliary_short_fmha_provider;
+  } else if (auxiliary_bucket != nullptr &&
+             auxiliary_bucket->tokens == 8192) {
+    direct_fmha_provider = &impl_->auxiliary_q8192_fmha_provider;
+  }
+  if (cold_aot_tokens != 0 &&
+      cold_aot_tokens != impl_->prompt_tokens &&
+      request.secondary_fmha_layers_override_provided) {
+    throw std::invalid_argument(
+        "native provider-mask diagnostics require the configured prefill endpoint");
+  }
   if (chunked_prefill && cold_aot_tokens != 0 &&
       (!request.layer_tail_oracle_dir.empty() ||
        !request.layer_sequence_oracle_dir.empty())) {
@@ -650,8 +784,12 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
   }
   metrics.prompt_execution =
       native_prompt_execution_mode_name(prompt_plan.mode);
+  metrics.aot_prefill_tokens = cold_aot_tokens;
   std::array<bool, 40> request_secondary_fmha_layers =
       impl_->secondary_fmha_layers;
+  if (cold_aot_tokens != impl_->prompt_tokens) {
+    request_secondary_fmha_layers.fill(false);
+  }
   if (request.secondary_fmha_layers_override_provided) {
     request_secondary_fmha_layers.fill(false);
     for (std::size_t layer : request.secondary_fmha_layers_override) {
@@ -670,11 +808,14 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
   std::vector<double> moe_wall_ms;
   double embedding_wall_ms = 0.0;
   double first_token_wall_ms = 0.0;
-  void* terminal = chunked_prefill
-                       ? impl_->chunked_hidden
-                       : native_prefill_terminal_hidden_pointer(
-                             impl_->prefill_workspace,
-                             impl_->prefill_invocations);
+  void* terminal = nullptr;
+  if (cold_aot_tokens != 0) {
+    terminal = chunked_prefill
+                   ? impl_->chunked_hidden
+                   : native_prefill_terminal_hidden_pointer(
+                         *direct_prefill_workspace,
+                         *direct_prefill_invocations);
+  }
   const void* last_hidden = nullptr;
   if (prefix_hit) {
     metrics.prefix_cache_lookup = exact_prefix_hit ? "exact" : "prefix";
@@ -682,9 +823,17 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
     metrics.prefix_cache_suffix_tokens =
         request.input_token_ids.size() - matched_prefix_tokens;
     ++impl_->prefix_cache_hits;
-    metrics.prefix_cache_transfer_bytes = impl_->prefix_cache.restore();
+    if (matched_prefix_cache_index >= impl_->prefix_cache_entries) {
+      throw std::runtime_error(
+          "native prefix-cache lookup lost its resident entry");
+    }
+    impl_->prefix_cache_use[matched_prefix_cache_index] =
+        ++impl_->prefix_cache_clock;
+    metrics.prefix_cache_transfer_bytes =
+        impl_->prefix_caches[matched_prefix_cache_index].restore();
     if (exact_prefix_hit) {
-      last_hidden = impl_->prefix_cache.terminal_hidden();
+      last_hidden =
+          impl_->prefix_caches[matched_prefix_cache_index].terminal_hidden();
     }
   } else {
     metrics.prefix_cache_lookup =
@@ -697,7 +846,7 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
     const NativeTensorView* embedding =
         impl_->weights.find("model.language_model.embed_tokens.weight");
     const NativePrefillWorkspaceView* token_ids =
-        impl_->prefill_workspace.find("native.prompt_token_ids");
+        direct_prefill_workspace->find("native.prompt_token_ids");
     if (embedding == nullptr || embedding->device_pointer == nullptr ||
         token_ids == nullptr || token_ids->device_pointer == nullptr) {
       throw std::runtime_error(
@@ -737,9 +886,9 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
       launch_prompt_embeddings(
           embedding->device_pointer, request.input_token_ids.data(),
           token_ids->device_pointer,
-          impl_->prefill_invocations.tensor_pointer(
-              impl_->prefill_start_sequence, "x"),
-          impl_->prompt_tokens);
+          direct_prefill_invocations->tensor_pointer(
+              direct_prefill_start_sequence, "x"),
+          cold_aot_tokens);
       ++metrics.prefill_native_pointwise_launches;
     }
     if (timeline_enabled) {
@@ -767,18 +916,24 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
                                                    impl_->prefill_tokens,
                                                    impl_->prompt_tokens -
                                                        chunk_offset)
-                                             : impl_->prefill_tokens;
+                                             : cold_aot_tokens;
         const bool tail_chunk =
             chunk_tokens != impl_->prefill_tokens;
         NativePrefillWorkspace& chunk_workspace =
-            tail_chunk ? impl_->tail_prefill_workspace
-                       : impl_->prefill_workspace;
+            !chunked_prefill
+                ? *direct_prefill_workspace
+                : (tail_chunk ? impl_->tail_prefill_workspace
+                              : impl_->prefill_workspace);
         NativePrefillInvocations& chunk_invocations =
-            tail_chunk ? impl_->tail_prefill_invocations
-                       : impl_->prefill_invocations;
+            !chunked_prefill
+                ? *direct_prefill_invocations
+                : (tail_chunk ? impl_->tail_prefill_invocations
+                              : impl_->prefill_invocations);
         NativeQ8192PrefillGemmPlans* chunk_gemm_plans =
-            tail_chunk ? impl_->tail_prefill_gemm_plans.get()
-                       : impl_->prefill_gemm_plans.get();
+            !chunked_prefill
+                ? direct_prefill_gemm_plans
+                : (tail_chunk ? impl_->tail_prefill_gemm_plans.get()
+                              : impl_->prefill_gemm_plans.get());
         if (chunked_prefill) {
           check_hip(hipMemcpyAsync(
                         native_prefill_layer_input_pointer(
@@ -835,7 +990,7 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
         NativeQ8192CkProvider& attention_provider =
             request_secondary_fmha_layers[layer_index]
                 ? impl_->secondary_fmha_provider
-                : impl_->ck_provider;
+                : *direct_fmha_provider;
         const NativeFullPrefillOracleResult attention =
             probe_native_q8192_full_prefill_oracle(
                 {}, impl_->weights, chunk_workspace,
@@ -974,7 +1129,7 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
 
     const auto* terminal_bytes = static_cast<const unsigned char*>(terminal);
     last_hidden = terminal_bytes +
-                  (impl_->prompt_tokens - 1) * kHidden *
+                  (cold_aot_tokens - 1) * kHidden *
                       sizeof(std::uint16_t);
     }
   }
@@ -1039,8 +1194,26 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
       metrics.state_orientation_resets += normalize_linear_decode_state(
           impl_->decode_invocations, impl_->decode_workspace);
     }
-    metrics.prefix_cache_transfer_bytes += impl_->prefix_cache.capture(
-        request.input_token_ids, prompt_terminal_hidden);
+    std::size_t capture_index = impl_->prefix_cache_entries;
+    for (std::size_t index = 0; index < impl_->prefix_cache_entries; ++index) {
+      if (!impl_->prefix_caches[index].valid()) {
+        capture_index = index;
+        break;
+      }
+    }
+    if (capture_index == impl_->prefix_cache_entries) {
+      capture_index = 0;
+      for (std::size_t index = 1; index < impl_->prefix_cache_entries; ++index) {
+        if (impl_->prefix_cache_use[index] <
+            impl_->prefix_cache_use[capture_index]) {
+          capture_index = index;
+        }
+      }
+    }
+    metrics.prefix_cache_transfer_bytes +=
+        impl_->prefix_caches[capture_index].capture(
+            request.input_token_ids, prompt_terminal_hidden);
+    impl_->prefix_cache_use[capture_index] = ++impl_->prefix_cache_clock;
   }
   metrics.output_token_ids.push_back(first_token_id);
   metrics.prefill_wall_ms = elapsed_ms(request_started);

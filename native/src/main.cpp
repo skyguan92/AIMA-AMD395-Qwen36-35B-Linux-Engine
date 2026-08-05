@@ -47,7 +47,7 @@
 
 namespace {
 
-constexpr const char* kVersion = "1.4.1-native";
+constexpr const char* kVersion = "1.5.0-native";
 #ifndef AIMA_SOURCE_COMMIT
 #define AIMA_SOURCE_COMMIT "unknown"
 #endif
@@ -144,7 +144,7 @@ void usage(std::ostream& output) {
       << "  aima-engine-native prefill-linear-layer-oracle-probe --model-dir PATH (--oracle-dir PATH | --attention-oracle-dir PATH --moe-oracle-dir PATH) --layer INDEX [--boundary-oracle-dir PATH] [options]\n"
       << "  aima-engine-native prefill-linear-prefix-oracle-probe --model-dir PATH --layer0-attention-oracle-dir PATH --layer0-moe-oracle-dir PATH --later-oracle-dir PATH [--full-layer-oracle-dir PATH --ck-provider PATH --through-layer 3] [--chain-output-oracle-dir PATH] [options]\n"
       << "  aima-engine-native prefill-all-layers-oracle-probe --model-dir PATH --ck-provider PATH (--chain-output-oracle-dir PATH | --execution-only) [--uniform-input-token-id ID | --input-token-id-cycle ID,ID,...] [--entry-input-oracle-dir PATH] [--prefill-state-oracle-dir PATH] [--decode-oracle-dir PATH] [--decode-logits-oracle-dir PATH] [--decode-logits-oracle-label-prefix LABEL] [options]\n"
-      << "  aima-engine-native resident-session-probe --model-dir PATH (--uniform-input-token-id ID | --input-token-id-cycle ID,ID,...) [--context-tokens 1024|2048|4096|8192|16384|32768] [--fmha-provider PATH] [--secondary-fmha-provider PATH --secondary-fmha-layers 3,7,...] [--max-new-tokens N | --max-new-tokens-sequence N,N,...] [--requests N] [--cached-suffix-token-ids ID,ID,...] [--expected-token-ids ID,ID,...] [--reference-logits PATH] [--layer-tail-oracle-dir PATH [--layer-tail-oracle-index 0..39]] [options]\n"
+      << "  aima-engine-native resident-session-probe --model-dir PATH (--uniform-input-token-id ID | --input-token-id-cycle ID,ID,...) [--context-tokens 1024|2048|4096|8192|16384|32768] [--prompt-tokens N] [--fmha-provider PATH] [--secondary-fmha-provider PATH --secondary-fmha-layers 3,7,...] [--max-new-tokens N | --max-new-tokens-sequence N,N,...] [--requests N] [--cached-suffix-token-ids ID,ID,...] [--expected-token-ids ID,ID,...] [--reference-logits PATH] [--layer-tail-oracle-dir PATH [--layer-tail-oracle-index 0..39]] [options]\n"
       << "  aima-engine-native serve --model-dir PATH [--context-tokens 1024|2048|4096|8192|16384|32768] [--fmha-provider PATH] [--secondary-fmha-provider PATH --secondary-fmha-layers 3,7,...] [--host 127.0.0.1] [--port 8000] [--cache-capacity N] [options]\n"
       << "  aima-engine-native prefill-full-layer-oracle-probe --model-dir PATH --oracle-dir PATH --ck-provider PATH [--layer 3] [options]\n"
       << "  aima-engine-native full-attention-core-oracle-probe --oracle-dir PATH [--layer INDEX] [--cache-end N]\n"
@@ -4198,6 +4198,7 @@ int run_resident_session_probe(int argc, char** argv) {
   std::size_t layer_tail_oracle_index = 40;
   std::size_t request_count = 2;
   std::size_t max_new_tokens = 2;
+  std::size_t request_prompt_tokens = 0;
   bool cache_capacity_explicit = false;
   bool request_count_explicit = false;
   bool max_new_tokens_explicit = false;
@@ -4332,6 +4333,9 @@ int run_resident_session_probe(int argc, char** argv) {
     } else if (argument == "--context-tokens") {
       options.prompt_tokens =
           parse_size(next("--context-tokens"), "--context-tokens");
+    } else if (argument == "--prompt-tokens") {
+      request_prompt_tokens =
+          parse_size(next("--prompt-tokens"), "--prompt-tokens");
     } else if (argument == "--requests") {
       request_count = parse_size(next("--requests"), "--requests");
       request_count_explicit = true;
@@ -4419,8 +4423,16 @@ int run_resident_session_probe(int argc, char** argv) {
         options.prompt_tokens + cached_suffix_token_ids.size() +
         max_new_tokens;
   }
+  if (request_prompt_tokens == 0) {
+    request_prompt_tokens = options.prompt_tokens;
+  }
+  if (request_prompt_tokens > options.cache_capacity ||
+      max_new_tokens > options.cache_capacity - request_prompt_tokens) {
+    throw std::runtime_error(
+        "--prompt-tokens plus output exceeds --cache-capacity");
+  }
 
-  std::vector<std::uint32_t> prompt(options.prompt_tokens);
+  std::vector<std::uint32_t> prompt(request_prompt_tokens);
   if (have_uniform_token) {
     std::fill(prompt.begin(), prompt.end(), uniform_token);
   } else {
@@ -4642,8 +4654,17 @@ int run_resident_session_probe(int argc, char** argv) {
             << load.attention_state_bytes << ",\n"
             << "    \"exact_prefix_cache_bytes\": "
             << load.exact_prefix_cache_bytes << ",\n"
+            << "    \"prefix_cache_entries\": "
+            << load.prefix_cache_entries << ",\n"
             << "    \"cache_capacity\": " << load.cache_capacity << ",\n"
             << "    \"prompt_tokens\": " << load.prompt_tokens << ",\n"
+            << "    \"resident_prefill_buckets\": [";
+  for (std::size_t index = 0;
+       index < load.resident_prefill_buckets.size(); ++index) {
+    if (index != 0) std::cout << ',';
+    std::cout << load.resident_prefill_buckets[index];
+  }
+  std::cout << "],\n"
             << "    \"fmha_provider_backend\": \""
             << json_escape(load.fmha_provider_backend) << "\",\n"
             << "    \"fmha_provider_path\": \""
@@ -4703,6 +4724,14 @@ int run_resident_session_probe(int argc, char** argv) {
               << (request.all_decode_tokens_certified ? "true" : "false")
               << ",\"state_orientation_resets\":"
               << request.state_orientation_resets
+              << ",\"prompt_execution\":\""
+              << json_escape(request.prompt_execution) << "\""
+              << ",\"aot_prefill_tokens\":"
+              << request.aot_prefill_tokens
+              << ",\"cold_prompt_decode_tokens\":"
+              << request.cold_prompt_decode_tokens
+              << ",\"cold_prompt_decode_wall_ms\":"
+              << request.cold_prompt_decode_wall_ms
               << ",\"prefix_cache_lookup\":\""
               << json_escape(request.prefix_cache_lookup) << "\""
               << ",\"prefix_cache_matched_tokens\":"

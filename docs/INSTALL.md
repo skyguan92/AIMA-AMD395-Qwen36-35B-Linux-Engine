@@ -1,13 +1,13 @@
 # Install the portable native runtime
 
-This page documents the v1.4.1 portable package. Earlier archives do not
+This page documents the v1.5.0 portable package. Earlier archives do not
 contain the deployment doctor, bearer authentication, socket timeouts or the
 hardened systemd template; use the documentation bundled with the version you
 deploy.
 
 ## 1. Qualified platform
 
-The v1.4 native profile is qualified on:
+The v1.5 native profile is qualified on:
 
 - AMD Ryzen AI Max+ 395 with Radeon 8060S (`gfx1151`);
 - 128 GB installed unified memory;
@@ -27,7 +27,9 @@ rollback procedure.
 ## 2. Obtain the model separately
 
 Model weights are not included. The qualified checkpoint is standard Hugging
-Face Safetensors with:
+Face Safetensors from
+[`Qwen/Qwen3.6-35B-A3B`](https://huggingface.co/Qwen/Qwen3.6-35B-A3B), pinned
+to revision `995ad96eacd98c81ed38be0c5b274b04031597b0`:
 
 | Property | Required value |
 |---|---|
@@ -37,6 +39,19 @@ Face Safetensors with:
 | checkpoint index SHA-256 | `41b9356101ebf8e7519e150dc811f80c4226e727301fbb032b890f006ed0be83` |
 | model config SHA-256 | `93a4693fa9d8392fbfccd4b3c9873f4bfdcb14fdede978b123d07d19675efe99` |
 | tokenizer SHA-256 | `5f9e4d4901a92b997e463c1f46055088b6cca5ca61a6522d1b9f64c4bb81cb42` |
+| tokenizer config SHA-256 | `5186f0defcd7f232382c7f0aebcd2252d073bb921ab240e407b7ae8745d2b29b` |
+
+With the Hugging Face CLI installed on a download machine:
+
+```bash
+hf download Qwen/Qwen3.6-35B-A3B \
+  --revision 995ad96eacd98c81ed38be0c5b274b04031597b0 \
+  --local-dir /srv/models/Qwen3.6-35B-A3B
+```
+
+Keep the revision argument: a moving branch may no longer match the release's
+hash-gated product contract. Review and accept the model repository's own
+license and usage terms independently from this engine's Apache-2.0 license.
 
 Place the checkpoint on local storage, for example:
 
@@ -108,7 +123,9 @@ should not set it.
 
 Readiness is emitted only after tokenizer load, checkpoint ingestion, derived
 layout construction, AOT module loading, plan preparation and cache allocation.
-The process then stays resident. Stop it with `Ctrl-C`, `SIGTERM`, or:
+For the default q8192 service, the q1024/q2048/q4096/q8192 prefill buckets and
+four exact-token request-prefix snapshots stay resident. The process then stays
+resident. Stop it with `Ctrl-C`, `SIGTERM`, or:
 
 ```bash
 curl -fsS -X POST http://127.0.0.1:8000/shutdown
@@ -237,7 +254,7 @@ under `dist/`. The archive contains no model weights.
 ## Compatibility runtime
 
 The source checkout retains the v1.1 Python control plane for provenance and
-compatibility testing. It is not copied into the v1.4 native archive. The
+compatibility testing. It is not copied into the v1.5 native archive. The
 portable native runtime now covers the complete published v1.1 context/output
 performance envelope.
 
@@ -252,8 +269,10 @@ performance envelope.
 - **Unsupported context:** select a published standard context or a valid
   long-context specialization whose prompt plus output fits 262,144 tokens.
   The engine does not silently fall back to an unqualified length.
-- **Short HTTP prompt:** pre-tokenize the full chat template and choose an
-  admitted fixture length.
+- **Unexpected short-prompt latency:** inspect `aima_amd395.aot_prefill_tokens`.
+  q8192 services keep q1024/q2048/q4096/q8192 AOT buckets resident; prompts
+  below q1024 use the correct token path, and tokens after the largest fitting
+  bucket are processed as a native tail.
 - **Remote bind is rejected:** configure `--api-key-file`; the unsafe override
   exists only for isolated diagnostics. Put TLS and network policy in a reverse
   proxy even when the built-in bearer token is enabled.

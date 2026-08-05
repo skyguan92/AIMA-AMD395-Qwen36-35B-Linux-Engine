@@ -51,8 +51,12 @@ struct NativeResidentLoadMetrics {
   std::uint64_t decode_workspace_bytes = 0;
   std::uint64_t attention_state_bytes = 0;
   std::uint64_t exact_prefix_cache_bytes = 0;
+  std::size_t prefix_cache_entries = 0;
   std::size_t cache_capacity = 0;
   std::size_t prompt_tokens = 0;
+  // Sorted AOT prefixes kept resident for variable-length requests. The final
+  // entry is the configured context endpoint.
+  std::vector<std::size_t> resident_prefill_buckets;
   std::string fmha_provider_backend;
   std::string fmha_provider_path;
   bool fmha_provider_loaded = false;
@@ -116,6 +120,7 @@ struct NativeResidentRequestMetrics {
   // How the input prompt reached resident state.  Variable cold prompts use
   // the admitted AOT prefix when possible and token-decode only the remainder.
   std::string prompt_execution = "cold-aot";
+  std::size_t aot_prefill_tokens = 0;
   std::size_t cold_prompt_decode_tokens = 0;
   std::size_t cold_prompt_decode_aot_launches = 0;
   std::size_t cold_prompt_decode_native_launches = 0;
