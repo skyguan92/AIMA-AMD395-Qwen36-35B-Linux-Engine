@@ -5,6 +5,11 @@ Versioning.
 
 ## Unreleased
 
+- Removed the unused legacy framework-runtime requirements manifest. The
+  supported portable native deployment has no PyTorch, vLLM, Triton or
+  Transformers runtime dependency; retaining vulnerable historical pins as an
+  installable manifest created a misleading security surface.
+
 ## 1.5.0 - 2026-08-05
 
 - Added resident q1024/q2048/q4096/q8192 cold-prefill dispatch. A q8192

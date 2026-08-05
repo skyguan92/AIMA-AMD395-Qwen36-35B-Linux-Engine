@@ -28,6 +28,13 @@ history rewrite and release-asset audit with repository administrators.
 
 ## Deployment boundary
 
+The supported deployment artifact is the checksummed portable native archive.
+It does not install or load Python, PyTorch, vLLM, Triton or Transformers.
+Framework compatibility sources remain in the repository for historical
+provenance only; there is intentionally no supported framework-runtime
+requirements file. Do not infer a production dependency set from historical
+source imports or benchmark records.
+
 The built-in server is an inference transport, not an internet-facing gateway:
 
 - it supports a bearer token from a permission-checked `--api-key-file`, but
