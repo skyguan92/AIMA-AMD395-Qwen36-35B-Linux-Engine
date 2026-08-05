@@ -60,7 +60,7 @@ build-direct-loader:
 build-native-runtime:
 	bash scripts/build-native-runtime.sh
 
-package-native: build-native-runtime build-native
+package-native:
 	bash scripts/package-native-foundation.sh
 
 package-native-foundation: package-native

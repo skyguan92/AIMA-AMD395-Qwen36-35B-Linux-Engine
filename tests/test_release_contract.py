@@ -25,6 +25,7 @@ RESIDENT_PATH = ROOT / "tools/amd395-qwen36-35b-a3b-bf16-resident-chat-completio
 SKELETON_PATH = ROOT / "benchmarks/shape-lab/run_full_model_skeleton.py"
 CONTEXT_POLICY_PATH = ROOT / "tools/amd395-qwen36-35b-a3b-bf16-aotriton-context-policy.py"
 PORTABLE_QUALIFIER_PATH = ROOT / "scripts/qualify-native-portable-bundle.py"
+EVAL_QUALIFIER_PATH = ROOT / "scripts/qualify-native-eval.py"
 
 
 def load_module(name: str, path: Path):
@@ -158,6 +159,66 @@ class ReleaseContractTest(unittest.TestCase):
             verified = qualifier.verify_manifest(bundle)
             self.assertEqual(verified["release"], "2.0.0")
             self.assertEqual(verified["source"], source)
+
+    def test_eval_reference_comparison_is_prompt_hash_bound(self) -> None:
+        qualifier = load_module(
+            "eval_qualifier_test", EVAL_QUALIFIER_PATH
+        )
+        items = [
+            {"item_id": "item-0", "correct_answer": "A"},
+            {"item_id": "item-1", "correct_answer": "C"},
+        ]
+        records = [
+            {
+                "item_id": "item-0",
+                "prompt_token_ids_sha256": "a" * 64,
+                "output_token_ids_sha256": "b" * 64,
+                "parsed_answer": "A",
+                "correct": True,
+            },
+            {
+                "item_id": "item-1",
+                "prompt_token_ids_sha256": "c" * 64,
+                "output_token_ids_sha256": "d" * 64,
+                "parsed_answer": "C",
+                "correct": True,
+            },
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "reference.json"
+            path.write_text(
+                json.dumps(
+                    {
+                        "schema": "test/reference/v1",
+                        "served_model": "test-model",
+                        "records": [
+                            {
+                                "item_id": "item-0",
+                                "correct_answer": "A",
+                                "prompt_token_ids_sha256": "a" * 64,
+                                "completion_token_ids_sha256": "b" * 64,
+                                "first_token_id": 32,
+                            },
+                            {
+                                "item_id": "item-1",
+                                "correct_answer": "C",
+                                "prompt_token_ids_sha256": "c" * 64,
+                                "completion_token_ids_sha256": "e" * 64,
+                                "first_token_id": 35,
+                            },
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            comparison = qualifier.compare_reference(path, items, records)
+        self.assertEqual(comparison["prompt_token_hash_matches"], 2)
+        self.assertEqual(comparison["completion_token_hash_matches"], 1)
+        self.assertEqual(comparison["answer_matches"], 1)
+        self.assertEqual(comparison["reference_correct"], 1)
+        self.assertEqual(comparison["current_correct"], 2)
+        self.assertEqual(comparison["correct_delta"], 1)
+        self.assertTrue(comparison["score_nonregression_pass"])
 
     def test_public_identity_and_request_subset(self) -> None:
         self.assertEqual(self.adapter.DEFAULT_MODEL_ID, "aima-amd395-qwen36-35b")

@@ -67,6 +67,12 @@ def main() -> None:
         ),
     )
     parser.add_argument(
+        "--capability-eval",
+        type=Path,
+        required=True,
+        help="qualified privacy-safe frozen answer-eval scorecard",
+    )
+    parser.add_argument(
         "--output",
         type=Path,
         default=Path("output/native-portable-product-candidate.json"),
@@ -121,11 +127,13 @@ def main() -> None:
     correctness_path = cli.correctness.resolve()
     surfaces_path = cli.surfaces.resolve()
     features_path = cli.features.resolve()
+    capability_eval_path = cli.capability_eval.resolve()
     output_path = cli.output.resolve()
     matrix = load_json(matrix_path)
     correctness = load_json(correctness_path)
     surfaces = load_json(surfaces_path)
     features = load_json(features_path)
+    capability_eval = load_json(capability_eval_path)
     engine = cli.engine.resolve()
     launcher = cli.launcher.resolve()
     aotriton_provider = cli.aotriton_provider.resolve()
@@ -150,11 +158,25 @@ def main() -> None:
         ("correctness", correctness),
         ("surfaces", surfaces),
         ("features", features),
+        ("capability eval", capability_eval),
     ):
         if payload.get("qualified") is not True:
             raise SystemExit(f"{name} qualification did not pass")
         if payload["engine"]["sha256"] != engine_sha256:
             raise SystemExit(f"{name} engine SHA-256 does not match")
+    eval_source = capability_eval.get("source", {})
+    eval_score = capability_eval.get("score", {})
+    eval_reference = capability_eval.get("reference_comparison", {})
+    if (
+        capability_eval.get("complete") is not True
+        or eval_source.get("prompt_token_ids_in_scorecard") is not False
+        or eval_source.get("prompt_text_in_scorecard") is not False
+        or eval_score.get("invalid_answers") != 0
+        or eval_reference.get("score_nonregression_pass") is not True
+        or eval_reference.get("prompt_token_hash_matches")
+        != eval_source.get("selected_items")
+    ):
+        raise SystemExit("capability eval is incomplete or not privacy-safe")
 
     performance_cells: list[dict[str, Any]] = []
     for cell in matrix["cells"]:
@@ -347,11 +369,26 @@ def main() -> None:
         "http": http,
         "openai_features": {
             "variable_prompts": features["variable_prompts"],
+            "resident_prefill_dispatch": features[
+                "resident_prefill_dispatch"
+            ],
+            "prefix_lru": features["prefix_lru"],
             "streaming": features["streaming"],
             "tools": features["tools"],
             "disconnect": features["disconnect"],
             "validation": features["validation"],
             "pass": features["qualified"],
+        },
+        "capability_eval": {
+            "schema": capability_eval["schema"],
+            "claim_boundary": capability_eval["claim_boundary"],
+            "source": eval_source,
+            "protocol": capability_eval["protocol"],
+            "score": eval_score,
+            "gate": capability_eval["gate"],
+            "domains": capability_eval["domains"],
+            "reference_comparison": eval_reference,
+            "pass": capability_eval["qualified"],
         },
         "evidence": {
             "matrix": {
@@ -370,6 +407,10 @@ def main() -> None:
                 "path": str(features_path.relative_to(Path.cwd())),
                 "sha256": sha256(features_path),
             },
+            "capability_eval": {
+                "path": str(capability_eval_path.relative_to(Path.cwd())),
+                "sha256": sha256(capability_eval_path),
+            },
         },
         "decision": {
             "native_profile_correctness_pass": True,
@@ -381,14 +422,20 @@ def main() -> None:
             "variable_length_prompts_pass": features["variable_prompts"][
                 "pass"
             ],
+            "resident_prefill_dispatch_pass": features[
+                "resident_prefill_dispatch"
+            ]["pass"],
+            "multi_entry_prefix_lru_pass": features["prefix_lru"]["pass"],
             "http_streaming_pass": features["streaming"]["pass"],
             "tool_calling_pass": features["tools"]["pass"],
             "disconnect_cancellation_pass": features["disconnect"]["pass"],
+            "frozen_capability_eval_pass": capability_eval["qualified"],
             "full_legacy_context_envelope_replacement_pass": True,
             "release_decision": (
                 "qualified portable native replacement for the complete "
                 "published batch-1 context/output envelope with "
-                "variable-length prompts, live SSE streaming and OpenAI "
+                "variable-length prompts, resident short-context dispatch, "
+                "multi-entry prefix reuse, live SSE streaming and OpenAI "
                 "function tools"
             ),
         },

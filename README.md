@@ -205,21 +205,21 @@ within 3%.
 
 | Input | output512 prefill | output512 decode | output1024 prefill | output1024 decode |
 |---:|---:|---:|---:|---:|
-| 1,024 | 1638 | 34.04 | 1638 | 34.03 |
-| 2,048 | 1696 | 33.88 | 1696 | 33.87 |
-| 4,096 | 1572 | 33.28 | 1572 | 33.26 |
-| 8,192 | 1648 | 32.28 | 1648 | 32.28 |
-| 16,384 | 1432 | 30.79 | 1432 | 30.78 |
-| 32,768 | 1361 | 28.22 | 1361 | 28.22 |
-| 65,536 | 1177 | 24.67 | 1177 | 24.66 |
-| 131,072 | 867.9 | 19.62 | 867.9 | 19.62 |
+| 1,024 | 1630 | 34.00 | 1630 | 33.99 |
+| 2,048 | 1685 | 33.86 | 1685 | 33.86 |
+| 4,096 | 1572 | 33.26 | 1572 | 33.25 |
+| 8,192 | 1656 | 32.29 | 1656 | 32.28 |
+| 16,384 | 1438 | 30.79 | 1438 | 30.79 |
+| 32,768 | 1365 | 28.23 | 1365 | 28.23 |
+| 65,536 | 1176 | 24.68 | 1176 | 24.68 |
+| 131,072 | 868.2 | 19.60 | 868.2 | 19.60 |
 
-Window endpoints reached `555.5` prefill tok/s at 262143/output1,
-`559.5 / 14.00` prefill/decode tok/s at 261632/output512, and
-`548.2 / 14.04` at 261120/output1024. All 19 cells retained at least 97% of
-their frozen baseline; the minimum prefill/decode retentions were `1.012x`
-and `0.9854x`. Against the exact v1.4.0 release matrix, the worst median
-prefill/decode deltas were `-2.283%` and `-0.1143%`, inside the 3% protocol
+Window endpoints reached `556.5` prefill tok/s at 262143/output1,
+`560.5 / 14.05` prefill/decode tok/s at 261632/output512, and
+`535.8 / 14.04` at 261120/output1024. All 19 cells retained at least 97% of
+their frozen baseline; the minimum prefill/decode retentions were `1.013x`
+and `0.9858x`. Against the exact v1.4.1 release matrix, the worst median
+prefill/decode deltas were `-2.259%` and `-0.1280%`, inside the 3% protocol
 band.
 
 Other gates:
@@ -227,8 +227,11 @@ Other gates:
 - full-vocabulary KLD passed at nine contexts through q261632; the maximum was
   `0.002174`, with matching top-1 everywhere and the gate fixed at `0.005`;
 - exact 128-token completion identity passed on the frozen q8192 fixture;
-- q8192 command-to-ready median: `47.36 s` versus the `51.41 s` ceiling;
-- q32768 exact-prefix TTFT: `2624x` speedup with `1.0002` decode retention;
+- the frozen answer-only MMLU-256 regression scored `216/256` (`84.375%`),
+  exactly matching the GB10 vLLM reference score; all 256 prompt-token hashes
+  matched and 250 completion-token hashes were byte-identical;
+- q8192 command-to-ready median: `51.16 s` versus the `51.41 s` ceiling;
+- q32768 exact-prefix TTFT: `2626x` speedup with `1.0001` decode retention;
 - resident HTTP: one model load across cold and cached requests, with clean
   shutdown;
 - live chunked SSE matched the non-stream token/text hashes, and structured
@@ -236,10 +239,13 @@ Other gates:
   preserved server health.
 - a 16-token cold prompt, its exact replay, a 36-token ordinary next-user turn
   and an unrelated short request after long-context work all passed; the two
-  independent cache misses restarted from clean state and returned HTTP 200.
+  independent conversations were isolated and returned HTTP 200;
+- q1024/q2048/q4096/q8192 raw-token requests selected their matching resident
+  AOT buckets, and an A/B/A request sequence proved four-entry LRU reuse.
 
-The auditable source of truth is
-[benchmarks/results/native-portable-product-v1.4.1.json](benchmarks/results/native-portable-product-v1.4.1.json).
+The auditable source of truth is mirrored after release at
+`benchmarks/results/native-portable-product-v1.5.0.json` and is embedded in
+the archive as `share/aima/qualification.json`.
 The frozen baseline and optional striped-startup evidence remain documented in
 [docs/PERFORMANCE.md](docs/PERFORMANCE.md).
 
@@ -258,13 +264,16 @@ export AIMA_RELEASE_VERSION=X.Y.Z
 export AIMA_RELEASE_TAG=vX.Y.Z
 
 make check
+make build-native build-native-runtime
+# Run the documented qualification against these exact artifacts.
 make package-native
 ```
 
 The packager rejects absolute RUNPATHs and unresolved ELF dependencies,
 requires every executable/provider hash to match the complete qualification,
 includes all upstream notices, generates a recursive SHA-256 manifest, and
-emits one deterministic `.tar.zst` archive under `dist/`.
+emits one deterministic `.tar.zst` archive under `dist/`. Packaging does not
+rebuild the qualified artifacts.
 
 Detailed instructions: [docs/INSTALL.md](docs/INSTALL.md).
 

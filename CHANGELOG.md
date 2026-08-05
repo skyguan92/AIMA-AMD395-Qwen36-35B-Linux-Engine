@@ -17,6 +17,9 @@ Versioning.
   tokens through health, CLI and per-request HTTP metrics.
 - Added a hash-checked raw-token HTTP extension and resumable, prompt-free
   answer-eval scorecard generator for exact release-binary regression tests.
+- Bound release qualification to the frozen privacy-safe MMLU-256 capability
+  scorecard and separated packaging from native compilation so qualified bytes
+  cannot be rebuilt between measurement and archive creation.
 - Pinned GitHub Actions by immutable commit, added weekly update automation and
   a release-evidence pull-request checklist.
 - Pinned the qualified Hugging Face checkpoint revision and metadata hashes in

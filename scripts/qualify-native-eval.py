@@ -26,6 +26,7 @@ from urllib.request import Request, urlopen
 SCHEMA = "aima-amd395-qwen36/native-answer-eval/v1"
 MODEL = "aima-amd395-qwen36-35b"
 ANSWER = re.compile(r"(?<![A-Za-z])([ABCD])(?![A-Za-z])")
+ANSWER_TOKEN_IDS = {32: "A", 33: "B", 34: "C", 35: "D"}
 
 
 def utc_now() -> str:
@@ -200,6 +201,7 @@ def scorecard(
     minimum_correct: int | None,
     started_at: str,
     complete: bool,
+    reference_comparison: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     correct = sum(record["correct"] for record in records)
     invalid = sum(record["parsed_answer"] is None for record in records)
@@ -215,7 +217,7 @@ def scorecard(
         for domain, values in sorted(domain_counts.items())
     }
     gate = minimum_correct is None or correct >= minimum_correct
-    return {
+    result = {
         "schema": SCHEMA,
         "complete": complete,
         "qualified": complete and invalid == 0 and gate,
@@ -270,6 +272,90 @@ def scorecard(
         "domains": domains,
         "records": records,
     }
+    if reference_comparison is not None:
+        result["reference_comparison"] = reference_comparison
+    return result
+
+
+def compare_reference(
+    path: Path,
+    items: list[dict[str, Any]],
+    records: list[dict[str, Any]],
+) -> dict[str, Any]:
+    reference = read_json(path.resolve())
+    reference_records = reference.get("records")
+    if not isinstance(reference_records, list) or len(reference_records) != len(
+        items
+    ):
+        raise RuntimeError("reference result does not cover the selected items")
+    if len(records) != len(items):
+        raise RuntimeError("reference comparison requires a complete current run")
+
+    prompt_hash_matches = 0
+    completion_hash_matches = 0
+    answer_matches = 0
+    reference_correct = 0
+    changed_answers: list[dict[str, Any]] = []
+    for item, current, frozen in zip(
+        items, records, reference_records, strict=True
+    ):
+        if (
+            frozen.get("item_id") != item["item_id"]
+            or current.get("item_id") != item["item_id"]
+            or frozen.get("correct_answer") != item.get("correct_answer")
+        ):
+            raise RuntimeError("reference result item order or answer changed")
+        prompt_equal = (
+            frozen.get("prompt_token_ids_sha256")
+            == current.get("prompt_token_ids_sha256")
+        )
+        prompt_hash_matches += int(prompt_equal)
+        if not prompt_equal:
+            raise RuntimeError("reference result prompt token hash changed")
+        reference_answer = ANSWER_TOKEN_IDS.get(frozen.get("first_token_id"))
+        if reference_answer is None:
+            raise RuntimeError("reference result has a non-answer first token")
+        current_answer = current.get("parsed_answer")
+        if current_answer == reference_answer:
+            answer_matches += 1
+        else:
+            changed_answers.append(
+                {
+                    "item_id": item["item_id"],
+                    "reference_answer": reference_answer,
+                    "current_answer": current_answer,
+                    "correct_answer": item["correct_answer"],
+                }
+            )
+        reference_correct += int(reference_answer == item["correct_answer"])
+        completion_hash_matches += int(
+            current.get("output_token_ids_sha256")
+            == frozen.get("completion_token_ids_sha256")
+        )
+
+    current_correct = sum(record["correct"] for record in records)
+    return {
+        "claim_boundary": (
+            "Paired against a frozen GB10 vLLM result with identical prompt-token "
+            "hashes; the reference records and prompt tokens are not redistributed."
+        ),
+        "reference": {
+            "file_name": path.name,
+            "file_sha256": sha256_file(path),
+            "schema": reference.get("schema"),
+            "served_model": reference.get("served_model"),
+            "speculative_mode": reference.get("speculative_mode"),
+        },
+        "items": len(items),
+        "prompt_token_hash_matches": prompt_hash_matches,
+        "completion_token_hash_matches": completion_hash_matches,
+        "answer_matches": answer_matches,
+        "changed_answers": changed_answers,
+        "reference_correct": reference_correct,
+        "current_correct": current_correct,
+        "correct_delta": current_correct - reference_correct,
+        "score_nonregression_pass": current_correct >= reference_correct,
+    }
 
 
 def parse_args() -> argparse.Namespace:
@@ -286,6 +372,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--timeout", type=float, default=300.0)
     parser.add_argument("--limit", type=int)
     parser.add_argument("--minimum-correct", type=int)
+    parser.add_argument(
+        "--reference-result",
+        type=Path,
+        help="optional frozen answer-only result for hash/score pairing",
+    )
     return parser.parse_args()
 
 
@@ -408,6 +499,11 @@ def main() -> int:
             ),
         )
 
+    reference_comparison = (
+        compare_reference(args.reference_result, items, records)
+        if args.reference_result is not None
+        else None
+    )
     result = scorecard(
         items_path=items_path,
         item_count=len(items),
@@ -417,7 +513,12 @@ def main() -> int:
         minimum_correct=args.minimum_correct,
         started_at=started_at,
         complete=True,
+        reference_comparison=reference_comparison,
     )
+    if reference_comparison is not None:
+        reference_pass = reference_comparison["score_nonregression_pass"]
+        result["gate"]["reference_score_nonregression"] = reference_pass
+        result["qualified"] = bool(result["qualified"] and reference_pass)
     write_json(output, result)
     print(json.dumps({"output": str(output), "score": result["score"], "qualified": result["qualified"]}))
     return 0 if result["qualified"] else 3

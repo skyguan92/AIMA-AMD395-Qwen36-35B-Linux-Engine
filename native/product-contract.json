@@ -98,6 +98,16 @@
       "minimum_ttft_speedup": 110.11994260509346,
       "minimum_decode_retention": 0.999653457424567
     },
+    "capability_eval": {
+      "protocol": "frozen deterministic answer-only MMLU-256 regression subset",
+      "items_file_sha256": "1201e5442b510f4ce108cdb8ae04ab38ce4af88b9123ab27115c93aaa5edd91e",
+      "items": 256,
+      "minimum_correct": 216,
+      "invalid_answers_max": 0,
+      "frozen_gb10_score_nonregression_required": true,
+      "frozen_gb10_prompt_token_hash_matches_required": 256,
+      "prompt_text_and_token_ids_must_be_excluded_from_public_scorecard": true
+    },
     "openai_features": {
       "stream_content_must_match_nonstream": true,
       "stream_token_sha256_must_match_nonstream": true,

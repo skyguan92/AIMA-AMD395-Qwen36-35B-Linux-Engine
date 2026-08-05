@@ -164,6 +164,19 @@ class NativeRuntimeContractTest(unittest.TestCase):
         self.assertTrue(openai["variable_length_cold_prompt_required"])
         self.assertTrue(openai["ordinary_multi_turn_cache_miss_required"])
         self.assertTrue(openai["post_long_short_request_isolation_required"])
+        capability = gates["capability_eval"]
+        self.assertEqual(capability["items"], 256)
+        self.assertEqual(capability["minimum_correct"], 216)
+        self.assertEqual(capability["invalid_answers_max"], 0)
+        self.assertTrue(capability["frozen_gb10_score_nonregression_required"])
+        self.assertEqual(
+            capability["frozen_gb10_prompt_token_hash_matches_required"], 256
+        )
+        self.assertTrue(
+            capability[
+                "prompt_text_and_token_ids_must_be_excluded_from_public_scorecard"
+            ]
+        )
 
     def test_v141_contract_is_bound_at_package_time(self) -> None:
         contract = self.contract_v141
@@ -469,6 +482,14 @@ class NativeRuntimeContractTest(unittest.TestCase):
         self.assertIn("native_bundle_closure.py", package)
         self.assertIn("AIMA_ALLOW_DIRTY_PACKAGE", package)
         self.assertIn("--source-commit", package)
+        makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
+        self.assertIn(
+            "package-native:\n\tbash scripts/package-native-foundation.sh",
+            makefile,
+        )
+        self.assertNotIn(
+            "package-native: build-native-runtime build-native", makefile
+        )
         self.assertIn("verify-native-package-inputs.py", package)
         self.assertIn("product-contract-v${RELEASE_VERSION}.json", package)
         self.assertIn('release_contracts=("${ROOT}"/native/product-contract-v*.json)', package)
@@ -566,6 +587,15 @@ class NativeRuntimeContractTest(unittest.TestCase):
         self.assertIn("cold-aot-plus-decode", planner)
         self.assertIn("clear_request_scratch", resident)
         self.assertIn("ordinary_turn_pass", qualification)
+        self.assertIn("resident_bucket_pass", qualification)
+        self.assertIn("prefix_lru_pass", qualification)
+        self.assertIn("prompt_token_ids", qualification)
+        product_generator = (
+            ROOT / "scripts/generate-native-product-result.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn("--capability-eval", product_generator)
+        self.assertIn("prompt_token_ids_in_scorecard", product_generator)
+        self.assertIn("frozen_capability_eval_pass", product_generator)
 
     def test_resident_prefill_dispatch_and_prefix_lru_are_bounded(self) -> None:
         resident = (

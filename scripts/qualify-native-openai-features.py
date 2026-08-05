@@ -491,6 +491,79 @@ def main() -> None:
                 "/v1/chat/completions",
                 plain_nonstream_request,
             )
+            resident_bucket_responses: list[dict[str, Any]] = []
+            for prompt_tokens, token_id in (
+                (1024, 101),
+                (2048, 102),
+                (4096, 103),
+                (8192, 104),
+            ):
+                status, response = request_json(
+                    cli.port,
+                    "POST",
+                    "/v1/chat/completions",
+                    {
+                        "model": MODEL_ID,
+                        "messages": [
+                            {
+                                "role": "user",
+                                "content": "Frozen resident-bucket fixture.",
+                            }
+                        ],
+                        "prompt_token_ids": [token_id] * prompt_tokens,
+                        "temperature": 0,
+                        "top_p": 1,
+                        "max_tokens": 1,
+                    },
+                )
+                resident_bucket_responses.append(
+                    {
+                        "prompt_tokens": prompt_tokens,
+                        "status": status,
+                        "usage": response.get("usage"),
+                        "metrics": response.get("aima_amd395"),
+                    }
+                )
+            lru_responses: list[dict[str, Any]] = []
+            for token_id in (201, 202, 201):
+                status, response = request_json(
+                    cli.port,
+                    "POST",
+                    "/v1/chat/completions",
+                    {
+                        "model": MODEL_ID,
+                        "messages": [
+                            {
+                                "role": "user",
+                                "content": "Frozen multi-entry cache fixture.",
+                            }
+                        ],
+                        "prompt_token_ids": [token_id] * 1024,
+                        "temperature": 0,
+                        "top_p": 1,
+                        "max_tokens": 1,
+                    },
+                )
+                lru_responses.append(
+                    {
+                        "status": status,
+                        "usage": response.get("usage"),
+                        "metrics": response.get("aima_amd395"),
+                    }
+                )
+            invalid_raw_status, invalid_raw_response = request_json(
+                cli.port,
+                "POST",
+                "/v1/chat/completions",
+                {
+                    "model": MODEL_ID,
+                    "messages": [
+                        {"role": "user", "content": "Invalid raw token."}
+                    ],
+                    "prompt_token_ids": [248320],
+                    "max_tokens": 1,
+                },
+            )
             invalid_status, invalid_response = request_json(
                 cli.port,
                 "POST",
@@ -577,11 +650,40 @@ def main() -> None:
     post_long_metrics = post_long_short.get("aima_amd395") or {}
     post_long_pass = bool(
         post_long_status == 200
-        and post_long_metrics.get("prefix_cache", {}).get("lookup") == "miss"
+        and post_long_metrics.get("prefix_cache", {}).get("lookup") == "exact"
         and post_long_metrics.get("prompt_execution")
-        == "cold-decode-fallback"
+        == "prefix-cache-exact"
         and post_long_metrics.get("output_token_ids_sha256")
         == plain_metrics["output_token_ids_sha256"]
+    )
+    resident_bucket_pass = bool(
+        len(resident_bucket_responses) == 4
+        and all(
+            response["status"] == 200
+            and response["usage"]["prompt_tokens"]
+            == response["prompt_tokens"]
+            and response["metrics"]["prompt_source"] == "token_ids"
+            and response["metrics"]["prefix_cache"]["lookup"] == "miss"
+            and response["metrics"]["prompt_execution"] == "cold-aot"
+            and response["metrics"]["aot_prefill_tokens"]
+            == response["prompt_tokens"]
+            for response in resident_bucket_responses
+        )
+        and health_before.get("resident_prefill_buckets")
+        == [1024, 2048, 4096, 8192]
+        and health_before.get("prompt_token_ids_extension") is True
+    )
+    lru_first, lru_second, lru_replay = lru_responses
+    prefix_lru_pass = bool(
+        all(response["status"] == 200 for response in lru_responses)
+        and lru_first["metrics"]["prefix_cache"]["lookup"] == "miss"
+        and lru_second["metrics"]["prefix_cache"]["lookup"] == "miss"
+        and lru_replay["metrics"]["prefix_cache"]["lookup"] == "exact"
+        and lru_replay["metrics"]["prompt_execution"]
+        == "prefix-cache-exact"
+        and lru_first["metrics"]["output_token_ids_sha256"]
+        == lru_replay["metrics"]["output_token_ids_sha256"]
+        and health_before.get("prefix_cache_entries") == 4
     )
     nonstream_call = tool_nonstream["choices"][0]["message"]["tool_calls"][0]
     stream_call = tool_stream["tool_calls"][0]
@@ -617,6 +719,8 @@ def main() -> None:
     validation_pass = bool(
         invalid_status == 400
         and invalid_response["error"]["code"] == "bad_request"
+        and invalid_raw_status == 400
+        and invalid_raw_response["error"]["code"] == "bad_request"
     )
     lifecycle_pass = bool(
         ready["event"] == "ready"
@@ -625,7 +729,7 @@ def main() -> None:
         and shutdown["status"] == "shutting_down"
         and stopped["event"] == "stopped"
         and stopped["model_loads"] == 1
-        and stopped["served"] == 7
+        and stopped["served"] == 14
         and returncode == 0
     )
     result = {
@@ -636,6 +740,8 @@ def main() -> None:
                 plain_pass,
                 ordinary_turn_pass,
                 post_long_pass,
+                resident_bucket_pass,
+                prefix_lru_pass,
                 tool_pass,
                 history_pass,
                 disconnect_pass,
@@ -705,6 +811,32 @@ def main() -> None:
             ),
             "pass": ordinary_turn_pass and post_long_pass,
         },
+        "resident_prefill_dispatch": {
+            "configured_buckets": health_before.get(
+                "resident_prefill_buckets"
+            ),
+            "cases": resident_bucket_responses,
+            "pass": resident_bucket_pass,
+        },
+        "prefix_lru": {
+            "configured_entries": health_before.get(
+                "prefix_cache_entries"
+            ),
+            "first_lookup": lru_first["metrics"]["prefix_cache"][
+                "lookup"
+            ],
+            "second_lookup": lru_second["metrics"]["prefix_cache"][
+                "lookup"
+            ],
+            "replay_first_lookup": lru_replay["metrics"]["prefix_cache"][
+                "lookup"
+            ],
+            "first_replay_token_sha256_equal": (
+                lru_first["metrics"]["output_token_ids_sha256"]
+                == lru_replay["metrics"]["output_token_ids_sha256"]
+            ),
+            "pass": prefix_lru_pass,
+        },
         "tools": {
             "nonstream": nonstream_call,
             "stream": stream_call,
@@ -726,6 +858,7 @@ def main() -> None:
         },
         "validation": {
             "unknown_forced_tool_status": invalid_status,
+            "out_of_vocabulary_raw_token_status": invalid_raw_status,
             "error": invalid_response.get("error"),
             "pass": validation_pass,
         },

@@ -192,10 +192,10 @@ curl -fsS http://127.0.0.1:8000/v1/models \
 The selected context is the preferred AOT prefill specialization, not a
 mandatory request length. Any positive chat prompt is admitted when prompt plus
 requested output fits the configured cache capacity. A cache miss starts from
-empty resident state: prompts below the specialization use the token path;
-prompts at or above it use AOT prefill for the specialized prefix and the token
-path for any tail. Exact and append cache hits reduce latency but do not affect
-correctness or admission.
+empty resident state. A q8192 process keeps q1024/q2048/q4096/q8192 AOT
+buckets resident, selects the largest one no longer than the prompt and uses
+the token path only below q1024 or for a remaining tail. Exact and append cache
+hits reduce latency but do not affect correctness or admission.
 
 Use the native tokenizer probes when preparing deterministic fixtures:
 
@@ -228,6 +228,8 @@ export AIMA_RELEASE_VERSION=X.Y.Z
 export AIMA_RELEASE_TAG=vX.Y.Z
 
 make check
+make build-native build-native-runtime
+# Run the full qualification against these exact files, then:
 make package-native
 ```
 
@@ -239,6 +241,8 @@ hash-bound. The packager also requires the native engine, launcher, three
 providers, AOTriton runtime and selected GPU image to match the complete
 qualification byte-for-byte. `AIMA_ALLOW_DIRTY_PACKAGE=1` exists only for
 clearly marked local development bundles; do not publish such a bundle.
+`make package-native` packages existing qualified artifacts and does not
+rebuild them.
 
 If the AOTriton distribution does not expose conventional `LICENSE*` and
 `NOTICE*` paths, also set `AOTRITON_LICENSE` and `AOTRITON_NOTICE` to the exact

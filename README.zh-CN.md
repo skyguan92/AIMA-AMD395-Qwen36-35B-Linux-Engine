@@ -188,37 +188,43 @@ aima-engine chat --messages-json conversation.json --tools-json tools.json
 
 | 输入 | output512 prefill | output512 decode | output1024 prefill | output1024 decode |
 |---:|---:|---:|---:|---:|
-| 1,024 | 1638 | 34.04 | 1638 | 34.03 |
-| 2,048 | 1696 | 33.88 | 1696 | 33.87 |
-| 4,096 | 1572 | 33.28 | 1572 | 33.26 |
-| 8,192 | 1648 | 32.28 | 1648 | 32.28 |
-| 16,384 | 1432 | 30.79 | 1432 | 30.78 |
-| 32,768 | 1361 | 28.22 | 1361 | 28.22 |
-| 65,536 | 1177 | 24.67 | 1177 | 24.66 |
-| 131,072 | 867.9 | 19.62 | 867.9 | 19.62 |
+| 1,024 | 1630 | 34.00 | 1630 | 33.99 |
+| 2,048 | 1685 | 33.86 | 1685 | 33.86 |
+| 4,096 | 1572 | 33.26 | 1572 | 33.25 |
+| 8,192 | 1656 | 32.29 | 1656 | 32.28 |
+| 16,384 | 1438 | 30.79 | 1438 | 30.79 |
+| 32,768 | 1365 | 28.23 | 1365 | 28.23 |
+| 65,536 | 1176 | 24.68 | 1176 | 24.68 |
+| 131,072 | 868.2 | 19.60 | 868.2 | 19.60 |
 
-最大窗口端点分别达到：262143/output1 prefill `555.5` token/s，
-261632/output512 为 `559.5 / 14.00` prefill/decode token/s，
-261120/output1024 为 `548.2 / 14.04`。19 个 cell 全部达到冻结基线的
-97%；最低 prefill/decode 保留率分别是 `1.012x` 与 `0.9854x`。相对
-v1.4.0 完整矩阵，最差 prefill/decode 中位数变化为 `-2.283%` 与
-`-0.1143%`，均在 3% 协议范围内。
+最大窗口端点分别达到：262143/output1 prefill `556.5` token/s，
+261632/output512 为 `560.5 / 14.05` prefill/decode token/s，
+261120/output1024 为 `535.8 / 14.04`。19 个 cell 全部达到冻结基线的
+97%；最低 prefill/decode 保留率分别是 `1.013x` 与 `0.9858x`。相对
+v1.4.1 完整矩阵，最差 prefill/decode 中位数变化为 `-2.259%` 与
+`-0.1280%`，均在 3% 协议范围内。
 
 其他门槛：
 
 - 9 个上下文直至 q261632 的全词表 KLD 全部小于 `0.005`，最大值
   `0.002174`，top-1 全一致；
 - 冻结 q8192 fixture 的 128-token 输出逐 token 完全一致；
-- q8192 command-to-ready 中位数 `47.36 s`，低于 `51.41 s` 上限；
-- q32768 exact-prefix TTFT 加速 `2624x`，decode 保留率 `1.0002`；
+- 冻结 answer-only MMLU-256 回归得到 `216/256`（`84.375%`），与 GB10
+  vLLM 参考分数完全相同；256 个 prompt-token 哈希全部一致，其中 250 个
+  completion-token 哈希逐 token 完全相同；
+- q8192 command-to-ready 中位数 `51.16 s`，低于 `51.41 s` 上限；
+- q32768 exact-prefix TTFT 加速 `2626x`，decode 保留率 `1.0001`；
 - HTTP 两次请求期间模型装载次数始终为 1，第二次命中 exact cache，并可干净关闭；
 - chunked SSE 与非流式的 token/text 哈希一致，stream/non-stream 工具调用一致，
   客户端断连后服务仍健康。
 - 16-token cold prompt、exact replay、36-token 普通下一轮用户请求，以及长上下文
-  后的无关短请求全部通过；两个独立 cache miss 都从干净状态执行并返回 HTTP 200。
+  后的无关短请求全部通过；独立会话保持隔离并返回 HTTP 200；
+- q1024/q2048/q4096/q8192 raw-token 请求都选中了对应的常驻 AOT bucket，
+  A/B/A 请求序列验证了 4 条目 LRU 的复用。
 
-完整精度、每次测量值和组件哈希见
-[benchmarks/results/native-portable-product-v1.4.1.json](benchmarks/results/native-portable-product-v1.4.1.json)。
+完整精度、每次测量值和组件哈希会在发布后镜像到
+`benchmarks/results/native-portable-product-v1.5.0.json`，同时随包保存为
+`share/aima/qualification.json`。
 
 ## 从源码构建
 
@@ -235,12 +241,15 @@ export AIMA_RELEASE_VERSION=X.Y.Z
 export AIMA_RELEASE_TAG=vX.Y.Z
 
 make check
+make build-native build-native-runtime
+# 按文档对这些精确产物完成资格验证。
 make package-native
 ```
 
 打包器会拒绝绝对 RUNPATH、未闭合 ELF 依赖以及任何与完整 qualification
 哈希不一致的可执行文件/provider，收集第三方许可证，生成递归 SHA-256
 manifest，并在 `dist/` 输出一个确定性的 `.tar.zst` 包。
+打包步骤不会重新构建已经完成验证的产物。
 
 安装与构建细节见 [docs/INSTALL.md](docs/INSTALL.md)。
 

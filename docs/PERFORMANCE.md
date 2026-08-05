@@ -1,8 +1,8 @@
 # Performance and correctness
 
-## v1.4.1 portable native full envelope
+## v1.5.0 portable native full envelope
 
-The v1.4 portable runtime covers the complete published batch-1 matrix without
+The v1.5 portable runtime covers the complete published batch-1 matrix without
 loading Python, PyTorch, vLLM, Triton, Transformers or a host ROCm userspace.
 Promotion uses three same-configuration runs, or two expensive runs when the
 first pair is within 3%.
@@ -13,27 +13,27 @@ decode is measured at the requested output length.
 
 | Input tokens | output512 prefill | output512 decode | output1024 prefill | output1024 decode |
 |---:|---:|---:|---:|---:|
-| 1,024 | 1638 | 34.04 | 1638 | 34.03 |
-| 2,048 | 1696 | 33.88 | 1696 | 33.87 |
-| 4,096 | 1572 | 33.28 | 1572 | 33.26 |
-| 8,192 | 1648 | 32.28 | 1648 | 32.28 |
-| 16,384 | 1432 | 30.79 | 1432 | 30.78 |
-| 32,768 | 1361 | 28.22 | 1361 | 28.22 |
-| 65,536 | 1177 | 24.67 | 1177 | 24.66 |
-| 131,072 | 867.9 | 19.62 | 867.9 | 19.62 |
+| 1,024 | 1630 | 34.00 | 1630 | 33.99 |
+| 2,048 | 1685 | 33.86 | 1685 | 33.86 |
+| 4,096 | 1572 | 33.26 | 1572 | 33.25 |
+| 8,192 | 1656 | 32.29 | 1656 | 32.28 |
+| 16,384 | 1438 | 30.79 | 1438 | 30.79 |
+| 32,768 | 1365 | 28.23 | 1365 | 28.23 |
+| 65,536 | 1176 | 24.68 | 1176 | 24.68 |
+| 131,072 | 868.2 | 19.60 | 868.2 | 19.60 |
 
 Units are tokens per second. Maximum-window results were:
 
 | Input/output | Prefill tok/s | Decode tok/s | Prefill retention | Decode retention |
 |---:|---:|---:|---:|---:|
-| 262143/1 | 555.5 | n/a | 1.4929 | n/a |
-| 261632/512 | 559.5 | 14.00 | 1.3829 | 1.0054 |
-| 261120/1024 | 548.2 | 14.04 | 1.3489 | 1.0052 |
+| 262143/1 | 556.5 | n/a | 1.4957 | n/a |
+| 261632/512 | 560.5 | 14.05 | 1.3855 | 1.0091 |
+| 261120/1024 | 535.8 | 14.04 | 1.3185 | 1.0049 |
 
 All 19 cells pass the independent `0.97x` prefill/decode floor. The minimum
-prefill retention is `1.012`; the minimum decode retention is `0.9854`.
-Against v1.4.0, the worst median prefill/decode changes are `-2.283%` and
-`-0.1143%`; both stay inside the 3% measurement protocol band.
+prefill retention is `1.013`; the minimum decode retention is `0.9858`.
+Against v1.4.1, the worst median prefill/decode changes are `-2.259%` and
+`-0.1280%`; both stay inside the 3% measurement protocol band.
 
 Full-vocabulary correctness is bound to the final engine SHA-256:
 
@@ -53,30 +53,50 @@ The frozen q8192 completion fixture also matched all 128 expected token IDs,
 with output-token SHA-256
 `aa910692fd03ed4a8e89c04497751e3a28eee36c6148237f7e97c74a6dd68201`.
 
-Three fresh q8192 HTTP processes reached readiness in `49.48`, `47.36` and
-`45.84` seconds. The `47.36 s` median is below the frozen `51.41 s` ceiling.
+Three fresh q8192 HTTP processes reached readiness in `53.28`, `51.16` and
+`46.67` seconds. The `51.16 s` median is below the frozen `51.41 s` ceiling.
 
-At q32768/output512, exact-prefix reuse reduced TTFT from `24.12 s` to
-`9.195 ms` (`2624x`) and retained `1.0002` of cold decode throughput. The
+At q32768/output512, exact-prefix reuse reduced TTFT from `24.08 s` to
+`9.170 ms` (`2626x`) and retained `1.0001` of cold decode throughput. The
 output-token hash was unchanged.
 
 The resident HTTP run used one model load, served a cold q8192 request and an
-exact repeat, reduced TTFT from `4.927 s` to `4.894 ms`, retained the output
+exact repeat, reduced TTFT from `4.943 s` to `5.075 ms`, retained the output
 hash, exposed health/model endpoints and exited through `POST /shutdown`.
 
 The OpenAI feature lifecycle run used live HTTP/1.1 chunked SSE. A 16-token
-cold prompt produced first content at `510.6 ms`, completed at `572.3 ms`,
+cold prompt produced first content at `508.5 ms`, completed at `570.3 ms`,
 and matched both text and generated-token hashes with its exact-cache
 non-stream response. A normal 36-token next-user turn and an unrelated short
-request after long-context work both executed as clean cache misses with HTTP
-200. Stream and non-stream tool requests both produced
+request after long-context work remained isolated with HTTP 200. Exact raw-token
+requests at q1024/q2048/q4096/q8192 selected the matching resident AOT bucket,
+and an A/B/A sequence restored the first of four LRU entries exactly. Stream
+and non-stream tool requests both produced
 `get_weather({"city":"Paris"})`, assistant/tool history produced the expected
 final answer, an unavailable forced tool returned HTTP 400, and a reset client
 connection left the one-load resident server healthy.
 
+### Capability regression scorecard
+
+The exact v1.5 native executable ran the frozen answer-only MMLU-256 subset in
+one resident HTTP process with batch size 1, greedy decoding and identical
+pretokenized prompts. It scored `216/256` (`84.375%`) with zero invalid
+answers, exactly matching the frozen GB10 vLLM reference score. All 256 prompt
+token hashes matched; 250/256 complete output-token hashes were identical and
+251/256 parsed answers were identical. The five answer changes had zero net
+score effect. The public scorecard contains item identifiers, answers, hashes
+and aggregate metrics, but no prompt text or prompt token IDs.
+
+This is a deterministic regression subset, not an official leaderboard score.
+The pinned upstream model card separately reports `85.2` MMLU-Pro, `93.3`
+MMLU-Redux and `92.7` AIME26 for Qwen3.6-35B-A3B under its published methods;
+those benchmarks and sampling protocols are not interchangeable with this
+greedy MMLU-256 gate. See the
+[upstream model card at the qualified revision](https://huggingface.co/Qwen/Qwen3.6-35B-A3B/blob/995ad96eacd98c81ed38be0c5b274b04031597b0/README.md).
+
 Exact components, per-run values, baselines, ratios and decision boundaries
-are in
-[`native-portable-product-v1.4.1.json`](../benchmarks/results/native-portable-product-v1.4.1.json).
+are embedded as `share/aima/qualification.json` and mirrored after release to
+`benchmarks/results/native-portable-product-v1.5.0.json`.
 Its hash-bound summaries and raw reports are published under
 [`benchmarks/runs/`](../benchmarks/runs/). `make verify-evidence` checks every
 referenced report; `make package-evidence` emits a deterministic public

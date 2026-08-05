@@ -26,8 +26,9 @@ batch-1 envelope:
 The 262,144-token window endpoints at output1/output512/output1024 are also
 qualified. The machine-readable boundary is in
 [product-contract.json](product-contract.json), and the measurements are in
-[the v1.4.1 native qualification](../benchmarks/results/native-portable-product-v1.4.1.json).
-Each v1.4.1 archive also carries its exact qualification at
+`benchmarks/results/native-portable-product-v1.5.0.json` after the release
+evidence mirror lands.
+Each v1.5.0 archive also carries its exact qualification at
 `share/aima/qualification.json`.
 
 ## Distribution shape
@@ -81,10 +82,11 @@ systemd unit enables the token, a socket timeout and
 The selected context is the preferred AOT prefill specialization, not a
 mandatory request length. Every positive prompt is admitted when prompt plus
 requested output fits the cache capacity. A cache miss starts from clean
-resident state: shorter prompts use the qualified token path, while longer
-prompts use the selected AOT prefix and execute only the unmatched tail token
-by token. Exact and append prefix hits reduce latency but never determine
-admission.
+resident state. A q8192 service keeps q1024/q2048/q4096/q8192 specializations
+resident, selects the largest bucket no longer than the request and executes
+only the unmatched tail token by token. Requests shorter than the smallest
+resident bucket use the qualified token path. Exact and append prefix hits
+reduce latency but never determine admission.
 
 `POST /v1/chat/completions` supports live SSE token output and OpenAI function
 tools. The native tokenizer renders the checkpoint's Qwen tool template,
@@ -120,21 +122,25 @@ manifest, and writes the relocatable archive under `dist/`.
 ## Qualified behavior
 
 The native process owns all 693 checkpoint tensors, derived layouts, AOT
-modules, hipBLASLt plans, KV/recurrent state, scratch and the one-entry prefix
-cache. It implements cold prefill, resident greedy decode, exact-prefix restore
-and one-token-or-longer prefix extension. On an extension hit it restores the
+modules, hipBLASLt plans, KV/recurrent state, scratch and a capacity-bounded
+prefix LRU. A normal q8192 service retains four exact request-prefix snapshots;
+long-window profiles reduce that count to preserve the 96 GiB GTT contract.
+The engine implements cold prefill, resident greedy decode, exact-prefix
+restore and one-token-or-longer prefix extension. On a hit it restores the
 cached state and executes only the suffix through the native decode path;
-cold-prefill launch count is zero.
+cold-prefill launch count is zero for an exact hit.
 
-The final v1.4.1 qualification established:
+The final v1.5.0 qualification established:
 
 - KLD below `0.005` and matching top-1 at nine contexts through q261632;
 - exact 128-token completion identity on the frozen q8192 fixture;
 - all 19 prefill/decode cells at or above 97% of their frozen floor;
-- 47.36 s median q8192 command-to-ready versus the 51.41 s ceiling;
-- q32768 exact-cache TTFT speedup `2624x` with `1.0002` decode retention;
+- 51.16 s median q8192 command-to-ready versus the 51.41 s ceiling;
+- q32768 exact-cache TTFT speedup `2626x` with `1.0001` decode retention;
 - variable 16-token cold/exact requests, an ordinary 36-token next-user turn
   and post-long short-request isolation;
+- resident q1024/q2048/q4096/q8192 dispatch and an exact A/B/A four-entry LRU
+  replay;
 - resident HTTP with one model load, health/models/chat endpoints, exact cache
   reuse and clean shutdown;
 - live chunked SSE/non-stream token parity, structured function-tool parity

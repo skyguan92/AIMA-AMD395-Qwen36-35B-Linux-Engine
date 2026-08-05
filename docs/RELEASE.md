@@ -12,9 +12,11 @@ gate, batch-size-one contract or maximum context window.
 Release qualification must bind the exact tagged binary and rerun the complete
 19-cell performance matrix, nine-context full-vocabulary correctness gate,
 exact completion, startup/prefix/HTTP surfaces, variable-length bucket cases,
-SSE, tools, portable-bundle isolation and a second-host AMD395 compatibility
-smoke. The immutable commit, component hashes and raw-evidence links are added
-only after those gates pass.
+SSE, tools, the frozen MMLU-256 score/nonregression pair against GB10 vLLM,
+portable-bundle isolation and a second-host AMD395 compatibility smoke. The
+public eval scorecard excludes prompt text and prompt token IDs. The immutable
+commit, component hashes and raw-evidence links are added only after those
+gates pass.
 
 ## v1.4.1 boundary
 
@@ -87,9 +89,12 @@ commit.
    executable's embedded commit as `native_source_commit`; the component
    hashes must remain unchanged.
 4. Set `QUALIFICATION_RECORD`, `AIMA_RELEASE_VERSION` and `AIMA_RELEASE_TAG`,
-   then run `make package-native`. Packaging rejects a dirty checkout, a stale
-   or unbound binary commit, an incomplete result, or any executable/provider
-   byte that differs from the qualification.
+   then run `make package-native`. This target packages the already-qualified
+   artifacts; it deliberately does not rebuild them. Packaging rejects a dirty
+   checkout, a stale or unbound binary commit, an incomplete result, or any
+   executable/provider byte that differs from the qualification. Run
+   `make build-native-runtime build-native` explicitly before qualification,
+   never between qualification and packaging.
 5. Tag the release commit in the personal upstream and publish the archive,
    checksum and deterministic evidence asset there. Never move the tag.
 6. Synchronize the product commit to the Approaching AI showcase fork. Raw
