@@ -8,6 +8,19 @@
 A batch-1 BF16 inference engine specialized for
 `Qwen3.6-35B-A3B` on AMD Ryzen AI Max+ 395 / Radeon 8060S Linux.
 
+## Live Three-Engine Comparison
+
+The same Qwen3.6-35B-A3B BF16 request is replayed side by side through vLLM,
+llama.cpp, and the AIMA specialized engine on one AMD Ryzen AI Max+ 395. All
+three runs use the same prompt bytes, batch size 1, temperature 0,
+cross-request cache disabled, and real SSE arrival timing.
+
+[![Watch the AMD 395 three-engine comparison](assets/demos/amd395-three-engine-comparison.gif)](assets/demos/amd395-three-engine-comparison.mp4)
+
+[Watch the full-resolution MP4](assets/demos/amd395-three-engine-comparison.mp4).
+This recording is a visual comparison; the versioned performance and
+qualification evidence below remain authoritative.
+
 Version 1.5.0 provides a relocatable native package with live SSE streaming and
 OpenAI function tools: no Python, PyTorch, vLLM,
 Triton, Transformers, or host ROCm userspace is loaded at runtime. The package
