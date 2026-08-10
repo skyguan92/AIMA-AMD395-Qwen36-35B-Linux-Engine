@@ -60,7 +60,6 @@ release_evidence_dirs=(
   "${ROOT}/benchmarks/runs/native-correctness-20260723-v130"
   "${ROOT}/benchmarks/runs/native-full-matrix-20260723-v130"
   "${ROOT}/benchmarks/runs/native-openai-features-20260723-v130"
-  "${ROOT}/benchmarks/runs/native-portable-baiying-compat-20260723-v130"
   "${ROOT}/benchmarks/runs/native-portable-bundle-20260723-v130"
   "${ROOT}/benchmarks/runs/native-product-surfaces-20260723-v130"
   "${ROOT}/benchmarks/runs/native-correctness-20260804-v141-release"
