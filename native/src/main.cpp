@@ -47,7 +47,7 @@
 
 namespace {
 
-constexpr const char* kVersion = "1.5.0-native";
+constexpr const char* kVersion = "1.5.1-native";
 #ifndef AIMA_SOURCE_COMMIT
 #define AIMA_SOURCE_COMMIT "unknown"
 #endif
