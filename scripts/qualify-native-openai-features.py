@@ -630,7 +630,14 @@ def main() -> None:
         == plain_metrics["output_token_ids_sha256"]
         and plain_stream["metrics"]["prefix_cache"]["lookup"] == "miss"
         and plain_stream["metrics"]["prompt_execution"]
-        == "cold-decode-fallback"
+        == "cold-aot-padded"
+        and plain_stream["metrics"]["cold_prompt_decode_tokens"] == 0
+        and plain_stream["metrics"]["aot_prefill_tokens"]
+        == len(plain_probe["token_ids"])
+        and plain_stream["metrics"]["aot_prefill_bucket_tokens"] == 1024
+        and plain_stream["metrics"]["aot_prefill_segments"] == 1
+        and plain_stream["metrics"]["padded_prefill_tokens"]
+        == 1024 - len(plain_probe["token_ids"])
         and plain_metrics["prefix_cache"]["lookup"] == "exact"
         and plain_metrics["prompt_execution"] == "prefix-cache-exact"
     )
@@ -640,7 +647,14 @@ def main() -> None:
         and ordinary_turn_metrics.get("prefix_cache", {}).get("lookup")
         == "miss"
         and ordinary_turn_metrics.get("prompt_execution")
-        == "cold-decode-fallback"
+        == "cold-aot-padded"
+        and ordinary_turn_metrics.get("cold_prompt_decode_tokens") == 0
+        and ordinary_turn_metrics.get("aot_prefill_tokens")
+        == ordinary_turn.get("usage", {}).get("prompt_tokens")
+        and ordinary_turn_metrics.get("aot_prefill_bucket_tokens") == 1024
+        and ordinary_turn_metrics.get("aot_prefill_segments") == 1
+        and ordinary_turn_metrics.get("padded_prefill_tokens")
+        == 1024 - ordinary_turn.get("usage", {}).get("prompt_tokens", 0)
         and ordinary_turn.get("usage", {}).get("prompt_tokens", 0)
         > len(plain_probe["token_ids"])
         and isinstance(

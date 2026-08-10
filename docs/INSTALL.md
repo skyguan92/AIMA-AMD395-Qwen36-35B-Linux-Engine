@@ -1,6 +1,6 @@
 # Install the portable native runtime
 
-This page documents the v1.5.0 portable package. Earlier archives do not
+This page documents the v1.5.1 portable package. Earlier archives do not
 contain the deployment doctor, bearer authentication, socket timeouts or the
 hardened systemd template; use the documentation bundled with the version you
 deploy.

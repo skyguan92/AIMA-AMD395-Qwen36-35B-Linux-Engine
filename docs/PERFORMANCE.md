@@ -1,6 +1,6 @@
 # Performance and correctness
 
-## v1.5.0 portable native full envelope
+## v1.5.1 portable native full envelope
 
 The v1.5 portable runtime covers the complete published batch-1 matrix without
 loading Python, PyTorch, vLLM, Triton, Transformers or a host ROCm userspace.
@@ -97,7 +97,7 @@ greedy MMLU-256 gate. See the
 
 Exact components, per-run values, baselines, ratios and decision boundaries
 are embedded as `share/aima/qualification.json` and mirrored after release to
-[`native-portable-product-v1.5.0.json`](../benchmarks/results/native-portable-product-v1.5.0.json).
+[`native-portable-product-v1.5.1.json`](../benchmarks/results/native-portable-product-v1.5.1.json).
 Its hash-bound summaries and raw reports are published under
 [`benchmarks/runs/`](../benchmarks/runs/). `make verify-evidence` checks every
 referenced report; `make package-evidence` emits a deterministic public

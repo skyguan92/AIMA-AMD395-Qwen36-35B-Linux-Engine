@@ -5,6 +5,8 @@ Versioning.
 
 ## Unreleased
 
+## 1.5.1 - 2026-08-10
+
 - Replaced variable-length cold-prompt and prefix-extension serial decode
   tails with composed resident AOT prefill. Non-bucket lengths now use the
   smallest covering q1024/q2048/q4096/q8192 schedule combination; padded

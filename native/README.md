@@ -1,6 +1,6 @@
 # Portable native runtime
 
-This page documents the v1.5.0 portable native runtime.
+This page documents the v1.5.1 portable native runtime.
 
 AIMA v1.5 provides a relocatable native runtime for
 `Qwen3.6-35B-A3B-BF16` on AMD Ryzen AI Max+ 395 / `gfx1151`. The runtime
@@ -26,9 +26,9 @@ batch-1 envelope:
 The 262,144-token window endpoints at output1/output512/output1024 are also
 qualified. The machine-readable boundary is in
 [product-contract.json](product-contract.json), and the measurements are in
-`benchmarks/results/native-portable-product-v1.5.0.json` after the release
+`benchmarks/results/native-portable-product-v1.5.1.json` after the release
 evidence mirror lands.
-Each v1.5.0 archive also carries its exact qualification at
+Each v1.5.1 archive also carries its exact qualification at
 `share/aima/qualification.json`.
 
 ## Distribution shape
@@ -130,7 +130,7 @@ restore and one-token-or-longer prefix extension. On a hit it restores the
 cached state and executes only the suffix through the native decode path;
 cold-prefill launch count is zero for an exact hit.
 
-The final v1.5.0 qualification established:
+The final v1.5.1 qualification established:
 
 - KLD below `0.005` and matching top-1 at nine contexts through q261632;
 - exact 128-token completion identity on the frozen q8192 fixture;

@@ -11,6 +11,7 @@ from aima_engine.release_evidence import verify_release_evidence
 
 ROOT = Path(__file__).resolve().parents[1]
 PRODUCT_CONTRACT = ROOT / "native/product-contract.json"
+PRODUCT_CONTRACT_V151 = ROOT / "native/product-contract-v1.5.1.json"
 PRODUCT_CONTRACT_V150 = ROOT / "native/product-contract-v1.5.0.json"
 PRODUCT_CONTRACT_V141 = ROOT / "native/product-contract-v1.4.1.json"
 PRODUCT_CONTRACT_V140 = ROOT / "native/product-contract-v1.4.0.json"
@@ -80,6 +81,7 @@ class NativeRuntimeContractTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.contract = load_json(PRODUCT_CONTRACT)
+        cls.contract_v151 = load_json(PRODUCT_CONTRACT_V151)
         cls.contract_v150 = load_json(PRODUCT_CONTRACT_V150)
         cls.contract_v141 = load_json(PRODUCT_CONTRACT_V141)
         cls.contract_v140 = load_json(PRODUCT_CONTRACT_V140)
@@ -126,8 +128,8 @@ class NativeRuntimeContractTest(unittest.TestCase):
     def test_product_contract_defines_the_current_release(self) -> None:
         model = self.contract["model"]
         gates = self.contract["promotion_gates"]
-        self.assertEqual(self.contract, self.contract_v150)
-        self.assertEqual(self.contract["release"], "1.5.0")
+        self.assertEqual(self.contract, self.contract_v151)
+        self.assertEqual(self.contract["release"], "1.5.1")
         self.assertEqual(
             self.contract["status"],
             "qualification_bound_portable_native_full_envelope",
@@ -197,6 +199,15 @@ class NativeRuntimeContractTest(unittest.TestCase):
     def test_v141_contract_is_bound_at_package_time(self) -> None:
         contract = self.contract_v141
         self.assertEqual(contract["release"], "1.4.1")
+        self.assertTrue(contract["artifact_integrity"]["qualification_required"])
+        self.assertTrue(contract["artifact_integrity"]["clean_source_required"])
+        self.assertTrue(
+            contract["artifact_integrity"]["embedded_source_commit_must_match"]
+        )
+
+    def test_v151_contract_is_bound_at_package_time(self) -> None:
+        contract = self.contract_v151
+        self.assertEqual(contract["release"], "1.5.1")
         self.assertTrue(contract["artifact_integrity"]["qualification_required"])
         self.assertTrue(contract["artifact_integrity"]["clean_source_required"])
         self.assertTrue(
@@ -675,6 +686,10 @@ class NativeRuntimeContractTest(unittest.TestCase):
         self.assertIn("resident_bucket_pass", qualification)
         self.assertIn("prefix_lru_pass", qualification)
         self.assertIn("prompt_token_ids", qualification)
+        self.assertIn('== "cold-aot-padded"', qualification)
+        self.assertIn('"cold_prompt_decode_tokens"', qualification)
+        self.assertIn('"aot_prefill_bucket_tokens"', qualification)
+        self.assertNotIn('== "cold-decode-fallback"', qualification)
         product_generator = (
             ROOT / "scripts/generate-native-product-result.py"
         ).read_text(encoding="utf-8")

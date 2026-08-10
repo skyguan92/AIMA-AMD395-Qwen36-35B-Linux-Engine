@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![CI](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/actions/workflows/ci.yml/badge.svg)](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/release-v1.5.0-green.svg)](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.5.0)
+[![Release](https://img.shields.io/badge/release-v1.5.1-green.svg)](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.5.1)
 [![Hardware](https://img.shields.io/badge/GPU-gfx1151-orange.svg)](docs/INSTALL.md)
 
 A batch-1 BF16 inference engine specialized for
@@ -21,7 +21,7 @@ cross-request cache disabled, and real SSE arrival timing.
 This recording is a visual comparison; the versioned performance and
 qualification evidence below remain authoritative.
 
-Version 1.5.0 provides a relocatable native package with live SSE streaming and
+Version 1.5.1 provides a relocatable native package with live SSE streaming and
 OpenAI function tools: no Python, PyTorch, vLLM,
 Triton, Transformers, or host ROCm userspace is loaded at runtime. The package
 contains a static launcher, the native engine, pinned ROCm/AOTriton/CK
@@ -32,9 +32,9 @@ weights are not redistributed.
 > authentication, socket timeouts and the hardened systemd template. v1.4.1
 > admits variable-length cold prompts and ordinary multi-turn cache misses.
 > v1.5.0 adds resident q1024/q2048/q4096/q8192 prefill dispatch and a
-> capacity-bounded multi-entry prefix LRU. The unreleased source replaces
-> v1.5.0's serial unmatched-prompt tail with composed resident AOT prefill;
-> published archives retain their documented request-latency boundary.
+> capacity-bounded multi-entry prefix LRU. v1.5.1 replaces its serial
+> unmatched-prompt tail with composed resident AOT prefill and repairs padded
+> recurrent state at the logical prompt boundary.
 
 中文说明见 [README.zh-CN.md](README.zh-CN.md).
 
@@ -105,7 +105,7 @@ Configure memory before loading the model:
 ## Quick start
 
 Download the archive and checksum from the
-[upstream v1.5.0 release](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.5.0),
+[upstream v1.5.1 release](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.5.1),
 then extract it anywhere:
 
 ```bash
@@ -178,7 +178,7 @@ then `systemctl start|status|stop aima-engine` provides the lifecycle.
 
 ## Native CLI
 
-The published v1.5.0 CLI provides:
+The published v1.5.1 CLI provides:
 
 ```text
 aima-engine --build-info
@@ -260,7 +260,7 @@ Other gates:
   AOT buckets, and an A/B/A request sequence proved four-entry LRU reuse.
 
 The auditable source of truth is mirrored after release at
-[`native-portable-product-v1.5.0.json`](benchmarks/results/native-portable-product-v1.5.0.json)
+[`native-portable-product-v1.5.1.json`](benchmarks/results/native-portable-product-v1.5.1.json)
 and is embedded in the archive as `share/aima/qualification.json`. The
 checksum-identical archive also passed `doctor`, exact-completion, q8192
 performance, resident HTTP and prefix-cache checks on a second AMD395; see the

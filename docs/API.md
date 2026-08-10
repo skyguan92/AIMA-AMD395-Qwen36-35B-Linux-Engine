@@ -1,6 +1,6 @@
 # Native CLI and HTTP API
 
-This page documents the v1.5.0 native CLI and HTTP API. Earlier binaries do
+This page documents the v1.5.1 native CLI and HTTP API. Earlier binaries do
 not include every command and hardening control described here.
 
 ## CLI
