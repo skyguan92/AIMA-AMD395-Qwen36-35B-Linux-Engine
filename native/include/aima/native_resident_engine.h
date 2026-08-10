@@ -54,8 +54,8 @@ struct NativeResidentLoadMetrics {
   std::size_t prefix_cache_entries = 0;
   std::size_t cache_capacity = 0;
   std::size_t prompt_tokens = 0;
-  // Sorted AOT prefixes kept resident for variable-length requests. The final
-  // entry is the configured context endpoint.
+  // Sorted fixed-shape AOT buckets kept resident for variable-length requests.
+  // Long configured endpoints compose repeated q8192 and an admitted tail.
   std::vector<std::size_t> resident_prefill_buckets;
   std::string fmha_provider_backend;
   std::string fmha_provider_path;
@@ -117,10 +117,13 @@ struct NativeResidentRequestMetrics {
   std::size_t decode_aot_launches = 0;
   std::size_t decode_native_launches = 0;
   std::size_t state_orientation_resets = 0;
-  // How the input prompt reached resident state.  Variable cold prompts use
-  // the admitted AOT prefix when possible and token-decode only the remainder.
+  // How the input prompt reached resident state. Variable lengths compose the
+  // fixed resident AOT buckets and pad only the final segment when needed.
   std::string prompt_execution = "cold-aot";
   std::size_t aot_prefill_tokens = 0;
+  std::size_t aot_prefill_bucket_tokens = 0;
+  std::size_t aot_prefill_segments = 0;
+  std::size_t padded_prefill_tokens = 0;
   std::size_t cold_prompt_decode_tokens = 0;
   std::size_t cold_prompt_decode_aot_launches = 0;
   std::size_t cold_prompt_decode_native_launches = 0;
@@ -148,8 +151,8 @@ struct NativeResidentRequestMetrics {
 // One model/device owner. All model weights, derived layouts, AOT modules,
 // hipBLASLt plans, KV/state buffers and transient workspaces survive between
 // run() calls. The fast-path specialization is batch-1 q8192; variable prompt
-// lengths are correctness-admitted through AOT-prefix plus resident-token
-// fallback, while broader fast schedules are qualified independently.
+// lengths compose the resident fixed-shape prefill schedules, while broader
+// context schedules are qualified independently.
 class NativeResidentEngine {
  public:
   NativeResidentEngine();

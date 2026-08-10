@@ -32,8 +32,9 @@ weights are not redistributed.
 > authentication, socket timeouts and the hardened systemd template. v1.4.1
 > admits variable-length cold prompts and ordinary multi-turn cache misses.
 > v1.5.0 adds resident q1024/q2048/q4096/q8192 prefill dispatch and a
-> capacity-bounded multi-entry prefix LRU. Earlier archives retain their
-> documented request-latency boundary.
+> capacity-bounded multi-entry prefix LRU. The unreleased source replaces
+> v1.5.0's serial unmatched-prompt tail with composed resident AOT prefill;
+> published archives retain their documented request-latency boundary.
 
 中文说明见 [README.zh-CN.md](README.zh-CN.md).
 
@@ -74,11 +75,13 @@ envelope:
 HTTP prompts may have any positive token length that fits the configured cache
 capacity together with the requested output. The selected context remains the
 fast AOT prefill endpoint. A q8192 process keeps q1024/q2048/q4096/q8192
-buckets resident, selects the largest fitting bucket, and decodes only the
-remainder. Prefix hits are an optimization, never an admission requirement. Input
-plus generated tokens may not exceed 262,144. The native runtime now replaces
-the published v1.1 performance envelope; the Python implementation remains only
-as a compatibility and provenance reference. See
+buckets resident and composes the smallest bucket total covering each real
+prompt; only the final segment is padded when exact composition is impossible.
+No prompt token falls through to serial decode. Prefix hits are an optimization,
+never an admission requirement. Input plus generated tokens may not exceed
+262,144. The native runtime now replaces the published v1.1 performance
+envelope; the Python implementation remains only as a compatibility and
+provenance reference. See
 [native/product-contract.json](native/product-contract.json).
 
 ## Runtime contract

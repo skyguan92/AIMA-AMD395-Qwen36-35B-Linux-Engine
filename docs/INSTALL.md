@@ -275,8 +275,11 @@ performance envelope.
   The engine does not silently fall back to an unqualified length.
 - **Unexpected short-prompt latency:** inspect `aima_amd395.aot_prefill_tokens`.
   q8192 services keep q1024/q2048/q4096/q8192 AOT buckets resident; prompts
-  below q1024 use the correct token path, and tokens after the largest fitting
-  bucket are processed as a native tail.
+  below q1024 are padded into q1024, and non-bucket lengths compose the smallest
+  resident bucket total that covers the prompt. Inspect
+  `aot_prefill_bucket_tokens`, `aot_prefill_segments`, and
+  `padded_prefill_tokens` to distinguish useful tokens from fixed-shape work;
+  prompt ingestion never falls through to serial decode.
 - **Remote bind is rejected:** configure `--api-key-file`; the unsafe override
   exists only for isolated diagnostics. Put TLS and network policy in a reverse
   proxy even when the built-in bearer token is enabled.

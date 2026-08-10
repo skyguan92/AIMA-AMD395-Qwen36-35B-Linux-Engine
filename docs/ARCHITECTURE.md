@@ -78,10 +78,11 @@ own location. `--fmha-provider` is an explicit qualification override.
 Fixed schedules remain the fast path for the published standard contexts and
 three maximum-window endpoints. A default q8192 process also keeps q1024,
 q2048, q4096 and q8192 workspaces, invocations and GEMM plans resident.
-Variable cache misses start from empty recurrent/KV state, select the largest
-resident AOT bucket not exceeding the real prompt length, and execute only the
-unmatched tail through the same qualified token path used for continuation.
-No padded prompt is treated as equivalent to real input.
+Variable cache misses start from empty recurrent/KV state and compose the
+smallest resident AOT bucket total covering the real prompt. Only the final
+segment is padded. Causal hidden rows remain unchanged; the runtime repairs the
+linear-attention convolution window and replays the state-producing recurrent
+kernel at the logical token count before decode begins.
 
 ## Correctness-sensitive arithmetic
 
@@ -96,13 +97,12 @@ but are not substituted for the end-to-end gate.
 
 ## Request execution
 
-A cold request starts from clean resident state. When the prompt reaches a
-resident bucket it runs that prefill schedule, writes full-attention KV directly
-into the resident cache and retains all linear recurrent/conv state; any
-remaining tail runs through the 402-launch token schedule plus native support
-kernels. The native LM head produces the first completion token, then the
-engine captures a variable-length request-prefix checkpoint. Cache misses and
-LRU eviction change latency, not admission.
+A cold request starts from clean resident state. It runs one or more resident
+prefill schedules layer-major, writes full-attention KV directly into the cache
+at absolute positions and retains the logical linear recurrent/conv state. The
+native LM head produces the first completion token, then the engine captures a
+variable-length request-prefix checkpoint. Cache misses and LRU eviction change
+latency, not admission.
 
 Greedy decode stops on the model EOS or the requested length. EOS is included
 in token usage and omitted from visible text.

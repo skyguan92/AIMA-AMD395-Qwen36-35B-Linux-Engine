@@ -39,6 +39,9 @@ class NativePrefillInvocations {
       std::size_t launch_index, std::string_view argument_name) const;
   void rebind_tensor(std::size_t launch_index, std::string_view argument_name,
                      void* device_pointer);
+  void set_int32_argument(std::size_t launch_index,
+                          std::string_view argument_name,
+                          std::int32_t value);
 
  private:
   std::vector<PreparedDecodeInvocation> launches_;

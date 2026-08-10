@@ -86,6 +86,11 @@ struct NativeLinearPrefillOracleResult {
   bool post_attention_gate_passed = false;
 };
 
+struct NativeLinearPrefillStateRepairMetrics {
+  std::size_t aot_launches = 0;
+  std::size_t native_pointwise_launches = 0;
+};
+
 // Executes the complete attention half of one linear-attention layer for the
 // qualified q8192
 // shape: RMSNorm, four input projections, causal convolution, FLA chunk GDN,
@@ -99,5 +104,16 @@ probe_native_q8192_linear_prefill_layer0_oracle(
     NativePrefillInvocations& invocations,
     NativeDecodeExecutor& executor,
     const NativeLinearPrefillOracleOptions& options = {});
+
+// A padded fixed-shape prefill produces correct causal hidden rows for the
+// logical prompt, but its resident convolution and recurrent states otherwise
+// include the padding rows. Restore the convolution window from the logical
+// tail and replay only the state-producing GDN launch with the logical length.
+NativeLinearPrefillStateRepairMetrics
+repair_native_linear_prefill_padded_state(
+    const NativePrefillWorkspace& workspace,
+    NativePrefillInvocations& invocations,
+    NativeDecodeExecutor& executor, std::size_t layer_index,
+    std::size_t active_tokens, const void* initial_conv_state);
 
 }  // namespace aima

@@ -5,6 +5,10 @@ Versioning.
 
 ## Unreleased
 
+- Replaced variable-length cold-prompt and prefix-extension serial decode
+  tails with composed resident AOT prefill. Non-bucket lengths now use the
+  smallest covering q1024/q2048/q4096/q8192 schedule combination; padded
+  linear-attention state is repaired at the logical prompt boundary.
 - Removed the unused legacy framework-runtime requirements manifest. The
   supported portable native deployment has no PyTorch, vLLM, Triton or
   Transformers runtime dependency; retaining vulnerable historical pins as an

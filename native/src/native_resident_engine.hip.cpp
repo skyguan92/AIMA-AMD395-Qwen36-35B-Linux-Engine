@@ -284,45 +284,6 @@ class NativeExactPrefixCache {
   bool valid_ = false;
 };
 
-std::size_t normalize_linear_decode_state(
-    NativeDecodeInvocations& invocations,
-    const NativeDecodeWorkspace& workspace, void* stream_value = nullptr) {
-  if (!invocations.linear_decode_state_buffers_swapped()) return 0;
-  hipStream_t stream = static_cast<hipStream_t>(stream_value);
-  for (std::size_t layer = 0; layer < 40; ++layer) {
-    if (layer % 4 == 3) continue;
-    const std::string index = std::to_string(layer);
-    const NativeDecodeWorkspaceView* canonical_conv = workspace.find(
-        "linear_attention_initial_conv_states." + index);
-    const NativeDecodeWorkspaceView* canonical_recurrent = workspace.find(
-        "linear_attention_initial_ssm_states_vllm." + index);
-    const std::size_t base = layer * 10;
-    void* current_conv = invocations.tensor_pointer(base + 1, "state_in");
-    void* current_recurrent = invocations.tensor_pointer(base + 2, "h0");
-    if (canonical_conv == nullptr || canonical_recurrent == nullptr ||
-        canonical_conv->device_pointer == nullptr ||
-        canonical_recurrent->device_pointer == nullptr ||
-        current_conv == nullptr || current_recurrent == nullptr) {
-      throw std::runtime_error(
-          "native linear state normalization bindings are incomplete");
-    }
-    if (current_conv != canonical_conv->device_pointer) {
-      check_hip(hipMemcpyAsync(canonical_conv->device_pointer, current_conv,
-                               canonical_conv->payload_bytes,
-                               hipMemcpyDeviceToDevice, stream),
-                "hipMemcpyAsync normalize linear conv state");
-    }
-    if (current_recurrent != canonical_recurrent->device_pointer) {
-      check_hip(hipMemcpyAsync(canonical_recurrent->device_pointer,
-                               current_recurrent,
-                               canonical_recurrent->payload_bytes,
-                               hipMemcpyDeviceToDevice, stream),
-                "hipMemcpyAsync normalize linear recurrent state");
-    }
-  }
-  return invocations.reset_linear_decode_state_buffers();
-}
-
 }  // namespace
 
 struct NativeResidentAuxPrefillBucket {
@@ -335,6 +296,14 @@ struct NativeResidentAuxPrefillBucket {
   NativePrefillWorkspace workspace;
   NativePrefillInvocations invocations;
   std::unique_ptr<NativeQ8192PrefillGemmPlans> gemm_plans;
+  std::size_t start_sequence = 0;
+};
+
+struct NativeResidentPrefillOwner {
+  NativePrefillWorkspace* workspace = nullptr;
+  NativePrefillInvocations* invocations = nullptr;
+  NativeQ8192PrefillGemmPlans* gemm_plans = nullptr;
+  NativeQ8192CkProvider* fmha_provider = nullptr;
   std::size_t start_sequence = 0;
 };
 
@@ -370,6 +339,8 @@ struct NativeResidentEngine::Impl {
   std::size_t tail_prefill_tokens = 0;
   void* chunked_hidden = nullptr;
   std::uint64_t chunked_hidden_bytes = 0;
+  void* padded_prefill_initial_conv_state = nullptr;
+  std::uint64_t padded_prefill_initial_conv_state_bytes = 0;
   std::size_t prefill_start_sequence = 0;
   std::size_t tail_prefill_start_sequence = 0;
   std::vector<std::size_t> resident_prefill_buckets;
@@ -380,10 +351,41 @@ struct NativeResidentEngine::Impl {
   std::size_t prefix_cache_misses = 0;
   bool ready = false;
 
+  NativeResidentPrefillOwner prefill_owner(std::size_t tokens) {
+    if (tokens == prefill_tokens) {
+      return {&prefill_workspace, &prefill_invocations,
+              prefill_gemm_plans.get(), &ck_provider,
+              prefill_start_sequence};
+    }
+    if (tokens == tail_prefill_tokens && tail_prefill_tokens != 0) {
+      return {&tail_prefill_workspace, &tail_prefill_invocations,
+              tail_prefill_gemm_plans.get(), &ck_provider,
+              tail_prefill_start_sequence};
+    }
+    for (const auto& bucket : auxiliary_prefill_buckets) {
+      if (bucket->tokens != tokens) continue;
+      NativeQ8192CkProvider* provider = &ck_provider;
+      if (tokens <= 4096) {
+        provider = &auxiliary_short_fmha_provider;
+      } else if (tokens == 8192) {
+        provider = &auxiliary_q8192_fmha_provider;
+      }
+      return {&bucket->workspace, &bucket->invocations,
+              bucket->gemm_plans.get(), provider,
+              bucket->start_sequence};
+    }
+    throw std::runtime_error(
+        "native resident prefill bucket owner is unavailable");
+  }
+
   ~Impl() {
     if (chunked_hidden != nullptr) {
       (void)hipSetDevice(device);
       (void)hipFree(chunked_hidden);
+    }
+    if (padded_prefill_initial_conv_state != nullptr) {
+      (void)hipSetDevice(device);
+      (void)hipFree(padded_prefill_initial_conv_state);
     }
   }
 };
@@ -455,16 +457,28 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
       impl_->resident_prefill_buckets.push_back(tokens);
     }
   }
-  impl_->resident_prefill_buckets.push_back(impl_->prompt_tokens);
-  if (impl_->prefill_tokens != impl_->prompt_tokens) {
-    impl_->chunked_hidden_bytes =
-        impl_->prompt_tokens * kHidden * sizeof(std::uint16_t);
-    check_hip(hipSetDevice(impl_->device),
-              "hipSetDevice chunked prefill hidden store");
-    check_hip(hipMalloc(&impl_->chunked_hidden,
-                        impl_->chunked_hidden_bytes),
-              "hipMalloc chunked prefill hidden store");
+  impl_->resident_prefill_buckets.push_back(impl_->prefill_tokens);
+  if (impl_->tail_prefill_tokens != 0) {
+    impl_->resident_prefill_buckets.push_back(impl_->tail_prefill_tokens);
   }
+  std::sort(impl_->resident_prefill_buckets.begin(),
+            impl_->resident_prefill_buckets.end());
+  impl_->resident_prefill_buckets.erase(
+      std::unique(impl_->resident_prefill_buckets.begin(),
+                  impl_->resident_prefill_buckets.end()),
+      impl_->resident_prefill_buckets.end());
+  impl_->chunked_hidden_bytes =
+      options.cache_capacity * kHidden * sizeof(std::uint16_t);
+  impl_->padded_prefill_initial_conv_state_bytes =
+      8192ULL * 3ULL * sizeof(std::uint16_t);
+  check_hip(hipSetDevice(impl_->device),
+            "hipSetDevice composed prefill state");
+  check_hip(hipMalloc(&impl_->chunked_hidden,
+                      impl_->chunked_hidden_bytes),
+            "hipMalloc composed prefill hidden store");
+  check_hip(hipMalloc(&impl_->padded_prefill_initial_conv_state,
+                      impl_->padded_prefill_initial_conv_state_bytes),
+            "hipMalloc padded prefill convolution snapshot");
   impl_->prefill_gemm_plans =
       std::make_unique<NativeQ8192PrefillGemmPlans>(impl_->prefill_tokens);
   if (impl_->tail_prefill_tokens != 0) {
@@ -483,7 +497,9 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
   NativePrefillWorkspaceMetrics auxiliary_prefill_workspace_metrics;
   NativePrefillInvocationMetrics auxiliary_prefill_invocation_metrics;
   for (const std::size_t tokens : impl_->resident_prefill_buckets) {
-    if (tokens == impl_->prompt_tokens || tokens == impl_->prefill_tokens) {
+    if (tokens == impl_->prefill_tokens ||
+        (impl_->tail_prefill_tokens != 0 &&
+         tokens == impl_->tail_prefill_tokens)) {
       continue;
     }
     auto bucket =
@@ -647,7 +663,8 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
       prefill_workspace_metrics.allocation_bytes +
       tail_prefill_workspace_metrics.allocation_bytes +
       auxiliary_prefill_workspace_metrics.allocation_bytes +
-      impl_->chunked_hidden_bytes;
+      impl_->chunked_hidden_bytes +
+      impl_->padded_prefill_initial_conv_state_bytes;
   impl_->metrics.decode_workspace_bytes =
       decode_workspace_metrics.allocation_bytes;
   impl_->metrics.attention_state_bytes = attention_metrics.allocation_bytes;
@@ -686,9 +703,9 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
 NativeResidentRequestMetrics NativeResidentEngine::run(
     const NativeResidentRequestOptions& request) {
   if (!impl_->ready ||
-      !native_request_fits_capacity(
-          request.input_token_ids.size(), request.max_new_tokens,
-          impl_->attention_state.cache_capacity())) {
+      !native_request_fits_capacity(request.input_token_ids.size(),
+                                    request.max_new_tokens,
+                                    impl_->attention_state.cache_capacity())) {
     throw std::invalid_argument(
         "native resident request context or output length is not admitted");
   }
@@ -717,57 +734,37 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
       }
     }
   }
-  const NativePromptExecutionPlan prompt_plan =
-      plan_native_prompt_execution(request.input_token_ids.size(),
-                                   matched_prefix_tokens,
-                                   impl_->resident_prefill_buckets);
+  const NativePromptExecutionPlan prompt_plan = plan_native_prompt_execution(
+      request.input_token_ids.size(), matched_prefix_tokens,
+      impl_->resident_prefill_buckets);
+  if (matched_prefix_tokens + prompt_plan.aot_bucket_tokens >
+      impl_->attention_state.cache_capacity()) {
+    throw std::invalid_argument(
+        "native resident cache has no padded-prefill headroom");
+  }
   const bool prefix_hit = prompt_plan.prefix_hit;
   const bool exact_prefix_hit = prompt_plan.exact_prefix_hit;
   const bool prefix_extension_hit = prompt_plan.prefix_extension_hit;
-  const std::size_t cold_aot_tokens = prompt_plan.cold_aot_tokens;
-  const std::size_t prompt_decode_start = prompt_plan.prompt_decode_start;
-  const bool prompt_decode_required =
-      prompt_plan.prompt_decode_required(request.input_token_ids.size());
-  const bool chunked_prefill =
-      cold_aot_tokens == impl_->prompt_tokens &&
-      impl_->prefill_tokens != impl_->prompt_tokens;
-  NativeResidentAuxPrefillBucket* auxiliary_bucket = nullptr;
-  for (const auto& candidate : impl_->auxiliary_prefill_buckets) {
-    if (candidate->tokens == cold_aot_tokens) {
-      auxiliary_bucket = candidate.get();
-      break;
-    }
+  if (prompt_plan.prompt_decode_required(request.input_token_ids.size())) {
+    throw std::runtime_error(
+        "native prompt planner left an unexpected serial decode tail");
   }
-  NativePrefillWorkspace* direct_prefill_workspace =
-      auxiliary_bucket == nullptr ? &impl_->prefill_workspace
-                                  : &auxiliary_bucket->workspace;
-  NativePrefillInvocations* direct_prefill_invocations =
-      auxiliary_bucket == nullptr ? &impl_->prefill_invocations
-                                  : &auxiliary_bucket->invocations;
-  NativeQ8192PrefillGemmPlans* direct_prefill_gemm_plans =
-      auxiliary_bucket == nullptr ? impl_->prefill_gemm_plans.get()
-                                  : auxiliary_bucket->gemm_plans.get();
-  const std::size_t direct_prefill_start_sequence =
-      auxiliary_bucket == nullptr ? impl_->prefill_start_sequence
-                                  : auxiliary_bucket->start_sequence;
-  NativeQ8192CkProvider* direct_fmha_provider = &impl_->ck_provider;
-  if (auxiliary_bucket != nullptr && auxiliary_bucket->tokens <= 4096) {
-    direct_fmha_provider = &impl_->auxiliary_short_fmha_provider;
-  } else if (auxiliary_bucket != nullptr &&
-             auxiliary_bucket->tokens == 8192) {
-    direct_fmha_provider = &impl_->auxiliary_q8192_fmha_provider;
-  }
-  if (cold_aot_tokens != 0 &&
-      cold_aot_tokens != impl_->prompt_tokens &&
+  const bool exact_configured_prefill =
+      !prefix_hit && request.input_token_ids.size() == impl_->prompt_tokens &&
+      !prompt_plan.padded_aot();
+  if (!exact_configured_prefill &&
       request.secondary_fmha_layers_override_provided) {
     throw std::invalid_argument(
-        "native provider-mask diagnostics require the configured prefill endpoint");
+        "native provider-mask diagnostics require the configured prefill "
+        "endpoint");
   }
-  if (chunked_prefill && cold_aot_tokens != 0 &&
+  const bool segmented_or_padded_prefill =
+      prompt_plan.aot_segments.size() > 1 || prompt_plan.padded_aot();
+  if (segmented_or_padded_prefill &&
       (!request.layer_tail_oracle_dir.empty() ||
        !request.layer_sequence_oracle_dir.empty())) {
     throw std::invalid_argument(
-        "native chunked prefill does not admit layer-oracle diagnostics");
+        "native composed prefill does not admit layer-oracle diagnostics");
   }
 
   NativeResidentRequestMetrics metrics;
@@ -779,15 +776,19 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
       impl_->decode_invocations.reset_linear_decode_state_buffers();
   metrics.request_state_reset_bytes =
       impl_->attention_state.clear_request_scratch();
-  if (!prefix_hit && cold_aot_tokens == 0) {
+  if (!prefix_hit && prompt_plan.aot_segments.empty()) {
     metrics.request_state_reset_bytes += impl_->decode_workspace.clear();
   }
   metrics.prompt_execution =
       native_prompt_execution_mode_name(prompt_plan.mode);
-  metrics.aot_prefill_tokens = cold_aot_tokens;
+  metrics.aot_prefill_tokens = prompt_plan.cold_aot_tokens;
+  metrics.aot_prefill_bucket_tokens = prompt_plan.aot_bucket_tokens;
+  metrics.aot_prefill_segments = prompt_plan.aot_segments.size();
+  metrics.padded_prefill_tokens =
+      prompt_plan.aot_bucket_tokens - prompt_plan.cold_aot_tokens;
   std::array<bool, 40> request_secondary_fmha_layers =
       impl_->secondary_fmha_layers;
-  if (cold_aot_tokens != impl_->prompt_tokens) {
+  if (!exact_configured_prefill) {
     request_secondary_fmha_layers.fill(false);
   }
   if (request.secondary_fmha_layers_override_provided) {
@@ -796,26 +797,19 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
       if (layer >= 40 || layer % 4 != 3 ||
           request_secondary_fmha_layers[layer]) {
         throw std::invalid_argument(
-            "native request secondary FMHA layers must be unique full-attention layers");
+            "native request secondary FMHA layers must be unique "
+            "full-attention layers");
       }
       request_secondary_fmha_layers[layer] = true;
     }
   }
   const auto request_started = std::chrono::steady_clock::now();
-  const bool timeline_enabled =
-      prefill_timeline_enabled() && !prefix_hit && cold_aot_tokens != 0;
+  const bool timeline_enabled = prefill_timeline_enabled() && !prefix_hit &&
+                                !prompt_plan.aot_segments.empty();
   std::vector<double> attention_wall_ms;
   std::vector<double> moe_wall_ms;
   double embedding_wall_ms = 0.0;
   double first_token_wall_ms = 0.0;
-  void* terminal = nullptr;
-  if (cold_aot_tokens != 0) {
-    terminal = chunked_prefill
-                   ? impl_->chunked_hidden
-                   : native_prefill_terminal_hidden_pointer(
-                         *direct_prefill_workspace,
-                         *direct_prefill_invocations);
-  }
   const void* last_hidden = nullptr;
   if (prefix_hit) {
     metrics.prefix_cache_lookup = exact_prefix_hit ? "exact" : "prefix";
@@ -841,54 +835,41 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
     metrics.prefix_cache_matched_tokens = 0;
     metrics.prefix_cache_suffix_tokens = request.input_token_ids.size();
     if (!request.disable_prefix_cache) ++impl_->prefix_cache_misses;
+  }
 
-    if (cold_aot_tokens != 0) {
+  if (!prompt_plan.aot_segments.empty()) {
+    const bool composed_prefill = prompt_plan.aot_segments.size() > 1;
     const NativeTensorView* embedding =
         impl_->weights.find("model.language_model.embed_tokens.weight");
-    const NativePrefillWorkspaceView* token_ids =
-        direct_prefill_workspace->find("native.prompt_token_ids");
-    if (embedding == nullptr || embedding->device_pointer == nullptr ||
-        token_ids == nullptr || token_ids->device_pointer == nullptr) {
+    if (embedding == nullptr || embedding->device_pointer == nullptr) {
       throw std::runtime_error(
-          "native resident prompt embedding owners are missing");
+          "native resident prompt embedding weight is missing");
     }
     if (timeline_enabled) {
       check_hip(hipDeviceSynchronize(),
                 "hipDeviceSynchronize before prefill timeline");
     }
     const auto embedding_started = std::chrono::steady_clock::now();
-    if (chunked_prefill) {
-      for (std::size_t offset = 0; offset < impl_->prompt_tokens;
-           offset += impl_->prefill_tokens) {
-        const std::size_t chunk_tokens = std::min(
-            impl_->prefill_tokens, impl_->prompt_tokens - offset);
-        const bool tail_chunk = chunk_tokens != impl_->prefill_tokens;
-        const NativePrefillWorkspace& chunk_workspace =
-            tail_chunk ? impl_->tail_prefill_workspace
-                       : impl_->prefill_workspace;
-        const NativePrefillWorkspaceView* chunk_token_ids =
-            chunk_workspace.find("native.prompt_token_ids");
-        if (chunk_token_ids == nullptr ||
-            chunk_token_ids->device_pointer == nullptr) {
-          throw std::runtime_error(
-              "native resident chunk token owner is missing");
-        }
-        launch_prompt_embeddings(
-            embedding->device_pointer,
-            request.input_token_ids.data() + offset,
-            chunk_token_ids->device_pointer,
-            static_cast<unsigned char*>(impl_->chunked_hidden) +
-                offset * kHidden * sizeof(std::uint16_t),
-            chunk_tokens);
-        ++metrics.prefill_native_pointwise_launches;
+    for (const NativePromptAotSegment& segment : prompt_plan.aot_segments) {
+      const NativeResidentPrefillOwner owner =
+          impl_->prefill_owner(segment.bucket_tokens);
+      const NativePrefillWorkspaceView* token_ids =
+          owner.workspace->find("native.prompt_token_ids");
+      if (token_ids == nullptr || token_ids->device_pointer == nullptr) {
+        throw std::runtime_error(
+            "native resident composed-prefill token owner is missing");
       }
-    } else {
+      const std::size_t hidden_offset =
+          segment.input_offset - matched_prefix_tokens;
+      void* embedding_output =
+          composed_prefill
+              ? static_cast<unsigned char*>(impl_->chunked_hidden) +
+                    hidden_offset * kHidden * sizeof(std::uint16_t)
+              : owner.invocations->tensor_pointer(owner.start_sequence, "x");
       launch_prompt_embeddings(
-          embedding->device_pointer, request.input_token_ids.data(),
-          token_ids->device_pointer,
-          direct_prefill_invocations->tensor_pointer(
-              direct_prefill_start_sequence, "x"),
-          cold_aot_tokens);
+          embedding->device_pointer,
+          request.input_token_ids.data() + segment.input_offset,
+          token_ids->device_pointer, embedding_output, segment.input_tokens);
       ++metrics.prefill_native_pointwise_launches;
     }
     if (timeline_enabled) {
@@ -902,224 +883,243 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
     for (std::size_t layer_index = 0; layer_index < 40; ++layer_index) {
       double layer_attention_wall_ms = 0.0;
       double layer_moe_wall_ms = 0.0;
-      const std::size_t chunk_count = chunked_prefill
-                                          ? (impl_->prompt_tokens +
-                                             impl_->prefill_tokens - 1) /
-                                                impl_->prefill_tokens
-                                          : 1;
-      for (std::size_t chunk_index = 0; chunk_index < chunk_count;
-           ++chunk_index) {
-        const std::size_t chunk_offset =
-            chunk_index * impl_->prefill_tokens;
-        const std::size_t chunk_tokens = chunked_prefill
-                                             ? std::min(
-                                                   impl_->prefill_tokens,
-                                                   impl_->prompt_tokens -
-                                                       chunk_offset)
-                                             : cold_aot_tokens;
-        const bool tail_chunk =
-            chunk_tokens != impl_->prefill_tokens;
-        NativePrefillWorkspace& chunk_workspace =
-            !chunked_prefill
-                ? *direct_prefill_workspace
-                : (tail_chunk ? impl_->tail_prefill_workspace
-                              : impl_->prefill_workspace);
-        NativePrefillInvocations& chunk_invocations =
-            !chunked_prefill
-                ? *direct_prefill_invocations
-                : (tail_chunk ? impl_->tail_prefill_invocations
-                              : impl_->prefill_invocations);
-        NativeQ8192PrefillGemmPlans* chunk_gemm_plans =
-            !chunked_prefill
-                ? direct_prefill_gemm_plans
-                : (tail_chunk ? impl_->tail_prefill_gemm_plans.get()
-                              : impl_->prefill_gemm_plans.get());
-        if (chunked_prefill) {
-          check_hip(hipMemcpyAsync(
-                        native_prefill_layer_input_pointer(
-                            chunk_workspace, chunk_invocations,
-                            layer_index),
-                        static_cast<const unsigned char*>(
-                            impl_->chunked_hidden) +
-                            chunk_offset * kHidden * sizeof(std::uint16_t),
-                        chunk_tokens * kHidden *
-                            sizeof(std::uint16_t),
-                        hipMemcpyDeviceToDevice, nullptr),
-                    "hipMemcpyAsync chunked prefill layer input");
+      for (std::size_t segment_index = 0;
+           segment_index < prompt_plan.aot_segments.size(); ++segment_index) {
+        const NativePromptAotSegment& segment =
+            prompt_plan.aot_segments[segment_index];
+        const NativeResidentPrefillOwner owner =
+            impl_->prefill_owner(segment.bucket_tokens);
+        NativePrefillWorkspace& chunk_workspace = *owner.workspace;
+        NativePrefillInvocations& chunk_invocations = *owner.invocations;
+        NativeQ8192PrefillGemmPlans* chunk_gemm_plans = owner.gemm_plans;
+        const std::size_t hidden_offset =
+            segment.input_offset - matched_prefix_tokens;
+        void* layer_input = native_prefill_layer_input_pointer(
+            chunk_workspace, chunk_invocations, layer_index);
+        if (composed_prefill) {
+          check_hip(
+              hipMemcpyAsync(
+                  layer_input,
+                  static_cast<const unsigned char*>(impl_->chunked_hidden) +
+                      hidden_offset * kHidden * sizeof(std::uint16_t),
+                  segment.input_tokens * kHidden * sizeof(std::uint16_t),
+                  hipMemcpyDeviceToDevice, nullptr),
+              "hipMemcpyAsync composed prefill layer input");
+        }
+        if (segment.padded()) {
+          check_hip(
+              hipMemsetAsync(
+                  static_cast<unsigned char*>(layer_input) +
+                      segment.input_tokens * kHidden * sizeof(std::uint16_t),
+                  0,
+                  (segment.bucket_tokens - segment.input_tokens) * kHidden *
+                      sizeof(std::uint16_t),
+                  nullptr),
+              "hipMemsetAsync composed prefill padding");
         }
         const auto attention_started = std::chrono::steady_clock::now();
-      const bool focused_tail_oracle =
-          !request.layer_tail_oracle_dir.empty() &&
-          request.layer_tail_oracle_index < 40 &&
-          request.layer_tail_oracle_index == layer_index;
-      const bool focused_sequence_oracle =
-          !request.layer_sequence_oracle_dir.empty() &&
-          request.layer_tail_oracle_index <= 40 &&
-          (request.layer_tail_oracle_index == 40 ||
-           request.layer_tail_oracle_index == layer_index);
-      if (layer_index % 4 == 3) {
-        NativeFullPrefillOracleOptions attention_options;
-        attention_options.layer_index = layer_index;
-        attention_options.seed_layer_input = false;
-        attention_options.prepare_rotary_table = true;
-        attention_options.collect_oracle_comparisons = false;
-        attention_options.decode_attention_state = &impl_->attention_state;
-        attention_options.gemm_plans = chunk_gemm_plans;
-        attention_options.bindings = &impl_->bindings;
-        attention_options.cache_position_start = chunk_offset;
-        if (focused_tail_oracle) {
-          std::ostringstream prefix;
-          prefix << "layer-";
-          prefix.width(3);
-          prefix.fill('0');
-          prefix << layer_index << '-';
-          attention_options.tail_oracle_dir =
-              request.layer_tail_oracle_dir;
-          attention_options.tail_oracle_label_prefix = prefix.str();
+        const bool focused_tail_oracle =
+            !request.layer_tail_oracle_dir.empty() &&
+            request.layer_tail_oracle_index < 40 &&
+            request.layer_tail_oracle_index == layer_index;
+        const bool focused_sequence_oracle =
+            !request.layer_sequence_oracle_dir.empty() &&
+            request.layer_tail_oracle_index <= 40 &&
+            (request.layer_tail_oracle_index == 40 ||
+             request.layer_tail_oracle_index == layer_index);
+        if (layer_index % 4 == 3) {
+          NativeFullPrefillOracleOptions attention_options;
+          attention_options.layer_index = layer_index;
+          attention_options.seed_layer_input = false;
+          attention_options.prepare_rotary_table = true;
+          attention_options.collect_oracle_comparisons = false;
+          attention_options.decode_attention_state = &impl_->attention_state;
+          attention_options.gemm_plans = chunk_gemm_plans;
+          attention_options.bindings = &impl_->bindings;
+          attention_options.cache_position_start = segment.input_offset;
+          if (focused_tail_oracle) {
+            std::ostringstream prefix;
+            prefix << "layer-";
+            prefix.width(3);
+            prefix.fill('0');
+            prefix << layer_index << '-';
+            attention_options.tail_oracle_dir = request.layer_tail_oracle_dir;
+            attention_options.tail_oracle_label_prefix = prefix.str();
+          }
+          if (focused_sequence_oracle) {
+            std::ostringstream prefix;
+            prefix << "layer-";
+            prefix.width(3);
+            prefix.fill('0');
+            prefix << layer_index << '-';
+            attention_options.sequence_oracle_dir =
+                request.layer_sequence_oracle_dir;
+            attention_options.sequence_oracle_label_prefix = prefix.str();
+          }
+          NativeQ8192CkProvider& attention_provider =
+              request_secondary_fmha_layers[layer_index]
+                  ? impl_->secondary_fmha_provider
+                  : *owner.fmha_provider;
+          const NativeFullPrefillOracleResult attention =
+              probe_native_q8192_full_prefill_oracle(
+                  {}, impl_->weights, chunk_workspace, chunk_invocations,
+                  impl_->executor, attention_provider, attention_options);
+          metrics.prefill_aot_launches += attention.layer.aot_launches;
+          metrics.prefill_dense_gemm_launches +=
+              attention.layer.dense_gemm_launches;
+          metrics.prefill_native_pointwise_launches +=
+              attention.layer.native_pointwise_launches;
+          metrics.prefill_ck_fmha_launches +=
+              attention.layer.native_ck_fmha_launches;
+          metrics.layer_tail_comparisons.insert(
+              metrics.layer_tail_comparisons.end(),
+              attention.boundary_comparisons.begin(),
+              attention.boundary_comparisons.end());
+        } else {
+          const bool has_initial_state = prefix_hit || segment_index != 0;
+          if (segment.padded()) {
+            const NativeDecodeWorkspaceView* conv_state =
+                impl_->decode_workspace.find(
+                    "linear_attention_initial_conv_states." +
+                    std::to_string(layer_index));
+            if (conv_state == nullptr ||
+                conv_state->device_pointer == nullptr ||
+                conv_state->payload_bytes !=
+                    impl_->padded_prefill_initial_conv_state_bytes) {
+              throw std::runtime_error(
+                  "native padded prefill convolution state is missing");
+            }
+            if (has_initial_state) {
+              check_hip(
+                  hipMemcpyAsync(impl_->padded_prefill_initial_conv_state,
+                                 conv_state->device_pointer,
+                                 impl_->padded_prefill_initial_conv_state_bytes,
+                                 hipMemcpyDeviceToDevice, nullptr),
+                  "hipMemcpyAsync padded prefill convolution snapshot");
+            } else {
+              check_hip(
+                  hipMemsetAsync(impl_->padded_prefill_initial_conv_state, 0,
+                                 impl_->padded_prefill_initial_conv_state_bytes,
+                                 nullptr),
+                  "hipMemsetAsync padded prefill convolution snapshot");
+            }
+          }
+          NativeLinearPrefillOracleOptions attention_options;
+          attention_options.layer_index = layer_index;
+          attention_options.seed_layer_input = false;
+          attention_options.run_output_projection_diagnostic = false;
+          attention_options.collect_oracle_comparisons = false;
+          attention_options.decode_state_workspace = &impl_->decode_workspace;
+          attention_options.has_initial_state = has_initial_state;
+          attention_options.gemm_plans = chunk_gemm_plans;
+          attention_options.bindings = &impl_->bindings;
+          if (focused_tail_oracle) {
+            std::ostringstream prefix;
+            prefix << "layer-";
+            prefix.width(3);
+            prefix.fill('0');
+            prefix << layer_index << '-';
+            attention_options.tail_oracle_dir = request.layer_tail_oracle_dir;
+            attention_options.tail_oracle_label_prefix = prefix.str();
+          }
+          if (focused_sequence_oracle) {
+            std::ostringstream prefix;
+            prefix << "layer-";
+            prefix.width(3);
+            prefix.fill('0');
+            prefix << layer_index << '-';
+            attention_options.sequence_oracle_dir =
+                request.layer_sequence_oracle_dir;
+            attention_options.sequence_oracle_label_prefix = prefix.str();
+          }
+          const NativeLinearPrefillOracleResult attention =
+              probe_native_q8192_linear_prefill_layer0_oracle(
+                  {}, impl_->weights, chunk_workspace, chunk_invocations,
+                  impl_->executor, attention_options);
+          metrics.prefill_aot_launches += attention.layer.aot_launches;
+          metrics.prefill_dense_gemm_launches +=
+              attention.layer.dense_gemm_launches;
+          metrics.prefill_native_pointwise_launches +=
+              attention.layer.native_pointwise_launches;
+          if (segment.padded()) {
+            const NativeLinearPrefillStateRepairMetrics repair =
+                repair_native_linear_prefill_padded_state(
+                    chunk_workspace, chunk_invocations, impl_->executor,
+                    layer_index, segment.input_tokens,
+                    impl_->padded_prefill_initial_conv_state);
+            metrics.prefill_aot_launches += repair.aot_launches;
+            metrics.prefill_native_pointwise_launches +=
+                repair.native_pointwise_launches;
+          }
+          metrics.layer_tail_comparisons.insert(
+              metrics.layer_tail_comparisons.end(),
+              attention.boundary_comparisons.begin(),
+              attention.boundary_comparisons.end());
         }
-        if (focused_sequence_oracle) {
-          std::ostringstream prefix;
-          prefix << "layer-";
-          prefix.width(3);
-          prefix.fill('0');
-          prefix << layer_index << '-';
-          attention_options.sequence_oracle_dir =
-              request.layer_sequence_oracle_dir;
-          attention_options.sequence_oracle_label_prefix = prefix.str();
+        if (timeline_enabled) {
+          check_hip(hipDeviceSynchronize(),
+                    "hipDeviceSynchronize after prefill attention");
+          layer_attention_wall_ms += elapsed_ms(attention_started);
         }
-        NativeQ8192CkProvider& attention_provider =
-            request_secondary_fmha_layers[layer_index]
-                ? impl_->secondary_fmha_provider
-                : *direct_fmha_provider;
-        const NativeFullPrefillOracleResult attention =
-            probe_native_q8192_full_prefill_oracle(
-                {}, impl_->weights, chunk_workspace,
-                chunk_invocations, impl_->executor,
-                attention_provider, attention_options);
-        metrics.prefill_aot_launches += attention.layer.aot_launches;
-        metrics.prefill_dense_gemm_launches +=
-            attention.layer.dense_gemm_launches;
-        metrics.prefill_native_pointwise_launches +=
-            attention.layer.native_pointwise_launches;
-        metrics.prefill_ck_fmha_launches +=
-            attention.layer.native_ck_fmha_launches;
-        metrics.layer_tail_comparisons.insert(
-            metrics.layer_tail_comparisons.end(),
-            attention.boundary_comparisons.begin(),
-            attention.boundary_comparisons.end());
-      } else {
-        NativeLinearPrefillOracleOptions attention_options;
-        attention_options.layer_index = layer_index;
-        attention_options.seed_layer_input = false;
-        attention_options.run_output_projection_diagnostic = false;
-        attention_options.collect_oracle_comparisons = false;
-        attention_options.decode_state_workspace = &impl_->decode_workspace;
-        attention_options.has_initial_state = chunk_index != 0;
-        attention_options.gemm_plans = chunk_gemm_plans;
-        attention_options.bindings = &impl_->bindings;
-        if (focused_tail_oracle) {
-          std::ostringstream prefix;
-          prefix << "layer-";
-          prefix.width(3);
-          prefix.fill('0');
-          prefix << layer_index << '-';
-          attention_options.tail_oracle_dir =
-              request.layer_tail_oracle_dir;
-          attention_options.tail_oracle_label_prefix = prefix.str();
-        }
-        if (focused_sequence_oracle) {
-          std::ostringstream prefix;
-          prefix << "layer-";
-          prefix.width(3);
-          prefix.fill('0');
-          prefix << layer_index << '-';
-          attention_options.sequence_oracle_dir =
-              request.layer_sequence_oracle_dir;
-          attention_options.sequence_oracle_label_prefix = prefix.str();
-        }
-        const NativeLinearPrefillOracleResult attention =
-            probe_native_q8192_linear_prefill_layer0_oracle(
-                {}, impl_->weights, chunk_workspace,
-                chunk_invocations, impl_->executor,
-                attention_options);
-        metrics.prefill_aot_launches += attention.layer.aot_launches;
-        metrics.prefill_dense_gemm_launches +=
-            attention.layer.dense_gemm_launches;
-        metrics.prefill_native_pointwise_launches +=
-            attention.layer.native_pointwise_launches;
-        metrics.layer_tail_comparisons.insert(
-            metrics.layer_tail_comparisons.end(),
-            attention.boundary_comparisons.begin(),
-            attention.boundary_comparisons.end());
-      }
-      if (timeline_enabled) {
-        check_hip(hipDeviceSynchronize(),
-                  "hipDeviceSynchronize after prefill attention");
-        layer_attention_wall_ms += elapsed_ms(attention_started);
-      }
 
-      NativeMoePrefillOracleOptions moe_options;
-      moe_options.layer_index = layer_index;
-      moe_options.seed_post_attention = false;
-      moe_options.run_routing_diagnostic = false;
-      moe_options.collect_oracle_comparisons = false;
-      moe_options.gemm_plans = chunk_gemm_plans;
-      if (focused_sequence_oracle) {
-        std::ostringstream label;
-        label << "layer-";
-        label.width(3);
-        label.fill('0');
-        label << layer_index << "-return-layer_body-output";
-        moe_options.chain_output_oracle_dir =
-            request.layer_sequence_oracle_dir;
-        moe_options.chain_output_oracle_label = label.str();
-        moe_options.chain_output_last_token_only = false;
-      } else if (!request.layer_tail_oracle_dir.empty() &&
-          (request.layer_tail_oracle_index == 40 ||
-           request.layer_tail_oracle_index == layer_index)) {
-        std::ostringstream label;
-        label << "layer-";
-        label.width(3);
-        label.fill('0');
-        label << layer_index << "-return-layer_body-output";
-        moe_options.chain_output_oracle_dir =
-            request.layer_tail_oracle_dir;
-        moe_options.chain_output_oracle_label = label.str();
-        moe_options.chain_output_last_token_only = true;
-      }
-      const auto moe_started = std::chrono::steady_clock::now();
-      const NativeMoePrefillOracleResult moe =
-          probe_native_q8192_moe_prefill_layer0_oracle(
-              {}, impl_->weights, chunk_workspace,
-              chunk_invocations, impl_->executor, moe_options);
-      metrics.prefill_aot_launches += moe.layer.aot_launches;
-      metrics.prefill_dense_gemm_launches += moe.layer.dense_gemm_launches;
-      metrics.prefill_native_pointwise_launches +=
-          moe.layer.native_pointwise_launches;
-      metrics.layer_tail_comparisons.insert(
-          metrics.layer_tail_comparisons.end(),
-          moe.comparisons.begin(), moe.comparisons.end());
-      if (moe.chain_output_comparison_provided) {
-        metrics.layer_tail_comparisons.push_back(
-            moe.chain_output_comparison);
-      }
-      if (chunked_prefill) {
-        check_hip(hipMemcpyAsync(
-                      static_cast<unsigned char*>(impl_->chunked_hidden) +
-                          chunk_offset * kHidden * sizeof(std::uint16_t),
-                      native_prefill_layer_output_pointer(
-                          chunk_workspace, chunk_invocations,
-                          layer_index),
-                      chunk_tokens * kHidden *
-                          sizeof(std::uint16_t),
-                      hipMemcpyDeviceToDevice, nullptr),
-                  "hipMemcpyAsync chunked prefill layer output");
-      }
-      if (timeline_enabled) {
-        check_hip(hipDeviceSynchronize(),
-                  "hipDeviceSynchronize after prefill MoE");
-        layer_moe_wall_ms += elapsed_ms(moe_started);
-      }
+        NativeMoePrefillOracleOptions moe_options;
+        moe_options.layer_index = layer_index;
+        moe_options.seed_post_attention = false;
+        moe_options.run_routing_diagnostic = false;
+        moe_options.collect_oracle_comparisons = false;
+        moe_options.gemm_plans = chunk_gemm_plans;
+        if (focused_sequence_oracle) {
+          std::ostringstream label;
+          label << "layer-";
+          label.width(3);
+          label.fill('0');
+          label << layer_index << "-return-layer_body-output";
+          moe_options.chain_output_oracle_dir =
+              request.layer_sequence_oracle_dir;
+          moe_options.chain_output_oracle_label = label.str();
+          moe_options.chain_output_last_token_only = false;
+        } else if (!request.layer_tail_oracle_dir.empty() &&
+                   (request.layer_tail_oracle_index == 40 ||
+                    request.layer_tail_oracle_index == layer_index)) {
+          std::ostringstream label;
+          label << "layer-";
+          label.width(3);
+          label.fill('0');
+          label << layer_index << "-return-layer_body-output";
+          moe_options.chain_output_oracle_dir = request.layer_tail_oracle_dir;
+          moe_options.chain_output_oracle_label = label.str();
+          moe_options.chain_output_last_token_only = true;
+        }
+        const auto moe_started = std::chrono::steady_clock::now();
+        const NativeMoePrefillOracleResult moe =
+            probe_native_q8192_moe_prefill_layer0_oracle(
+                {}, impl_->weights, chunk_workspace, chunk_invocations,
+                impl_->executor, moe_options);
+        metrics.prefill_aot_launches += moe.layer.aot_launches;
+        metrics.prefill_dense_gemm_launches += moe.layer.dense_gemm_launches;
+        metrics.prefill_native_pointwise_launches +=
+            moe.layer.native_pointwise_launches;
+        metrics.layer_tail_comparisons.insert(
+            metrics.layer_tail_comparisons.end(), moe.comparisons.begin(),
+            moe.comparisons.end());
+        if (moe.chain_output_comparison_provided) {
+          metrics.layer_tail_comparisons.push_back(moe.chain_output_comparison);
+        }
+        if (composed_prefill) {
+          check_hip(hipMemcpyAsync(
+                        static_cast<unsigned char*>(impl_->chunked_hidden) +
+                            hidden_offset * kHidden * sizeof(std::uint16_t),
+                        native_prefill_layer_output_pointer(
+                            chunk_workspace, chunk_invocations, layer_index),
+                        segment.input_tokens * kHidden * sizeof(std::uint16_t),
+                        hipMemcpyDeviceToDevice, nullptr),
+                    "hipMemcpyAsync composed prefill layer output");
+        }
+        if (timeline_enabled) {
+          check_hip(hipDeviceSynchronize(),
+                    "hipDeviceSynchronize after prefill MoE");
+          layer_moe_wall_ms += elapsed_ms(moe_started);
+        }
       }
       if (timeline_enabled) {
         attention_wall_ms.push_back(layer_attention_wall_ms);
@@ -1127,73 +1127,34 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
       }
     }
 
-    const auto* terminal_bytes = static_cast<const unsigned char*>(terminal);
-    last_hidden = terminal_bytes +
-                  (cold_aot_tokens - 1) * kHidden *
-                      sizeof(std::uint16_t);
+    if (composed_prefill) {
+      last_hidden =
+          static_cast<const unsigned char*>(impl_->chunked_hidden) +
+          (prompt_plan.cold_aot_tokens - 1) * kHidden * sizeof(std::uint16_t);
+    } else {
+      const NativePromptAotSegment& segment = prompt_plan.aot_segments.front();
+      const NativeResidentPrefillOwner owner =
+          impl_->prefill_owner(segment.bucket_tokens);
+      last_hidden =
+          static_cast<const unsigned char*>(native_prefill_layer_output_pointer(
+              *owner.workspace, *owner.invocations, 39)) +
+          (segment.input_tokens - 1) * kHidden * sizeof(std::uint16_t);
     }
   }
   std::uint32_t first_token_id = 0;
   const void* prompt_terminal_hidden = last_hidden;
-  if (prompt_decode_required) {
-    NativeDecodeRunMetrics prompt_last;
-    const auto prompt_decode_started = std::chrono::steady_clock::now();
-    for (std::size_t token_index = prompt_decode_start;
-         token_index < request.input_token_ids.size(); ++token_index) {
-      (void)prepare_native_decode_step(
-          token_index, request.input_token_ids[token_index], impl_->weights,
-          impl_->decode_invocations);
-      prompt_last = run_native_decode_token(
-          token_index, token_index + 1, impl_->weights, impl_->lm_head,
-          impl_->decode_workspace, impl_->decode_invocations,
-          impl_->executor, impl_->attention_state, impl_->cu_count);
-      const std::size_t native_launches =
-          prompt_last.native_attention_launches +
-          prompt_last.native_projection_launches +
-          prompt_last.native_pointwise_launches +
-          prompt_last.native_lm_head_certificate_launches + 2;
-      if (prefix_extension_hit) {
-        ++metrics.prefix_cache_suffix_decode_tokens;
-        metrics.prefix_cache_suffix_aot_launches +=
-            prompt_last.aot_launches;
-        metrics.prefix_cache_suffix_native_launches += native_launches;
-      } else {
-        ++metrics.cold_prompt_decode_tokens;
-        metrics.cold_prompt_decode_aot_launches +=
-            prompt_last.aot_launches;
-        metrics.cold_prompt_decode_native_launches += native_launches;
-      }
-    }
-    const double prompt_decode_wall_ms =
-        elapsed_ms(prompt_decode_started);
-    if (prefix_extension_hit) {
-      metrics.prefix_cache_suffix_wall_ms = prompt_decode_wall_ms;
-    } else {
-      metrics.cold_prompt_decode_wall_ms = prompt_decode_wall_ms;
-    }
-    metrics.first_token_certified = prompt_last.lm_head_certified;
-    first_token_id = prompt_last.top1_token_id;
-    prompt_terminal_hidden =
-        impl_->decode_invocations.tensor_pointer(400, "x");
-  } else {
-    const auto first_token_started = std::chrono::steady_clock::now();
-    const NativeLmHeadTop1Metrics first = run_native_lm_head_top1(
-        last_hidden, impl_->weights, impl_->lm_head,
-        impl_->decode_workspace, impl_->decode_invocations,
-        impl_->executor, impl_->cu_count);
-    metrics.first_token_certified = first.certified;
-    first_token_id = first.top1_token_id;
-    if (timeline_enabled) {
-      check_hip(hipDeviceSynchronize(),
-                "hipDeviceSynchronize after first-token LM head");
-      first_token_wall_ms = elapsed_ms(first_token_started);
-    }
+  const auto first_token_started = std::chrono::steady_clock::now();
+  const NativeLmHeadTop1Metrics first = run_native_lm_head_top1(
+      last_hidden, impl_->weights, impl_->lm_head, impl_->decode_workspace,
+      impl_->decode_invocations, impl_->executor, impl_->cu_count);
+  metrics.first_token_certified = first.certified;
+  first_token_id = first.top1_token_id;
+  if (timeline_enabled) {
+    check_hip(hipDeviceSynchronize(),
+              "hipDeviceSynchronize after first-token LM head");
+    first_token_wall_ms = elapsed_ms(first_token_started);
   }
   if (!request.disable_prefix_cache && !exact_prefix_hit) {
-    if (prompt_decode_required) {
-      metrics.state_orientation_resets += normalize_linear_decode_state(
-          impl_->decode_invocations, impl_->decode_workspace);
-    }
     std::size_t capture_index = impl_->prefix_cache_entries;
     for (std::size_t index = 0; index < impl_->prefix_cache_entries; ++index) {
       if (!impl_->prefix_caches[index].valid()) {
@@ -1203,7 +1164,8 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
     }
     if (capture_index == impl_->prefix_cache_entries) {
       capture_index = 0;
-      for (std::size_t index = 1; index < impl_->prefix_cache_entries; ++index) {
+      for (std::size_t index = 1; index < impl_->prefix_cache_entries;
+           ++index) {
         if (impl_->prefix_cache_use[index] <
             impl_->prefix_cache_use[capture_index]) {
           capture_index = index;
@@ -1211,24 +1173,31 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
       }
     }
     metrics.prefix_cache_transfer_bytes +=
-        impl_->prefix_caches[capture_index].capture(
-            request.input_token_ids, prompt_terminal_hidden);
+        impl_->prefix_caches[capture_index].capture(request.input_token_ids,
+                                                    prompt_terminal_hidden);
     impl_->prefix_cache_use[capture_index] = ++impl_->prefix_cache_clock;
   }
   metrics.output_token_ids.push_back(first_token_id);
   metrics.prefill_wall_ms = elapsed_ms(request_started);
   metrics.prefill_tokens_per_second =
       request.input_token_ids.size() * 1000.0 / metrics.prefill_wall_ms;
-  if (request.token_callback &&
-      !request.token_callback(first_token_id, 0)) {
+  if (prefix_extension_hit) {
+    metrics.prefix_cache_suffix_aot_launches = metrics.prefill_aot_launches;
+    metrics.prefix_cache_suffix_native_launches =
+        metrics.prefill_dense_gemm_launches +
+        metrics.prefill_native_pointwise_launches +
+        metrics.prefill_ck_fmha_launches;
+    metrics.prefix_cache_suffix_wall_ms = metrics.prefill_wall_ms;
+  }
+  if (request.token_callback && !request.token_callback(first_token_id, 0)) {
     metrics.client_cancelled = true;
   }
   if (timeline_enabled) {
     double linear_attention_ms = 0.0;
     double full_attention_ms = 0.0;
     double total_moe_ms = 0.0;
-    for (std::size_t layer_index = 0;
-         layer_index < attention_wall_ms.size(); ++layer_index) {
+    for (std::size_t layer_index = 0; layer_index < attention_wall_ms.size();
+         ++layer_index) {
       if (layer_index % 4 == 3) {
         full_attention_ms += attention_wall_ms[layer_index];
       } else {
@@ -1238,10 +1207,9 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
     for (const double value : moe_wall_ms) total_moe_ms += value;
     std::cerr << std::setprecision(17)
               << "{\"event\":\"native_prefill_timeline\""
-              << ",\"prompt_tokens\":" << impl_->prompt_tokens
+              << ",\"prompt_tokens\":" << metrics.prompt_tokens
               << ",\"embedding_wall_ms\":" << embedding_wall_ms
-              << ",\"linear_attention_wall_ms\":"
-              << linear_attention_ms
+              << ",\"linear_attention_wall_ms\":" << linear_attention_ms
               << ",\"full_attention_wall_ms\":" << full_attention_ms
               << ",\"moe_wall_ms\":" << total_moe_ms
               << ",\"first_token_wall_ms\":" << first_token_wall_ms
@@ -1268,13 +1236,12 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
          metrics.output_token_ids.size() < request.max_new_tokens) {
     const std::size_t position =
         request.input_token_ids.size() + metrics.output_token_ids.size() - 1;
-    (void)prepare_native_decode_step(
-        position, metrics.output_token_ids.back(), impl_->weights,
-        impl_->decode_invocations);
+    (void)prepare_native_decode_step(position, metrics.output_token_ids.back(),
+                                     impl_->weights, impl_->decode_invocations);
     const NativeDecodeRunMetrics token = run_native_decode_token(
         position, position + 1, impl_->weights, impl_->lm_head,
-        impl_->decode_workspace, impl_->decode_invocations,
-        impl_->executor, impl_->attention_state, impl_->cu_count);
+        impl_->decode_workspace, impl_->decode_invocations, impl_->executor,
+        impl_->attention_state, impl_->cu_count);
     ++metrics.decode_tokens_executed;
     metrics.decode_aot_launches += token.aot_launches;
     metrics.decode_native_launches +=
@@ -1297,13 +1264,14 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
   metrics.completion_tokens = metrics.output_token_ids.size();
   metrics.oracle_tensor_reads = metrics.layer_tail_comparisons.size();
   std::ostringstream token_payload;
-  for (std::size_t index = 0; index < metrics.output_token_ids.size(); ++index) {
+  for (std::size_t index = 0; index < metrics.output_token_ids.size();
+       ++index) {
     if (index != 0) token_payload << ',';
     token_payload << metrics.output_token_ids[index];
   }
   const std::string token_payload_value = token_payload.str();
-  metrics.output_token_ids_sha256 = sha256_bytes(
-      token_payload_value.data(), token_payload_value.size());
+  metrics.output_token_ids_sha256 =
+      sha256_bytes(token_payload_value.data(), token_payload_value.size());
   if (metrics.decode_tokens_executed != 0 && metrics.decode_wall_ms > 0.0) {
     metrics.decode_tokens_per_second =
         metrics.decode_tokens_executed * 1000.0 / metrics.decode_wall_ms;

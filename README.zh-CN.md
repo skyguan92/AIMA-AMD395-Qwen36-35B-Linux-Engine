@@ -17,7 +17,8 @@ Triton、Transformers，也不依赖宿主机安装 ROCm userspace。发布包�
 > **版本边界：**v1.4.0 新增 `doctor`、`--build-info`、bearer 鉴权、socket
 > 超时和加固后的 systemd 模板；v1.4.1 新增变长 cold prompt 与普通多轮
 > cache miss 回退；v1.5.0 新增常驻 q1024/q2048/q4096/q8192 prefill 调度与
-> 容量受限的多条目 prefix LRU。更早版本仍遵循其文档中的请求延迟边界。
+> 容量受限的多条目 prefix LRU。当前未发布源码已用可组合的常驻 AOT prefill
+> 取代 v1.5.0 的串行逐 token 尾部；已发布版本仍遵循其文档中的请求延迟边界。
 
 English: [README.md](README.md)
 
@@ -54,10 +55,11 @@ Python 包元数据和引用文件使用同一个、可由 GitHub 识别的个�
 | 261,120 | 1,024 | 最大窗口端点已验证 |
 
 HTTP prompt 可以是任意正 token 长度，只要 prompt 与请求输出总和不超过配置的
-cache capacity。所选上下文是高性能 AOT prefill 专用长度：较短 cache miss 使用
-正确的常驻逐 token 回退，较长 miss 先执行 AOT 前缀，再只逐 token 执行尾部。
-Prefix hit 只影响时延，不再决定请求能否执行。绝对窗口上限仍为 262,144 token。
-原生版本现已替代 v1.1 的公开性能矩阵；Python 版本仅保留为兼容与来源参考。
+cache capacity。所选上下文是高性能 AOT prefill 专用长度：q8192 服务常驻
+q1024/q2048/q4096/q8192 调度，并选择能够覆盖真实 prompt 的最小 bucket 组合；
+无法精确组合时只填充最后一段。prompt token 不再进入串行 decode。Prefix hit
+只影响时延，不再决定请求能否执行。绝对窗口上限仍为 262,144 token。原生版本
+现已替代 v1.1 的公开性能矩阵；Python 版本仅保留为兼容与来源参考。
 机器可读边界见
 [native/product-contract.json](native/product-contract.json)。
 

@@ -4728,6 +4728,12 @@ int run_resident_session_probe(int argc, char** argv) {
               << json_escape(request.prompt_execution) << "\""
               << ",\"aot_prefill_tokens\":"
               << request.aot_prefill_tokens
+              << ",\"aot_prefill_bucket_tokens\":"
+              << request.aot_prefill_bucket_tokens
+              << ",\"aot_prefill_segments\":"
+              << request.aot_prefill_segments
+              << ",\"padded_prefill_tokens\":"
+              << request.padded_prefill_tokens
               << ",\"cold_prompt_decode_tokens\":"
               << request.cold_prompt_decode_tokens
               << ",\"cold_prompt_decode_wall_ms\":"

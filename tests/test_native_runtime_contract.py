@@ -649,7 +649,7 @@ class NativeRuntimeContractTest(unittest.TestCase):
             self.assertIn(option, server)
         self.assertLess(server.index("::bind("), server.index("engine.load("))
 
-    def test_variable_prompt_fallback_is_part_of_the_native_contract(self) -> None:
+    def test_variable_prompt_prefill_is_part_of_the_native_contract(self) -> None:
         server = (ROOT / "native/src/native_http_server.cpp").read_text(
             encoding="utf-8"
         )
@@ -665,8 +665,11 @@ class NativeRuntimeContractTest(unittest.TestCase):
         self.assertNotIn("requires a cold prompt of", server)
         self.assertNotIn("cold prefill requires the static context", resident)
         self.assertIn("plan_native_prompt_execution", resident)
-        self.assertIn("cold-decode-fallback", planner)
-        self.assertIn("cold-aot-plus-decode", planner)
+        self.assertIn("cold-aot-padded", planner)
+        self.assertIn("cold-aot-composed", planner)
+        self.assertIn("prefix-cache-plus-aot", planner)
+        self.assertIn("unexpected serial decode tail", resident)
+        self.assertIn("repair_native_linear_prefill_padded_state", resident)
         self.assertIn("clear_request_scratch", resident)
         self.assertIn("ordinary_turn_pass", qualification)
         self.assertIn("resident_bucket_pass", qualification)
@@ -699,6 +702,9 @@ class NativeRuntimeContractTest(unittest.TestCase):
         self.assertIn("resident_prefill_buckets", server)
         self.assertIn("prefix_cache_entries", server)
         self.assertIn("aot_prefill_tokens", server)
+        self.assertIn("aot_prefill_bucket_tokens", server)
+        self.assertIn("aot_prefill_segments", server)
+        self.assertIn("padded_prefill_tokens", server)
         self.assertIn("resident_prefill_buckets", header)
         self.assertIn("aot_prefill_tokens", header)
 

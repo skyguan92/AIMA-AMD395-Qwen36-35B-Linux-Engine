@@ -166,10 +166,11 @@ After tokenization:
   snapshots, restoring state before executing only the suffix (four entries at
   q8192, fewer at very long windows to preserve the 96 GiB memory contract);
 - a q8192 process keeps q1024/q2048/q4096/q8192 AOT prefill buckets resident;
-- a cold cache miss selects the largest resident bucket no longer than the
-  prompt and executes only the remaining tail through native decode;
-- a prompt shorter than the smallest q1024 bucket starts from empty recurrent/
-  KV state and executes through the qualified token path;
+- a cold cache miss composes the smallest resident bucket total covering the
+  prompt and pads only the final segment when necessary;
+- a prompt shorter than q1024 uses a padded q1024 prefill, then repairs its
+  convolution and recurrent state at the logical prompt boundary;
+- a prefix extension uses the same composed AOT path for its suffix;
 - independent and ordinary `user -> assistant -> user` conversations therefore
   fall back to cold execution instead of being rejected;
 - the absolute model/runtime window remains 262,144 tokens.
@@ -177,8 +178,9 @@ After tokenization:
 Prefix matching is exact token matching, not a text-prefix heuristic. It only
 changes latency. Cache entries are completed request-prefix snapshots, not
 arbitrary token checkpoints. For peak cold-prefill throughput, select a
-published standard context matching the workload; only the portion after the
-largest fitting resident AOT bucket runs at decode throughput.
+published standard context matching the workload. Non-bucket prompts perform
+fixed-shape padding or more than one resident prefill pass, but never ingest
+prompt tokens at serial decode throughput.
 
 ### Frozen-token eval extension
 
@@ -238,8 +240,9 @@ is not exposed as a valid call. A terminal EOS token counts in
 - `model_loads`;
 - prefill/decode throughput and total latency;
 - TTFT;
-- prompt execution mode and token-decoded cold-tail timing;
-- the selected `aot_prefill_tokens` bucket;
+- prompt execution mode and zero-valued legacy cold-tail timing;
+- logical AOT-prefill tokens, scheduled bucket tokens, segment count and
+  padding tokens;
 - output-token SHA-256;
 - prefix lookup type, matched/suffix token counts, cumulative hits/misses,
   state-transfer bytes, suffix launch counts and suffix wall time.
@@ -328,10 +331,10 @@ assistant and tool messages:
 ]
 ```
 
-Tool definitions and history count toward the cache capacity. No padding is
-required; the engine selects the largest fitting resident AOT bucket after the
-complete tool template is tokenized. Required and named `tool_choice` requests
-fail if generation does not produce an admitted function call.
+Tool definitions and history count toward the cache capacity. Clients do not
+pad requests; after tokenization the engine composes resident AOT buckets and
+internally pads only the final segment. Required and named `tool_choice`
+requests fail if generation does not produce an admitted function call.
 
 ## Errors
 

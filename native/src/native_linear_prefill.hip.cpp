@@ -8,6 +8,7 @@
 #include "aima/native_pointwise.h"
 #include "aima/native_prefill_gemm_plans.h"
 
+#include <hip/hip_bf16.h>
 #include <hip/hip_runtime.h>
 
 #include <array>
@@ -27,6 +28,8 @@ constexpr std::size_t kLinearKey = 2048;
 constexpr std::size_t kLinearValue = 4096;
 constexpr std::size_t kLinearHeads = 32;
 constexpr std::size_t kStateElements = 32 * 128 * 128;
+constexpr std::size_t kLinearConvChannels = 8192;
+constexpr std::size_t kLinearConvStateTokens = 3;
 
 void check_hip(hipError_t status, const char* operation) {
   if (status != hipSuccess) {
@@ -98,6 +101,32 @@ bool gate(const NativeOracleComparison& value) {
   return value.finite_elements == value.elements &&
          value.relative_l2_error <= 0.002 &&
          value.cosine_similarity >= 0.999;
+}
+
+__global__ void repair_padded_conv_state_kernel(
+    const __hip_bfloat16* raw, const __hip_bfloat16* initial_state,
+    __hip_bfloat16* state, std::size_t active_tokens,
+    std::size_t raw_row_stride) {
+  const std::size_t channel = blockIdx.x * blockDim.x + threadIdx.x;
+  if (channel >= kLinearConvChannels) return;
+  const std::size_t retained_initial =
+      active_tokens >= kLinearConvStateTokens
+          ? 0
+          : kLinearConvStateTokens - active_tokens;
+  for (std::size_t slot = 0; slot < kLinearConvStateTokens; ++slot) {
+    if (slot < retained_initial) {
+      state[channel * kLinearConvStateTokens + slot] =
+          initial_state[channel * kLinearConvStateTokens + active_tokens +
+                        slot];
+    } else {
+      const std::size_t token = slot - retained_initial +
+                                (active_tokens >= kLinearConvStateTokens
+                                     ? active_tokens - kLinearConvStateTokens
+                                     : 0);
+      state[channel * kLinearConvStateTokens + slot] =
+          raw[token * raw_row_stride + channel];
+    }
+  }
 }
 
 }  // namespace
@@ -938,6 +967,63 @@ probe_native_q8192_linear_prefill_layer0_oracle(
   result.post_attention_gate_passed =
       gate(result.comparisons[11]) && gate(result.comparisons[12]);
   return result;
+}
+
+NativeLinearPrefillStateRepairMetrics repair_native_linear_prefill_padded_state(
+    const NativePrefillWorkspace& workspace,
+    NativePrefillInvocations& invocations, NativeDecodeExecutor& executor,
+    std::size_t layer_index, std::size_t active_tokens,
+    const void* initial_conv_state) {
+  const std::size_t bucket_tokens = workspace.context_tokens();
+  if (!workspace.built() || !executor.loaded() ||
+      initial_conv_state == nullptr || active_tokens == 0 ||
+      active_tokens >= bucket_tokens) {
+    throw std::invalid_argument(
+        "native padded linear-state repair geometry is invalid");
+  }
+  const auto& launches = invocations.launches();
+  const bool q8192_schedule = bucket_tokens == 8192;
+  const bool split_projection_tail =
+      !q8192_schedule && launches.size() > 1 && launches[1].launch != nullptr &&
+      std::string(launches[1].launch->symbol) == "_causal_conv1d_fwd_kernel";
+  const bool split_projections = q8192_schedule || split_projection_tail;
+  const std::size_t base =
+      find_linear_layer_base(launches, layer_index, q8192_schedule ? 13 : 12);
+  const void* raw =
+      invocations.tensor_pointer(base + 1, split_projections ? "x_ptr" : "raw");
+  void* conv_state = invocations.tensor_pointer(
+      base + 1, split_projections ? "initial_states_ptr" : "state_out");
+  if (raw == nullptr || conv_state == nullptr) {
+    throw std::runtime_error(
+        "native padded linear-state repair owners are missing");
+  }
+  constexpr unsigned kThreads = 256;
+  hipLaunchKernelGGL(repair_padded_conv_state_kernel,
+                     dim3((kLinearConvChannels + kThreads - 1) / kThreads),
+                     dim3(kThreads), 0, nullptr,
+                     static_cast<const __hip_bfloat16*>(raw),
+                     static_cast<const __hip_bfloat16*>(initial_conv_state),
+                     static_cast<__hip_bfloat16*>(conv_state), active_tokens,
+                     split_projections ? kLinearConvChannels : 12352);
+  check_hip(hipGetLastError(), "repair_padded_conv_state_kernel");
+
+  const std::size_t recurrent_sequence = base + 7;
+  invocations.set_int32_argument(recurrent_sequence, "T",
+                                 static_cast<std::int32_t>(active_tokens));
+  try {
+    executor.launch(invocations.launches()[recurrent_sequence]);
+  } catch (...) {
+    invocations.set_int32_argument(recurrent_sequence, "T",
+                                   static_cast<std::int32_t>(bucket_tokens));
+    throw;
+  }
+  invocations.set_int32_argument(recurrent_sequence, "T",
+                                 static_cast<std::int32_t>(bucket_tokens));
+
+  NativeLinearPrefillStateRepairMetrics metrics;
+  metrics.aot_launches = 1;
+  metrics.native_pointwise_launches = 1;
+  return metrics;
 }
 
 }  // namespace aima

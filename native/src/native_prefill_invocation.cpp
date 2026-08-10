@@ -187,4 +187,24 @@ void NativePrefillInvocations::rebind_tensor(
                            std::string(argument_name));
 }
 
+void NativePrefillInvocations::set_int32_argument(
+    std::size_t launch_index, std::string_view argument_name,
+    std::int32_t value) {
+  if (launch_index >= launches_.size()) {
+    throw std::out_of_range("native prefill invocation index is out of range");
+  }
+  PreparedDecodeInvocation& invocation = launches_[launch_index];
+  for (std::size_t index = 0; index < invocation.launch->argument_count;
+       ++index) {
+    const DecodeArgument& argument = invocation.launch->arguments[index];
+    if (argument.kind == DecodeArgumentKind::kInt32 &&
+        argument_name == argument.name) {
+      invocation.slots[index].int32_value = value;
+      return;
+    }
+  }
+  throw std::runtime_error("native prefill int32 argument is missing: " +
+                           std::string(argument_name));
+}
+
 }  // namespace aima
