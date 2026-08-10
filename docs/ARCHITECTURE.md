@@ -174,8 +174,8 @@ hardware contract.
 
 ## Evidence separation
 
-The full-envelope portable decision is recorded in
-[the v1.5.1 native result](../benchmarks/results/native-portable-product-v1.5.1.json).
+The full-envelope portable decision is embedded in each archive and mirrored
+after release as `benchmarks/results/native-portable-product-v1.5.1.json`.
 The v1.1 complete-context matrix remains the frozen per-cell floor. A
 bundle-closure pass, a correctness pass and a performance pass are independent
 gates; none is used as a proxy for another.

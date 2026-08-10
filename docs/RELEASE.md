@@ -175,8 +175,8 @@ passed their independent frozen gates. Variable-prompt qualification also
 passed a 16-token cold request and exact replay, an ordinary 36-token next-user
 turn and an unrelated short request after a long-context request; both cache
 misses restarted from clean state and returned HTTP 200.
-The exact decision is in
-[`native-portable-product-v1.5.1.json`](../benchmarks/results/native-portable-product-v1.5.1.json).
+The exact decision is embedded as `share/aima/qualification.json` and mirrored
+after release as `benchmarks/results/native-portable-product-v1.5.1.json`.
 The result records that the published v1.1 long-context envelope is replaced
 by the native package.
 

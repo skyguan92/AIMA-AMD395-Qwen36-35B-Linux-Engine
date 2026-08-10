@@ -221,33 +221,31 @@ within 3%.
 
 | Input | output512 prefill | output512 decode | output1024 prefill | output1024 decode |
 |---:|---:|---:|---:|---:|
-| 1,024 | 1630 | 34.00 | 1630 | 33.99 |
-| 2,048 | 1685 | 33.86 | 1685 | 33.86 |
-| 4,096 | 1572 | 33.26 | 1572 | 33.25 |
-| 8,192 | 1656 | 32.29 | 1656 | 32.28 |
-| 16,384 | 1438 | 30.79 | 1438 | 30.79 |
-| 32,768 | 1365 | 28.23 | 1365 | 28.23 |
-| 65,536 | 1176 | 24.68 | 1176 | 24.68 |
-| 131,072 | 868.2 | 19.60 | 868.2 | 19.60 |
+| 1,024 | 1630 | 34.00 | 1630 | 34.02 |
+| 2,048 | 1693 | 33.85 | 1693 | 33.85 |
+| 4,096 | 1569 | 33.32 | 1569 | 33.30 |
+| 8,192 | 1660 | 32.30 | 1660 | 32.28 |
+| 16,384 | 1440 | 30.79 | 1440 | 30.78 |
+| 32,768 | 1358 | 28.22 | 1358 | 28.22 |
+| 65,536 | 1170 | 24.65 | 1170 | 24.65 |
+| 131,072 | 869.7 | 19.62 | 869.7 | 19.62 |
 
-Window endpoints reached `556.5` prefill tok/s at 262143/output1,
-`560.5 / 14.05` prefill/decode tok/s at 261632/output512, and
-`535.8 / 14.04` at 261120/output1024. All 19 cells retained at least 97% of
-their frozen baseline; the minimum prefill/decode retentions were `1.013x`
-and `0.9858x`. Against the exact v1.4.1 release matrix, the worst median
-prefill/decode deltas were `-2.259%` and `-0.1280%`, inside the 3% protocol
-band.
+Window endpoints reached `555.2` prefill tok/s at 262143/output1,
+`555.1 / 14.04` prefill/decode tok/s at 261632/output512, and
+`559.3 / 14.02` at 261120/output1024. All 19 cells retained at least 97% of
+their frozen baseline; the minimum prefill/decode retentions were `1.010x`
+and `0.9855x`.
 
 Other gates:
 
 - full-vocabulary KLD passed at nine contexts through q261632; the maximum was
   `0.002174`, with matching top-1 everywhere and the gate fixed at `0.005`;
 - exact 128-token completion identity passed on the frozen q8192 fixture;
-- the frozen answer-only MMLU-256 regression scored `216/256` (`84.375%`),
-  exactly matching the GB10 vLLM reference score; all 256 prompt-token hashes
-  matched and 250 completion-token hashes were byte-identical;
-- q8192 command-to-ready median: `51.16 s` versus the `51.41 s` ceiling;
-- q32768 exact-prefix TTFT: `2626x` speedup with `1.0001` decode retention;
+- the frozen answer-only MMLU-256 regression scored `218/256` (`85.16%`),
+  two above the GB10 vLLM reference; all 256 prompt-token hashes matched and
+  252 completion-token hashes were byte-identical;
+- q8192 command-to-ready median: `44.90 s` versus the `51.41 s` ceiling;
+- q32768 exact-prefix TTFT: `2637x` speedup with `1.0003` decode retention;
 - resident HTTP: one model load across cold and cached requests, with clean
   shutdown;
 - live chunked SSE matched the non-stream token/text hashes, and structured
@@ -260,11 +258,10 @@ Other gates:
   AOT buckets, and an A/B/A request sequence proved four-entry LRU reuse.
 
 The auditable source of truth is mirrored after release at
-[`native-portable-product-v1.5.1.json`](benchmarks/results/native-portable-product-v1.5.1.json)
-and is embedded in the archive as `share/aima/qualification.json`. The
-checksum-identical archive also passed `doctor`, exact-completion, q8192
-performance, resident HTTP and prefix-cache checks on a second AMD395; see the
-[`independent-host summary`](benchmarks/runs/native-portable-baiying-compat-20260805-v150-release/summary.json).
+`benchmarks/results/native-portable-product-v1.5.1.json` and is embedded in
+the archive as `share/aima/qualification.json`. The checksum-identical archive
+is also checked on a second AMD395 before publication; its sanitized summary
+is mirrored after release.
 The frozen baseline and optional striped-startup evidence remain documented in
 [docs/PERFORMANCE.md](docs/PERFORMANCE.md).
 

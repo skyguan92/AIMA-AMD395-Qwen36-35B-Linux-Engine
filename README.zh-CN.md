@@ -190,32 +190,30 @@ aima-engine chat --messages-json conversation.json --tools-json tools.json
 
 | 输入 | output512 prefill | output512 decode | output1024 prefill | output1024 decode |
 |---:|---:|---:|---:|---:|
-| 1,024 | 1630 | 34.00 | 1630 | 33.99 |
-| 2,048 | 1685 | 33.86 | 1685 | 33.86 |
-| 4,096 | 1572 | 33.26 | 1572 | 33.25 |
-| 8,192 | 1656 | 32.29 | 1656 | 32.28 |
-| 16,384 | 1438 | 30.79 | 1438 | 30.79 |
-| 32,768 | 1365 | 28.23 | 1365 | 28.23 |
-| 65,536 | 1176 | 24.68 | 1176 | 24.68 |
-| 131,072 | 868.2 | 19.60 | 868.2 | 19.60 |
+| 1,024 | 1630 | 34.00 | 1630 | 34.02 |
+| 2,048 | 1693 | 33.85 | 1693 | 33.85 |
+| 4,096 | 1569 | 33.32 | 1569 | 33.30 |
+| 8,192 | 1660 | 32.30 | 1660 | 32.28 |
+| 16,384 | 1440 | 30.79 | 1440 | 30.78 |
+| 32,768 | 1358 | 28.22 | 1358 | 28.22 |
+| 65,536 | 1170 | 24.65 | 1170 | 24.65 |
+| 131,072 | 869.7 | 19.62 | 869.7 | 19.62 |
 
-最大窗口端点分别达到：262143/output1 prefill `556.5` token/s，
-261632/output512 为 `560.5 / 14.05` prefill/decode token/s，
-261120/output1024 为 `535.8 / 14.04`。19 个 cell 全部达到冻结基线的
-97%；最低 prefill/decode 保留率分别是 `1.013x` 与 `0.9858x`。相对
-v1.4.1 完整矩阵，最差 prefill/decode 中位数变化为 `-2.259%` 与
-`-0.1280%`，均在 3% 协议范围内。
+最大窗口端点分别达到：262143/output1 prefill `555.2` token/s，
+261632/output512 为 `555.1 / 14.04` prefill/decode token/s，
+261120/output1024 为 `559.3 / 14.02`。19 个 cell 全部达到冻结基线的
+97%；最低 prefill/decode 保留率分别是 `1.010x` 与 `0.9855x`。
 
 其他门槛：
 
 - 9 个上下文直至 q261632 的全词表 KLD 全部小于 `0.005`，最大值
   `0.002174`，top-1 全一致；
 - 冻结 q8192 fixture 的 128-token 输出逐 token 完全一致；
-- 冻结 answer-only MMLU-256 回归得到 `216/256`（`84.375%`），与 GB10
-  vLLM 参考分数完全相同；256 个 prompt-token 哈希全部一致，其中 250 个
+- 冻结 answer-only MMLU-256 回归得到 `218/256`（`85.16%`），比 GB10
+  vLLM 参考高 2 题；256 个 prompt-token 哈希全部一致，其中 252 个
   completion-token 哈希逐 token 完全相同；
-- q8192 command-to-ready 中位数 `51.16 s`，低于 `51.41 s` 上限；
-- q32768 exact-prefix TTFT 加速 `2626x`，decode 保留率 `1.0001`；
+- q8192 command-to-ready 中位数 `44.90 s`，低于 `51.41 s` 上限；
+- q32768 exact-prefix TTFT 加速 `2637x`，decode 保留率 `1.0003`；
 - HTTP 两次请求期间模型装载次数始终为 1，第二次命中 exact cache，并可干净关闭；
 - chunked SSE 与非流式的 token/text 哈希一致，stream/non-stream 工具调用一致，
   客户端断连后服务仍健康。
@@ -225,11 +223,9 @@ v1.4.1 完整矩阵，最差 prefill/decode 中位数变化为 `-2.259%` 与
   A/B/A 请求序列验证了 4 条目 LRU 的复用。
 
 完整精度、每次测量值和组件哈希见
-[`native-portable-product-v1.5.1.json`](benchmarks/results/native-portable-product-v1.5.1.json)，
-同时随包保存为 `share/aima/qualification.json`。同一份校验通过的压缩包也在第二台
-AMD395 上通过了 `doctor`、128-token 精确输出、q8192 性能、HTTP 常驻和 prefix
-cache 测试；完整脱敏结果见
-[`独立机器复现摘要`](benchmarks/runs/native-portable-baiying-compat-20260805-v150-release/summary.json)。
+`benchmarks/results/native-portable-product-v1.5.1.json`，同时随包保存为
+`share/aima/qualification.json`。同一份压缩包会在发布前于第二台 AMD395 上检查，
+脱敏结果在发布后镜像到仓库。
 
 ## 从源码构建
 

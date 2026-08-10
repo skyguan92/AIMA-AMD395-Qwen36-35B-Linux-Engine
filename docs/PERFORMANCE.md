@@ -88,8 +88,8 @@ answers, two above the frozen GB10 vLLM reference score of `216/256`. All 256
 prompt token hashes matched; 252/256 complete output-token hashes and 253/256
 parsed answers were identical. The three answer changes had a net score effect
 of +2. The public scorecard contains item identifiers, answers, hashes and
-aggregate metrics, but no prompt text or prompt token IDs. It is published as
-[`mmlu256.json`](../benchmarks/runs/native-mmlu256-eval-20260810-v151-release/mmlu256.json).
+aggregate metrics, but no prompt text or prompt token IDs. It is mirrored after
+release as `benchmarks/runs/native-mmlu256-eval-20260810-v151-release/mmlu256.json`.
 
 This is a deterministic regression subset, not an official leaderboard score.
 The pinned upstream model card separately reports `85.2` MMLU-Pro, `93.3`
@@ -100,13 +100,14 @@ greedy MMLU-256 gate. See the
 
 Exact components, per-run values, baselines, ratios and decision boundaries
 are embedded as `share/aima/qualification.json` and mirrored after release to
-[`native-portable-product-v1.5.1.json`](../benchmarks/results/native-portable-product-v1.5.1.json).
+`benchmarks/results/native-portable-product-v1.5.1.json`.
 Its hash-bound summaries and raw reports are published under
 [`benchmarks/runs/`](../benchmarks/runs/). `make verify-evidence` checks every
 referenced report; `make package-evidence` emits a deterministic public
 evidence archive and SHA-256 sidecar under `dist/`.
 
-The retained v1.5.0 checksum-identical release archive was also deployed on a second AMD395
+The retained v1.5.0 checksum-identical release archive was also deployed on a
+second AMD395
 with Ubuntu 24.04 and kernel 7.0.0-28. Two fresh q8192 runs reached a `1722`
 tok/s cold-prefill median, `32.36` tok/s output512 decode median and `32.35`
 tok/s output1024 decode median. Those retain `1.040x`, `1.002x` and `1.002x`
