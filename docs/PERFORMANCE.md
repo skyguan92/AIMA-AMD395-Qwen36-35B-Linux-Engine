@@ -13,29 +13,30 @@ decode is measured at the requested output length.
 
 | Input tokens | output512 prefill | output512 decode | output1024 prefill | output1024 decode |
 |---:|---:|---:|---:|---:|
-| 1,024 | 1630 | 34.00 | 1630 | 33.99 |
-| 2,048 | 1685 | 33.86 | 1685 | 33.86 |
-| 4,096 | 1572 | 33.26 | 1572 | 33.25 |
-| 8,192 | 1656 | 32.29 | 1656 | 32.28 |
-| 16,384 | 1438 | 30.79 | 1438 | 30.79 |
-| 32,768 | 1365 | 28.23 | 1365 | 28.23 |
-| 65,536 | 1176 | 24.68 | 1176 | 24.68 |
-| 131,072 | 868.2 | 19.60 | 868.2 | 19.60 |
+| 1,024 | 1630 | 34.00 | 1630 | 34.02 |
+| 2,048 | 1693 | 33.85 | 1693 | 33.85 |
+| 4,096 | 1569 | 33.32 | 1569 | 33.30 |
+| 8,192 | 1660 | 32.30 | 1660 | 32.28 |
+| 16,384 | 1440 | 30.79 | 1440 | 30.78 |
+| 32,768 | 1358 | 28.22 | 1358 | 28.22 |
+| 65,536 | 1170 | 24.65 | 1170 | 24.65 |
+| 131,072 | 869.7 | 19.62 | 869.7 | 19.62 |
 
 Units are tokens per second. Maximum-window results were:
 
 | Input/output | Prefill tok/s | Decode tok/s | Prefill retention | Decode retention |
 |---:|---:|---:|---:|---:|
-| 262143/1 | 556.5 | n/a | 1.4957 | n/a |
-| 261632/512 | 560.5 | 14.05 | 1.3855 | 1.0091 |
-| 261120/1024 | 535.8 | 14.04 | 1.3185 | 1.0049 |
+| 262143/1 | 555.2 | n/a | 1.492 | n/a |
+| 261632/512 | 555.1 | 14.04 | 1.372 | 1.009 |
+| 261120/1024 | 559.3 | 14.02 | 1.376 | 1.004 |
 
 All 19 cells pass the independent `0.97x` prefill/decode floor. The minimum
-prefill retention is `1.013`; the minimum decode retention is `0.9858`.
-Against v1.4.1, the worst median prefill/decode changes are `-2.259%` and
-`-0.1280%`; both stay inside the 3% measurement protocol band.
+prefill retention is `1.010`; the minimum decode retention is `0.9855`.
+The two noisy maximum-window cells used the required three-run median; every
+other cell used two runs agreeing within 3%.
 
-Full-vocabulary correctness is bound to the final engine SHA-256:
+Full-vocabulary correctness is bound to native engine SHA-256
+`a9f18771175757af080c8a1d8d7e3fb3906c9aa41b43a496686103b626f80262`:
 
 | Input | KLD | Top-1 | Gate |
 |---:|---:|:---:|---:|
@@ -53,22 +54,24 @@ The frozen q8192 completion fixture also matched all 128 expected token IDs,
 with output-token SHA-256
 `aa910692fd03ed4a8e89c04497751e3a28eee36c6148237f7e97c74a6dd68201`.
 
-Three fresh q8192 HTTP processes reached readiness in `53.28`, `51.16` and
-`46.67` seconds. The `51.16 s` median is below the frozen `51.41 s` ceiling.
+Three fresh q8192 HTTP processes reached readiness in `46.26`, `44.90` and
+`44.87` seconds. The `44.90 s` median is below the frozen `51.41 s` ceiling.
 
 At q32768/output512, exact-prefix reuse reduced TTFT from `24.08 s` to
-`9.170 ms` (`2626x`) and retained `1.0001` of cold decode throughput. The
+`9.148 ms` (`2637x`) and retained `1.0003` of cold decode throughput. The
 output-token hash was unchanged.
 
 The resident HTTP run used one model load, served a cold q8192 request and an
-exact repeat, reduced TTFT from `4.943 s` to `5.075 ms`, retained the output
+exact repeat, reduced TTFT from `4.934 s` to `4.918 ms`, retained the output
 hash, exposed health/model endpoints and exited through `POST /shutdown`.
 
 The OpenAI feature lifecycle run used live HTTP/1.1 chunked SSE. A 16-token
-cold prompt produced first content at `508.5 ms`, completed at `570.3 ms`,
+cold prompt produced first content at `535.4 ms`, completed at `597.7 ms`,
 and matched both text and generated-token hashes with its exact-cache
-non-stream response. A normal 36-token next-user turn and an unrelated short
-request after long-context work remained isolated with HTTP 200. Exact raw-token
+non-stream response. It used padded resident AOT prefill with zero serial
+prompt-decode tokens. A normal 36-token next-user turn used the same AOT path,
+and an unrelated short request after long-context work remained isolated with
+HTTP 200. Exact raw-token
 requests at q1024/q2048/q4096/q8192 selected the matching resident AOT bucket,
 and an A/B/A sequence restored the first of four LRU entries exactly. Stream
 and non-stream tool requests both produced
@@ -78,15 +81,15 @@ connection left the one-load resident server healthy.
 
 ### Capability regression scorecard
 
-The exact v1.5 native executable ran the frozen answer-only MMLU-256 subset in
+The exact v1.5.1 native executable ran the frozen answer-only MMLU-256 subset in
 one resident HTTP process with batch size 1, greedy decoding and identical
-pretokenized prompts. It scored `216/256` (`84.375%`) with zero invalid
-answers, exactly matching the frozen GB10 vLLM reference score. All 256 prompt
-token hashes matched; 250/256 complete output-token hashes were identical and
-251/256 parsed answers were identical. The five answer changes had zero net
-score effect. The public scorecard contains item identifiers, answers, hashes
-and aggregate metrics, but no prompt text or prompt token IDs. It is published
-as [`mmlu256.json`](../benchmarks/runs/native-mmlu256-eval-20260805-v150-release/mmlu256.json).
+pretokenized prompts. It scored `218/256` (`85.16%`) with zero invalid
+answers, two above the frozen GB10 vLLM reference score of `216/256`. All 256
+prompt token hashes matched; 252/256 complete output-token hashes and 253/256
+parsed answers were identical. The three answer changes had a net score effect
+of +2. The public scorecard contains item identifiers, answers, hashes and
+aggregate metrics, but no prompt text or prompt token IDs. It is published as
+[`mmlu256.json`](../benchmarks/runs/native-mmlu256-eval-20260810-v151-release/mmlu256.json).
 
 This is a deterministic regression subset, not an official leaderboard score.
 The pinned upstream model card separately reports `85.2` MMLU-Pro, `93.3`
@@ -103,7 +106,7 @@ Its hash-bound summaries and raw reports are published under
 referenced report; `make package-evidence` emits a deterministic public
 evidence archive and SHA-256 sidecar under `dist/`.
 
-The checksum-identical release archive was also deployed on a second AMD395
+The retained v1.5.0 checksum-identical release archive was also deployed on a second AMD395
 with Ubuntu 24.04 and kernel 7.0.0-28. Two fresh q8192 runs reached a `1722`
 tok/s cold-prefill median, `32.36` tok/s output512 decode median and `32.35`
 tok/s output1024 decode median. Those retain `1.040x`, `1.002x` and `1.002x`

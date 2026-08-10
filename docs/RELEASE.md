@@ -1,5 +1,25 @@
 # Release provenance and procedure
 
+## v1.5.1 boundary
+
+The personal upstream owns the immutable `v1.5.1` patch tag and downloadable
+assets; the Approaching AI repository mirrors the product commit and remains
+the public issue surface. This release resolves
+[`Approaching-AI#5`](https://github.com/Approaching-AI/AIMA-AMD395-Qwen36-35B-Linux-Engine/issues/5):
+variable-length cold prompts and prefix extensions now compose resident
+q1024/q2048/q4096/q8192 AOT schedules instead of sending unmatched prompt
+tokens through serial decode. Only the final segment is padded when necessary,
+and recurrent linear-attention state is repaired at the logical prompt tail.
+
+The qualified native executable embeds source commit
+`65c198415709dad6d046c247acab3dc9df2a95a0`. Release-only contract,
+qualification and packaging commits do not rebuild it. Qualification reruns
+the 19-cell performance matrix, nine full-vocabulary correctness contexts,
+exact 128-token output, startup/prefix/HTTP surfaces, variable-length AOT
+execution, SSE, tools, frozen MMLU-256/GB10 nonregression, isolated portable
+bundle and second-host AMD395 compatibility. The target, `KLD<0.005`, top-1,
+batch-size-one and maximum-window contracts are unchanged.
+
 ## v1.5.0 boundary
 
 The personal upstream owns the immutable `v1.5.0` feature tag and release
@@ -114,7 +134,7 @@ commit.
 
 ## Portable native release boundary
 
-The current v1.5.0 deployment unit is the deterministic
+The current v1.5.1 deployment unit is the deterministic
 `aima-engine-native-portable-*.tar.zst` archive produced by
 `make package-native`. The archive includes a recursive `manifest.json`, the
 machine product contract and the qualification record.
@@ -123,7 +143,7 @@ Qualified executable components:
 
 | Component | SHA-256 |
 |---|---|
-| native engine | `93be2f7f0c432c82df0ce516706b60ede73086158d6166b8e7ff78479ee1d2f5` |
+| native engine | `a9f18771175757af080c8a1d8d7e3fb3906c9aa41b43a496686103b626f80262` |
 | static launcher | `ac43fb95a8bad8f9fb4e0f4eac9cadc4fb92f22189f4f35ce21a81f1d56fcf98` |
 | AOTriton adapter | `8f42d7b17a778168a1bb66b34eff282e13955541ededfa838355ffbc176b43a5` |
 | CK-Tile adapter | `77f6f6429ed7ef2e34a33372f6096a6d62957ba46f1866e7f40c39da9add25b4` |
@@ -156,7 +176,7 @@ passed a 16-token cold request and exact replay, an ordinary 36-token next-user
 turn and an unrelated short request after a long-context request; both cache
 misses restarted from clean state and returned HTTP 200.
 The exact decision is in
-[`native-portable-product-v1.5.0.json`](../benchmarks/results/native-portable-product-v1.5.0.json).
+[`native-portable-product-v1.5.1.json`](../benchmarks/results/native-portable-product-v1.5.1.json).
 The result records that the published v1.1 long-context envelope is replaced
 by the native package.
 
