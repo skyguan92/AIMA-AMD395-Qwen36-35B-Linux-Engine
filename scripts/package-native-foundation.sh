@@ -56,6 +56,10 @@ release_metadata=(
 )
 release_results=("${ROOT}"/benchmarks/results/*.json)
 release_contracts=("${ROOT}"/native/product-contract-v*.json)
+release_assets=(
+  "${ROOT}/assets/demos/amd395-three-engine-comparison.gif"
+  "${ROOT}/assets/demos/amd395-three-engine-comparison.mp4"
+)
 release_evidence_dirs=(
   "${ROOT}/benchmarks/runs/native-correctness-20260723-v130"
   "${ROOT}/benchmarks/runs/native-full-matrix-20260723-v130"
@@ -67,8 +71,19 @@ release_evidence_dirs=(
   "${ROOT}/benchmarks/runs/native-openai-features-20260804-v141-release"
   "${ROOT}/benchmarks/runs/native-portable-bundle-20260804-v141-release-final"
   "${ROOT}/benchmarks/runs/native-product-surfaces-20260804-v141-release"
+  "${ROOT}/benchmarks/runs/native-correctness-20260805-v150-release"
+  "${ROOT}/benchmarks/runs/native-full-matrix-20260805-v150-release"
+  "${ROOT}/benchmarks/runs/native-mmlu256-eval-20260805-v150-release"
+  "${ROOT}/benchmarks/runs/native-openai-features-20260805-v150-release"
+  "${ROOT}/benchmarks/runs/native-portable-baiying-compat-20260805-v150-release"
+  "${ROOT}/benchmarks/runs/native-portable-bundle-20260805-v150-release"
+  "${ROOT}/benchmarks/runs/native-product-surfaces-20260805-v150-release"
 )
-release_metadata+=("${release_results[@]}" "${release_contracts[@]}")
+release_metadata+=(
+  "${release_results[@]}"
+  "${release_contracts[@]}"
+  "${release_assets[@]}"
+)
 for evidence_dir in "${release_evidence_dirs[@]}"; do
   while IFS= read -r -d '' evidence_file; do
     release_metadata+=("${evidence_file}")
@@ -293,6 +308,10 @@ install -Dm644 "${ROOT}/SECURITY.md" "${STAGING}/SECURITY.md"
 install -Dm644 "${ROOT}/CHANGELOG.md" "${STAGING}/CHANGELOG.md"
 install -Dm644 "${ROOT}/README.md" "${STAGING}/README.md"
 install -Dm644 "${ROOT}/README.zh-CN.md" "${STAGING}/README.zh-CN.md"
+for asset in "${release_assets[@]}"; do
+  install -Dm644 "${asset}" \
+    "${STAGING}/assets/demos/$(basename "${asset}")"
+done
 for document in INSTALL API ARCHITECTURE MEMORY MEMORY.zh-CN PERFORMANCE RELEASE; do
   install -Dm644 "${ROOT}/docs/${document}.md" \
     "${STAGING}/docs/${document}.md"
