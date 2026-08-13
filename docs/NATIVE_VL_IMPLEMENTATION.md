@@ -14,8 +14,8 @@ blocking condition in the governing goal can move a gate to `passed`.
 
 | Gate | Current state | Evidence required to pass | Next blocking action |
 |---|---|---|---|
-| G1 full VL functional parity | ordered chat media parts, bounded local/data/HTTP/HTTPS admission, image/video processors, resident visual weights and the complete 27-block encoder are implemented; merger, injection and serving remain incomplete | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | compose the merger, media embedding injection and resident serving path |
-| G2 VL correctness parity | reference processor/boundary/logits/generation oracles frozen; native patch, position and all 27 vision blocks are qualified on the frozen image/video cases; merger and downstream suites remain pending | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | qualify merger and injection before language boundaries, logits and task quality |
+| G1 full VL functional parity | ordered chat media parts, bounded local/data/HTTP/HTTPS admission, image/video processors, resident visual weights, the complete 27-block encoder and patch merger are implemented; injection and serving remain incomplete | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | compose the end-to-end visual path, media embedding injection and resident serving path |
+| G2 VL correctness parity | reference processor/boundary/logits/generation oracles frozen; native patch, position, all 27 vision blocks and all five merger shapes are qualified; full-pipeline and downstream suites remain pending | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | qualify the full visual path and injection before language boundaries, logits and task quality |
 | G3 text product no regression | frozen baseline identified | paired 19-cell, maximum-window, correctness, MMLU, API, cache, startup and memory requalification | retain `v1.5.1` as an immutable paired binary |
 | G4 native VL performance | not started | paired per-cell stage timings and memory records against the fixed VL-enabled vLLM | generate matrix cells from the capability manifest |
 | G5 native release product | not started | native-only package, security, isolated bundle, second-host, soak and rollback evidence | keep Python tooling qualification-only and outside the product runtime |
@@ -369,8 +369,20 @@ repeat SHA-256 is identical. Full block-stack medians were `14.817 ms` for
 diagnostic kernel timings, not G4 serving evidence. The hash-bound source,
 binary, AOT and six comparisons are in
 `benchmarks/results/native-vision-aot-encoder-v0.1.0.json`. The representative
-27-block encoder is qualified; merger, embedding injection and serving remain
-unqualified, so G1 and G2 remain false.
+27-block encoder is qualified.
+
+The native patch merger now applies the pinned exact 1152-wide LayerNorm,
+uses the reference contiguous four-patch view, and executes the two biased
+linear layers around exact GELU without an explicit patch reorder. It was
+qualified independently on all five frozen oracle shapes. Single image,
+single video, multi-image, multi-video and mixed image/video produced all
+884,736 BF16 elements bit-for-bit, with zero relative L2, cosine one and
+identical repeat hashes. The selected hipBLASLt plans required no library
+workspace; median kernel-chain times ranged from `0.429 ms` to `0.695 ms`.
+The hash-bound evidence is
+`benchmarks/results/native-vision-merger-v0.1.0.json`. Full patch-to-merger
+composition, embedding injection and serving remain unqualified, so G1 and G2
+remain false.
 
 `native_media_test` and `native_chat_protocol_test` both compile with strict
 warnings and pass on `amd395`. This is implementation progress, not G1 or G2

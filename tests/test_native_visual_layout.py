@@ -1048,6 +1048,49 @@ class NativeVisualLayoutTest(unittest.TestCase):
         self.assertIn("native-vision-merger-oracle/v1", probe)
         self.assertIn("native_vision_merger.hip.cpp", build)
 
+    def test_native_vision_merger_evidence_is_hash_bound(self) -> None:
+        evidence = json.loads(
+            (
+                ROOT / "benchmarks/results/native-vision-merger-v0.1.0.json"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertTrue(evidence["complete"])
+        for source in evidence["source"]["files"]:
+            self.assertEqual(
+                hashlib.sha256((ROOT / source["path"]).read_bytes()).hexdigest(),
+                source["sha256"],
+            )
+        self.assertEqual(
+            [case["case_id"] for case in evidence["cases"]],
+            [
+                "image_local_png",
+                "video_local_mp4",
+                "multi_image",
+                "multi_video",
+                "mixed_image_video",
+            ],
+        )
+        for case in evidence["cases"]:
+            self.assertTrue(case["passed"])
+            self.assertEqual(case["exact_elements"], case["elements"])
+            self.assertEqual(case["finite_elements"], case["elements"])
+            self.assertEqual(case["relative_l2_error"], 0.0)
+            self.assertEqual(case["cosine_similarity"], 1.0)
+            self.assertEqual(case["expected_sha256"], case["actual_sha256"])
+            self.assertEqual(
+                case["actual_sha256"], case["repeat_actual_sha256"]
+            )
+        decision = evidence["decision"]
+        self.assertEqual(decision["total_elements"], 884736)
+        self.assertEqual(decision["exact_elements"], 884736)
+        self.assertTrue(decision["all_outputs_bit_exact"])
+        self.assertTrue(decision["all_five_oracle_shapes_qualified"])
+        self.assertTrue(decision["vision_merger_qualified"])
+        self.assertFalse(decision["full_vision_pipeline_qualified"])
+        self.assertFalse(decision["media_embedding_injection_qualified"])
+        self.assertFalse(decision["g1_passed"])
+        self.assertFalse(decision["g2_passed"])
+
 
 if __name__ == "__main__":
     unittest.main()
