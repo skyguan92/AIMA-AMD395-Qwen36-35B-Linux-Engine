@@ -377,18 +377,27 @@ probe_native_q8192_linear_prefill_layer0_oracle(
     return find_native_oracle_tensor_file_if_present(
         sequence_fixture, options.sequence_oracle_label_prefix + label);
   };
-  const auto compare_optional_sequence = [&] (
-      const char* comparison_label, const void* pointer,
-      std::size_t elements_per_token,
-      const char* oracle_label) {
+  const auto compare_optional_sequence_typed = [&] (
+      const char* comparison_label, const char* dtype, const void* pointer,
+      std::size_t elements_per_token, const char* oracle_label) {
     if (sequence_fixture.empty()) return;
     const std::filesystem::path expected =
         optional_sequence_file(oracle_label);
     if (expected.empty()) return;
+    const std::size_t element_bytes =
+        std::string_view(dtype) == "float32" ? sizeof(float)
+                                               : sizeof(std::uint16_t);
     result.boundary_comparisons.push_back(compare_native_oracle_tensor(
         options.sequence_oracle_label_prefix + comparison_label,
-        "bfloat16", pointer,
-        tokens * elements_per_token * sizeof(std::uint16_t), expected));
+        dtype, pointer, tokens * elements_per_token * element_bytes,
+        expected));
+  };
+  const auto compare_optional_sequence = [&] (
+      const char* comparison_label, const void* pointer,
+      std::size_t elements_per_token, const char* oracle_label) {
+    compare_optional_sequence_typed(
+        comparison_label, "bfloat16", pointer, elements_per_token,
+        oracle_label);
   };
   const auto compare_tail = [&](const char* comparison_label,
                                 const void* pointer,
@@ -588,6 +597,11 @@ probe_native_q8192_linear_prefill_layer0_oracle(
           oracle_file("launch-009-z"));
   }
   executor.launch(launches[base + 1]);
+  compare_optional_sequence(
+      "linear_convolution_full_sequence",
+      invocations.tensor_pointer(
+          base + 1, split_projection_tail ? "o_ptr" : "out"),
+      kLinearQkv, "diagnostic-conv");
   if (tokens != 8192) {
     compare_optional_stage_tail(
         "linear_convolution_last_token", "bfloat16",
@@ -604,6 +618,23 @@ probe_native_q8192_linear_prefill_layer0_oracle(
         boundary_file("launch-001-o_ptr")));
   }
   executor.launch(launches[base + 2]);
+  compare_optional_sequence(
+      "fla_q_full_sequence", invocations.tensor_pointer(base + 2, "q_ptr"),
+      kLinearKey, "diagnostic-q");
+  compare_optional_sequence(
+      "fla_k_full_sequence", invocations.tensor_pointer(base + 2, "k_ptr"),
+      kLinearKey, "diagnostic-k");
+  compare_optional_sequence(
+      "fla_v_full_sequence", invocations.tensor_pointer(base + 2, "v_ptr"),
+      kLinearValue, "diagnostic-v");
+  compare_optional_sequence_typed(
+      "fla_g_full_sequence", "float32",
+      invocations.tensor_pointer(base + 2, "g_ptr"), kLinearHeads,
+      "diagnostic-g");
+  compare_optional_sequence_typed(
+      "fla_beta_full_sequence", "float32",
+      invocations.tensor_pointer(base + 2, "beta_ptr"), kLinearHeads,
+      "diagnostic-beta");
   if (tokens != 8192) {
     compare_optional_stage_tail(
         "fla_q_last_token", "bfloat16",

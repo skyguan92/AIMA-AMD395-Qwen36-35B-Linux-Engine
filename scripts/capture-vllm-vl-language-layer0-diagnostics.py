@@ -78,6 +78,12 @@ REQUIRED_COMPONENTS = {
     "gdn_b_projection",
     "gdn_a_projection",
     "gdn_fused_input_projection",
+    "gdn_conv_output",
+    "gdn_q",
+    "gdn_k",
+    "gdn_v",
+    "gdn_g",
+    "gdn_beta",
     "gdn_core",
     "gdn_z",
     "gdn_gated_norm",
@@ -99,6 +105,12 @@ ORACLE_LABELS = {
     "diagnostic-a": "gdn_a_projection",
     "diagnostic-b": "gdn_b_projection",
     "diagnostic-fused-input": "gdn_fused_input_projection",
+    "diagnostic-conv": "gdn_conv_output",
+    "diagnostic-q": "gdn_q",
+    "diagnostic-k": "gdn_k",
+    "diagnostic-v": "gdn_v",
+    "diagnostic-g": "gdn_g",
+    "diagnostic-beta": "gdn_beta",
     "launch-008-o": "gdn_core",
     "return-linear_attention-gated_out": "gdn_gated_norm",
     "return-linear_attention-output": "linear_attention_output",
@@ -179,6 +191,12 @@ class InstallLanguageLayer0DiagnosticHooks:
         if isinstance(previous, dict):
             for handle in previous.get("handles", []):
                 handle.remove()
+            previous["gdn_module"].causal_conv1d_fn = previous[
+                "original_causal_conv1d_fn"
+            ]
+            previous["gdn_module"].fused_post_conv_prep = previous[
+                "original_fused_post_conv_prep"
+            ]
 
         language = root.language_model
         if len(language.model.layers) < 2:
@@ -189,11 +207,17 @@ class InstallLanguageLayer0DiagnosticHooks:
             raise RuntimeError("language layer 0 is not linear attention")
         linear = layer0.linear_attn
         mlp = layer0.mlp
+        gdn_module = importlib.import_module(
+            "vllm.model_executor.layers.mamba.gdn_linear_attn"
+        )
         state: dict[str, Any] = {
             "output_root": self.output_root,
             "case_id": self.case_id,
             "captures": {},
             "handles": [],
+            "gdn_module": gdn_module,
+            "original_causal_conv1d_fn": gdn_module.causal_conv1d_fn,
+            "original_fused_post_conv_prep": gdn_module.fused_post_conv_prep,
         }
 
         def capture(name: str, value: Any) -> None:
@@ -272,6 +296,26 @@ class InstallLanguageLayer0DiagnosticHooks:
             if isinstance(output, (tuple, list)) and len(output) == 2:
                 capture("layer_output", output[1])
 
+        def instrumented_causal_conv1d_fn(*args: Any, **kwargs: Any) -> Any:
+            output = state["original_causal_conv1d_fn"](*args, **kwargs)
+            if isinstance(output, torch.Tensor) and output.ndim == 2:
+                capture("gdn_conv_output", output.transpose(0, 1))
+            return output
+
+        def instrumented_fused_post_conv_prep(
+            *args: Any, **kwargs: Any
+        ) -> Any:
+            output = state["original_fused_post_conv_prep"](*args, **kwargs)
+            if not isinstance(output, (tuple, list)) or len(output) != 5:
+                raise RuntimeError("fused post-conv output geometry differs")
+            for name, tensor in zip(
+                ("gdn_q", "gdn_k", "gdn_v", "gdn_g", "gdn_beta"),
+                output,
+                strict=True,
+            ):
+                capture(name, tensor)
+            return output
+
         hooks = state["handles"]
         hooks.append(layer0.input_layernorm.register_forward_hook(output_hook("input_norm")))
         hooks.append(
@@ -300,6 +344,8 @@ class InstallLanguageLayer0DiagnosticHooks:
         hooks.append(mlp.register_forward_hook(output_hook("combined_moe_output")))
         hooks.append(layer0.register_forward_hook(layer0_hook))
         hooks.append(layer1.input_layernorm.register_forward_hook(layer1_norm_hook))
+        gdn_module.causal_conv1d_fn = instrumented_causal_conv1d_fn
+        gdn_module.fused_post_conv_prep = instrumented_fused_post_conv_prep
         root._aima_vl_language_layer0_diagnostic_state = state
         return {
             "layer0": _module_identity(layer0),
@@ -327,6 +373,12 @@ class FinalizeLanguageLayer0DiagnosticHooks:
             raise RuntimeError("language layer-0 diagnostic hooks were not installed")
         for handle in state.get("handles", []):
             handle.remove()
+        state["gdn_module"].causal_conv1d_fn = state[
+            "original_causal_conv1d_fn"
+        ]
+        state["gdn_module"].fused_post_conv_prep = state[
+            "original_fused_post_conv_prep"
+        ]
         captures = state["captures"]
         if {
             "gdn_qkvz_projection",
@@ -393,6 +445,12 @@ class RemoveLanguageLayer0DiagnosticHooks:
             return False
         for handle in state.get("handles", []):
             handle.remove()
+        state["gdn_module"].causal_conv1d_fn = state[
+            "original_causal_conv1d_fn"
+        ]
+        state["gdn_module"].fused_post_conv_prep = state[
+            "original_fused_post_conv_prep"
+        ]
         delattr(root, "_aima_vl_language_layer0_diagnostic_state")
         return True
 
