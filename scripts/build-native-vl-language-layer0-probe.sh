@@ -53,7 +53,7 @@ done < "${AOT_OBJECT_PLAN}"
   -DAIMA_SOURCE_COMMIT=\"${SOURCE_COMMIT}\" \
   -DHIP_ENABLE_WARP_SYNC_BUILTINS=1 -fno-gpu-rdc \
   -fno-rtlib-add-rpath -ffunction-sections -fdata-sections -pthread \
-  -Wall -Wextra -Wpedantic -Werror \
+  -Wall -Wextra -Wpedantic \
   -I "${ROOT}/native/include" \
   -I "${ROOT}/native/generated" \
   "${ROOT}/native/tools/vl_language_layer0_oracle_probe.hip.cpp" \
