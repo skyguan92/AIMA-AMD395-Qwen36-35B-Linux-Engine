@@ -1025,6 +1025,29 @@ class NativeVisualLayoutTest(unittest.TestCase):
         self.assertFalse(decision["g1_passed"])
         self.assertFalse(decision["g2_passed"])
 
+    def test_native_vision_merger_preserves_contiguous_merge_order(self) -> None:
+        header = (
+            ROOT / "native/include/aima/native_vision_merger.h"
+        ).read_text(encoding="utf-8")
+        source = (
+            ROOT / "native/src/native_vision_merger.hip.cpp"
+        ).read_text(encoding="utf-8")
+        probe = (
+            ROOT / "native/tools/vision_merger_oracle_probe.hip.cpp"
+        ).read_text(encoding="utf-8")
+        build = (
+            ROOT / "scripts/build-native-vision-merger-probe.sh"
+        ).read_text(encoding="utf-8")
+        self.assertIn("class NativeVisionMergerPlan", header)
+        self.assertIn("kMergerHidden = kVisionHidden * kSpatialMergeArea", source)
+        self.assertIn("NativeVisionLayerNormReciprocal::kFastAmdReciprocal", source)
+        self.assertIn("launch_norm(input_device, arena_a", source)
+        self.assertIn("launch_fc1(arena_a, arena_b", source)
+        self.assertIn("launch_gelu(arena_b, arena_a", source)
+        self.assertIn("launch_fc2(arena_a, output_device", source)
+        self.assertIn("native-vision-merger-oracle/v1", probe)
+        self.assertIn("native_vision_merger.hip.cpp", build)
+
 
 if __name__ == "__main__":
     unittest.main()
