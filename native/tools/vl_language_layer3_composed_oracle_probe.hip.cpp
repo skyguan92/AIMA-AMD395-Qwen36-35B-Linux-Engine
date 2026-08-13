@@ -174,8 +174,15 @@ json comparison_json(const aima::NativeOracleComparison& value) {
 }
 
 struct Execution {
+  struct RouterExpertSetComparison {
+    std::string label;
+    std::size_t rows = 0;
+    std::size_t exact_rows = 0;
+  };
+
   std::vector<unsigned char> output;
   std::vector<aima::NativeOracleComparison> comparisons;
+  std::vector<RouterExpertSetComparison> router_expert_sets;
   std::size_t aot_launches = 0;
   std::size_t dense_gemm_launches = 0;
   std::size_t native_pointwise_launches = 0;
@@ -281,6 +288,13 @@ Execution execute_layers_0_through_3(
     result.comparisons.insert(result.comparisons.end(),
                               moe.comparisons.begin(),
                               moe.comparisons.end());
+    if (moe.router_expert_set_rows != 0) {
+      result.router_expert_sets.push_back(
+          {"layer-00" + std::to_string(layer_index) +
+               "-return-layer_body-router_indices",
+           moe.router_expert_set_rows,
+           moe.router_expert_set_rows_exact});
+    }
     if (moe.chain_output_comparison_provided) {
       aima::NativeOracleComparison output = moe.chain_output_comparison;
       output.label = "layer-00" + std::to_string(layer_index) +
@@ -457,16 +471,34 @@ json qualify_case(
   }
   std::set<std::string> actual_labels;
   json comparisons = json::array();
+  const auto find_router_set = [&warmup](const std::string& label) {
+    for (const auto& comparison : warmup.router_expert_sets) {
+      if (comparison.label == label) return &comparison;
+    }
+    return static_cast<const Execution::RouterExpertSetComparison*>(nullptr);
+  };
   bool boundaries_passed = true;
   std::string first_failed_boundary;
   for (const aima::NativeOracleComparison& comparison : warmup.comparisons) {
     actual_labels.insert(comparison.label);
-    const bool passed = comparison_passed(comparison);
+    const Execution::RouterExpertSetComparison* router_set =
+        find_router_set(comparison.label);
+    const bool passed =
+        router_set == nullptr
+            ? comparison_passed(comparison)
+            : router_set->exact_rows == router_set->rows;
     boundaries_passed = boundaries_passed && passed;
     if (!passed && first_failed_boundary.empty()) {
       first_failed_boundary = comparison.label;
     }
-    comparisons.push_back(comparison_json(comparison));
+    json record = comparison_json(comparison);
+    record["passed"] = passed;
+    if (router_set != nullptr) {
+      record["comparison_semantics"] = "unordered_expert_set_per_token";
+      record["expert_set_rows"] = router_set->rows;
+      record["exact_expert_set_rows"] = router_set->exact_rows;
+    }
+    comparisons.push_back(std::move(record));
   }
   if (actual_labels != expected_labels) {
     throw std::runtime_error(
@@ -505,12 +537,25 @@ json qualify_case(
   for (const aima::NativeOracleComparison& comparison :
        layer1_exact_input.comparisons) {
     layer1_diagnostic_labels.insert(comparison.label);
-    const bool passed = comparison_passed(comparison);
+    const bool router_indices =
+        comparison.label == "layer-001-return-layer_body-router_indices";
+    const bool passed =
+        router_indices
+            ? layer1_exact_input.router_expert_sets_exact
+            : comparison_passed(comparison);
     layer1_diagnostic_passed = layer1_diagnostic_passed && passed;
     if (!passed && layer1_diagnostic_first_failed.empty()) {
       layer1_diagnostic_first_failed = comparison.label;
     }
-    layer1_diagnostic_comparisons.push_back(comparison_json(comparison));
+    json record = comparison_json(comparison);
+    record["passed"] = passed;
+    if (router_indices) {
+      record["comparison_semantics"] = "unordered_expert_set_per_token";
+      record["expert_set_rows"] = layer1_exact_input.router_expert_set_rows;
+      record["exact_expert_set_rows"] =
+          layer1_exact_input.router_expert_set_rows_exact;
+    }
+    layer1_diagnostic_comparisons.push_back(std::move(record));
   }
   if (!layer1_exact_input.chain_output_comparison_provided) {
     throw std::runtime_error(
