@@ -298,11 +298,24 @@ NativeFullPrefillOracleResult probe_native_q8192_full_prefill_oracle(
         "native full prefill oracle requires complete resident owners");
   }
   const std::size_t tokens = workspace.context_tokens();
+  const std::size_t comparison_tokens =
+      options.comparison_tokens == 0 ? tokens : options.comparison_tokens;
   if (tokens == 0 || tokens > 262144 ||
+      comparison_tokens == 0 || comparison_tokens > tokens ||
       provider.metrics().context_tokens < tokens ||
       (tokens != 8192 && options.collect_oracle_comparisons)) {
     throw std::invalid_argument(
         "native full prefill context or oracle mode is unsupported");
+  }
+  const bool use_mrope = options.mrope_positions_i64 != nullptr;
+  const std::size_t mrope_position_row_stride =
+      options.mrope_position_row_stride == 0
+          ? tokens
+          : options.mrope_position_row_stride;
+  if ((use_mrope && mrope_position_row_stride < tokens) ||
+      (!use_mrope && options.mrope_position_row_stride != 0)) {
+    throw std::invalid_argument(
+        "native full prefill M-RoPE position geometry is invalid");
   }
   const auto& launches = invocations.launches();
   const std::size_t base = find_full_layer_base(
@@ -512,7 +525,8 @@ NativeFullPrefillOracleResult probe_native_q8192_full_prefill_oracle(
     if (expected.empty()) return;
     const auto* bytes = static_cast<const unsigned char*>(pointer);
     const std::size_t offset =
-        ((tokens - 1) * row_stride_elements + intra_row_offset_elements) *
+        ((comparison_tokens - 1) * row_stride_elements +
+         intra_row_offset_elements) *
         sizeof(std::uint16_t);
     result.boundary_comparisons.push_back(compare_native_oracle_tensor(
         options.tail_oracle_label_prefix + comparison_label, "bfloat16",
@@ -591,7 +605,7 @@ NativeFullPrefillOracleResult probe_native_q8192_full_prefill_oracle(
       "return-full_attention-inp");
   compare_optional_sequence(
       "attention_input_full_sequence", normalized_input,
-      tokens * kHidden, "return-full_attention-inp");
+      comparison_tokens * kHidden, "return-full_attention-inp");
   diagnostic_stage("before_q_projection");
   if (split_projections) {
     q_plan->launch(normalized_input, q_weight->device_pointer,
@@ -623,18 +637,35 @@ NativeFullPrefillOracleResult probe_native_q8192_full_prefill_oracle(
   diagnostic_stage("after_v_projection");
   result.layer.dense_gemm_launches += split_projections ? 3 : 1;
   if (options.prepare_rotary_table) {
-    launch_prefill_rotary_table(
-        cosine, sine, tokens, options.cache_position_start);
+    if (use_mrope) {
+      launch_prefill_mrope_rotary_table(
+          cosine, sine, options.mrope_positions_i64, tokens,
+          mrope_position_row_stride);
+    } else {
+      launch_prefill_rotary_table(
+          cosine, sine, tokens, options.cache_position_start);
+    }
     ++result.layer.native_pointwise_launches;
   }
-  launch_full_attention_head_norm_rope_prefill(
-      q_gate, raw_k, split_projections ? nullptr : raw_v,
-      q_norm_weight.device_pointer, k_norm_weight.device_pointer,
-      cosine, sine, q,
-      normalized_k, split_projections ? nullptr : normalized_v, tokens,
-      split_projections ? 8192 : 9216,
-      split_projections ? 512 : 9216,
-      split_projections ? 0 : 9216);
+  if (use_mrope) {
+    launch_full_attention_head_norm_mrope_prefill(
+        q_gate, raw_k, split_projections ? nullptr : raw_v,
+        q_norm_weight.device_pointer, k_norm_weight.device_pointer,
+        cosine, sine, q,
+        normalized_k, split_projections ? nullptr : normalized_v, tokens,
+        split_projections ? 8192 : 9216,
+        split_projections ? 512 : 9216,
+        split_projections ? 0 : 9216);
+  } else {
+    launch_full_attention_head_norm_rope_prefill(
+        q_gate, raw_k, split_projections ? nullptr : raw_v,
+        q_norm_weight.device_pointer, k_norm_weight.device_pointer,
+        cosine, sine, q,
+        normalized_k, split_projections ? nullptr : normalized_v, tokens,
+        split_projections ? 8192 : 9216,
+        split_projections ? 512 : 9216,
+        split_projections ? 0 : 9216);
+  }
   ++result.layer.native_pointwise_launches;
   if (options.collect_oracle_comparisons ||
       options.synchronize_substages) {
@@ -657,13 +688,13 @@ NativeFullPrefillOracleResult probe_native_q8192_full_prefill_oracle(
       kKvDimension, kKvDimension, 0, "return-full_attention-v");
   compare_optional_sequence(
       "normalized_rotary_q_full_sequence", q,
-      tokens * kQueryDimension, "return-full_attention-q");
+      comparison_tokens * kQueryDimension, "return-full_attention-q");
   compare_optional_sequence(
       "normalized_rotary_k_full_sequence", normalized_k,
-      tokens * kKvDimension, "return-full_attention-k");
+      comparison_tokens * kKvDimension, "return-full_attention-k");
   compare_optional_sequence(
       "raw_v_full_sequence", normalized_v,
-      tokens * kKvDimension, "return-full_attention-v");
+      comparison_tokens * kKvDimension, "return-full_attention-v");
 
   if (options.collect_oracle_comparisons) {
     result.comparisons = {
@@ -751,7 +782,8 @@ NativeFullPrefillOracleResult probe_native_q8192_full_prefill_oracle(
     result.boundary_comparisons.push_back(compare_native_oracle_tensor(
         options.sequence_oracle_label_prefix +
             "attention_pre_gate_full_sequence",
-        "bfloat16", pre_gate_attention, q_bytes,
+        "bfloat16", pre_gate_attention,
+        comparison_tokens * kQueryDimension * sizeof(std::uint16_t),
         pre_gate_sequence_expected));
   }
   if (diagnostic_attention_bf16 != nullptr) {
@@ -772,7 +804,8 @@ NativeFullPrefillOracleResult probe_native_q8192_full_prefill_oracle(
       "return-full_attention-attn_out");
   compare_optional_sequence(
       "gated_attention_full_sequence", gated,
-      tokens * kQueryDimension, "return-full_attention-attn_out");
+      comparison_tokens * kQueryDimension,
+      "return-full_attention-attn_out");
 
   output_plan.launch(gated, output_weight.device_pointer,
                      projected_attention);
@@ -786,7 +819,7 @@ NativeFullPrefillOracleResult probe_native_q8192_full_prefill_oracle(
       kHidden, kHidden, 0, "return-full_attention-output");
   compare_optional_sequence(
       "projected_attention_full_sequence", projected_attention,
-      tokens * kHidden, "return-full_attention-output");
+      comparison_tokens * kHidden, "return-full_attention-output");
   diagnostic_stage("after_output_projection");
   executor.launch(launches[base + 1]);
   ++result.layer.aot_launches;
@@ -803,10 +836,10 @@ NativeFullPrefillOracleResult probe_native_q8192_full_prefill_oracle(
       kHidden, kHidden, 0, "launch-001-norm_out");
   compare_optional_sequence(
       "post_attention_residual_full_sequence", after_attention,
-      tokens * kHidden, "launch-001-residual_out");
+      comparison_tokens * kHidden, "launch-001-residual_out");
   compare_optional_sequence(
       "post_attention_norm_full_sequence", post_attention_norm,
-      tokens * kHidden, "launch-001-norm_out");
+      comparison_tokens * kHidden, "launch-001-norm_out");
   result.layer.wall_ms =
       std::chrono::duration<double, std::milli>(
           std::chrono::steady_clock::now() - started)

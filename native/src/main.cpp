@@ -4664,6 +4664,8 @@ int run_resident_session_probe(int argc, char** argv) {
             << ",\n"
             << "    \"prefill_workspace_bytes\": "
             << load.prefill_workspace_bytes << ",\n"
+            << "    \"mrope_position_state_bytes\": "
+            << load.mrope_position_state_bytes << ",\n"
             << "    \"decode_workspace_bytes\": "
             << load.decode_workspace_bytes << ",\n"
             << "    \"attention_state_bytes\": "
@@ -4750,6 +4752,16 @@ int run_resident_session_probe(int argc, char** argv) {
               << request.aot_prefill_segments
               << ",\"padded_prefill_tokens\":"
               << request.padded_prefill_tokens
+              << ",\"mrope_enabled\":"
+              << (request.mrope_enabled ? "true" : "false")
+              << ",\"mrope_position_delta\":"
+              << request.mrope_position_delta
+              << ",\"mrope_position_upload_bytes\":"
+              << request.mrope_position_upload_bytes
+              << ",\"mrope_full_attention_launches\":"
+              << request.mrope_full_attention_launches
+              << ",\"mrope_decode_steps\":"
+              << request.mrope_decode_steps
               << ",\"cold_prompt_decode_tokens\":"
               << request.cold_prompt_decode_tokens
               << ",\"cold_prompt_decode_wall_ms\":"

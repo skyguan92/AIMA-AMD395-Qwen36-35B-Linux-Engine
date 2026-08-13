@@ -4,6 +4,7 @@
 // Copyright 2026 Approaching AI Authors
 
 #include "aima/native_layer_oracle.h"
+#include "aima/native_mrope.h"
 #include "aima/native_weight_store.h"
 
 #include <cstddef>
@@ -11,6 +12,7 @@
 #include <filesystem>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -56,6 +58,7 @@ struct NativeResidentLoadMetrics {
   std::size_t aot_loaded_modules = 0;
   std::size_t prefill_gemm_plans = 0;
   std::uint64_t prefill_workspace_bytes = 0;
+  std::uint64_t mrope_position_state_bytes = 0;
   std::uint64_t decode_workspace_bytes = 0;
   std::uint64_t attention_state_bytes = 0;
   std::uint64_t exact_prefix_cache_bytes = 0;
@@ -87,6 +90,10 @@ struct NativeResidentRequestOptions {
   // ordered media content/config/spans; the cache compares this in addition
   // to input_token_ids so identical placeholder tokens cannot alias media.
   std::string multimodal_cache_namespace;
+  // Exact host-resident Qwen3-VL positions for this prompt. The synchronous
+  // request copies them into process-resident device storage; no request-time
+  // device allocation is performed. Empty preserves the scalar text path.
+  std::optional<NativeMropePlan> mrope_plan;
   std::size_t max_new_tokens = 1;
   std::vector<std::uint32_t> stop_token_ids;
   // Invoked synchronously as soon as each generated token is available.
@@ -140,6 +147,11 @@ struct NativeResidentRequestMetrics {
   std::size_t cold_prompt_decode_aot_launches = 0;
   std::size_t cold_prompt_decode_native_launches = 0;
   std::uint64_t request_state_reset_bytes = 0;
+  bool mrope_enabled = false;
+  std::int64_t mrope_position_delta = 0;
+  std::uint64_t mrope_position_upload_bytes = 0;
+  std::size_t mrope_full_attention_launches = 0;
+  std::size_t mrope_decode_steps = 0;
   double cold_prompt_decode_wall_ms = 0.0;
   std::string prefix_cache_lookup = "miss";
   std::size_t prefix_cache_matched_tokens = 0;

@@ -65,9 +65,18 @@ NativeDecodePrepareMetrics prepare_native_decode_step(
     std::size_t position, std::uint32_t input_token_id,
     const NativeWeightStore& weights,
     const NativeDecodeInvocations& invocations, void* stream_value) {
+  return prepare_native_decode_step(position, position, input_token_id,
+                                    weights, invocations, stream_value);
+}
+
+NativeDecodePrepareMetrics prepare_native_decode_step(
+    std::size_t position, std::size_t rotary_position,
+    std::uint32_t input_token_id, const NativeWeightStore& weights,
+    const NativeDecodeInvocations& invocations, void* stream_value) {
   const NativeTensorView* embedding =
       weights.find("model.language_model.embed_tokens.weight");
-  if (position >= kMaximumPosition || input_token_id >= kVocabulary ||
+  if (position >= kMaximumPosition || rotary_position >= kMaximumPosition ||
+      input_token_id >= kVocabulary ||
       embedding == nullptr || embedding->device_pointer == nullptr ||
       embedding->payload_bytes != kVocabulary * kHidden * sizeof(__hip_bfloat16)) {
     throw std::invalid_argument("native decode step preparation is invalid");
@@ -82,10 +91,10 @@ NativeDecodePrepareMetrics prepare_native_decode_step(
       input_token_id, static_cast<__hip_bfloat16*>(hidden));
   check_hip(hipGetLastError(), "next_token_embedding_kernel");
   hipLaunchKernelGGL(decode_rotary_kernel, dim3(1), dim3(32), 0, stream,
-                     position, static_cast<float*>(cosine),
+                     rotary_position, static_cast<float*>(cosine),
                      static_cast<float*>(sine));
   check_hip(hipGetLastError(), "decode_rotary_kernel");
-  return {2, position, input_token_id};
+  return {2, position, rotary_position, input_token_id};
 }
 
 NativeLmHeadTop1Metrics run_native_lm_head_top1(

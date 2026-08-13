@@ -344,6 +344,9 @@ struct NativeResidentEngine::Impl {
   std::uint64_t chunked_hidden_bytes = 0;
   void* padded_prefill_initial_conv_state = nullptr;
   std::uint64_t padded_prefill_initial_conv_state_bytes = 0;
+  void* mrope_positions = nullptr;
+  std::uint64_t mrope_position_state_bytes = 0;
+  std::size_t mrope_position_row_stride = 0;
   std::size_t prefill_start_sequence = 0;
   std::size_t tail_prefill_start_sequence = 0;
   std::vector<std::size_t> resident_prefill_buckets;
@@ -389,6 +392,10 @@ struct NativeResidentEngine::Impl {
     if (padded_prefill_initial_conv_state != nullptr) {
       (void)hipSetDevice(device);
       (void)hipFree(padded_prefill_initial_conv_state);
+    }
+    if (mrope_positions != nullptr) {
+      (void)hipSetDevice(device);
+      (void)hipFree(mrope_positions);
     }
   }
 };
@@ -474,6 +481,9 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
       options.cache_capacity * kHidden * sizeof(std::uint16_t);
   impl_->padded_prefill_initial_conv_state_bytes =
       8192ULL * 3ULL * sizeof(std::uint16_t);
+  impl_->mrope_position_row_stride = options.cache_capacity;
+  impl_->mrope_position_state_bytes =
+      3ULL * options.cache_capacity * sizeof(std::int64_t);
   check_hip(hipSetDevice(impl_->device),
             "hipSetDevice composed prefill state");
   check_hip(hipMalloc(&impl_->chunked_hidden,
@@ -482,6 +492,9 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
   check_hip(hipMalloc(&impl_->padded_prefill_initial_conv_state,
                       impl_->padded_prefill_initial_conv_state_bytes),
             "hipMalloc padded prefill convolution snapshot");
+  check_hip(hipMalloc(&impl_->mrope_positions,
+                      impl_->mrope_position_state_bytes),
+            "hipMalloc resident M-RoPE positions");
   impl_->prefill_gemm_plans =
       std::make_unique<NativeQ8192PrefillGemmPlans>(impl_->prefill_tokens);
   if (impl_->tail_prefill_tokens != 0) {
@@ -683,7 +696,10 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
       tail_prefill_workspace_metrics.allocation_bytes +
       auxiliary_prefill_workspace_metrics.allocation_bytes +
       impl_->chunked_hidden_bytes +
-      impl_->padded_prefill_initial_conv_state_bytes;
+      impl_->padded_prefill_initial_conv_state_bytes +
+      impl_->mrope_position_state_bytes;
+  impl_->metrics.mrope_position_state_bytes =
+      impl_->mrope_position_state_bytes;
   impl_->metrics.decode_workspace_bytes =
       decode_workspace_metrics.allocation_bytes;
   impl_->metrics.attention_state_bytes = attention_metrics.allocation_bytes;
@@ -744,6 +760,29 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
           request.multimodal_cache_namespace)) {
     throw std::invalid_argument(
         "native resident multimodal cache namespace is invalid");
+  }
+  const NativeMropePlan* mrope_plan =
+      request.mrope_plan.has_value() ? &request.mrope_plan.value() : nullptr;
+  if (mrope_plan != nullptr) {
+    if (request.multimodal_cache_namespace.empty() ||
+        mrope_plan->prompt_token_count() != request.input_token_ids.size() ||
+        mrope_plan->positions().size() !=
+            3 * request.input_token_ids.size() ||
+        mrope_plan->maximum_position() < 0 ||
+        mrope_plan->maximum_position() >= 262144) {
+      throw std::invalid_argument(
+          "native resident M-RoPE request contract is invalid");
+    }
+    if (request.max_new_tokens > 1) {
+      const std::int64_t final_rotary_position =
+          native_mrope_decode_position(
+              request.input_token_ids.size(),
+              mrope_plan->position_delta(), request.max_new_tokens - 2);
+      if (final_rotary_position < 0 || final_rotary_position >= 262144) {
+        throw std::invalid_argument(
+            "native resident M-RoPE decode position is unsupported");
+      }
+    }
   }
   std::size_t matched_prefix_tokens = 0;
   std::size_t matched_prefix_cache_index = impl_->prefix_cache_entries;
@@ -811,6 +850,54 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
   metrics.aot_prefill_segments = prompt_plan.aot_segments.size();
   metrics.padded_prefill_tokens =
       prompt_plan.aot_bucket_tokens - prompt_plan.cold_aot_tokens;
+  metrics.mrope_enabled = mrope_plan != nullptr;
+  if (mrope_plan != nullptr) {
+    metrics.mrope_position_delta = mrope_plan->position_delta();
+  }
+  if (mrope_plan != nullptr && !prompt_plan.aot_segments.empty()) {
+    const std::size_t padded_position_end =
+        matched_prefix_tokens + prompt_plan.aot_bucket_tokens;
+    if (impl_->mrope_positions == nullptr ||
+        impl_->mrope_position_row_stride < padded_position_end ||
+        impl_->mrope_position_state_bytes <
+            3ULL * impl_->mrope_position_row_stride *
+                sizeof(std::int64_t)) {
+      throw std::runtime_error(
+          "native resident M-RoPE position owner is incomplete");
+    }
+    auto* device_positions =
+        static_cast<std::int64_t*>(impl_->mrope_positions);
+    const std::vector<std::int64_t>& host_positions =
+        mrope_plan->positions();
+    const std::size_t prompt_tokens = request.input_token_ids.size();
+    const std::size_t upload_tokens =
+        prompt_tokens - matched_prefix_tokens;
+    for (std::size_t axis = 0; axis < 3; ++axis) {
+      check_hip(
+          hipMemcpyAsync(
+              device_positions +
+                  axis * impl_->mrope_position_row_stride +
+                  matched_prefix_tokens,
+              host_positions.data() + axis * prompt_tokens +
+                  matched_prefix_tokens,
+              upload_tokens * sizeof(std::int64_t),
+              hipMemcpyHostToDevice, nullptr),
+          "hipMemcpyAsync resident M-RoPE positions");
+      if (padded_position_end > prompt_tokens) {
+        check_hip(
+            hipMemsetAsync(
+                device_positions +
+                    axis * impl_->mrope_position_row_stride + prompt_tokens,
+                0,
+                (padded_position_end - prompt_tokens) *
+                    sizeof(std::int64_t),
+                nullptr),
+            "hipMemsetAsync resident M-RoPE padding");
+      }
+    }
+    metrics.mrope_position_upload_bytes =
+        3ULL * upload_tokens * sizeof(std::int64_t);
+  }
   std::array<bool, 40> request_secondary_fmha_layers =
       impl_->secondary_fmha_layers;
   if (!exact_configured_prefill) {
@@ -962,6 +1049,14 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
           attention_options.gemm_plans = chunk_gemm_plans;
           attention_options.bindings = &impl_->bindings;
           attention_options.cache_position_start = segment.input_offset;
+          if (mrope_plan != nullptr) {
+            attention_options.mrope_positions_i64 =
+                static_cast<const std::int64_t*>(impl_->mrope_positions) +
+                segment.input_offset;
+            attention_options.mrope_position_row_stride =
+                impl_->mrope_position_row_stride;
+            ++metrics.mrope_full_attention_launches;
+          }
           if (focused_tail_oracle) {
             std::ostringstream prefix;
             prefix << "layer-";
@@ -1270,8 +1365,21 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
          metrics.output_token_ids.size() < request.max_new_tokens) {
     const std::size_t position =
         request.input_token_ids.size() + metrics.output_token_ids.size() - 1;
-    (void)prepare_native_decode_step(position, metrics.output_token_ids.back(),
-                                     impl_->weights, impl_->decode_invocations);
+    std::size_t rotary_position = position;
+    if (mrope_plan != nullptr) {
+      const std::int64_t value = native_mrope_decode_position(
+          request.input_token_ids.size(), mrope_plan->position_delta(),
+          metrics.output_token_ids.size() - 1);
+      if (value < 0 || value >= 262144) {
+        throw std::runtime_error(
+            "native resident M-RoPE decode position escaped validation");
+      }
+      rotary_position = static_cast<std::size_t>(value);
+      ++metrics.mrope_decode_steps;
+    }
+    (void)prepare_native_decode_step(
+        position, rotary_position, metrics.output_token_ids.back(),
+        impl_->weights, impl_->decode_invocations);
     const NativeDecodeRunMetrics token = run_native_decode_token(
         position, position + 1, impl_->weights, impl_->lm_head,
         impl_->decode_workspace, impl_->decode_invocations, impl_->executor,

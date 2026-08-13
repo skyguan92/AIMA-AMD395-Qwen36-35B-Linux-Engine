@@ -89,6 +89,9 @@ struct NativeFullPrefillMetrics {
 
 struct NativeFullPrefillOracleOptions {
   std::size_t layer_index = 3;
+  // Zero compares the whole fixed bucket. A smaller value limits optional
+  // qualification boundaries to the logical prefix of a padded request.
+  std::size_t comparison_tokens = 0;
   bool seed_layer_input = true;
   bool prepare_rotary_table = true;
   bool collect_oracle_comparisons = true;
@@ -99,6 +102,11 @@ struct NativeFullPrefillOracleOptions {
   NativeQ8192PrefillGemmPlans* gemm_plans = nullptr;
   const NativeDecodeBindings* bindings = nullptr;
   std::size_t cache_position_start = 0;
+  // Optional device-resident row-major int64[3,row_stride] positions. A
+  // non-null pointer selects the explicitly qualified M-RoPE table and Q/K
+  // consumer; null retains the scalar-position text implementation.
+  const void* mrope_positions_i64 = nullptr;
+  std::size_t mrope_position_row_stride = 0;
   std::string oracle_label_prefix = "layer-003-";
   // Qualification-only last-token boundaries. Sparse fixtures are accepted
   // so long-context attribution does not require copying full activations.

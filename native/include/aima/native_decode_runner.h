@@ -35,6 +35,7 @@ struct NativeDecodeRunMetrics {
 struct NativeDecodePrepareMetrics {
   std::size_t native_kernel_launches = 0;
   std::size_t position = 0;
+  std::size_t rotary_position = 0;
   std::uint32_t input_token_id = 0;
 };
 
@@ -53,6 +54,15 @@ struct NativeLmHeadTop1Metrics {
 NativeDecodePrepareMetrics prepare_native_decode_step(
     std::size_t position, std::uint32_t input_token_id,
     const NativeWeightStore& weights,
+    const NativeDecodeInvocations& invocations, void* stream = nullptr);
+
+// VL decode stores the token at the ordinary cache position while applying
+// the shared post-prompt M-RoPE position derived from the request delta.
+// Keeping the two coordinates explicit prevents cache geometry from being
+// conflated with the rotary coordinate.
+NativeDecodePrepareMetrics prepare_native_decode_step(
+    std::size_t position, std::size_t rotary_position,
+    std::uint32_t input_token_id, const NativeWeightStore& weights,
     const NativeDecodeInvocations& invocations, void* stream = nullptr);
 
 // Runs the shared final RMSNorm, int8 global scan, and exact shortlist

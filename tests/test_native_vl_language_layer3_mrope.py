@@ -71,6 +71,82 @@ class NativeVlLanguageLayer3MropeTest(unittest.TestCase):
         self.assertIn("relative_l2_maximum", probe)
         self.assertIn("cosine_minimum", probe)
 
+    def test_resident_request_selects_mrope_without_changing_text_dispatch(self) -> None:
+        resident_header = (
+            ROOT / "native/include/aima/native_resident_engine.h"
+        ).read_text(encoding="utf-8")
+        resident = (
+            ROOT / "native/src/native_resident_engine.hip.cpp"
+        ).read_text(encoding="utf-8")
+        full_header = (
+            ROOT / "native/include/aima/native_full_prefill.h"
+        ).read_text(encoding="utf-8")
+        full = (ROOT / "native/src/native_full_prefill.hip.cpp").read_text(
+            encoding="utf-8"
+        )
+        decode_header = (
+            ROOT / "native/include/aima/native_decode_runner.h"
+        ).read_text(encoding="utf-8")
+        decode = (
+            ROOT / "native/src/native_decode_runner.hip.cpp"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("std::optional<NativeMropePlan> mrope_plan", resident_header)
+        self.assertIn("mrope_position_state_bytes", resident_header)
+        self.assertIn("hipMalloc resident M-RoPE positions", resident)
+        self.assertIn("hipMemcpyAsync resident M-RoPE positions", resident)
+        self.assertIn("hipMemsetAsync resident M-RoPE padding", resident)
+        self.assertIn("attention_options.mrope_positions_i64", resident)
+        self.assertIn("segment.input_offset", resident)
+        self.assertIn("native_mrope_decode_position", resident)
+
+        self.assertIn("const void* mrope_positions_i64", full_header)
+        self.assertIn("const bool use_mrope", full)
+        self.assertIn("launch_prefill_mrope_rotary_table", full)
+        self.assertIn("launch_full_attention_head_norm_mrope_prefill", full)
+        self.assertIn("launch_prefill_rotary_table", full)
+        self.assertIn("launch_full_attention_head_norm_rope_prefill", full)
+
+        self.assertIn("std::size_t rotary_position", decode_header)
+        self.assertIn("position, position, input_token_id", decode)
+        self.assertIn("decode_rotary_kernel", decode)
+        self.assertIn("rotary_position, static_cast<float*>(cosine)", decode)
+
+    def test_composed_probe_executes_layers_zero_through_three(self) -> None:
+        probe = (
+            ROOT
+            / "native/tools/vl_language_layer3_composed_oracle_probe.hip.cpp"
+        ).read_text(encoding="utf-8")
+        build = (
+            ROOT / "scripts/build-native-vl-language-layer3-composed-probe.sh"
+        ).read_text(encoding="utf-8")
+        makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
+        capture = (
+            ROOT / "scripts/capture-vllm-vl-language-prefix-diagnostics.py"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("constexpr std::size_t kBucketTokens = 1024", probe)
+        self.assertIn("for (std::size_t layer_index = 0; layer_index < 3", probe)
+        self.assertIn("full_options.layer_index = 3", probe)
+        self.assertIn("full_options.mrope_positions_i64", probe)
+        self.assertIn("full_options.comparison_tokens = prompt_tokens", probe)
+        self.assertIn("moe_options.chain_output_oracle_label", probe)
+        self.assertIn('"same_request_layer_output"', probe)
+        self.assertIn("kMeasuredRuns = 5", probe)
+        self.assertIn("relative_l2_error <= 0.002", probe)
+        self.assertIn("cosine_similarity >= 0.999", probe)
+        self.assertIn("runtime_python", probe)
+        self.assertIn("q1024-output1", build)
+        self.assertIn("native_full_prefill.hip.cpp", build)
+        self.assertIn("--offload-arch=gfx1151", build)
+        self.assertIn("build-native-vl-language-layer3-composed-probe", makefile)
+        self.assertIn("vl-language-prefix-diagnostic-oracle/v1", capture)
+        self.assertIn("LINEAR_LAYERS = (0, 1, 2)", capture)
+        self.assertIn("layer_003_attention_input", capture)
+        self.assertIn("frozen_layer0_comparison", capture)
+        self.assertIn("frozen_layer3_attention_input_comparison", capture)
+        self.assertIn("source must be a clean commit", capture)
+
     def test_qualification_is_exact_hash_bound_and_non_overclaiming(self) -> None:
         import hashlib
         import json
