@@ -464,8 +464,16 @@ json qualify_case(
     }
     diagnostic_complete = actual_labels == expected_labels;
     if (!diagnostic_complete) {
+      std::string detail;
+      for (const std::string& label : expected_labels) {
+        if (actual_labels.count(label) == 0) detail += " missing=" + label;
+      }
+      for (const std::string& label : actual_labels) {
+        if (expected_labels.count(label) == 0) detail += " extra=" + label;
+      }
       throw std::runtime_error(
-          "language layer-0 diagnostic comparison set is incomplete");
+          "language layer-0 diagnostic comparison set is incomplete:" +
+          detail);
     }
   }
 
