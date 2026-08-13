@@ -1,4 +1,4 @@
-.PHONY: check check-cpu check-native-syntax check-python-package security-scan verify-evidence test verify native-layout-check native-chat-template-parity build-native build-direct-loader build-native-visual-weight-probe build-native-vision-patch-probe build-native-vision-position-probe build-native-vision-aot-attention-probe build-native-vision-aot-block-stack-probe build-native-vision-exact-layer-norm-probe build-native-vision-merger-probe build-native-vision-block-prefix-probe build-native-vision-block-suffix-probe build-native-vision-block-probe build-native-vision-block-stack-probe build-native-vision-depth-block-probe build-native-vision-rotary-probe build-native-vision-segmented-attention-probe build-native-runtime package-native package-native-foundation package-evidence
+.PHONY: check check-cpu check-native-syntax check-python-package security-scan verify-evidence test verify native-layout-check native-chat-template-parity build-native build-direct-loader build-native-visual-weight-probe build-native-vision-patch-probe build-native-vision-position-probe build-native-vision-aot-attention-probe build-native-vision-aot-block-stack-probe build-native-vision-exact-layer-norm-probe build-native-vision-merger-probe build-native-vision-pipeline-probe build-native-vision-block-prefix-probe build-native-vision-block-suffix-probe build-native-vision-block-probe build-native-vision-block-stack-probe build-native-vision-depth-block-probe build-native-vision-rotary-probe build-native-vision-segmented-attention-probe build-native-runtime package-native package-native-foundation package-evidence
 
 check: check-cpu
 	@if test -f /opt/rocm/include/hip/hip_runtime_api.h && \
@@ -89,6 +89,9 @@ build-native-vision-exact-layer-norm-probe:
 
 build-native-vision-merger-probe:
 	bash scripts/build-native-vision-merger-probe.sh
+
+build-native-vision-pipeline-probe:
+	bash scripts/build-native-vision-pipeline-probe.sh
 
 build-native-vision-block-prefix-probe:
 	bash scripts/build-native-vision-block-prefix-probe.sh

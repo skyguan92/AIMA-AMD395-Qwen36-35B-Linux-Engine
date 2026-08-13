@@ -1091,6 +1091,33 @@ class NativeVisualLayoutTest(unittest.TestCase):
         self.assertFalse(decision["g1_passed"])
         self.assertFalse(decision["g2_passed"])
 
+    def test_native_vision_pipeline_composes_frozen_stages(self) -> None:
+        header = (
+            ROOT / "native/include/aima/native_vision_pipeline.h"
+        ).read_text(encoding="utf-8")
+        source = (
+            ROOT / "native/src/native_vision_pipeline.hip.cpp"
+        ).read_text(encoding="utf-8")
+        probe = (
+            ROOT / "native/tools/vision_pipeline_oracle_probe.hip.cpp"
+        ).read_text(encoding="utf-8")
+        build = (
+            ROOT / "scripts/build-native-vision-pipeline-probe.sh"
+        ).read_text(encoding="utf-8")
+        self.assertIn("class NativeVisionEncoderMetadataPlan", header)
+        self.assertIn("class NativeVisionPipelinePlan", header)
+        self.assertIn("kVisionRotaryMaximumPosition = 8192", source)
+        self.assertIn("kVisionRotaryBase = 10000.0f", source)
+        self.assertIn("static_cast<float>(2 * frequency)", source)
+        self.assertIn("result.cu_seqlens.push_back", source)
+        self.assertIn("impl_->patch.launch", source)
+        self.assertIn("impl_->position.launch_add", source)
+        self.assertIn("impl_->blocks.launch", source)
+        self.assertIn("impl_->merger.launch", source)
+        self.assertIn("native-vision-pipeline-oracle/v1", probe)
+        self.assertIn("read_concatenated_files", probe)
+        self.assertIn("native_vision_pipeline.hip.cpp", build)
+
 
 if __name__ == "__main__":
     unittest.main()
