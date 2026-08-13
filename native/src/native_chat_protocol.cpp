@@ -442,7 +442,8 @@ NativePreparedChat prepare_native_chat(const NativeOrderedJson& request) {
     }
     left_leading_system = true;
     if (prepared.messages.empty() && !leading_system.empty()) {
-      prepared.messages.push_back({"system", leading_system});
+      prepared.messages.push_back(
+          {"system", leading_system, false, std::string(), {}});
     }
 
     NativeChatMessage message;
@@ -541,7 +542,8 @@ NativePreparedChat prepare_native_chat(const NativeOrderedJson& request) {
     prepared.messages.push_back(std::move(message));
   }
   if (prepared.messages.empty() && !leading_system.empty()) {
-    prepared.messages.push_back({"system", leading_system});
+    prepared.messages.push_back(
+        {"system", leading_system, false, std::string(), {}});
   }
   if (!saw_user) {
     throw std::invalid_argument("at least one user message is required");
@@ -577,7 +579,9 @@ NativePreparedChat prepare_native_chat(const NativeOrderedJson& request) {
   if (!directive.empty()) {
     if (prepared.messages.front().role != "system") {
       prepared.messages.insert(prepared.messages.begin(),
-                               NativeChatMessage{"system", directive});
+                               NativeChatMessage{
+                                   "system", directive, false,
+                                   std::string(), {}});
     } else {
       if (!prepared.messages.front().content.empty()) {
         prepared.messages.front().content += "\n\n";

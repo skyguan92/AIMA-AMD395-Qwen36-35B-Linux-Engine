@@ -14,7 +14,7 @@ blocking condition in the governing goal can move a gate to `passed`.
 
 | Gate | Current state | Evidence required to pass | Next blocking action |
 |---|---|---|---|
-| G1 full VL functional parity | capability envelope qualified; native implementation not started | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | implement the native media and model path against the frozen capability manifest |
+| G1 full VL functional parity | ordered chat media parts plus bounded local/data admission implemented; decode, processor, vision and serving remain incomplete | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | attach native decode and processor outputs to the vision/model path |
 | G2 VL correctness parity | reference processor/boundary/logits/generation oracles frozen; native comparison and task suites pending | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | implement native boundaries, then compare against the frozen raw tensors before running task quality |
 | G3 text product no regression | frozen baseline identified | paired 19-cell, maximum-window, correctness, MMLU, API, cache, startup and memory requalification | retain `v1.5.1` as an immutable paired binary |
 | G4 native VL performance | not started | paired per-cell stage timings and memory records against the fixed VL-enabled vLLM | generate matrix cells from the capability manifest |
@@ -106,3 +106,28 @@ manifest contains no target-private paths. The manifest SHA-256 is
 was captured from clean commit `09e3fac8a07d9e5884007f0afdf46fb6603ae78d`.
 This closes oracle creation only; G2 remains blocked on native comparison,
 task-quality suites and error parity.
+
+## Phase 1 implementation evidence
+
+The native request layer now parses ordered OpenAI `text`, `image_url` and
+`video_url` content parts, emits the model's canonical image/video markers,
+retains media/message ordering metadata and enforces the frozen 16-image and
+21-video count limits. Media is restricted to user messages. The HTTP path
+continues to reject these admitted requests before language execution until
+native processor tensors and vision embeddings are attached, preventing a
+placeholder-only false success.
+
+The first native media boundary is also present. It:
+
+- accepts bounded base64 data URIs and allowlisted canonical local files;
+- rejects malformed/non-canonical base64, MIME/kind mismatches, empty or
+  over-limit payloads, local-root escapes and credential-bearing URLs;
+- validates HTTP/HTTPS authorities and exact domain allowlists while keeping
+  remote fetch fail-closed until redirect, timeout and SSRF controls are
+  implemented;
+- identifies cacheable media by the SHA-256 of the decoded source bytes, so
+  equivalent data/local transports have the same content identity.
+
+`native_media_test` and `native_chat_protocol_test` both compile with strict
+warnings and pass on `amd395`. This is implementation progress, not G1 or G2
+acceptance evidence.

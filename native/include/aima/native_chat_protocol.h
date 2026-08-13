@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
+#include "aima/native_media.h"
 #include "aima/native_tokenizer.h"
 
 #include <nlohmann/json.hpp>
@@ -25,21 +26,6 @@ enum class NativeToolChoiceMode {
   kNone,
   kRequired,
   kSpecific,
-};
-
-enum class NativeMediaKind {
-  kImage,
-  kVideo,
-};
-
-// An ordered OpenAI content part. The source is retained only for the native
-// media loader; prompts receive the model's canonical special-token marker.
-struct NativeMediaPart {
-  NativeMediaKind kind = NativeMediaKind::kImage;
-  std::string source;
-  std::size_t message_index = 0;
-  std::size_t content_part_index = 0;
-  std::size_t media_index = 0;
 };
 
 struct NativePreparedChat {

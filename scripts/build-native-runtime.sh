@@ -133,6 +133,7 @@ done < "${AOT_OBJECT_PLAN}"
   "${ROOT}/native/src/native_prefill_gemm_plans.hip.cpp" \
   "${ROOT}/native/src/native_resident_engine.hip.cpp" \
   "${ROOT}/native/src/native_chat_protocol.cpp" \
+  "${ROOT}/native/src/native_media.cpp" \
   "${ROOT}/native/src/native_doctor.cpp" \
   "${ROOT}/native/src/native_http_server.cpp" \
   "${ROOT}/native/src/native_pointwise.hip.cpp" \
