@@ -244,8 +244,7 @@ Execution execute_layer0(
     const aima::NativeWeightStore& weights,
     const aima::NativeDecodeBindings& bindings,
     aima::NativeDecodeExecutor& executor,
-    aima::NativeQ8192PrefillGemmPlans& linear_gemm_plans,
-    aima::NativeQ8192PrefillGemmPlans& moe_gemm_plans) {
+    aima::NativeQ8192PrefillGemmPlans& active_gemm_plans) {
   if (prompt_tokens == 0 || prompt_tokens > kBucketTokens ||
       injected_embeddings.size() !=
           prompt_tokens * kLanguageHidden * kBf16Bytes) {
@@ -270,11 +269,12 @@ Execution execute_layer0(
 
   aima::NativeLinearPrefillOracleOptions linear_options;
   linear_options.layer_index = 0;
+  linear_options.active_tokens = prompt_tokens;
   linear_options.seed_layer_input = false;
   linear_options.run_output_projection_diagnostic = false;
   linear_options.collect_oracle_comparisons = false;
   linear_options.has_initial_state = false;
-  linear_options.gemm_plans = &linear_gemm_plans;
+  linear_options.gemm_plans = &active_gemm_plans;
   linear_options.bindings = &bindings;
   aima::NativeMoePrefillOracleOptions moe_options;
   moe_options.layer_index = 0;
@@ -282,7 +282,7 @@ Execution execute_layer0(
   moe_options.seed_post_attention = false;
   moe_options.run_routing_diagnostic = false;
   moe_options.collect_oracle_comparisons = false;
-  moe_options.gemm_plans = &moe_gemm_plans;
+  moe_options.gemm_plans = &active_gemm_plans;
 
   Event start;
   Event stop;
@@ -321,8 +321,7 @@ json qualify_case(
     const std::filesystem::path& actual_output, int device,
     const aima::NativeWeightStore& weights,
     const aima::NativeDecodeBindings& bindings,
-    aima::NativeDecodeExecutor& executor,
-    aima::NativeQ8192PrefillGemmPlans& linear_gemm_plans) {
+    aima::NativeDecodeExecutor& executor) {
   const std::string case_id = case_record.at("case_id").get<std::string>();
   const json& injected_record =
       case_record.at("boundaries").at("injected_embeddings");
@@ -354,22 +353,24 @@ json qualify_case(
     throw std::runtime_error("language layer-0 oracle byte count is invalid");
   }
 
-  aima::NativeQ8192PrefillGemmPlans moe_gemm_plans(prompt_tokens);
-  (void)moe_gemm_plans.moe_shared_gate();
-  (void)moe_gemm_plans.moe_shared_projection();
-  (void)moe_gemm_plans.moe_shared_down();
-  (void)moe_gemm_plans.moe_router();
+  aima::NativeQ8192PrefillGemmPlans active_gemm_plans(prompt_tokens);
+  (void)active_gemm_plans.linear_fused_input();
+  (void)active_gemm_plans.linear_output();
+  (void)active_gemm_plans.moe_shared_gate();
+  (void)active_gemm_plans.moe_shared_projection();
+  (void)active_gemm_plans.moe_shared_down();
+  (void)active_gemm_plans.moe_router();
 
   const auto case_started = std::chrono::steady_clock::now();
   const Execution warmup = execute_layer0(
       injected, prompt_tokens, device, weights, bindings, executor,
-      linear_gemm_plans, moe_gemm_plans);
+      active_gemm_plans);
   std::vector<Execution> measured;
   measured.reserve(kMeasuredRuns);
   for (std::size_t run = 0; run < kMeasuredRuns; ++run) {
     measured.push_back(execute_layer0(
         injected, prompt_tokens, device, weights, bindings, executor,
-        linear_gemm_plans, moe_gemm_plans));
+        active_gemm_plans));
   }
   write_file(actual_output, measured.front().output);
   const Comparison comparison = compare_bf16(measured.front().output, expected);
@@ -432,8 +433,8 @@ json qualify_case(
       {"workspace_allocation_bytes",
        representative.workspace.allocation_bytes},
       {"prepared_launches", representative.invocations.launch_count},
-      {"active_moe_gemm_plan_count", moe_gemm_plans.built_plan_count()},
-      {"active_moe_gemm_workspace_bytes", moe_gemm_plans.workspace_bytes()},
+      {"active_gemm_plan_count", active_gemm_plans.built_plan_count()},
+      {"active_gemm_workspace_bytes", active_gemm_plans.workspace_bytes()},
       {"linear_dense_gemm_launches",
        representative.linear.dense_gemm_launches},
       {"linear_native_pointwise_launches",
@@ -515,10 +516,6 @@ int main(int argc, char** argv) {
         bindings.build(weights, derived, lm_head);
     aima::NativeDecodeExecutor executor;
     const aima::NativeDecodeExecutorMetrics executor_metrics = executor.load();
-    aima::NativeQ8192PrefillGemmPlans linear_gemm_plans(kBucketTokens);
-    (void)linear_gemm_plans.linear_fused_input();
-    (void)linear_gemm_plans.linear_output();
-
     json case_results = json::array();
     bool complete = true;
     std::size_t total_elements = 0;
@@ -530,7 +527,7 @@ int main(int argc, char** argv) {
           all_cases ? output / (case_id + ".bin") : output;
       json result = qualify_case(
           *case_record, oracle_root, actual_output, options.device, weights,
-          bindings, executor, linear_gemm_plans);
+          bindings, executor);
       complete = complete && result.at("complete").get<bool>();
       total_elements += result.at("elements").get<std::size_t>();
       total_exact_elements +=
@@ -561,10 +558,6 @@ int main(int argc, char** argv) {
         {"lm_head_build_wall_ms", lm_head_metrics.build_wall_ms},
         {"decode_weight_bindings", binding_metrics.unique_bindings},
         {"aot_loaded_modules", executor_metrics.loaded_modules},
-        {"resident_linear_gemm_plan_count",
-         linear_gemm_plans.built_plan_count()},
-        {"resident_linear_gemm_workspace_bytes",
-         linear_gemm_plans.workspace_bytes()},
         {"total_elements", total_elements},
         {"total_exact_elements", total_exact_elements},
         {"all_bit_exact", total_elements == total_exact_elements},

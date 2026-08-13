@@ -38,6 +38,10 @@ struct NativeLinearPrefillMetrics {
 
 struct NativeLinearPrefillOracleOptions {
   std::size_t layer_index = 0;
+  // A padded fixed-shape schedule may project only its causal active prefix.
+  // Zero preserves the full workspace context.  AOT kernels retain the
+  // bucket grid and consume zero padding; GEMM plans use this active shape.
+  std::size_t active_tokens = 0;
   bool seed_layer_input = true;
   // Keep the production layer output intact when composing multiple layers.
   // Single-layer qualification enables the seeded projection isolation pass.

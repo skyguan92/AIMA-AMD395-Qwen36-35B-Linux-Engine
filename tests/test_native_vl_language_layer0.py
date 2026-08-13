@@ -25,6 +25,12 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         moe_source = (
             ROOT / "native/src/native_moe_prefill.hip.cpp"
         ).read_text(encoding="utf-8")
+        linear_header = (
+            ROOT / "native/include/aima/native_linear_prefill.h"
+        ).read_text(encoding="utf-8")
+        linear_source = (
+            ROOT / "native/src/native_linear_prefill.hip.cpp"
+        ).read_text(encoding="utf-8")
         build = (
             ROOT / "scripts/build-native-vl-language-layer0-probe.sh"
         ).read_text(encoding="utf-8")
@@ -37,12 +43,15 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         self.assertIn('tensor_pointer(sequence, "v_new")', probe)
         self.assertIn("linear_options.seed_layer_input = false", probe)
         self.assertIn("linear_options.collect_oracle_comparisons = false", probe)
+        self.assertIn("linear_options.active_tokens = prompt_tokens", probe)
         self.assertIn("moe_options.seed_post_attention = false", probe)
         self.assertIn("moe_options.collect_oracle_comparisons = false", probe)
         self.assertIn("moe_options.active_tokens = prompt_tokens", probe)
         self.assertIn("std::size_t active_tokens = 0", moe_header)
+        self.assertIn("std::size_t active_tokens = 0", linear_header)
         self.assertIn('"num_valid_tokens"', moe_source)
         self.assertIn("tokens > bucket_tokens", moe_source)
+        self.assertIn("tokens > bucket_tokens", linear_source)
         self.assertIn("kMeasuredRuns = 5", probe)
         self.assertIn("q1024-output1", build)
         self.assertIn('Q8192_DIR="${ROOT}/native/aot/gfx1151/q8192-output2"', build)

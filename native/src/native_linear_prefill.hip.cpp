@@ -151,22 +151,26 @@ probe_native_q8192_linear_prefill_layer0_oracle(
     throw std::invalid_argument(
         "native linear prefill execution cannot run oracle diagnostics");
   }
-  const std::size_t tokens = workspace.context_tokens();
-  if (tokens == 0 || tokens > 262144 ||
-      (tokens != 8192 && options.collect_oracle_comparisons)) {
+  const std::size_t bucket_tokens = workspace.context_tokens();
+  const std::size_t tokens =
+      options.active_tokens == 0 ? bucket_tokens : options.active_tokens;
+  if (bucket_tokens == 0 || bucket_tokens > 262144 || tokens == 0 ||
+      tokens > bucket_tokens ||
+      (tokens != bucket_tokens && options.collect_oracle_comparisons) ||
+      (bucket_tokens != 8192 && options.collect_oracle_comparisons)) {
     throw std::invalid_argument(
         "native linear prefill context or oracle mode is unsupported");
   }
   const auto& launches = invocations.launches();
-  const bool q8192_schedule = tokens == 8192;
+  const bool q8192_schedule = bucket_tokens == 8192;
   const bool split_projection_tail =
       !q8192_schedule && launches.size() > 1 &&
       launches[1].launch != nullptr &&
       std::string(launches[1].launch->symbol) ==
           "_causal_conv1d_fwd_kernel";
   const bool split_projections = q8192_schedule || split_projection_tail;
-  const std::size_t linear_launches = tokens == 8192 ? 13 : 12;
-  const std::size_t attention_launches = tokens == 8192 ? 11 : 10;
+  const std::size_t linear_launches = q8192_schedule ? 13 : 12;
+  const std::size_t attention_launches = q8192_schedule ? 11 : 10;
   const std::size_t base = find_linear_layer_base(
       launches, options.layer_index, linear_launches);
   const std::array<const char*, 11> q8192_symbols = {
@@ -413,7 +417,7 @@ probe_native_q8192_linear_prefill_layer0_oracle(
         row_elements * element_bytes, expected));
   };
   const std::string residual_launch_prefix =
-      tokens == 8192 ? "launch-010-" : "launch-009-";
+      q8192_schedule ? "launch-010-" : "launch-009-";
   result.layer.layer_index = options.layer_index;
   result.layer.tokens = tokens;
   result.layer_input_seeded = options.seed_layer_input;
