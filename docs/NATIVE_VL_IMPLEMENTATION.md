@@ -14,7 +14,7 @@ blocking condition in the governing goal can move a gate to `passed`.
 
 | Gate | Current state | Evidence required to pass | Next blocking action |
 |---|---|---|---|
-| G1 full VL functional parity | ordered chat media parts plus bounded local/data admission implemented; decode, processor, vision and serving remain incomplete | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | attach native decode and processor outputs to the vision/model path |
+| G1 full VL functional parity | ordered chat media parts, bounded local/data admission and the image processor are implemented; video decode, vision and serving remain incomplete | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | implement bounded video decode, then attach processor outputs to the vision/model path |
 | G2 VL correctness parity | reference processor/boundary/logits/generation oracles frozen; native comparison and task suites pending | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | implement native boundaries, then compare against the frozen raw tensors before running task quality |
 | G3 text product no regression | frozen baseline identified | paired 19-cell, maximum-window, correctness, MMLU, API, cache, startup and memory requalification | retain `v1.5.1` as an immutable paired binary |
 | G4 native VL performance | not started | paired per-cell stage timings and memory records against the fixed VL-enabled vLLM | generate matrix cells from the capability manifest |
@@ -159,10 +159,12 @@ bytes with compressed-byte and decoded-pixel/dimension bounds. It drops alpha
 without compositing to match `Image.convert("RGB")`, rejects corrupt/truncated
 inputs without decoder stderr, and never reopens the source path. All four
 frozen image fixtures match the reference decoded RGB SHA-256 exactly,
-including RGBA PNG and JPEG; PNG decode through BF16 patchify also matches the
-frozen processor tensor byte-for-byte. The runtime link and portable-bundle
-closure now include the image codec libraries and their distribution license
-texts. Antialiased bicubic resize is still pending for resize-required images.
+including RGBA PNG and JPEG. The processor also reproduces torchvision v2's
+separable uint8 antialiased bicubic kernel, including per-axis int16 weight
+quantization and uint8 rounding. A resize-required RGBA fixture and an
+independent mixed up/down-scale tensor match both resized RGB and final BF16
+processor output byte-for-byte. The runtime link and portable-bundle closure
+include the image codec libraries and their distribution license texts.
 
 `native_media_test` and `native_chat_protocol_test` both compile with strict
 warnings and pass on `amd395`. This is implementation progress, not G1 or G2

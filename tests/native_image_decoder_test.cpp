@@ -65,6 +65,36 @@ int main(int argc, char** argv) {
       root, "image-portrait-192x512.webp", "image/webp", 192, 512,
       "824badf1c9a15777d77c544dad0da03ab67ddd310767eba4c9a409a5edba7bda");
 
+  aima::NativeMediaPayload transparent;
+  transparent.kind = aima::NativeMediaKind::kImage;
+  transparent.mime_type = "image/png";
+  transparent.bytes = read_bytes(root / "image-transparent-160x320.png");
+  const aima::NativeRgbFrame decoded_transparent =
+      aima::decode_native_image(transparent, {});
+  const aima::NativeVlResizeGeometry transparent_geometry =
+      aima::native_qwen36_image_geometry(decoded_transparent.height,
+                                         decoded_transparent.width);
+  const aima::NativeRgbFrame resized_transparent =
+      aima::native_qwen36_resize_rgb(decoded_transparent,
+                                     transparent_geometry);
+  require(resized_transparent.height == 384 &&
+              resized_transparent.width == 192 &&
+              aima::sha256_bytes(resized_transparent.pixels.data(),
+                                 resized_transparent.pixels.size()) ==
+                  "d34742d3899ae42a769b80fde2e1da59a9158da72caf2a5f0dca014d58955857",
+          "torchvision v2 uint8 bicubic resize oracle drifted");
+  const aima::NativeVlPixelTensor processed_transparent =
+      aima::native_qwen36_process_rgb({decoded_transparent},
+                                      transparent_geometry);
+  require(processed_transparent.rows == 288 &&
+              processed_transparent.columns == 1536 &&
+              aima::sha256_bytes(
+                  processed_transparent.values.data(),
+                  processed_transparent.values.size() *
+                      sizeof(processed_transparent.values[0])) ==
+                  "dd3835f0d61fc4f17576fd09a22759e79671e6bca09cbc014efd282b8dd0fbce",
+          "resized image BF16 processor oracle drifted");
+
   aima::NativeMediaPayload png;
   png.kind = aima::NativeMediaKind::kImage;
   png.mime_type = "image/png";
@@ -72,7 +102,7 @@ int main(int argc, char** argv) {
   const aima::NativeRgbFrame decoded_png =
       aima::decode_native_image(png, {});
   const aima::NativeVlPixelTensor processed_png =
-      aima::native_qwen36_patchify_resized_rgb(
+      aima::native_qwen36_process_rgb(
           {decoded_png}, aima::native_qwen36_image_geometry(
                              decoded_png.height, decoded_png.width));
   require(aima::sha256_bytes(

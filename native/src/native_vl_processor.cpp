@@ -32,6 +32,7 @@ constexpr std::string_view kVisionStart = "<|vision_start|>";
 constexpr std::string_view kVisionEnd = "<|vision_end|>";
 constexpr std::string_view kImagePad = "<|image_pad|>";
 constexpr std::string_view kVideoPad = "<|video_pad|>";
+constexpr std::size_t kRgbChannels = 3;
 
 std::size_t checked_product(std::size_t left, std::size_t right,
                             const char* label) {
@@ -165,6 +166,222 @@ std::uint16_t float_to_bfloat16(float value) {
   const std::uint32_t bias = 0x7fffU + ((bits >> 16U) & 1U);
   bits += bias;
   return static_cast<std::uint16_t>(bits >> 16U);
+}
+
+// This is the Keys cubic kernel used by torchvision v2 for bicubic resize
+// with antialiasing. Its a=-0.5 coefficient and the fixed-point conversion
+// below are frozen against PyTorch git8514f05.
+double bicubic_antialias_filter(double value) {
+  constexpr double coefficient = -0.5;
+  const double distance = std::abs(value);
+  if (distance < 1.0) {
+    return ((coefficient + 2.0) * distance - (coefficient + 3.0)) *
+               distance * distance +
+           1.0;
+  }
+  if (distance < 2.0) {
+    return ((coefficient * distance - 5.0 * coefficient) * distance +
+            8.0 * coefficient) *
+               distance -
+           4.0 * coefficient;
+  }
+  return 0.0;
+}
+
+struct ResizeAxisWeights {
+  std::size_t input_size = 0;
+  std::size_t output_size = 0;
+  std::size_t weight_stride = 0;
+  unsigned int precision = 0;
+  std::vector<std::size_t> starts;
+  std::vector<std::size_t> sizes;
+  std::vector<std::int16_t> weights;
+};
+
+ResizeAxisWeights make_resize_axis_weights(std::size_t input_size,
+                                           std::size_t output_size) {
+  if (input_size == 0 || output_size == 0 ||
+      input_size > static_cast<std::size_t>(
+                       std::numeric_limits<std::int64_t>::max()) ||
+      output_size > static_cast<std::size_t>(
+                        std::numeric_limits<std::int64_t>::max())) {
+    throw std::invalid_argument("VL resize axis is outside its domain");
+  }
+  const double scale = static_cast<double>(input_size) /
+                       static_cast<double>(output_size);
+  const double support = scale >= 1.0 ? 2.0 * scale : 2.0;
+  const double maximum_taps_value = std::ceil(support) * 2.0 + 1.0;
+  if (!std::isfinite(maximum_taps_value) || maximum_taps_value < 1.0 ||
+      maximum_taps_value >
+          static_cast<double>(std::numeric_limits<std::size_t>::max())) {
+    throw std::invalid_argument("VL resize support is outside its domain");
+  }
+  const std::size_t maximum_taps =
+      static_cast<std::size_t>(maximum_taps_value);
+  const std::size_t floating_weight_count =
+      checked_product(output_size, maximum_taps, "VL resize weights");
+  std::vector<double> floating_weights(floating_weight_count, 0.0);
+
+  ResizeAxisWeights result;
+  result.input_size = input_size;
+  result.output_size = output_size;
+  result.starts.resize(output_size);
+  result.sizes.resize(output_size);
+  double maximum_weight = 0.0;
+  const double inverse_scale = scale >= 1.0 ? 1.0 / scale : 1.0;
+  for (std::size_t output = 0; output < output_size; ++output) {
+    const double center = scale * (static_cast<double>(output) + 0.5);
+    const std::int64_t lower = static_cast<std::int64_t>(
+        center - support + 0.5);
+    const std::int64_t upper = static_cast<std::int64_t>(
+        center + support + 0.5);
+    const std::int64_t start = std::max<std::int64_t>(lower, 0);
+    const std::int64_t stop = std::min<std::int64_t>(
+        upper, static_cast<std::int64_t>(input_size));
+    const std::size_t size = static_cast<std::size_t>(std::clamp<
+        std::int64_t>(stop - start, 0,
+                      static_cast<std::int64_t>(maximum_taps)));
+    result.starts[output] = static_cast<std::size_t>(start);
+    result.sizes[output] = size;
+
+    double total_weight = 0.0;
+    double* const values =
+        floating_weights.data() + output * maximum_taps;
+    for (std::size_t tap = 0; tap < size; ++tap) {
+      const double distance =
+          (static_cast<double>(tap) + static_cast<double>(start) - center +
+           0.5) *
+          inverse_scale;
+      values[tap] = bicubic_antialias_filter(distance);
+      total_weight += values[tap];
+    }
+    if (total_weight != 0.0) {
+      for (std::size_t tap = 0; tap < size; ++tap) {
+        values[tap] /= total_weight;
+        maximum_weight = std::max(maximum_weight, values[tap]);
+      }
+    }
+  }
+
+  for (result.precision = 0; result.precision < 22;
+       ++result.precision) {
+    const std::uint64_t scale_factor =
+        std::uint64_t{1} << (result.precision + 1U);
+    const int next_value = static_cast<int>(
+        0.5 + maximum_weight * static_cast<double>(scale_factor));
+    if (next_value >= (1 << 15)) break;
+  }
+  if (result.precision == 0 || result.precision >= 22) {
+    throw std::runtime_error("VL resize weight precision is invalid");
+  }
+
+  // torchvision aligns the int16 coefficient rows to four entries for its
+  // vectorized path. The padding is zero and has no numerical contribution.
+  result.weight_stride = maximum_taps;
+  while (result.weight_stride % sizeof(std::int32_t) != 0) {
+    ++result.weight_stride;
+  }
+  result.weights.assign(
+      checked_product(output_size, result.weight_stride,
+                      "VL fixed resize weights"),
+      0);
+  const double fixed_scale = static_cast<double>(
+      std::uint64_t{1} << result.precision);
+  for (std::size_t output = 0; output < output_size; ++output) {
+    const double* const source =
+        floating_weights.data() + output * maximum_taps;
+    std::int16_t* const destination =
+        result.weights.data() + output * result.weight_stride;
+    for (std::size_t tap = 0; tap < maximum_taps; ++tap) {
+      const double scaled = source[tap] * fixed_scale;
+      const int rounded = scaled < 0.0
+                              ? static_cast<int>(scaled - 0.5)
+                              : static_cast<int>(scaled + 0.5);
+      if (rounded < std::numeric_limits<std::int16_t>::min() ||
+          rounded > std::numeric_limits<std::int16_t>::max()) {
+        throw std::runtime_error("VL resize coefficient overflows int16");
+      }
+      destination[tap] = static_cast<std::int16_t>(rounded);
+    }
+  }
+  return result;
+}
+
+unsigned char fixed_resize_sample(std::int64_t accumulated,
+                                  unsigned int precision) {
+  const std::int64_t divisor = std::int64_t{1} << precision;
+  const std::int64_t shifted =
+      accumulated >= 0
+          ? accumulated / divisor
+          : -((-accumulated + divisor - 1) / divisor);
+  return static_cast<unsigned char>(
+      std::clamp<std::int64_t>(shifted, 0, 255));
+}
+
+NativeRgbFrame resize_width(const NativeRgbFrame& frame,
+                            std::size_t output_width) {
+  if (frame.width == output_width) return frame;
+  const ResizeAxisWeights axis =
+      make_resize_axis_weights(frame.width, output_width);
+  NativeRgbFrame output;
+  output.height = frame.height;
+  output.width = output_width;
+  output.pixels.resize(checked_product(
+      checked_product(output.height, output.width, "VL resized frame"),
+      kRgbChannels, "VL resized frame"));
+  for (std::size_t y = 0; y < output.height; ++y) {
+    for (std::size_t x = 0; x < output.width; ++x) {
+      const std::size_t start = axis.starts[x];
+      const std::int16_t* const weights =
+          axis.weights.data() + x * axis.weight_stride;
+      for (std::size_t channel = 0; channel < kRgbChannels; ++channel) {
+        std::int64_t accumulated =
+            std::int64_t{1} << (axis.precision - 1U);
+        for (std::size_t tap = 0; tap < axis.sizes[x]; ++tap) {
+          const std::size_t source =
+              (y * frame.width + start + tap) * kRgbChannels + channel;
+          accumulated += static_cast<std::int64_t>(frame.pixels[source]) *
+                         weights[tap];
+        }
+        output.pixels[(y * output.width + x) * kRgbChannels + channel] =
+            fixed_resize_sample(accumulated, axis.precision);
+      }
+    }
+  }
+  return output;
+}
+
+NativeRgbFrame resize_height(const NativeRgbFrame& frame,
+                             std::size_t output_height) {
+  if (frame.height == output_height) return frame;
+  const ResizeAxisWeights axis =
+      make_resize_axis_weights(frame.height, output_height);
+  NativeRgbFrame output;
+  output.height = output_height;
+  output.width = frame.width;
+  output.pixels.resize(checked_product(
+      checked_product(output.height, output.width, "VL resized frame"),
+      kRgbChannels, "VL resized frame"));
+  for (std::size_t y = 0; y < output.height; ++y) {
+    const std::size_t start = axis.starts[y];
+    const std::int16_t* const weights =
+        axis.weights.data() + y * axis.weight_stride;
+    for (std::size_t x = 0; x < output.width; ++x) {
+      for (std::size_t channel = 0; channel < kRgbChannels; ++channel) {
+        std::int64_t accumulated =
+            std::int64_t{1} << (axis.precision - 1U);
+        for (std::size_t tap = 0; tap < axis.sizes[y]; ++tap) {
+          const std::size_t source =
+              ((start + tap) * frame.width + x) * kRgbChannels + channel;
+          accumulated += static_cast<std::int64_t>(frame.pixels[source]) *
+                         weights[tap];
+        }
+        output.pixels[(y * output.width + x) * kRgbChannels + channel] =
+            fixed_resize_sample(accumulated, axis.precision);
+      }
+    }
+  }
+  return output;
 }
 
 }  // namespace
@@ -384,6 +601,39 @@ NativeVlPixelTensor native_qwen36_patchify_resized_rgb(
     throw std::runtime_error("VL patchify tensor accounting failed");
   }
   return output;
+}
+
+NativeRgbFrame native_qwen36_resize_rgb(
+    const NativeRgbFrame& frame,
+    const NativeVlResizeGeometry& geometry) {
+  if (frame.height == 0 || frame.width == 0 ||
+      frame.pixels.size() !=
+          checked_product(checked_product(frame.height, frame.width,
+                                          "VL source RGB frame"),
+                          kRgbChannels, "VL source RGB frame")) {
+    throw std::invalid_argument("VL resize source frame is malformed");
+  }
+  if (geometry.resized_height == 0 || geometry.resized_width == 0) {
+    throw std::invalid_argument("VL resize target dimensions must be positive");
+  }
+  // The frozen torchvision implementation is separable and performs the
+  // horizontal uint8 pass before the vertical uint8 pass.
+  return resize_height(resize_width(frame, geometry.resized_width),
+                       geometry.resized_height);
+}
+
+NativeVlPixelTensor native_qwen36_process_rgb(
+    const std::vector<NativeRgbFrame>& frames,
+    const NativeVlResizeGeometry& geometry) {
+  if (frames.empty()) {
+    throw std::invalid_argument("VL processing requires at least one frame");
+  }
+  std::vector<NativeRgbFrame> resized;
+  resized.reserve(frames.size());
+  for (const NativeRgbFrame& frame : frames) {
+    resized.push_back(native_qwen36_resize_rgb(frame, geometry));
+  }
+  return native_qwen36_patchify_resized_rgb(resized, geometry);
 }
 
 std::string native_qwen36_expand_media_prompt(

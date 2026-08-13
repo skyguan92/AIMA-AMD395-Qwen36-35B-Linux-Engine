@@ -83,6 +83,18 @@ NativeVlPixelTensor native_qwen36_patchify_resized_rgb(
     const std::vector<NativeRgbFrame>& frames,
     const NativeVlResizeGeometry& geometry);
 
+// Resizes one decoded RGB8 frame with the frozen torchvision v2 uint8
+// antialiased bicubic contract. The implementation preserves the reference's
+// separable int16-weight rounding at each spatial axis.
+NativeRgbFrame native_qwen36_resize_rgb(
+    const NativeRgbFrame& frame,
+    const NativeVlResizeGeometry& geometry);
+
+// Resizes every frame and materializes the normalized Qwen patch tensor.
+NativeVlPixelTensor native_qwen36_process_rgb(
+    const std::vector<NativeRgbFrame>& frames,
+    const NativeVlResizeGeometry& geometry);
+
 // Expands already-rendered canonical image/video markers exactly as the
 // frozen Qwen3VL processor does before tokenization.
 std::string native_qwen36_expand_media_prompt(

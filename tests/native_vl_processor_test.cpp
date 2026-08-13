@@ -48,10 +48,11 @@ std::string index_sha256(const std::vector<std::size_t>& indices) {
   return aima::sha256_bytes(values.data(), values.size() * sizeof(values[0]));
 }
 
-aima::NativeRgbFrame deterministic_image() {
+aima::NativeRgbFrame deterministic_image(std::size_t height = 256,
+                                         std::size_t width = 256) {
   aima::NativeRgbFrame frame;
-  frame.height = 256;
-  frame.width = 256;
+  frame.height = height;
+  frame.width = width;
   frame.pixels.resize(frame.height * frame.width * 3);
   for (std::size_t y = 0; y < frame.height; ++y) {
     for (std::size_t x = 0; x < frame.width; ++x) {
@@ -210,6 +211,32 @@ int main() {
                   pixels.values.size() * sizeof(pixels.values[0])) ==
                   "28e3bf47e74e94a78db819016eee9ce02983f93ab86012de846a27d72a1623b8",
           "image BF16 normalize/patchify oracle drifted");
+
+  const aima::NativeRgbFrame mixed_scale_source =
+      deterministic_image(511, 333);
+  const aima::NativeVlResizeGeometry mixed_scale_geometry =
+      aima::native_qwen36_image_geometry(mixed_scale_source.height,
+                                         mixed_scale_source.width);
+  const aima::NativeRgbFrame mixed_scale_resized =
+      aima::native_qwen36_resize_rgb(mixed_scale_source,
+                                     mixed_scale_geometry);
+  require(mixed_scale_resized.height == 512 &&
+              mixed_scale_resized.width == 320 &&
+              aima::sha256_bytes(mixed_scale_resized.pixels.data(),
+                                 mixed_scale_resized.pixels.size()) ==
+                  "c95e1d293f41e6cccd327081480b7cec7728cb897b72fb0cf3f35b5ab0f539d1",
+          "mixed up/down uint8 bicubic resize oracle drifted");
+  const aima::NativeVlPixelTensor mixed_scale_pixels =
+      aima::native_qwen36_process_rgb({mixed_scale_source},
+                                      mixed_scale_geometry);
+  require(mixed_scale_pixels.rows == 640 &&
+              mixed_scale_pixels.columns == 1536 &&
+              aima::sha256_bytes(
+                  mixed_scale_pixels.values.data(),
+                  mixed_scale_pixels.values.size() *
+                      sizeof(mixed_scale_pixels.values[0])) ==
+                  "632921aa2e03490759370eff2ca8b191e0efd17417cf67516065a21249f6d4e3",
+          "mixed-scale BF16 processor oracle drifted");
   const aima::NativeVlResizeGeometry video_geometry =
       aima::native_qwen36_video_geometry(4, 256, 256);
   const aima::NativeVlPixelTensor video_pixels =
