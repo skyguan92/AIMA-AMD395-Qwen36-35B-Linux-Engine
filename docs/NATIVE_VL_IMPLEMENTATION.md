@@ -14,8 +14,8 @@ blocking condition in the governing goal can move a gate to `passed`.
 
 | Gate | Current state | Evidence required to pass | Next blocking action |
 |---|---|---|---|
-| G1 full VL functional parity | ordered chat media parts, bounded local/data/HTTP/HTTPS admission, image/video processors, resident visual weights, the complete pixel-to-visual-embedding path and media embedding injection are implemented; M-RoPE and serving remain incomplete | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | implement M-RoPE, then connect the resident language/serving path |
-| G2 VL correctness parity | reference processor/boundary/logits/generation oracles frozen; the complete native visual tower and injected prompt embeddings are bit-exact on all five blocking shapes; M-RoPE and language suites remain pending | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | qualify M-RoPE positions/delta before language layer 0 |
+| G1 full VL functional parity | ordered chat media parts, bounded local/data/HTTP/HTTPS admission, image/video processors, resident visual weights, the complete pixel-to-visual-embedding path, media embedding injection and M-RoPE planning are implemented; language consumption and serving remain incomplete | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | connect M-RoPE and injected embeddings to the resident language/serving path |
+| G2 VL correctness parity | reference processor/boundary/logits/generation oracles frozen; the complete native visual tower, injected prompt embeddings and M-RoPE positions/delta are exact on all five blocking shapes; language compute suites remain pending | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | qualify language rotary consumption and language layer 0 |
 | G3 text product no regression | frozen baseline identified | paired 19-cell, maximum-window, correctness, MMLU, API, cache, startup and memory requalification | retain `v1.5.1` as an immutable paired binary |
 | G4 native VL performance | not started | paired per-cell stage timings and memory records against the fixed VL-enabled vLLM | generate matrix cells from the capability manifest |
 | G5 native release product | not started | native-only package, security, isolated bundle, second-host, soak and rollback evidence | keep Python tooling qualification-only and outside the product runtime |
@@ -419,8 +419,28 @@ actual SHA-256 values equal their frozen oracle values, and repeated outputs
 are deterministic. Per-case diagnostic injection medians were `0.0182` to
 `0.0788 ms`; these include prompt/index host-to-device uploads but are not G4
 serving timings. The hash-bound evidence is
-`benchmarks/results/native-vl-embedding-v0.1.0.json`. M-RoPE positions/delta,
-language boundaries and serving remain unqualified, so G1 and G2 remain false.
+`benchmarks/results/native-vl-embedding-v0.1.0.json`. At that checkpoint,
+M-RoPE positions/delta, language boundaries and serving were still
+unqualified.
+
+The M-RoPE host plan now ports the pinned vLLM
+`Qwen3VLForConditionalGeneration._get_mrope_input_positions` integer contract.
+It emits contiguous row-major `int64[3,prompt_tokens]` positions, keeps video
+timestamp and vision-boundary tokens on the text sequence, emits one spatial
+grid for each temporal row, handles lumped video placeholders, and returns the
+position delta used by decode continuation. External spans and grids are
+validated for bounds, overlap, merge alignment, multiplication overflow,
+aggregate visual budget, per-frame boundary tokens and orphan placeholders.
+
+A clean `ad21b57` target build reproduced all five frozen position tensors and
+deltas exactly: 1,755 of 1,755 integers, with every actual SHA-256 equal to its
+oracle. The cases include square and non-square images, two-frame videos,
+multi-image, multi-video and mixed media; deltas range from `-24` to `-136`.
+The hash-bound evidence is
+`benchmarks/results/native-vl-mrope-v0.1.0.json`. This closes the discrete
+prompt-position boundary and implements the decode-position formula, but the
+language attention path has not yet consumed these positions in a qualified
+layer-0 run. G1 and G2 therefore remain false.
 
 `native_media_test` and `native_chat_protocol_test` both compile with strict
 warnings and pass on `amd395`. This is implementation progress, not G1 or G2

@@ -1,0 +1,162 @@
+{
+  "schema": "aima-amd395-qwen36/native-vl-mrope-qualification/v1",
+  "complete": true,
+  "recorded_at": "2026-08-14T01:25:15+08:00",
+  "host": {
+    "label": "amd395",
+    "architecture": "x86_64",
+    "gpu_arch": "gfx1151"
+  },
+  "source": {
+    "commit": "ad21b570a67bcc8a443d004bd227232495adc8e3",
+    "clean": true,
+    "qualification_bundle_sha256": "1694e1d038e6c1f6234c30d8c5973c6250f5ba8b29a4d0a51dec25abd967b0b5",
+    "bundle_prerequisite_commit": "67122a270324b1b661283618eeb8136a3293eabc",
+    "files": [
+      {
+        "path": "native/include/aima/native_mrope.h",
+        "sha256": "3faeb7817ec3289a28f20fe10051297773015792a8a07c0482efb79912354d52"
+      },
+      {
+        "path": "native/src/native_mrope.cpp",
+        "sha256": "b5b42effdda38a2cfe3405ced1d663cb263ac66bcd51b558eec14fc9ac4bb414"
+      },
+      {
+        "path": "native/tools/vl_mrope_oracle_probe.cpp",
+        "sha256": "6a8abc83438023cdd4d82f4a1447d44e3f995960c7b7d0b5febb2fcd7bbc63b0"
+      },
+      {
+        "path": "scripts/build-native-vl-mrope-probe.sh",
+        "sha256": "d2ff267399091dbd71b13abd0431036bfe7074fee84d75363390b5f3a71f60fa"
+      },
+      {
+        "path": "tests/native_mrope_test.cpp",
+        "sha256": "94424f79af0f4f552882734590387154db70e6b6df71e63a6aef65b45cd8990f"
+      }
+    ]
+  },
+  "binary": {
+    "path": "${AIMA_BUILD_DIR}/native-vl-mrope-probe",
+    "sha256": "9f76140eb56c4decc67fdfe61bb82ab3e25215f2fa87b7717d727abb2407cbf0",
+    "format": "ELF 64-bit x86-64 PIE",
+    "gpu_required": false,
+    "runtime_python": false,
+    "runtime_numpy": false,
+    "runtime_torch": false,
+    "runtime_vllm": false,
+    "runtime_triton": false
+  },
+  "reference": {
+    "reference_manifest": {
+      "path": "benchmarks/results/vl-reference-manifest.json",
+      "sha256": "8f03e939a9b15f58c2e623541d48be88c328ff19adac9eb52210e171766e9a00"
+    },
+    "full_model_oracle": {
+      "path": "benchmarks/results/vl-oracle-manifest.json",
+      "sha256": "87dcdf76b7251f78da01a2a5f4312a9fb5c7d07a1ca2b2420566e77930f23d44"
+    },
+    "algorithm": {
+      "module": "vllm.model_executor.models.qwen3_vl",
+      "source_sha256": "8ba3592a0fb481a959d6952af25a721cfaeab966558ac11214304e5cf7524d1a",
+      "function": "Qwen3VLForConditionalGeneration._get_mrope_input_positions",
+      "source_verified_on_target": true
+    }
+  },
+  "implementation_contract": {
+    "input": "uint32 prompt token ids, processor placeholder spans and image/video grid THW",
+    "output": "row-major int64 [3,prompt_tokens] positions and int64 position delta",
+    "spatial_merge_size": 2,
+    "image": "one T=1 logical H/2 by W/2 grid at the image placeholder offset",
+    "video": "one logical H/2 by W/2 grid per temporal row; timestamp and vision boundary tokens retain text positions",
+    "lumped_video": "multiple logical grids are emitted when one frame placeholder owns more than one grid of video tokens",
+    "decode_continuation": "prompt_token_count + decoded_token_offset + position_delta on all three axes",
+    "fail_closed_validation": [
+      "prompt/media count and 262144-token window",
+      "span bounds and non-overlap",
+      "positive merge-aligned grids and checked multiplication",
+      "16384 aggregate visual-token budget",
+      "image placeholder count and token kind",
+      "per-frame vision-start/end and contiguous video-pad tokens",
+      "no orphan image/video placeholder tokens"
+    ]
+  },
+  "qualification_run": {
+    "raw_result_sha256": "0ba57f2c8c1b273585bc8503470ba1f4dfc64066a64850f6dab716013dcf6f14",
+    "cases": [
+      {
+        "case_id": "image_local_png",
+        "prompt_tokens": 81,
+        "media_count": 1,
+        "elements": 243,
+        "exact_elements": 243,
+        "maximum_position": 24,
+        "expected_position_delta": -56,
+        "actual_position_delta": -56,
+        "expected_sha256": "e3db69b6c3fdb0af36ae46a32b3025bc138a274fa7f8a38725a38702998800e7",
+        "actual_sha256": "e3db69b6c3fdb0af36ae46a32b3025bc138a274fa7f8a38725a38702998800e7"
+      },
+      {
+        "case_id": "video_local_mp4",
+        "prompt_tokens": 63,
+        "media_count": 1,
+        "elements": 189,
+        "exact_elements": 189,
+        "maximum_position": 38,
+        "expected_position_delta": -24,
+        "actual_position_delta": -24,
+        "expected_sha256": "86784b879bab517dd258fa420428bf9d4289cfd590517ec42e1310b998f286bd",
+        "actual_sha256": "86784b879bab517dd258fa420428bf9d4289cfd590517ec42e1310b998f286bd"
+      },
+      {
+        "case_id": "multi_image",
+        "prompt_tokens": 182,
+        "media_count": 2,
+        "elements": 546,
+        "exact_elements": 546,
+        "maximum_position": 45,
+        "expected_position_delta": -136,
+        "actual_position_delta": -136,
+        "expected_sha256": "6056bdbfd9e74fb1e4a662eced66b0af83931dd1721fb7d4701e26e3774c00b4",
+        "actual_sha256": "6056bdbfd9e74fb1e4a662eced66b0af83931dd1721fb7d4701e26e3774c00b4"
+      },
+      {
+        "case_id": "multi_video",
+        "prompt_tokens": 128,
+        "media_count": 2,
+        "elements": 384,
+        "exact_elements": 384,
+        "maximum_position": 67,
+        "expected_position_delta": -60,
+        "actual_position_delta": -60,
+        "expected_sha256": "373f55c09c53ec44f840dfb5bd495dec867b3d8118efbe7f7a81282271e5a453",
+        "actual_sha256": "373f55c09c53ec44f840dfb5bd495dec867b3d8118efbe7f7a81282271e5a453"
+      },
+      {
+        "case_id": "mixed_image_video",
+        "prompt_tokens": 131,
+        "media_count": 2,
+        "elements": 393,
+        "exact_elements": 393,
+        "maximum_position": 50,
+        "expected_position_delta": -80,
+        "actual_position_delta": -80,
+        "expected_sha256": "9595f5029d35849f76afa73ea97d13478ad93027930d988074bbabe33cf601b6",
+        "actual_sha256": "9595f5029d35849f76afa73ea97d13478ad93027930d988074bbabe33cf601b6"
+      }
+    ]
+  },
+  "decision": {
+    "total_elements": 1755,
+    "total_exact_elements": 1755,
+    "all_sha256_exact": true,
+    "all_position_deltas_exact": true,
+    "prompt_mrope_boundary_qualified": true,
+    "decode_position_formula_implemented": true,
+    "language_rotary_consumption_qualified": false,
+    "language_layer_0_qualified": false,
+    "g1_passed": false,
+    "g2_passed": false,
+    "overall_pass": true,
+    "next_blocking_boundary": "language rotary consumption and language layer 0"
+  }
+}
