@@ -35,6 +35,9 @@ VISION_ROTARY_RESULT_PATH = (
 VISION_ATTENTION_RESULT_PATH = (
     ROOT / "benchmarks/results/native-vision-segmented-attention-v0.1.0.json"
 )
+VISION_BLOCK_SUFFIX_RESULT_PATH = (
+    ROOT / "benchmarks/results/native-vision-block-suffix-v0.1.0.json"
+)
 
 
 class NativeVisualLayoutTest(unittest.TestCase):
@@ -557,6 +560,54 @@ class NativeVisualLayoutTest(unittest.TestCase):
         self.assertIn("block_output_chained", probe)
         self.assertIn("native-vision-block-suffix-oracle/v1", probe)
         self.assertIn("vision_block_suffix_oracle_probe.hip.cpp", build)
+
+        result = json.loads(
+            VISION_BLOCK_SUFFIX_RESULT_PATH.read_text(encoding="utf-8")
+        )
+        self.assertTrue(result["complete"])
+        self.assertTrue(result["source"]["clean"])
+        self.assertEqual(
+            result["source"]["commit"],
+            "8e278f80205588ec8b00ce2c23c782f14656cd16",
+        )
+        for source_name in ("build_script", "header", "suffix", "probe", "gemm"):
+            source_record = result["source"][source_name]
+            self.assertEqual(
+                hashlib.sha256(
+                    (ROOT / source_record["path"]).read_bytes()
+                ).hexdigest(),
+                source_record["sha256"],
+            )
+        self.assertEqual(len(result["cases"]), 2)
+        expected_comparisons = {
+            "attention_projection",
+            "attention_residual",
+            "norm2",
+            "mlp_fc1",
+            "mlp_activation",
+            "mlp_fc2",
+            "block_output_isolated",
+            "block_output_chained",
+        }
+        for case in result["cases"]:
+            self.assertEqual(set(case["comparisons"]), expected_comparisons)
+            for comparison in case["comparisons"].values():
+                self.assertTrue(comparison["passed"])
+                self.assertEqual(
+                    comparison["finite_elements"], comparison["elements"]
+                )
+                self.assertLessEqual(comparison["relative_l2_error"], 0.002)
+                self.assertGreaterEqual(comparison["cosine_similarity"], 0.999)
+            for name in expected_comparisons - {"norm2", "block_output_chained"}:
+                comparison = case["comparisons"][name]
+                self.assertEqual(
+                    comparison["exact_elements"], comparison["elements"]
+                )
+        decision = result["decision"]
+        self.assertTrue(decision["overall_pass"])
+        self.assertFalse(decision["full_vision_block_qualified"])
+        self.assertFalse(decision["g1_passed"])
+        self.assertFalse(decision["g2_passed"])
 
         result = json.loads(
             VISION_ATTENTION_RESULT_PATH.read_text(encoding="utf-8")

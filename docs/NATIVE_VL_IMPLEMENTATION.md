@@ -308,6 +308,16 @@ in the first segment remained bit-exact, directly proving the frame boundary.
 The result is
 `benchmarks/results/native-vision-segmented-attention-v0.1.0.json`.
 
+The post-attention suffix is qualified independently at every arithmetic
+boundary. A clean `8e278f8` build reproduced attention projection, attention
+residual, FC1, ROCm's effective exact-GELU path, FC2 and final residual
+bit-for-bit for both cases. Norm2 differed by only 4 image and 5 video BF16
+elements; the complete suffix chain ended at relative L2 `3.54e-5` for image
+and `1.28e-4` for video. All 5,959,680 compared values were finite and the
+result is `benchmarks/results/native-vision-block-suffix-v0.1.0.json`.
+The next boundary is a single end-to-end native block invocation fed only by
+the frozen block input, rotary tables and sequence metadata.
+
 `native_media_test` and `native_chat_protocol_test` both compile with strict
 warnings and pass on `amd395`. This is implementation progress, not G1 or G2
 acceptance evidence.
