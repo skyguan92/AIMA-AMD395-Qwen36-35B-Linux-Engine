@@ -246,18 +246,20 @@ multi-video patch oracles bit-for-bit across 1,548,288 BF16 elements (128, 256,
 hash-bound result is `benchmarks/results/native-vision-patch-v0.1.0.json`.
 This result advances only the patch boundary of G2.
 
-The native position plan now interpolates the resident 48x48 BF16 table for a
+The native position plan interpolates the resident 48x48 BF16 table for a
 parameterized list of image/video grids, preserves Qwen's 2x2 spatial-merge
-order and repeats each spatial table over the temporal dimension. Its float32
-coordinate construction reproduces ATen's endpoint-directed `linspace`
-rounding, including non-square grids, and can fuse the BF16 addition into the
-patch output in place. Two independent frozen-reference captures were
-byte-identical. A clean `70bee9e` build matched four square/non-square
-image/video grids bit-for-bit across 1,105,920 BF16 elements; duplicated-media
-concatenation and zero-input in-place addition each matched another 2,211,840
-elements exactly. The result is
-`benchmarks/results/native-vision-position-v0.1.0.json`. The 27 vision blocks,
-merger and serving integration remain incomplete, so neither G1 nor G2 passes.
+order and repeats each spatial table over the temporal dimension. It can fuse
+the BF16 addition into the patch output in place. The original v0.1
+qualification was withdrawn: it captured the eager
+`pos_embed_interpolate_native` helper, while the frozen serving runtime has
+Triton enabled and selects `triton_pos_embed_interpolate`. The historical
+measurements remain in `benchmarks/results/native-vision-position-v0.1.0.json`
+with `status=withdrawn` and cannot satisfy a gate. The corrected capture binds
+the actual Triton function and the HIP implementation reproduces its fused
+float32 coordinate remainder plus gfx1151 BF16 dot-product lowering. Corrected
+clean-source qualification is required before this boundary can advance G2.
+The 27 vision blocks, merger and serving integration remain incomplete, so
+neither G1 nor G2 passes.
 
 `native_media_test` and `native_chat_protocol_test` both compile with strict
 warnings and pass on `amd395`. This is implementation progress, not G1 or G2

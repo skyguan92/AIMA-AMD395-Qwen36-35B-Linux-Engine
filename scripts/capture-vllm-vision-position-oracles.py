@@ -18,7 +18,7 @@ import sys
 from typing import Any
 
 
-SCHEMA = "aima-amd395-qwen36/vision-position-oracle/v1"
+SCHEMA = "aima-amd395-qwen36/vision-position-oracle/v2"
 MODEL_REVISION = "995ad96eacd98c81ed38be0c5b274b04031597b0"
 CONFIG_SHA256 = "93a4693fa9d8392fbfccd4b3c9873f4bfdcb14fdede978b123d07d19675efe99"
 INDEX_SHA256 = "41b9356101ebf8e7519e150dc811f80c4226e727301fbb032b890f006ed0be83"
@@ -94,6 +94,8 @@ def capture(model_dir: Path, output_dir: Path) -> dict[str, Any]:
     source_path = Path(inspect.getfile(qwen3_vl)).resolve()
     if sha256_file(source_path) != VLLM_SOURCE_SHA256:
         raise RuntimeError("qwen3_vl source differs from the frozen reference")
+    if not qwen3_vl.HAS_TRITON:
+        raise RuntimeError("frozen serving position path requires Triton")
 
     model_dir = model_dir.resolve()
     if sha256_file(model_dir / "config.json") != CONFIG_SHA256:
@@ -121,7 +123,7 @@ def capture(model_dir: Path, output_dir: Path) -> dict[str, Any]:
     cases: list[dict[str, Any]] = []
     with torch.inference_mode():
         for case_id, (temporal, height, width) in CASES.items():
-            value = qwen3_vl.pos_embed_interpolate_native(
+            value = qwen3_vl.triton_pos_embed_interpolate(
                 weight, temporal, height, width, 48, 2, torch.bfloat16
             ).contiguous()
             torch.cuda.synchronize()
@@ -152,8 +154,9 @@ def capture(model_dir: Path, output_dir: Path) -> dict[str, Any]:
         },
         "runtime": versions,
         "reference": {
-            "function": "vllm.model_executor.models.qwen3_vl.pos_embed_interpolate_native",
+            "function": "vllm.model_executor.models.qwen3_vl.triton_pos_embed_interpolate",
             "source_sha256": VLLM_SOURCE_SHA256,
+            "has_triton": True,
             "num_grid_per_side": 48,
             "spatial_merge_size": 2,
             "device": "cuda",

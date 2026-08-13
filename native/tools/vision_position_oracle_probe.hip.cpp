@@ -58,6 +58,9 @@ struct Comparison {
   std::size_t elements = 0;
   std::size_t exact_elements = 0;
   std::size_t finite_elements = 0;
+  std::size_t first_mismatch_index = std::numeric_limits<std::size_t>::max();
+  std::uint16_t first_expected_bits = 0;
+  std::uint16_t first_actual_bits = 0;
   double maximum_absolute_error = 0.0;
   double relative_l2_error = 0.0;
   double cosine_similarity = 0.0;
@@ -88,7 +91,14 @@ Comparison compare_bf16(const void* actual_device, std::size_t bytes,
                 sizeof(expected_bits));
     std::memcpy(&actual_bits, actual.data() + index * sizeof(actual_bits),
                 sizeof(actual_bits));
-    if (expected_bits == actual_bits) ++result.exact_elements;
+    if (expected_bits == actual_bits) {
+      ++result.exact_elements;
+    } else if (result.first_mismatch_index ==
+               std::numeric_limits<std::size_t>::max()) {
+      result.first_mismatch_index = index;
+      result.first_expected_bits = expected_bits;
+      result.first_actual_bits = actual_bits;
+    }
     const double expected_value = bf16_to_float(expected_bits);
     const double actual_value = bf16_to_float(actual_bits);
     if (std::isfinite(actual_value)) ++result.finite_elements;
@@ -185,7 +195,7 @@ int main(int argc, char** argv) {
                         zero_add_exact == 2 * comparison.elements;
     std::cout << std::setprecision(17)
               << "{\"schema\":\"aima-amd395-qwen36/"
-                 "native-vision-position-oracle/v1\","
+                 "native-vision-position-oracle/v2\","
               << "\"complete\":" << (passed ? "true" : "false") << ','
               << "\"grid_thw\":[" << grid.temporal << ',' << grid.height
               << ',' << grid.width << "],"
@@ -193,6 +203,16 @@ int main(int argc, char** argv) {
               << "\"elements\":" << comparison.elements << ','
               << "\"exact_elements\":" << comparison.exact_elements << ','
               << "\"finite_elements\":" << comparison.finite_elements << ','
+              << "\"first_mismatch_index\":"
+              << (comparison.first_mismatch_index ==
+                          std::numeric_limits<std::size_t>::max()
+                      ? -1LL
+                      : static_cast<long long>(
+                            comparison.first_mismatch_index))
+              << ',' << "\"first_expected_bits\":"
+              << comparison.first_expected_bits << ','
+              << "\"first_actual_bits\":" << comparison.first_actual_bits
+              << ','
               << "\"concatenated_exact_elements\":" << concatenated_exact
               << ',' << "\"zero_add_exact_elements\":" << zero_add_exact
               << ','

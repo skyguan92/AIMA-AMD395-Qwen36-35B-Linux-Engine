@@ -10,6 +10,7 @@
 #include <hip/hip_runtime.h>
 
 #include <array>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -53,18 +54,38 @@ std::size_t checked_product(std::size_t left, std::size_t right,
   return left * right;
 }
 
-__device__ float torch_linspace_coordinate(std::size_t index,
-                                            std::size_t count) {
-  if (count <= 1) return 0.0f;
-  const float step = static_cast<float>(kPositionGridSide - 1) /
-                     static_cast<float>(count - 1);
-  if (index < count / 2) return static_cast<float>(index) * step;
-  // ATen constructs the upper half from the endpoint. Preserve the rounded
-  // multiplication before subtraction so compiler contraction cannot change
-  // torch.linspace's float32 coordinates by one ULP.
-  const volatile float reverse_distance =
-      static_cast<float>(count - index - 1) * step;
-  return static_cast<float>(kPositionGridSide - 1) - reverse_distance;
+__device__ float triton_position_scale(std::size_t count) {
+  return count <= 1 ? 0.0f
+                    : static_cast<float>(kPositionGridSide - 1) /
+                          static_cast<float>(count - 1);
+}
+
+__device__ float triton_position_coordinate(std::size_t index, float scale) {
+  return static_cast<float>(index) * scale;
+}
+
+__device__ float triton_position_fraction(std::size_t index, float scale,
+                                          std::size_t floor) {
+  // Triton's gfx1151 lowering fuses index * scale - floor even though the
+  // separately consumed coordinate is rounded to float32 first.
+  return fmaf(static_cast<float>(index), scale,
+              -static_cast<float>(floor));
+}
+
+__device__ __hip_bfloat16 triton_bf16_product(__hip_bfloat16 left,
+                                              __hip_bfloat16 right) {
+  const __hip_bfloat16_raw left_raw = left;
+  const __hip_bfloat16_raw right_raw = right;
+  const std::uint32_t left_pair = left_raw.x;
+  const std::uint32_t right_pair = right_raw.x;
+  std::uint32_t result = 0;
+  // Triton lowers a scalar BF16 multiply on gfx1151 to a packed dot product
+  // whose unused upper lanes and BF16 accumulator are zero.
+  asm volatile("v_dot2_bf16_bf16 %0, %1, %2, 0"
+               : "=v"(result)
+               : "v"(left_pair), "v"(right_pair));
+  return __hip_bfloat16(__hip_bfloat16_raw{
+      static_cast<unsigned short>(result & 0xffffU)});
 }
 
 __global__ void vision_position_kernel(
@@ -86,16 +107,18 @@ __global__ void vision_position_kernel(
   const std::size_t source_x =
       (merged_cell % merged_width) * kNativeVlMergeSize + inner % 2;
 
-  const float y_position = torch_linspace_coordinate(source_y, height);
-  const float x_position = torch_linspace_coordinate(source_x, width);
+  const float y_scale = triton_position_scale(height);
+  const float x_scale = triton_position_scale(width);
+  const float y_position = triton_position_coordinate(source_y, y_scale);
+  const float x_position = triton_position_coordinate(source_x, x_scale);
   const std::size_t y_floor = static_cast<std::size_t>(y_position);
   const std::size_t x_floor = static_cast<std::size_t>(x_position);
   const std::size_t y_ceil =
       y_floor + 1 < kPositionGridSide ? y_floor + 1 : y_floor;
   const std::size_t x_ceil =
       x_floor + 1 < kPositionGridSide ? x_floor + 1 : x_floor;
-  const float dy = y_position - static_cast<float>(y_floor);
-  const float dx = x_position - static_cast<float>(x_floor);
+  const float dy = triton_position_fraction(source_y, y_scale, y_floor);
+  const float dx = triton_position_fraction(source_x, x_scale, x_floor);
   const float w11 = dy * dx;
   const float w10 = dy - w11;
   const float w01 = dx - w11;
@@ -113,17 +136,22 @@ __global__ void vision_position_kernel(
       (y_ceil * kPositionGridSide + x_floor) * kVisionHidden + hidden;
   const std::size_t table11 =
       (y_ceil * kPositionGridSide + x_ceil) * kVisionHidden + hidden;
-  const __hip_bfloat16 product00 = __float2bfloat16(
-      __bfloat162float(table[table00]) * __bfloat162float(weight00));
-  const __hip_bfloat16 product01 = __float2bfloat16(
-      __bfloat162float(table[table01]) * __bfloat162float(weight01));
-  const __hip_bfloat16 product10 = __float2bfloat16(
-      __bfloat162float(table[table10]) * __bfloat162float(weight10));
-  const __hip_bfloat16 product11 = __float2bfloat16(
-      __bfloat162float(table[table11]) * __bfloat162float(weight11));
+  // Triton's semantic layer keeps BF16 x BF16 arithmetic in BF16 for this
+  // expression. Preserve its left-associative multiply/add rounding points.
+  const __hip_bfloat16 product00 =
+      triton_bf16_product(weight00, table[table00]);
+  const __hip_bfloat16 product01 =
+      triton_bf16_product(weight01, table[table01]);
+  const __hip_bfloat16 product10 =
+      triton_bf16_product(weight10, table[table10]);
+  const __hip_bfloat16 product11 =
+      triton_bf16_product(weight11, table[table11]);
+  const __hip_bfloat16 sum01 = __float2bfloat16(
+      __bfloat162float(product00) + __bfloat162float(product01));
+  const __hip_bfloat16 sum012 = __float2bfloat16(
+      __bfloat162float(sum01) + __bfloat162float(product10));
   const __hip_bfloat16 position = __float2bfloat16(
-      (__bfloat162float(product00) + __bfloat162float(product01)) +
-      (__bfloat162float(product10) + __bfloat162float(product11)));
+      __bfloat162float(sum012) + __bfloat162float(product11));
   const std::size_t output_index = output_row_offset * kVisionHidden + index;
   output[output_index] =
       patch_embeddings == nullptr

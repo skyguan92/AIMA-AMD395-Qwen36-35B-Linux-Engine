@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_PATH = ROOT / "engine" / "native-visual-weight-manifest.json"
 HEADER_PATH = ROOT / "native" / "generated" / "visual_model_layout.h"
 PATCH_RESULT_PATH = ROOT / "benchmarks/results/native-vision-patch-v0.1.0.json"
-POSITION_RESULT_PATH = (
+WITHDRAWN_POSITION_RESULT_PATH = (
     ROOT / "benchmarks/results/native-vision-position-v0.1.0.json"
 )
 
@@ -205,10 +205,14 @@ class NativeVisualLayoutTest(unittest.TestCase):
         ).read_text(encoding="utf-8")
         self.assertIn("class NativeVisionPositionPlan", header)
         self.assertIn("launch_add", header)
-        self.assertIn("torch_linspace_coordinate", source)
+        self.assertIn("triton_position_coordinate", source)
+        self.assertIn("triton_position_fraction", source)
+        self.assertIn("triton_bf16_product", source)
+        self.assertIn("v_dot2_bf16_bf16", source)
+        self.assertIn("fmaf", source)
         self.assertIn("model.visual.pos_embed.weight", source)
         self.assertIn("kNativeVlMergeSize", source)
-        self.assertIn("pos_embed_interpolate_native", capture)
+        self.assertIn("triton_pos_embed_interpolate", capture)
         self.assertIn(
             "8ba3592a0fb481a959d6952af25a721cfaeab966558ac11214304e5cf7524d1a",
             capture,
@@ -217,51 +221,13 @@ class NativeVisualLayoutTest(unittest.TestCase):
         self.assertIn("zero_add_exact_elements", probe)
         self.assertIn("vision_position_oracle_probe.hip.cpp", build)
 
-        result = json.loads(POSITION_RESULT_PATH.read_text(encoding="utf-8"))
-        self.assertTrue(result["complete"])
-        self.assertTrue(result["source"]["clean"])
-        self.assertEqual(
-            result["source"]["commit"],
-            "70bee9eceb9f714c49e36677dba0016fa025de69",
+        withdrawn = json.loads(
+            WITHDRAWN_POSITION_RESULT_PATH.read_text(encoding="utf-8")
         )
-        for source_name in (
-            "build_script",
-            "reference_capture",
-            "vision_encoder",
-            "probe",
-        ):
-            source_record = result["source"][source_name]
-            self.assertEqual(
-                hashlib.sha256(
-                    (ROOT / source_record["path"]).read_bytes()
-                ).hexdigest(),
-                source_record["sha256"],
-            )
-        self.assertEqual(result["oracle"]["independent_identical_captures"], 2)
-        self.assertEqual(len(result["cases"]), 4)
-        self.assertTrue(result["decision"]["overall_pass"])
-        self.assertEqual(
-            result["decision"]["total_elements"],
-            result["decision"]["total_exact_elements"],
-        )
-        self.assertEqual(
-            result["decision"]["total_elements"],
-            sum(case["elements"] for case in result["cases"]),
-        )
-        self.assertEqual(
-            result["decision"]["total_concatenated_exact_elements"],
-            2 * result["decision"]["total_elements"],
-        )
-        self.assertEqual(
-            result["decision"]["total_zero_add_exact_elements"],
-            2 * result["decision"]["total_elements"],
-        )
-        self.assertTrue(
-            all(
-                case["expected_sha256"] == case["actual_sha256"]
-                for case in result["cases"]
-            )
-        )
+        self.assertFalse(withdrawn["complete"])
+        self.assertEqual(withdrawn["status"], "withdrawn")
+        self.assertTrue(withdrawn["withdrawal"]["serving_path_has_triton"])
+        self.assertFalse(withdrawn["decision"]["overall_pass"])
 
 
 if __name__ == "__main__":

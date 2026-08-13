@@ -1,6 +1,14 @@
 {
   "schema": "aima-amd395-qwen36/native-vision-position-qualification/v1",
-  "complete": true,
+  "complete": false,
+  "status": "withdrawn",
+  "withdrawn_at": "2026-08-13T21:12:04+08:00",
+  "withdrawal": {
+    "reason": "The capture selected pos_embed_interpolate_native, but the frozen serving path selects triton_pos_embed_interpolate when HAS_TRITON is true.",
+    "serving_path_has_triton": true,
+    "historical_measurements_preserved": true,
+    "replacement": "benchmarks/results/native-vision-position-v0.2.0.json"
+  },
   "captured_at": "2026-08-13T20:45:26+08:00",
   "host": {
     "label": "amd395",
@@ -131,6 +139,6 @@
     "total_zero_add_exact_elements": 2211840,
     "all_finite": true,
     "all_sha256_exact": true,
-    "overall_pass": true
+    "overall_pass": false
   }
 }
