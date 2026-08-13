@@ -9,6 +9,7 @@
 #include "aima/native_weight_store.h"
 #include "aima/sha256.h"
 
+#include <hip/hip_bf16.h>
 #include <hip/hip_runtime.h>
 
 #include <algorithm>
