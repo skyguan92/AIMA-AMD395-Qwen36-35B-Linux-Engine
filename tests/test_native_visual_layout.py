@@ -434,6 +434,28 @@ class NativeVisualLayoutTest(unittest.TestCase):
         self.assertFalse(decision["g1_passed"])
         self.assertFalse(decision["g2_passed"])
 
+    def test_vision_rotary_has_an_isolated_native_probe(self) -> None:
+        header = (
+            ROOT / "native/include/aima/native_vision_rotary.h"
+        ).read_text(encoding="utf-8")
+        source = (
+            ROOT / "native/src/native_vision_rotary.hip.cpp"
+        ).read_text(encoding="utf-8")
+        probe = (
+            ROOT / "native/tools/vision_rotary_oracle_probe.hip.cpp"
+        ).read_text(encoding="utf-8")
+        build = (
+            ROOT / "scripts/build-native-vision-rotary-probe.sh"
+        ).read_text(encoding="utf-8")
+        self.assertIn("class NativeVisionRotaryPlan", header)
+        self.assertIn("vision_rotary_kernel", source)
+        self.assertIn("kVisionRotaryHalfDimension = 36", source)
+        self.assertIn("fmaf", source)
+        self.assertIn("native-vision-rotary-oracle/v1", probe)
+        self.assertIn("value_comparison.exact_elements", probe)
+        self.assertIn("vision_rotary_oracle_probe.hip.cpp", build)
+        self.assertIn("native_vision_rotary.hip.cpp", build)
+
 
 if __name__ == "__main__":
     unittest.main()
