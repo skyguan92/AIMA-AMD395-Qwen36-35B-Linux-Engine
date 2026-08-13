@@ -15,7 +15,7 @@ blocking condition in the governing goal can move a gate to `passed`.
 | Gate | Current state | Evidence required to pass | Next blocking action |
 |---|---|---|---|
 | G1 full VL functional parity | capability envelope qualified; native implementation not started | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | implement the native media and model path against the frozen capability manifest |
-| G2 VL correctness parity | reference freeze in progress | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | capture the final reference manifest, then capture boundary oracles |
+| G2 VL correctness parity | reference frozen; oracle capture pending | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | capture processor, boundary, logits and generation oracles |
 | G3 text product no regression | frozen baseline identified | paired 19-cell, maximum-window, correctness, MMLU, API, cache, startup and memory requalification | retain `v1.5.1` as an immutable paired binary |
 | G4 native VL performance | not started | paired per-cell stage timings and memory records against the fixed VL-enabled vLLM | generate matrix cells from the capability manifest |
 | G5 native release product | not started | native-only package, security, isolated bundle, second-host, soak and rollback evidence | keep Python tooling qualification-only and outside the product runtime |
@@ -87,5 +87,8 @@ The live processor and server probes additionally established:
   tensors, so vision inclusion is a bounded approximately 0.9 GB weight
   addition; the unrelated MTP tensors remain outside this goal.
 
-These observations remain discovery evidence until the generated reference
-manifest binds the target host, runtime, model, launch and capability hashes.
+The generated reference manifest has now bound the target host, runtime,
+model, launch and capability hashes. It was captured from clean commit
+`7d9813992d12f64bf668a04e9f25d17736dd984f`, then independently verified by a
+second full read of all checkpoint shards. Its file SHA-256 is
+`8f03e939a9b15f58c2e623541d48be88c328ff19adac9eb52210e171766e9a00`.

@@ -1,0 +1,672 @@
+{
+  "baseline": {
+    "goal_document": {
+      "bytes": 17451,
+      "path": "docs/NATIVE_VL_GOAL.md",
+      "sha256": "245c9082a25b2e462d89a0494cff56cc656da97ca38461cf78957cdbd4f3767c"
+    },
+    "native_source_commit": "65c198415709dad6d046c247acab3dc9df2a95a0",
+    "product_contract": {
+      "bytes": 7338,
+      "path": "native/product-contract-v1.5.1.json",
+      "sha256": "a88792ace6abd8cf25ee2600ccd26bbb241c7efb44cc73e9f2730abdc0b82a9d"
+    },
+    "release": "v1.5.1",
+    "release_commit": "6f3e669ac897eaabfeceb7f193a5e02708a4d95e"
+  },
+  "capability_manifest": {
+    "bytes": 86659,
+    "path": "benchmarks/results/vl-capability-manifest.json",
+    "sha256": "72e64b8d5cb0c1de8a355617676c46c98c1e0f05cec7a6e3a7df79dd36560d7a"
+  },
+  "capture_inputs": {
+    "launch_config": {
+      "bytes": 3061,
+      "path": "benchmarks/results/vl-reference-launch.json",
+      "sha256": "37eb1ea904b010a06c48095e5dc6acf0561aa129ede1f14251b1b82d2d2ebe8b"
+    }
+  },
+  "capture_source": {
+    "commit": "7d9813992d12f64bf668a04e9f25d17736dd984f",
+    "dirty": false,
+    "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "captured_at": "2026-08-13T08:56:57+00:00",
+  "complete": true,
+  "host": {
+    "cpu_model": "AMD RYZEN AI MAX+ 395 w/ Radeon 8060S",
+    "device_nodes": [
+      {
+        "character_device": true,
+        "major": 236,
+        "minor": 0,
+        "mode": "0o660",
+        "path": "/dev/kfd",
+        "present": true
+      },
+      {
+        "character_device": true,
+        "major": 226,
+        "minor": 128,
+        "mode": "0o660",
+        "path": "/dev/dri/renderD128",
+        "present": true
+      }
+    ],
+    "ffmpeg": {
+      "available": false,
+      "command": [
+        "ffmpeg",
+        "-version"
+      ]
+    },
+    "ffprobe": {
+      "available": false,
+      "command": [
+        "ffprobe",
+        "-version"
+      ]
+    },
+    "hostname": "quings",
+    "kernel": {
+      "machine": "x86_64",
+      "release": "6.14.0-1020-oem",
+      "system": "Linux"
+    },
+    "label": "amd395",
+    "logical_cpu_count": 32,
+    "mem_total_kib": 131015864,
+    "os_release": {
+      "ID": "ubuntu",
+      "PRETTY_NAME": "Ubuntu 24.04.3 LTS",
+      "VERSION_ID": "24.04"
+    },
+    "rocm_smi": {
+      "available": true,
+      "command": [
+        "rocm-smi",
+        "--showproductname",
+        "--showdriverversion",
+        "--showvbios"
+      ],
+      "executable": {
+        "bytes": 107,
+        "path": "rocm-smi",
+        "sha256": "09efc32e038e0733ae4cb5a296d4686fe9664a712101bf6035fd139215cdc75e"
+      },
+      "output_bytes": 1211,
+      "output_sha256": "175bb0ba6a6cb0a0a9ee5ad6cf5fa6f8c958cb618df47b385c3b4b5f1a94cbf4",
+      "returncode": 0
+    },
+    "rocm_versions": {
+      "/opt/rocm/.info/version": "7.2.0"
+    },
+    "rocminfo": {
+      "available": true,
+      "command": [
+        "rocminfo"
+      ],
+      "executable": {
+        "bytes": 72040,
+        "path": "rocminfo",
+        "sha256": "699559df30995dd478b47fb7bde9efeea53899b1ef6e408722f3c1d0adad265a"
+      },
+      "gpu_architectures": [
+        "gfx11",
+        "gfx1151"
+      ],
+      "output_bytes": 14662,
+      "output_sha256": "431fa729476dcf615a23426dd2a439cdc8a46b13aaa7d7d86e46694fb0a96ec8",
+      "returncode": 0
+    }
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "canonical_payload_sha256": "83c91a47bb2b8a589b6838722006a927ee7b65e0f7a27862a3df676d9a9605d9"
+  },
+  "launch": {
+    "argv": [
+      "${AIMA_VLLM_PYTHON}",
+      "-m",
+      "vllm.entrypoints.openai.api_server",
+      "--model",
+      "${AIMA_MODEL_DIR}",
+      "--served-model-name",
+      "qwen36-vl-reference",
+      "--host",
+      "127.0.0.1",
+      "--port",
+      "${AIMA_VL_PORT}",
+      "--trust-remote-code",
+      "--dtype",
+      "bfloat16",
+      "--max-model-len",
+      "262144",
+      "--max-num-seqs",
+      "1",
+      "--max-num-batched-tokens",
+      "16384",
+      "--enable-chunked-prefill",
+      "--gpu-memory-utilization",
+      "0.95",
+      "--attention-backend",
+      "TRITON_ATTN",
+      "--mm-encoder-attn-backend",
+      "TRITON_ATTN",
+      "--gdn-prefill-backend",
+      "triton",
+      "--enforce-eager",
+      "--no-async-scheduling",
+      "--no-enable-prefix-caching",
+      "--enable-auto-tool-choice",
+      "--tool-call-parser",
+      "qwen3_xml",
+      "--no-language-model-only",
+      "--no-skip-mm-profiling",
+      "--limit-mm-per-prompt",
+      "{\"image\":16,\"video\":21}",
+      "--allowed-local-media-path",
+      "${AIMA_ALLOWED_MEDIA_ROOT}",
+      "--allowed-media-domains",
+      "localhost",
+      "127.0.0.1",
+      "--media-io-kwargs",
+      "{\"video\":{\"fps\":2.0,\"video_backend\":\"opencv\"}}",
+      "--mm-processor-kwargs",
+      "{}",
+      "--mm-processor-cache-gb",
+      "4",
+      "--video-pruning-rate",
+      "0",
+      "--load-format",
+      "safetensors",
+      "--tensor-parallel-size",
+      "1"
+    ],
+    "capability_manifest": {
+      "bytes": 86659,
+      "path": "benchmarks/results/vl-capability-manifest.json",
+      "schema": "aima-amd395-qwen36/vl-capability-manifest/v1",
+      "sha256": "72e64b8d5cb0c1de8a355617676c46c98c1e0f05cec7a6e3a7df79dd36560d7a"
+    },
+    "environment_policy": {
+      "inherit": false,
+      "variables": {
+        "HF_HUB_OFFLINE": "1",
+        "HIP_PATH": "/opt/rocm",
+        "LANG": "C.UTF-8",
+        "LD_LIBRARY_PATH": "/opt/rocm/lib:/opt/rocm/lib64",
+        "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+        "PYTHONHASHSEED": "0",
+        "PYTORCH_ALLOC_CONF": "expandable_segments:True",
+        "PYTORCH_ROCM_ARCH": "gfx1151",
+        "ROCM_PATH": "/opt/rocm",
+        "TRANSFORMERS_OFFLINE": "1",
+        "VLLM_IMAGE_FETCH_TIMEOUT": "10",
+        "VLLM_VIDEO_FETCH_TIMEOUT": "30",
+        "VLLM_VIDEO_LOADER_BACKEND": "opencv"
+      }
+    },
+    "measurement_boundary": {
+      "decode": true,
+      "llm_prefill": true,
+      "media_decode": true,
+      "media_fetch": true,
+      "processor": true,
+      "total_latency": true,
+      "ttft": true,
+      "vision_encode": true
+    },
+    "media_policy": {
+      "aggregate_encoder_token_budget": 16384,
+      "allowed_local_media_paths": [
+        "${AIMA_ALLOWED_MEDIA_ROOT}"
+      ],
+      "allowed_media_domains": [
+        "localhost",
+        "127.0.0.1"
+      ],
+      "limits": {
+        "image": 16,
+        "video": 21
+      },
+      "max_tokens_per_item": {
+        "image": 16384,
+        "video": 12288
+      },
+      "media_io_kwargs": {
+        "video": {
+          "fps": 2.0,
+          "video_backend": "opencv"
+        }
+      },
+      "mm_processor_kwargs": {},
+      "processor_cache_gb": 4,
+      "video_pruning_rate": 0
+    },
+    "schema": "aima-amd395-qwen36/vl-reference-launch/v1"
+  },
+  "model": {
+    "checkpoint_payload_bytes": 71903645408.0,
+    "dtype": "bfloat16",
+    "files": {
+      "config.json": {
+        "bytes": 3686,
+        "path": "config.json",
+        "sha256": "93a4693fa9d8392fbfccd4b3c9873f4bfdcb14fdede978b123d07d19675efe99"
+      },
+      "model-00001-of-00026.safetensors": {
+        "bytes": 3996199712,
+        "path": "model-00001-of-00026.safetensors",
+        "sha256": "adee7bcb930aed22e0677e58d4873b48dadb1ed8001cb5c6a0487286eadb3478"
+      },
+      "model-00002-of-00026.safetensors": {
+        "bytes": 1284907696,
+        "path": "model-00002-of-00026.safetensors",
+        "sha256": "88f2dfd2b9e73e4b70be533dbf61bcfa3c9a0003758900fcbc9d9b96f5751d4b"
+      },
+      "model-00003-of-00026.safetensors": {
+        "bytes": 3357898360,
+        "path": "model-00003-of-00026.safetensors",
+        "sha256": "8f7d72178d3f4431864978e5bcfa4c6cb1c204bc00590644d90bb19d6d522eeb"
+      },
+      "model-00004-of-00026.safetensors": {
+        "bytes": 3370808712,
+        "path": "model-00004-of-00026.safetensors",
+        "sha256": "12d7db38689ba3c8af74b23ef8523eca41e0cd95db870583d0663a3ee8a6bd60"
+      },
+      "model-00005-of-00026.safetensors": {
+        "bytes": 3357898360,
+        "path": "model-00005-of-00026.safetensors",
+        "sha256": "a836047305d0f7a7b50f0815d09d5c03ec03d59ec2c763fcdc4bf7e9936bf902"
+      },
+      "model-00006-of-00026.safetensors": {
+        "bytes": 3959424904,
+        "path": "model-00006-of-00026.safetensors",
+        "sha256": "c9080d718e9c5f9e337443225aa417d4c24d00ae7995d76ee3f1cc296b557d15"
+      },
+      "model-00007-of-00026.safetensors": {
+        "bytes": 1096788232,
+        "path": "model-00007-of-00026.safetensors",
+        "sha256": "e8c05e23131b1dd45a455ec38cfac7db14667358268623c3938d00cf3e959a68"
+      },
+      "model-00008-of-00026.safetensors": {
+        "bytes": 3946842008,
+        "path": "model-00008-of-00026.safetensors",
+        "sha256": "4b6a6d495053089f4a80e7cbc82e848fba44e2c0c60122233d8fdff79fa7b296"
+      },
+      "model-00009-of-00026.safetensors": {
+        "bytes": 1096460848,
+        "path": "model-00009-of-00026.safetensors",
+        "sha256": "a31a954bb72d1c714e751bf0aabf2ff533f5a509693ebf7dd22ad6e90be46f67"
+      },
+      "model-00010-of-00026.safetensors": {
+        "bytes": 3946841992,
+        "path": "model-00010-of-00026.safetensors",
+        "sha256": "246560e66570fe746653b8443e245dc334c9b8b831ea43d2d9f1b7d98623994e"
+      },
+      "model-00011-of-00026.safetensors": {
+        "bytes": 1096460752,
+        "path": "model-00011-of-00026.safetensors",
+        "sha256": "7180392817fe3ecb3a27a1da43b7ff22c1a94806bac49975f9f122c3126df675"
+      },
+      "model-00012-of-00026.safetensors": {
+        "bytes": 3409971080,
+        "path": "model-00012-of-00026.safetensors",
+        "sha256": "043fb525f6625c2f2acb75e65a9959ee3fa7b6e3fdd2034b5cfe1859b01d3cfb"
+      },
+      "model-00013-of-00026.safetensors": {
+        "bytes": 1633331664,
+        "path": "model-00013-of-00026.safetensors",
+        "sha256": "33a20fb20a21379bf43c84a43105f9c0cc35bd50d740b1c302dcbe4b700f5425"
+      },
+      "model-00014-of-00026.safetensors": {
+        "bytes": 3422553872,
+        "path": "model-00014-of-00026.safetensors",
+        "sha256": "be823e33c5cb6120ad3769d081f34a2449dc2358041fca7c29d636c1ba19130d"
+      },
+      "model-00015-of-00026.safetensors": {
+        "bytes": 1633659224,
+        "path": "model-00015-of-00026.safetensors",
+        "sha256": "a89d547c6f9d0b535ee5ea2f2478f163089539f3f0dd330cb23d278a19d76123"
+      },
+      "model-00016-of-00026.safetensors": {
+        "bytes": 3946842136,
+        "path": "model-00016-of-00026.safetensors",
+        "sha256": "69fc3ae0316482288afdcdd0b9eb7d626703ae26f7567e89aa3fc8d1ffd4ff5b"
+      },
+      "model-00017-of-00026.safetensors": {
+        "bytes": 1096460608,
+        "path": "model-00017-of-00026.safetensors",
+        "sha256": "e356e3943cf3852b76bb8992e674f3256013e27d54b78e8250514151cdc29637"
+      },
+      "model-00018-of-00026.safetensors": {
+        "bytes": 3946841992,
+        "path": "model-00018-of-00026.safetensors",
+        "sha256": "9e5e63fd1cc7d6848330c1fa363dfcb661bbc2ac87e672d0e28b71c9cb7f3c7f"
+      },
+      "model-00019-of-00026.safetensors": {
+        "bytes": 1096460808,
+        "path": "model-00019-of-00026.safetensors",
+        "sha256": "708644ad34f1de727bf484f396944d8ec628645d52c183e9a992e65671685e21"
+      },
+      "model-00020-of-00026.safetensors": {
+        "bytes": 3409971072,
+        "path": "model-00020-of-00026.safetensors",
+        "sha256": "ca083a1d1aa64f8e8a785998f543a43374f13436dc85d396eee4e72c7a84e1ae"
+      },
+      "model-00021-of-00026.safetensors": {
+        "bytes": 1633331744,
+        "path": "model-00021-of-00026.safetensors",
+        "sha256": "ada4ae48f3d48fe01b4c53f2f82bce25e798a9631fd33959c881156fef2ccbce"
+      },
+      "model-00022-of-00026.safetensors": {
+        "bytes": 3370808752,
+        "path": "model-00022-of-00026.safetensors",
+        "sha256": "def207fb42d7db31efb512755557763c23233c6e4d4c433027cb5102a7bce2f7"
+      },
+      "model-00023-of-00026.safetensors": {
+        "bytes": 3357898392,
+        "path": "model-00023-of-00026.safetensors",
+        "sha256": "864d52ca7768a36f514069222e8de8626264ae124097ba8fcce5b5da2c6e2ed7"
+      },
+      "model-00024-of-00026.safetensors": {
+        "bytes": 3370808752,
+        "path": "model-00024-of-00026.safetensors",
+        "sha256": "391acd27420cdce5935ff18152423c70620d19dac3c39a5ef1a81d369f82d737"
+      },
+      "model-00025-of-00026.safetensors": {
+        "bytes": 3832888256,
+        "path": "model-00025-of-00026.safetensors",
+        "sha256": "778e7f76602f05042b69ba7f3ec91f1fdffef390540b16074041c258fb81d154"
+      },
+      "model-00026-of-00026.safetensors": {
+        "bytes": 2231416848,
+        "path": "model-00026-of-00026.safetensors",
+        "sha256": "1a97404220077ed3d4182e10385b152004cab608377f50cec9f54a6b8d28b613"
+      },
+      "model.safetensors.index.json": {
+        "bytes": 98383,
+        "path": "model.safetensors.index.json",
+        "sha256": "41b9356101ebf8e7519e150dc811f80c4226e727301fbb032b890f006ed0be83"
+      },
+      "preprocessor_config.json": {
+        "bytes": 390,
+        "path": "preprocessor_config.json",
+        "sha256": "27225450ac9c6529872ee1924fcb0962ff5634834f817040f444118116f4e516"
+      },
+      "tokenizer.json": {
+        "bytes": 12807982,
+        "path": "tokenizer.json",
+        "sha256": "5f9e4d4901a92b997e463c1f46055088b6cca5ca61a6522d1b9f64c4bb81cb42"
+      },
+      "tokenizer_config.json": {
+        "bytes": 16718,
+        "path": "tokenizer_config.json",
+        "sha256": "5186f0defcd7f232382c7f0aebcd2252d073bb921ab240e407b7ae8745d2b29b"
+      },
+      "video_preprocessor_config.json": {
+        "bytes": 385,
+        "path": "video_preprocessor_config.json",
+        "sha256": "7768af27c1fafa9cc9011c1dc20067e03f8915e03b63504550e11d5066986d13"
+      }
+    },
+    "model_dir": "${AIMA_MODEL_DIR}",
+    "repository": "Qwen/Qwen3.6-35B-A3B",
+    "revision": "995ad96eacd98c81ed38be0c5b274b04031597b0",
+    "tensor_count": 1045
+  },
+  "processor": {
+    "chat_template_sha256": "e84f32a23fdda27689f868aa4a1a5621f41133e51a48d7f3efcbea2839574259",
+    "class": "transformers.models.qwen3_vl.processing_qwen3_vl.Qwen3VLProcessor",
+    "image": {
+      "class": "transformers.models.qwen2_vl.image_processing_qwen2_vl_fast.Qwen2VLImageProcessorFast",
+      "parameters": {
+        "do_convert_rgb": true,
+        "do_normalize": true,
+        "do_rescale": true,
+        "do_resize": true,
+        "fps": null,
+        "image_mean": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "image_std": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "max_frames": null,
+        "merge_size": 2,
+        "min_frames": null,
+        "patch_size": 16,
+        "rescale_factor": 0.00392156862745098,
+        "size": {
+          "longest_edge": 16777216,
+          "shortest_edge": 65536
+        },
+        "temporal_patch_size": 2
+      }
+    },
+    "special_tokens": {
+      "image_token": "<|image_pad|>",
+      "image_token_id": 248056,
+      "video_token": "<|video_pad|>",
+      "video_token_id": 248057,
+      "vision_end_token": "<|vision_end|>",
+      "vision_end_token_id": 248054,
+      "vision_start_token": "<|vision_start|>",
+      "vision_start_token_id": 248053
+    },
+    "tokenizer_class": "transformers.models.qwen2.tokenization_qwen2_fast.Qwen2TokenizerFast",
+    "tokenizer_vocab_size": 248077,
+    "video": {
+      "class": "transformers.models.qwen3_vl.video_processing_qwen3_vl.Qwen3VLVideoProcessor",
+      "parameters": {
+        "do_convert_rgb": true,
+        "do_normalize": true,
+        "do_rescale": true,
+        "do_resize": true,
+        "fps": 2,
+        "image_mean": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "image_std": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "max_frames": 768,
+        "merge_size": 2,
+        "min_frames": 4,
+        "patch_size": 16,
+        "rescale_factor": 0.00392156862745098,
+        "size": {
+          "longest_edge": 25165824,
+          "shortest_edge": 4096
+        },
+        "temporal_patch_size": 2
+      }
+    }
+  },
+  "qualified_for_oracle_capture": true,
+  "reference_runtime": {
+    "packages": {
+      "aiohttp": {
+        "metadata_files": {
+          "metadata": {
+            "bytes": 8145,
+            "path": "aiohttp-3.13.5.dist-info/METADATA",
+            "sha256": "c951ddd170c8bae6abe5c8138791192369835c2444794096099f9503a816bd44"
+          },
+          "record": {
+            "bytes": 9831,
+            "path": "aiohttp-3.13.5.dist-info/RECORD",
+            "sha256": "8b4749affd3dad677c0cb44c2ed1334eb6452c914cdba2e78a6f5decf7ddaddc"
+          }
+        },
+        "name": "aiohttp",
+        "version": "3.13.5"
+      },
+      "numpy": {
+        "metadata_files": {
+          "metadata": {
+            "bytes": 62026,
+            "path": "numpy-2.1.3.dist-info/METADATA",
+            "sha256": "7c07741da49dc3af378a7d22b554a7c3815a0784e6e4adccf6b715a2ece644de"
+          },
+          "record": {
+            "bytes": 101396,
+            "path": "numpy-2.1.3.dist-info/RECORD",
+            "sha256": "a56f891641e35688f26d395b6959ea867ea6811be27a16d464f3ffabb84a075b"
+          }
+        },
+        "name": "numpy",
+        "version": "2.1.3"
+      },
+      "opencv-python-headless": {
+        "metadata_files": {
+          "metadata": {
+            "bytes": 19752,
+            "path": "opencv_python_headless-4.13.0.92.dist-info/METADATA",
+            "sha256": "e4a77fb9b25b744ca4db9cdaef315e0dad2ddf173ee741cd95ba543c1cf28e20"
+          },
+          "record": {
+            "bytes": 10137,
+            "path": "opencv_python_headless-4.13.0.92.dist-info/RECORD",
+            "sha256": "b6e2b39c9e14e0f9176a7095cd9f2deb1277026b543daee09dfa2f5ff005ca93"
+          }
+        },
+        "name": "opencv-python-headless",
+        "version": "4.13.0.92"
+      },
+      "pillow": {
+        "metadata_files": {
+          "metadata": {
+            "bytes": 8814,
+            "path": "pillow-12.2.0.dist-info/METADATA",
+            "sha256": "f921b97ad0d1c94e6e0fe84ac579c998f2c285a8b35f7f934d3fa0c2657e65ab"
+          },
+          "record": {
+            "bytes": 16125,
+            "path": "pillow-12.2.0.dist-info/RECORD",
+            "sha256": "83a8c34f6b91b148b05980c052a4f46d61965f155f26ac84f1a9af739ef4e82b"
+          }
+        },
+        "name": "pillow",
+        "version": "12.2.0"
+      },
+      "requests": {
+        "metadata_files": {
+          "metadata": {
+            "bytes": 4822,
+            "path": "requests-2.33.1.dist-info/METADATA",
+            "sha256": "a984181a5ecc84a63e6f0b60eb575890ffe34426e5351955d342aa2b3147b823"
+          },
+          "record": {
+            "bytes": 2867,
+            "path": "requests-2.33.1.dist-info/RECORD",
+            "sha256": "b0b28747bfe200d932fe83c0b3e89d275b18c90961d520859adab22d6b795847"
+          }
+        },
+        "name": "requests",
+        "version": "2.33.1"
+      },
+      "torch": {
+        "metadata_files": {
+          "metadata": {
+            "bytes": 29328,
+            "path": "torch-2.10.0+git8514f05.dist-info/METADATA",
+            "sha256": "c3122ba9d2e8c47b6b5bb2b370eed95bc5f0a46e25b60a6534b90aefd534d124"
+          },
+          "record": {
+            "bytes": 2920018,
+            "path": "torch-2.10.0+git8514f05.dist-info/RECORD",
+            "sha256": "4e233727c5ed0e57cd0edd136ed3dac64fde6e309c44367584f6a235bb869fa4"
+          }
+        },
+        "name": "torch",
+        "version": "2.10.0+git8514f05"
+      },
+      "transformers": {
+        "metadata_files": {
+          "metadata": {
+            "bytes": 43991,
+            "path": "transformers-4.57.6.dist-info/METADATA",
+            "sha256": "91601044a74fe02571a825356754dbbaa9e1d3e3dd3c2237254c15e903e421e3"
+          },
+          "record": {
+            "bytes": 416280,
+            "path": "transformers-4.57.6.dist-info/RECORD",
+            "sha256": "cb08f5c23463fe0ca1c2339cab033a315fb6df3beedd950552fc1d23d4142377"
+          }
+        },
+        "name": "transformers",
+        "version": "4.57.6"
+      },
+      "vllm": {
+        "metadata_files": {
+          "metadata": {
+            "bytes": 11249,
+            "path": "vllm-0.19.1rc1.dev300+g29e5d1020.rocm721.dist-info/METADATA",
+            "sha256": "e51c275bb1a6cf8e3495d3d9f12a528b139c7fd15b38b81f8893b3e78d63d2b0"
+          },
+          "record": {
+            "bytes": 378858,
+            "path": "vllm-0.19.1rc1.dev300+g29e5d1020.rocm721.dist-info/RECORD",
+            "sha256": "ae130de31dd20e850834b913df4d7c6dbcaf766dfd813ae3e6f34af6f22ca462"
+          }
+        },
+        "name": "vllm",
+        "version": "0.19.1rc1.dev300+g29e5d1020.rocm721"
+      }
+    },
+    "python": {
+      "bytes": 8020928,
+      "path": "${AIMA_VLLM_PYTHON}",
+      "sha256": "1643dacd9feaedc58f3cc581e4d22577dfe25c09b10282936186ccf0f2e61118"
+    },
+    "python_version": "3.12.3",
+    "source_modules": {
+      "transformers.models.qwen2_vl.image_processing_qwen2_vl_fast": {
+        "bytes": 12723,
+        "path": "transformers/models/qwen2_vl/image_processing_qwen2_vl_fast.py",
+        "sha256": "09bfa9b17df7c3f0c6159bc34008ee50f21d2472cd5bae7e5c21ba1ca13a423c"
+      },
+      "transformers.models.qwen3_vl.processing_qwen3_vl": {
+        "bytes": 17149,
+        "path": "transformers/models/qwen3_vl/processing_qwen3_vl.py",
+        "sha256": "efd8d64aaf608aad1ffb3e6d503d6a99e5227d007df95c1d9fa905d998cda4a9"
+      },
+      "transformers.models.qwen3_vl.video_processing_qwen3_vl": {
+        "bytes": 11561,
+        "path": "transformers/models/qwen3_vl/video_processing_qwen3_vl.py",
+        "sha256": "a49a83fc45cd9baa3e391a68af79743c70d47b86d7d6c81a262fda4104f89db7"
+      },
+      "vllm.model_executor.models.qwen3_5": {
+        "bytes": 31216,
+        "path": "vllm/model_executor/models/qwen3_5.py",
+        "sha256": "6cbbe29a102a5e6207a1b1828976cbf442eca0fe9f5895b7e1ca74542bb5e8c0"
+      },
+      "vllm.model_executor.models.qwen3_vl": {
+        "bytes": 109305,
+        "path": "vllm/model_executor/models/qwen3_vl.py",
+        "sha256": "8ba3592a0fb481a959d6952af25a721cfaeab966558ac11214304e5cf7524d1a"
+      },
+      "vllm.multimodal.media.connector": {
+        "bytes": 17261,
+        "path": "vllm/multimodal/media/connector.py",
+        "sha256": "0f5c84183837465e4313894d4b27f0b1e53f7a5acfd500014b3b26a8f0fb0117"
+      },
+      "vllm.multimodal.media.video": {
+        "bytes": 4532,
+        "path": "vllm/multimodal/media/video.py",
+        "sha256": "724310dd19d87b6fa4d43ab7fe379d6e7fea7b7f60b8f904dd4f7c0dd5754a48"
+      }
+    }
+  },
+  "schema": "aima-amd395-qwen36/vl-reference-manifest/v1"
+}
