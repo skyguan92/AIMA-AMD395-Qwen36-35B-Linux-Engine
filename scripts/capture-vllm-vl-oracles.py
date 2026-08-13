@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 import importlib.metadata
 import json
 import mimetypes
+import os
 from pathlib import Path
 import socket
 import sys
@@ -626,14 +627,21 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
             )
             targets = [prompt_token_ids[row + 1] for row in rows]
 
-            installation = llm.apply_model(
-                InstallOracleHooks(
+            def install_callable(model: Any) -> dict[str, Any]:
+                return InstallOracleHooks(
                     output_root=str(output_root),
                     case_id=case_id,
                     selected_rows=rows,
                     target_token_ids=targets,
-                )
-            )
+                )(model)
+
+            def finalize_callable(model: Any) -> dict[str, Any]:
+                return FinalizeOracleHooks()(model)
+
+            def cleanup_callable(model: Any) -> bool:
+                return RemoveOracleHooks()(model)
+
+            installation = llm.apply_model(install_callable)
             try:
                 outputs = llm._render_and_run_requests(
                     prompts=iter((engine_input,)),
@@ -641,9 +649,9 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
                     output_type=RequestOutput,
                     use_tqdm=False,
                 )
-                finalization = llm.apply_model(FinalizeOracleHooks())
+                finalization = llm.apply_model(finalize_callable)
             except BaseException:
-                llm.apply_model(RemoveOracleHooks())
+                llm.apply_model(cleanup_callable)
                 raise
 
             if len(outputs) != 1 or len(outputs[0].outputs) != 1:
@@ -710,6 +718,11 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
                 ),
             },
             "capture_source": source,
+            "capture_control_plane": {
+                "vllm_allow_insecure_serialization": True,
+                "scope": "isolated-offline-oracle-hook-rpc-only",
+                "product_runtime_dependency": False,
+            },
             "host": {
                 "label": args.host_label,
                 "hostname": socket.gethostname(),
@@ -766,6 +779,11 @@ def main() -> int:
     args = parse_args()
     if args.max_tokens < 1:
         raise ValueError("--max-tokens must be positive")
+    if os.environ.get("VLLM_ALLOW_INSECURE_SERIALIZATION") != "1":
+        raise ValueError(
+            "VLLM_ALLOW_INSECURE_SERIALIZATION=1 is required for the isolated "
+            "offline apply_model oracle hooks"
+        )
     manifest = capture(args)
     print(
         json.dumps(
