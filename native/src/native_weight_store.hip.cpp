@@ -5,6 +5,7 @@
 
 #include "aima/sha256.h"
 #include "model_layout.h"
+#include "visual_model_layout.h"
 
 #include <hip/hip_runtime.h>
 
@@ -50,6 +51,142 @@ NativeWeightStore::~NativeWeightStore() { reset(); }
 
 NativeWeightLoadMetrics NativeWeightStore::load(
     const NativeWeightLoadOptions& options) {
+  std::vector<std::string_view> shard_names;
+  shard_names.reserve(generated::kShardNames.size());
+  for (const char* name : generated::kShardNames) {
+    shard_names.emplace_back(name);
+  }
+  std::vector<LayoutEntry> entries;
+  entries.reserve(generated::kTensorSpecs.size());
+  for (const auto& tensor : generated::kTensorSpecs) {
+    entries.push_back(LayoutEntry{
+        tensor.name,
+        tensor.shard_index,
+        tensor.source_offset_bytes,
+        tensor.payload_bytes,
+        tensor.rank,
+        {tensor.shape[0], tensor.shape[1], tensor.shape[2], 1, 1},
+    });
+  }
+  NativeWeightLoadMetrics metrics = load_layout(
+      options, "language", generated::kManifestSha256,
+      generated::kModelConfigSha256, generated::kCheckpointIndexSha256,
+      shard_names, entries, generated::kPayloadBytes,
+      generated::kExpectedPayloadXor, generated::kExpectedPayloadSum);
+  metrics.language_layout_manifest_sha256 = generated::kManifestSha256;
+  metrics.language_payload_bytes = generated::kPayloadBytes;
+  metrics.language_tensor_count = generated::kTensorSpecs.size();
+  metrics.language_shard_count = generated::kShardNames.size();
+  return metrics;
+}
+
+NativeWeightLoadMetrics NativeWeightStore::load_visual(
+    const NativeWeightLoadOptions& options) {
+  std::vector<std::string_view> shard_names;
+  shard_names.reserve(generated::visual::kShardNames.size());
+  for (const char* name : generated::visual::kShardNames) {
+    shard_names.emplace_back(name);
+  }
+  std::vector<LayoutEntry> entries;
+  entries.reserve(generated::visual::kTensorSpecs.size());
+  for (const auto& tensor : generated::visual::kTensorSpecs) {
+    entries.push_back(LayoutEntry{
+        tensor.name,
+        tensor.shard_index,
+        tensor.source_offset_bytes,
+        tensor.payload_bytes,
+        tensor.rank,
+        tensor.shape,
+    });
+  }
+  NativeWeightLoadMetrics metrics = load_layout(
+      options, "visual", generated::visual::kManifestSha256,
+      generated::visual::kModelConfigSha256,
+      generated::visual::kCheckpointIndexSha256, shard_names, entries,
+      generated::visual::kPayloadBytes,
+      generated::visual::kExpectedPayloadXor,
+      generated::visual::kExpectedPayloadSum);
+  metrics.visual_layout_manifest_sha256 =
+      generated::visual::kManifestSha256;
+  metrics.visual_payload_bytes = generated::visual::kPayloadBytes;
+  metrics.visual_tensor_count = generated::visual::kTensorSpecs.size();
+  metrics.visual_shard_count = generated::visual::kShardNames.size();
+  return metrics;
+}
+
+NativeWeightLoadMetrics NativeWeightStore::load_resident(
+    const NativeWeightLoadOptions& options) {
+  std::vector<std::string_view> shard_names;
+  shard_names.reserve(generated::kShardNames.size());
+  for (const char* name : generated::kShardNames) {
+    shard_names.emplace_back(name);
+  }
+  for (std::size_t index = 0;
+       index < generated::visual::kShardNames.size(); ++index) {
+    if (index >= shard_names.size() ||
+        shard_names[index] != generated::visual::kShardNames[index]) {
+      throw std::runtime_error(
+          "visual checkpoint shards do not align with the resident layout");
+    }
+  }
+
+  std::vector<LayoutEntry> entries;
+  entries.reserve(generated::kTensorSpecs.size() +
+                  generated::visual::kTensorSpecs.size());
+  for (const auto& tensor : generated::kTensorSpecs) {
+    entries.push_back(LayoutEntry{
+        tensor.name,
+        tensor.shard_index,
+        tensor.source_offset_bytes,
+        tensor.payload_bytes,
+        tensor.rank,
+        {tensor.shape[0], tensor.shape[1], tensor.shape[2], 1, 1},
+    });
+  }
+  for (const auto& tensor : generated::visual::kTensorSpecs) {
+    entries.push_back(LayoutEntry{
+        tensor.name,
+        tensor.shard_index,
+        tensor.source_offset_bytes,
+        tensor.payload_bytes,
+        tensor.rank,
+        tensor.shape,
+    });
+  }
+
+  constexpr char kResidentLayoutManifestSha256[] =
+      "b8a9f4f909b66104f1815d9ed49791c8692077455a517f2d4e8f0defe6893dd7";
+  NativeWeightLoadMetrics metrics = load_layout(
+      options, "language+visual", kResidentLayoutManifestSha256,
+      generated::kModelConfigSha256, generated::kCheckpointIndexSha256,
+      shard_names, entries,
+      generated::kPayloadBytes + generated::visual::kPayloadBytes,
+      generated::kExpectedPayloadXor ^
+          generated::visual::kExpectedPayloadXor,
+      generated::kExpectedPayloadSum +
+          generated::visual::kExpectedPayloadSum);
+  metrics.language_layout_manifest_sha256 = generated::kManifestSha256;
+  metrics.visual_layout_manifest_sha256 =
+      generated::visual::kManifestSha256;
+  metrics.language_payload_bytes = generated::kPayloadBytes;
+  metrics.language_tensor_count = generated::kTensorSpecs.size();
+  metrics.language_shard_count = generated::kShardNames.size();
+  metrics.visual_payload_bytes = generated::visual::kPayloadBytes;
+  metrics.visual_tensor_count = generated::visual::kTensorSpecs.size();
+  metrics.visual_shard_count = generated::visual::kShardNames.size();
+  return metrics;
+}
+
+NativeWeightLoadMetrics NativeWeightStore::load_layout(
+    const NativeWeightLoadOptions& options, std::string_view weight_set,
+    std::string_view layout_manifest_sha256,
+    std::string_view model_config_sha256,
+    std::string_view checkpoint_index_sha256,
+    const std::vector<std::string_view>& shard_names,
+    const std::vector<LayoutEntry>& entries,
+    std::uint64_t expected_payload_bytes,
+    std::uint64_t expected_payload_xor,
+    std::uint64_t expected_payload_sum) {
   if (loaded_ || !allocations_.empty()) {
     throw std::runtime_error("native weight store is already loaded");
   }
@@ -69,12 +206,14 @@ NativeWeightLoadMetrics NativeWeightStore::load(
   }
 
   NativeWeightLoadMetrics metrics;
+  metrics.weight_set = std::string(weight_set);
+  metrics.layout_manifest_sha256 = std::string(layout_manifest_sha256);
   metrics.model_config_sha256 = sha256_file(config_path);
   metrics.checkpoint_index_sha256 = sha256_file(index_path);
-  if (metrics.model_config_sha256 != generated::kModelConfigSha256) {
+  if (metrics.model_config_sha256 != model_config_sha256) {
     throw std::runtime_error("model config SHA-256 does not match the native product contract");
   }
-  if (metrics.checkpoint_index_sha256 != generated::kCheckpointIndexSha256) {
+  if (metrics.checkpoint_index_sha256 != checkpoint_index_sha256) {
     throw std::runtime_error("checkpoint index SHA-256 does not match the native product contract");
   }
 
@@ -93,7 +232,7 @@ NativeWeightLoadMetrics NativeWeightStore::load(
   metrics.free_bytes_before = free_bytes;
   metrics.total_device_bytes = total_bytes;
   constexpr std::uint64_t kAllocationHeadroom = 64ULL * 1024ULL * 1024ULL;
-  if (free_bytes < generated::kPayloadBytes + kAllocationHeadroom) {
+  if (free_bytes < expected_payload_bytes + kAllocationHeadroom) {
     throw std::runtime_error(
         "insufficient GPU/GTT memory for the native resident weight store");
   }
@@ -101,10 +240,10 @@ NativeWeightLoadMetrics NativeWeightStore::load(
   std::vector<std::string> shard_storage;
   std::vector<const char*> shard_paths;
   std::vector<std::uint64_t> shard_bytes;
-  shard_storage.reserve(generated::kShardNames.size());
-  shard_paths.reserve(generated::kShardNames.size());
-  shard_bytes.reserve(generated::kShardNames.size());
-  for (const char* name : generated::kShardNames) {
+  shard_storage.reserve(shard_names.size());
+  shard_paths.reserve(shard_names.size());
+  shard_bytes.reserve(shard_names.size());
+  for (const std::string_view name : shard_names) {
     const std::filesystem::path path = model_dir / name;
     if (!std::filesystem::is_regular_file(path)) {
       throw std::runtime_error("checkpoint shard is missing: " + path.string());
@@ -118,16 +257,16 @@ NativeWeightLoadMetrics NativeWeightStore::load(
   std::vector<std::uint64_t> source_offsets;
   std::vector<std::uint64_t> payload_bytes;
   std::vector<std::uint64_t> destination_pointers;
-  tensor_shards.reserve(generated::kTensorSpecs.size());
-  source_offsets.reserve(generated::kTensorSpecs.size());
-  payload_bytes.reserve(generated::kTensorSpecs.size());
-  destination_pointers.reserve(generated::kTensorSpecs.size());
-  allocations_.assign(generated::kTensorSpecs.size(), nullptr);
+  tensor_shards.reserve(entries.size());
+  source_offsets.reserve(entries.size());
+  payload_bytes.reserve(entries.size());
+  destination_pointers.reserve(entries.size());
+  allocations_.assign(entries.size(), nullptr);
 
   try {
     const auto allocation_started = std::chrono::steady_clock::now();
-    for (std::size_t index = 0; index < generated::kTensorSpecs.size(); ++index) {
-      const auto& tensor = generated::kTensorSpecs[index];
+    for (std::size_t index = 0; index < entries.size(); ++index) {
+      const auto& tensor = entries[index];
       AIMA_HIP_CHECK(hipMalloc(&allocations_[index], tensor.payload_bytes));
       tensor_shards.push_back(tensor.shard_index);
       source_offsets.push_back(tensor.source_offset_bytes);
@@ -147,7 +286,7 @@ NativeWeightLoadMetrics NativeWeightStore::load(
         tensor_shards.data(), source_offsets.data(), payload_bytes.data(),
         destination_pointers.data(), destination_pointers.size(),
         options.chunk_bytes, options.worker_count,
-        generated::kExpectedPayloadXor, generated::kExpectedPayloadSum,
+        expected_payload_xor, expected_payload_sum,
         options.native_report.c_str());
     metrics.ingest_ms = elapsed_ms(ingest_started);
     if (result != 0) {
@@ -156,10 +295,10 @@ NativeWeightLoadMetrics NativeWeightStore::load(
           options.native_report.string());
     }
 
-    views_.reserve(generated::kTensorSpecs.size());
-    name_to_index_.reserve(generated::kTensorSpecs.size());
-    for (std::size_t index = 0; index < generated::kTensorSpecs.size(); ++index) {
-      const auto& tensor = generated::kTensorSpecs[index];
+    views_.reserve(entries.size());
+    name_to_index_.reserve(entries.size());
+    for (std::size_t index = 0; index < entries.size(); ++index) {
+      const auto& tensor = entries[index];
       views_.push_back(NativeTensorView{
           tensor.name,
           allocations_[index],
@@ -169,15 +308,15 @@ NativeWeightLoadMetrics NativeWeightStore::load(
       });
       name_to_index_.emplace(views_.back().name, index);
     }
-    if (name_to_index_.size() != generated::kTensorSpecs.size()) {
+    if (name_to_index_.size() != entries.size()) {
       throw std::runtime_error("native tensor registry contains duplicate names");
     }
     loaded_ = true;
     AIMA_HIP_CHECK(hipMemGetInfo(&free_bytes, &total_bytes));
     metrics.free_bytes_after = free_bytes;
-    metrics.payload_bytes = generated::kPayloadBytes;
-    metrics.tensor_count = generated::kTensorSpecs.size();
-    metrics.shard_count = generated::kShardNames.size();
+    metrics.payload_bytes = expected_payload_bytes;
+    metrics.tensor_count = entries.size();
+    metrics.shard_count = shard_names.size();
     metrics.load_wall_ms = elapsed_ms(started);
     return metrics;
   } catch (...) {

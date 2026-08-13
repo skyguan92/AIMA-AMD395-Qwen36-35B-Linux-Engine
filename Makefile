@@ -1,4 +1,4 @@
-.PHONY: check check-cpu check-native-syntax check-python-package security-scan verify-evidence test verify native-layout-check native-chat-template-parity build-native build-direct-loader build-native-runtime package-native package-native-foundation package-evidence
+.PHONY: check check-cpu check-native-syntax check-python-package security-scan verify-evidence test verify native-layout-check native-chat-template-parity build-native build-direct-loader build-native-visual-weight-probe build-native-runtime package-native package-native-foundation package-evidence
 
 check: check-cpu
 	@if test -f /opt/rocm/include/hip/hip_runtime_api.h && \
@@ -68,6 +68,9 @@ build-native:
 
 build-direct-loader:
 	bash scripts/build-direct-loader.sh
+
+build-native-visual-weight-probe:
+	bash scripts/build-native-visual-weight-probe.sh
 
 build-native-runtime:
 	bash scripts/build-native-runtime.sh

@@ -17,7 +17,7 @@ struct NativeTensorView {
   void* device_pointer = nullptr;
   std::uint64_t payload_bytes = 0;
   std::uint8_t rank = 0;
-  std::array<std::uint32_t, 3> shape{};
+  std::array<std::uint32_t, 5> shape{};
 };
 
 struct NativeWeightLoadOptions {
@@ -29,6 +29,10 @@ struct NativeWeightLoadOptions {
 };
 
 struct NativeWeightLoadMetrics {
+  std::string weight_set;
+  std::string layout_manifest_sha256;
+  std::string language_layout_manifest_sha256;
+  std::string visual_layout_manifest_sha256;
   std::string device_name;
   std::string gpu_arch;
   std::string checkpoint_index_sha256;
@@ -39,6 +43,12 @@ struct NativeWeightLoadMetrics {
   std::uint64_t payload_bytes = 0;
   std::size_t tensor_count = 0;
   std::size_t shard_count = 0;
+  std::uint64_t language_payload_bytes = 0;
+  std::size_t language_tensor_count = 0;
+  std::size_t language_shard_count = 0;
+  std::uint64_t visual_payload_bytes = 0;
+  std::size_t visual_tensor_count = 0;
+  std::size_t visual_shard_count = 0;
   double allocation_ms = 0.0;
   double ingest_ms = 0.0;
   double load_wall_ms = 0.0;
@@ -52,12 +62,34 @@ class NativeWeightStore {
   NativeWeightStore& operator=(const NativeWeightStore&) = delete;
 
   NativeWeightLoadMetrics load(const NativeWeightLoadOptions& options);
+  NativeWeightLoadMetrics load_visual(const NativeWeightLoadOptions& options);
+  NativeWeightLoadMetrics load_resident(const NativeWeightLoadOptions& options);
   const NativeTensorView* find(std::string_view name) const;
   const std::vector<NativeTensorView>& tensors() const { return views_; }
   bool loaded() const { return loaded_; }
   void reset() noexcept;
 
  private:
+  struct LayoutEntry {
+    std::string_view name;
+    std::uint32_t shard_index = 0;
+    std::uint64_t source_offset_bytes = 0;
+    std::uint64_t payload_bytes = 0;
+    std::uint8_t rank = 0;
+    std::array<std::uint32_t, 5> shape{};
+  };
+
+  NativeWeightLoadMetrics load_layout(
+      const NativeWeightLoadOptions& options, std::string_view weight_set,
+      std::string_view layout_manifest_sha256,
+      std::string_view model_config_sha256,
+      std::string_view checkpoint_index_sha256,
+      const std::vector<std::string_view>& shard_names,
+      const std::vector<LayoutEntry>& entries,
+      std::uint64_t expected_payload_bytes,
+      std::uint64_t expected_payload_xor,
+      std::uint64_t expected_payload_sum);
+
   int device_ = 0;
   bool loaded_ = false;
   std::vector<void*> allocations_;

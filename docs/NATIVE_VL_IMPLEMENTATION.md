@@ -14,7 +14,7 @@ blocking condition in the governing goal can move a gate to `passed`.
 
 | Gate | Current state | Evidence required to pass | Next blocking action |
 |---|---|---|---|
-| G1 full VL functional parity | ordered chat media parts, bounded local/data/HTTP/HTTPS admission and image/video processors are implemented; vision and serving remain incomplete | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | attach ordered processor outputs to the vision/model path |
+| G1 full VL functional parity | ordered chat media parts, bounded local/data/HTTP/HTTPS admission, image/video processors and resident visual weights are implemented; vision execution and serving remain incomplete | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | execute processor tensors through the resident vision/model path |
 | G2 VL correctness parity | reference processor/boundary/logits/generation oracles frozen; native comparison and task suites pending | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | implement native boundaries, then compare against the frozen raw tensors before running task quality |
 | G3 text product no regression | frozen baseline identified | paired 19-cell, maximum-window, correctness, MMLU, API, cache, startup and memory requalification | retain `v1.5.1` as an immutable paired binary |
 | G4 native VL performance | not started | paired per-cell stage timings and memory records against the fixed VL-enabled vLLM | generate matrix cells from the capability manifest |
@@ -221,8 +221,21 @@ byte-exact uint64 payload XOR/sum. A separate deterministic generator emits the
 rank-5 compile-time visual layout and fails if a block tensor, patch/position
 embedding or merger tensor is added, missing or reshaped. Keeping this contract
 separate lets the current 693-tensor text baseline remain directly comparable
-while the same resident process gains the bounded visual store. Loading and
-executing this layout remain the next implementation boundary.
+while the same resident process gains the bounded visual store. Two independent
+captures produced the same 88,646-byte manifest, SHA-256
+`abc5b3a0cc0881ba2d3e815b472eebe3404a6e3bc6438a430faccfbe8093c0aa`.
+
+The existing Safetensors scatter implementation now accepts language-only,
+visual-only or combined resident layouts. Production residency uses one
+combined scatter and one name registry, so the first two checkpoint shards are
+not reread solely for vision. A target probe loaded all 1,026 active tensors
+into 1,026 unique device pointers: 70,214,363,872 payload bytes from 26 shards,
+with combined XOR `0x27b3037f0725611f` and sum `0x9a017e7d5747ae3d`
+matching exactly. It read 70,214,401,080 source bytes in 151 chunks; compared
+with the language layout this is one additional chunk, rather than the 2.02 s
+second pass measured by the visual-only diagnostic. Resident load metrics and
+the HTTP ready event expose the total, language, visual and manifest identities.
+The vision kernels and processor-to-encoder execution remain the next boundary.
 
 `native_media_test` and `native_chat_protocol_test` both compile with strict
 warnings and pass on `amd395`. This is implementation progress, not G1 or G2

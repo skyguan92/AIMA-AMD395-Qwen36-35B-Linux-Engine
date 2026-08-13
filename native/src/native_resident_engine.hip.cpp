@@ -490,7 +490,7 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
             impl_->tail_prefill_tokens);
   }
   const NativeWeightLoadMetrics weight_metrics =
-      impl_->weights.load(options.weights);
+      impl_->weights.load_resident(options.weights);
   const NativeDerivedWeightMetrics derived_metrics =
       impl_->derived.build(impl_->weights, impl_->device);
   const NativeLmHeadMetrics lm_head_metrics =
@@ -645,6 +645,22 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
   impl_->metrics.model_payload_bytes = weight_metrics.payload_bytes;
   impl_->metrics.model_tensor_count = weight_metrics.tensor_count;
   impl_->metrics.model_shard_count = weight_metrics.shard_count;
+  impl_->metrics.language_model_payload_bytes =
+      weight_metrics.language_payload_bytes;
+  impl_->metrics.language_model_tensor_count =
+      weight_metrics.language_tensor_count;
+  impl_->metrics.language_model_shard_count =
+      weight_metrics.language_shard_count;
+  impl_->metrics.language_layout_manifest_sha256 =
+      weight_metrics.language_layout_manifest_sha256;
+  impl_->metrics.visual_model_payload_bytes =
+      weight_metrics.visual_payload_bytes;
+  impl_->metrics.visual_model_tensor_count =
+      weight_metrics.visual_tensor_count;
+  impl_->metrics.visual_model_shard_count =
+      weight_metrics.visual_shard_count;
+  impl_->metrics.visual_layout_manifest_sha256 =
+      weight_metrics.visual_layout_manifest_sha256;
   impl_->metrics.decode_weight_bindings = binding_metrics.unique_bindings;
   impl_->metrics.prefill_prepared_launches =
       prefill_invocation_metrics.launch_count +

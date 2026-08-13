@@ -127,6 +127,24 @@ class NativeVisualLayoutTest(unittest.TestCase):
         self.assertIn("kExpectedPayloadXor = 17126752018491284633ULL", header)
         self.assertIn("std::array<std::uint32_t, 5> shape", header)
 
+    def test_resident_loader_uses_the_visual_contract(self) -> None:
+        loader = (ROOT / "native/src/native_weight_store.hip.cpp").read_text(
+            encoding="utf-8"
+        )
+        resident = (ROOT / "native/src/native_resident_engine.hip.cpp").read_text(
+            encoding="utf-8"
+        )
+        build = (ROOT / "scripts/build-native-visual-weight-probe.sh").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn('#include "visual_model_layout.h"', loader)
+        self.assertIn("NativeWeightStore::load_visual", loader)
+        self.assertIn("generated::visual::kExpectedPayloadXor", loader)
+        self.assertIn("weights.load_resident", resident)
+        self.assertIn("NativeWeightStore::load_resident", loader)
+        self.assertIn("generated::kExpectedPayloadXor ^", loader)
+        self.assertIn("torch_owned_safetensors_loader.hip.cpp", build)
+
 
 if __name__ == "__main__":
     unittest.main()

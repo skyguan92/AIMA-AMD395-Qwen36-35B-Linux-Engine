@@ -42,6 +42,14 @@ struct NativeResidentLoadMetrics {
   std::uint64_t model_payload_bytes = 0;
   std::size_t model_tensor_count = 0;
   std::size_t model_shard_count = 0;
+  std::uint64_t language_model_payload_bytes = 0;
+  std::size_t language_model_tensor_count = 0;
+  std::size_t language_model_shard_count = 0;
+  std::string language_layout_manifest_sha256;
+  std::uint64_t visual_model_payload_bytes = 0;
+  std::size_t visual_model_tensor_count = 0;
+  std::size_t visual_model_shard_count = 0;
+  std::string visual_layout_manifest_sha256;
   std::size_t decode_weight_bindings = 0;
   std::size_t prefill_prepared_launches = 0;
   std::size_t decode_prepared_launches = 0;
