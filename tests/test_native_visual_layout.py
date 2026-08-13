@@ -789,6 +789,23 @@ class NativeVisualLayoutTest(unittest.TestCase):
         self.assertFalse(decision["g1_passed"])
         self.assertFalse(decision["g2_passed"])
 
+    def test_depth_block_probe_selects_a_frozen_block_index(self) -> None:
+        probe = (
+            ROOT / "native/tools/vision_depth_block_oracle_probe.hip.cpp"
+        ).read_text(encoding="utf-8")
+        build = (
+            ROOT / "scripts/build-native-vision-depth-block-probe.sh"
+        ).read_text(encoding="utf-8")
+        self.assertIn("BLOCK_INDEX BLOCK_INPUT", probe)
+        self.assertIn("block_index >= kVisionBlockCount", probe)
+        self.assertIn(
+            "NativeVisionBlockPlan plan(weights, block_index, patches", probe
+        )
+        self.assertIn("plan.block_index() != block_index", probe)
+        self.assertIn("native-vision-depth-block-oracle/v1", probe)
+        self.assertIn("vision_depth_block_oracle_probe.hip.cpp", build)
+        self.assertIn("native_vision_block.hip.cpp", build)
+
 
 if __name__ == "__main__":
     unittest.main()
