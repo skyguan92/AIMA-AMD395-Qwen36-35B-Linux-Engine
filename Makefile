@@ -1,4 +1,4 @@
-.PHONY: check check-cpu check-native-syntax check-python-package security-scan verify-evidence test verify native-layout-check native-chat-template-parity build-native build-direct-loader build-native-visual-weight-probe build-native-vision-patch-probe build-native-vision-position-probe build-native-vision-aot-attention-probe build-native-vision-aot-block-stack-probe build-native-vision-exact-layer-norm-probe build-native-vision-merger-probe build-native-vision-pipeline-probe build-native-vision-block-prefix-probe build-native-vision-block-suffix-probe build-native-vision-block-probe build-native-vision-block-stack-probe build-native-vision-depth-block-probe build-native-vision-rotary-probe build-native-vision-segmented-attention-probe build-native-runtime package-native package-native-foundation package-evidence
+.PHONY: check check-cpu check-native-syntax check-python-package security-scan verify-evidence test verify native-layout-check native-chat-template-parity build-native build-direct-loader build-native-visual-weight-probe build-native-vl-embedding-probe build-native-vision-patch-probe build-native-vision-position-probe build-native-vision-aot-attention-probe build-native-vision-aot-block-stack-probe build-native-vision-exact-layer-norm-probe build-native-vision-merger-probe build-native-vision-pipeline-probe build-native-vision-block-prefix-probe build-native-vision-block-suffix-probe build-native-vision-block-probe build-native-vision-block-stack-probe build-native-vision-depth-block-probe build-native-vision-rotary-probe build-native-vision-segmented-attention-probe build-native-runtime package-native package-native-foundation package-evidence
 
 check: check-cpu
 	@if test -f /opt/rocm/include/hip/hip_runtime_api.h && \
@@ -35,13 +35,15 @@ check-native-syntax:
 	./build/native_multimodal_cache_test
 	g++ -std=c++17 -Wall -Wextra -Wpedantic -Werror -O2 -I native/include tests/native_vl_processor_test.cpp native/src/native_vl_processor.cpp native/src/sha256.cpp -o build/native_vl_processor_test
 	./build/native_vl_processor_test
+	g++ -std=c++17 -Wall -Wextra -Wpedantic -Werror -O2 -I native/include tests/native_vl_embedding_test.cpp native/src/native_vl_embedding.cpp -o build/native_vl_embedding_test
+	./build/native_vl_embedding_test
 	g++ -std=c++17 -Wall -Wextra -Wpedantic -Werror -O2 -I native/include tests/native_image_decoder_test.cpp native/src/native_image_decoder.cpp native/src/native_vl_processor.cpp native/src/sha256.cpp $$(pkg-config --cflags --libs libpng libjpeg libwebp) -o build/native_image_decoder_test
 	./build/native_image_decoder_test benchmarks/fixtures/vl-capability-v0.1.0
 	g++ -std=c++17 -Wall -Wextra -Wpedantic -Werror -O2 -I native/include tests/native_video_decoder_test.cpp native/src/native_video_decoder.cpp native/src/native_vl_processor.cpp native/src/sha256.cpp $$(pkg-config --cflags --libs libavformat libavcodec libavutil libswscale) -o build/native_video_decoder_test
 	./build/native_video_decoder_test benchmarks/fixtures/vl-capability-v0.1.0
 	g++ -std=c++17 -O2 -I native/include tests/native_prompt_plan_test.cpp -o build/native_prompt_plan_test
 	./build/native_prompt_plan_test
-	g++ -std=c++17 -D__HIP_PLATFORM_AMD__ -DU_STATIC_IMPLEMENTATION -I /opt/rocm/include -I native/include -I native/generated $$(pkg-config --cflags libcurl) -fsyntax-only native/src/main.cpp native/src/decode_schedule_probe.cpp native/src/sha256.cpp native/src/native_tokenizer.cpp native/src/native_chat_protocol.cpp native/src/native_media.cpp native/src/native_remote_media.cpp native/src/native_multimodal_cache.cpp native/src/native_vl_processor.cpp native/src/native_image_decoder.cpp native/src/native_video_decoder.cpp native/src/native_doctor.cpp native/src/native_http_server.cpp
+	g++ -std=c++17 -D__HIP_PLATFORM_AMD__ -DU_STATIC_IMPLEMENTATION -I /opt/rocm/include -I native/include -I native/generated $$(pkg-config --cflags libcurl) -fsyntax-only native/src/main.cpp native/src/decode_schedule_probe.cpp native/src/sha256.cpp native/src/native_tokenizer.cpp native/src/native_chat_protocol.cpp native/src/native_media.cpp native/src/native_remote_media.cpp native/src/native_multimodal_cache.cpp native/src/native_vl_processor.cpp native/src/native_vl_embedding.cpp native/src/native_image_decoder.cpp native/src/native_video_decoder.cpp native/src/native_doctor.cpp native/src/native_http_server.cpp
 
 test:
 	python3 -m unittest discover -s tests -p 'test_*.py'
@@ -71,6 +73,9 @@ build-direct-loader:
 
 build-native-visual-weight-probe:
 	bash scripts/build-native-visual-weight-probe.sh
+
+build-native-vl-embedding-probe:
+	bash scripts/build-native-vl-embedding-probe.sh
 
 build-native-vision-patch-probe:
 	bash scripts/build-native-vision-patch-probe.sh
