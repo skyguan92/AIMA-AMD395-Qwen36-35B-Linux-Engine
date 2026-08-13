@@ -110,6 +110,10 @@ std::vector<MropeSegment> build_segments(
     const std::size_t grid_height =
         item.grid.height / kNativeVlMergeSize;
     const std::size_t grid_width = item.grid.width / kNativeVlMergeSize;
+    if (grid_height >
+        std::numeric_limits<std::size_t>::max() / grid_width) {
+      throw std::invalid_argument("native M-RoPE grid size overflows");
+    }
     const std::size_t tokens_per_grid = grid_height * grid_width;
     if (tokens_per_grid == 0 ||
         tokens_per_grid > kNativeVlAggregateTokenLimit - visual_tokens ||

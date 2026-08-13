@@ -5,6 +5,7 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 #include <vector>
 
@@ -94,6 +95,15 @@ int main() {
         (void)aima::build_native_mrope_plan(image_prompt, media);
       },
       "multi-frame image grid was admitted");
+  require_invalid(
+      [&]() {
+        auto media = image_media;
+        media[0].grid.height =
+            std::numeric_limits<std::size_t>::max() - 1;
+        media[0].grid.width = 4;
+        (void)aima::build_native_mrope_plan(image_prompt, media);
+      },
+      "overflowing media grid was admitted");
   require_invalid(
       [&]() {
         auto prompt = video_prompt;
