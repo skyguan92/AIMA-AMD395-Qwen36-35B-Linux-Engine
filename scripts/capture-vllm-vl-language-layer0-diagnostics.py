@@ -72,7 +72,11 @@ SOURCE_HASHES = {
 REQUIRED_COMPONENTS = {
     "input_norm",
     "gdn_qkvz_projection",
+    "gdn_qkv_projection",
+    "gdn_z_projection",
     "gdn_ba_projection",
+    "gdn_b_projection",
+    "gdn_a_projection",
     "gdn_core",
     "gdn_z",
     "gdn_gated_norm",
@@ -89,6 +93,10 @@ REQUIRED_COMPONENTS = {
 }
 ORACLE_LABELS = {
     "launch-000-out": "input_norm",
+    "diagnostic-qkv": "gdn_qkv_projection",
+    "diagnostic-z": "gdn_z_projection",
+    "diagnostic-a": "gdn_a_projection",
+    "diagnostic-b": "gdn_b_projection",
     "launch-008-o": "gdn_core",
     "return-linear_attention-gated_out": "gdn_gated_norm",
     "return-linear_attention-output": "linear_attention_output",
@@ -221,6 +229,27 @@ class InstallLanguageLayer0DiagnosticHooks:
             capture("gdn_core", core)
             capture("gdn_z", gate)
 
+        def qkvz_projection_hook(
+            _module: Any, _args: Any, output: Any
+        ) -> None:
+            tensor = _first_tensor(output)
+            if tensor is None or tensor.ndim != 2 or tensor.shape[1] != 12288:
+                raise RuntimeError("GDN QKVZ projection geometry differs")
+            capture("gdn_qkvz_projection", tensor)
+            capture("gdn_qkv_projection", tensor[:, :8192])
+            capture("gdn_z_projection", tensor[:, 8192:])
+
+        def ba_projection_hook(
+            _module: Any, _args: Any, output: Any
+        ) -> None:
+            tensor = _first_tensor(output)
+            if tensor is None or tensor.ndim != 2 or tensor.shape[1] != 64:
+                raise RuntimeError("GDN BA projection geometry differs")
+            capture("gdn_ba_projection", tensor)
+            projected_b, projected_a = tensor.chunk(2, dim=-1)
+            capture("gdn_b_projection", projected_b)
+            capture("gdn_a_projection", projected_a)
+
         def post_attention_hook(_module: Any, _args: Any, output: Any) -> None:
             if not isinstance(output, (tuple, list)) or len(output) != 2:
                 raise RuntimeError("post-attention norm did not return two tensors")
@@ -245,11 +274,11 @@ class InstallLanguageLayer0DiagnosticHooks:
         hooks.append(layer0.input_layernorm.register_forward_hook(output_hook("input_norm")))
         hooks.append(
             linear.in_proj_qkvz.register_forward_hook(
-                output_hook("gdn_qkvz_projection")
+                qkvz_projection_hook
             )
         )
         hooks.append(
-            linear.in_proj_ba.register_forward_hook(output_hook("gdn_ba_projection"))
+            linear.in_proj_ba.register_forward_hook(ba_projection_hook)
         )
         hooks.append(
             linear.norm.register_forward_pre_hook(

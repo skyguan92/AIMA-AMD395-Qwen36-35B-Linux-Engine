@@ -426,6 +426,10 @@ json qualify_case(
   if (!diagnostic_oracle_root.empty()) {
     const std::set<std::string> expected_labels = {
         "input_norm_full_sequence",
+        "linear_projection_qkv_full_sequence",
+        "linear_projection_z_full_sequence",
+        "linear_projection_a_full_sequence",
+        "linear_projection_b_full_sequence",
         "fla_core_full_sequence",
         "linear_gated_output_full_sequence",
         "attention_output_full_sequence",

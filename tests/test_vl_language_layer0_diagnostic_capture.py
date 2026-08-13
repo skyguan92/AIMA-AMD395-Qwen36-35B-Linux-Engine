@@ -43,6 +43,10 @@ class VlLanguageLayer0DiagnosticCaptureTest(unittest.TestCase):
         self.assertTrue(
             {
                 "input_norm",
+                "gdn_qkv_projection",
+                "gdn_z_projection",
+                "gdn_a_projection",
+                "gdn_b_projection",
                 "gdn_core",
                 "gdn_gated_norm",
                 "linear_attention_output",
@@ -83,6 +87,10 @@ class VlLanguageLayer0DiagnosticCaptureTest(unittest.TestCase):
     def test_native_compatibility_labels_are_complete(self) -> None:
         expected = {
             "launch-000-out",
+            "diagnostic-qkv",
+            "diagnostic-z",
+            "diagnostic-a",
+            "diagnostic-b",
             "launch-008-o",
             "return-linear_attention-gated_out",
             "return-linear_attention-output",
