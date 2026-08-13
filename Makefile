@@ -10,13 +10,14 @@ check: check-cpu
 
 check-cpu:
 	python3 -m compileall -q aima_engine tools benchmarks/shape-lab tests
-	python3 -m py_compile scripts/capture-native-lm-head-reference.py scripts/capture-vl-reference-manifest.py scripts/capture-vllm-vl-oracles.py scripts/check-native-wvsplitk-parity.py scripts/check-public-tree.py scripts/export-native-aot-closure.py scripts/generate-native-aot-registry.py scripts/generate-native-bundle-manifest.py scripts/generate-native-decode-registry.py scripts/generate-native-decode-schedule.py scripts/generate-native-product-result.py scripts/generate-vl-capability-fixtures.py scripts/generate-vl-reference-launch.py scripts/native_bundle_closure.py scripts/package-release-evidence.py scripts/probe-vllm-vl-api-capabilities.py scripts/probe-vl-processor-capabilities.py scripts/qualify-native-correctness.py scripts/qualify-native-eval.py scripts/qualify-native-full-matrix.py scripts/qualify-native-openai-features.py scripts/qualify-native-portable-bundle.py scripts/qualify-native-surfaces.py scripts/verify-native-package-inputs.py scripts/verify-release-evidence.py scripts/native_aot_trace/sitecustomize.py
+	python3 -m py_compile scripts/capture-native-lm-head-reference.py scripts/capture-native-visual-layout.py scripts/capture-vl-reference-manifest.py scripts/capture-vllm-vl-oracles.py scripts/check-native-wvsplitk-parity.py scripts/check-public-tree.py scripts/export-native-aot-closure.py scripts/generate-native-aot-registry.py scripts/generate-native-bundle-manifest.py scripts/generate-native-decode-registry.py scripts/generate-native-decode-schedule.py scripts/generate-native-product-result.py scripts/generate-native-visual-layout.py scripts/generate-vl-capability-fixtures.py scripts/generate-vl-reference-launch.py scripts/native_bundle_closure.py scripts/package-release-evidence.py scripts/probe-vllm-vl-api-capabilities.py scripts/probe-vl-processor-capabilities.py scripts/qualify-native-correctness.py scripts/qualify-native-eval.py scripts/qualify-native-full-matrix.py scripts/qualify-native-openai-features.py scripts/qualify-native-portable-bundle.py scripts/qualify-native-surfaces.py scripts/verify-native-package-inputs.py scripts/verify-release-evidence.py scripts/native_aot_trace/sitecustomize.py
 	python3 scripts/check-public-tree.py
 	python3 scripts/verify-release-evidence.py
 	python3 scripts/generate-native-decode-registry.py --check --schedule native/aot/gfx1151/q8192-output2/decode-schedule.json --aot-manifest native/aot/gfx1151/q8192-output2/manifest.json
 	python3 scripts/generate-native-decode-registry.py --phase prefill --check --schedule native/aot/gfx1151/q8192-output2/prefill-schedule.json --aot-manifest native/aot/gfx1151/q8192-output2/manifest.json
 	g++ -std=c++17 -pthread -fsyntax-only benchmarks/shape-lab/native/src/striped_image_builder.cpp
 	python3 scripts/generate-native-layout.py --check
+	python3 scripts/generate-native-visual-layout.py --check
 	gcc -std=c11 -fsyntax-only native/src/portable_launcher.c
 	python3 -m unittest discover -s tests -p 'test_*.py'
 	./aima-engine verify
@@ -56,6 +57,7 @@ verify-evidence:
 
 native-layout-check:
 	python3 scripts/generate-native-layout.py --check
+	python3 scripts/generate-native-visual-layout.py --check
 
 native-chat-template-parity:
 	mkdir -p build && g++ -std=c++17 -O2 -I native/include -I native/generated tests/native_chat_template_parity.cpp native/src/native_chat_protocol.cpp native/src/native_tokenizer.cpp native/src/sha256.cpp $$(pkg-config --cflags --libs icu-i18n) -o build/native_chat_template_parity

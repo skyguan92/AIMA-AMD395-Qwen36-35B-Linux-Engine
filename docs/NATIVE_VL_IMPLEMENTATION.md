@@ -211,6 +211,19 @@ reproduces both video oracles and carries a self-verifying manifest and LGPL
 texts. A final portable product archive has not yet been built or qualified,
 so this is implementation evidence rather than G5 release evidence.
 
+The visual checkpoint boundary is now frozen independently from the immutable
+`v1.5.1` language layout. A capture tool reads only the pinned checkpoint index
+and Safetensors headers, validates the exact model/config/index identity, and
+records all 333 `model.visual.*` tensors from their two source shards. The
+manifest closes the fixed 27-block architecture, exact BF16 shapes and source
+offsets, 893,142,496 payload bytes, source-file SHA-256 identities and a
+byte-exact uint64 payload XOR/sum. A separate deterministic generator emits the
+rank-5 compile-time visual layout and fails if a block tensor, patch/position
+embedding or merger tensor is added, missing or reshaped. Keeping this contract
+separate lets the current 693-tensor text baseline remain directly comparable
+while the same resident process gains the bounded visual store. Loading and
+executing this layout remain the next implementation boundary.
+
 `native_media_test` and `native_chat_protocol_test` both compile with strict
 warnings and pass on `amd395`. This is implementation progress, not G1 or G2
 acceptance evidence.

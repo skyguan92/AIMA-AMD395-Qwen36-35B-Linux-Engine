@@ -90,6 +90,7 @@ if ! grep -Fxq 'curl_source_sha256=aa1b66a70eace83dc624508745646c08ae561de512ab4
 fi
 
 python3 "${ROOT}/scripts/generate-native-layout.py" --check
+python3 "${ROOT}/scripts/generate-native-visual-layout.py" --check
 mkdir -p "${OUT_DIR}"
 IFS=: read -r -a AOT_MANIFEST_PATHS <<< "${AOT_MANIFESTS}"
 AOT_MANIFEST_ARGS=()

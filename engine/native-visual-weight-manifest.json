@@ -1,0 +1,3475 @@
+{
+  "complete": true,
+  "entries": [
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.0.attn.proj.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 552271056,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.0.attn.proj.weight",
+      "payload_bytes": 2654208,
+      "shape": [
+        1152,
+        1152
+      ],
+      "source_offset_bytes": 552273360,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.0.attn.qkv.bias",
+      "payload_bytes": 6912,
+      "shape": [
+        3456
+      ],
+      "source_offset_bytes": 554927568,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.0.attn.qkv.weight",
+      "payload_bytes": 7962624,
+      "shape": [
+        3456,
+        1152
+      ],
+      "source_offset_bytes": 554934480,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.0.mlp.linear_fc1.bias",
+      "payload_bytes": 8608,
+      "shape": [
+        4304
+      ],
+      "source_offset_bytes": 562897104,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.0.mlp.linear_fc1.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        4304,
+        1152
+      ],
+      "source_offset_bytes": 3835693856,
+      "source_shard": "model-00001-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.0.mlp.linear_fc2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 562905712,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.0.mlp.linear_fc2.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        1152,
+        4304
+      ],
+      "source_offset_bytes": 3845610272,
+      "source_shard": "model-00001-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.0.norm1.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 562908016,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.0.norm1.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 562910320,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.0.norm2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 562912624,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.0.norm2.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 562914928,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.1.attn.proj.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 562917232,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.1.attn.proj.weight",
+      "payload_bytes": 2654208,
+      "shape": [
+        1152,
+        1152
+      ],
+      "source_offset_bytes": 562919536,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.1.attn.qkv.bias",
+      "payload_bytes": 6912,
+      "shape": [
+        3456
+      ],
+      "source_offset_bytes": 565573744,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.1.attn.qkv.weight",
+      "payload_bytes": 7962624,
+      "shape": [
+        3456,
+        1152
+      ],
+      "source_offset_bytes": 565580656,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.1.mlp.linear_fc1.bias",
+      "payload_bytes": 8608,
+      "shape": [
+        4304
+      ],
+      "source_offset_bytes": 573543280,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.1.mlp.linear_fc1.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        4304,
+        1152
+      ],
+      "source_offset_bytes": 3855526688,
+      "source_shard": "model-00001-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.1.mlp.linear_fc2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 573551888,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.1.mlp.linear_fc2.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        1152,
+        4304
+      ],
+      "source_offset_bytes": 3865443104,
+      "source_shard": "model-00001-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.1.norm1.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 573554192,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.1.norm1.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 573556496,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.1.norm2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 573558800,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.1.norm2.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 573561104,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.10.attn.proj.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 573563408,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.10.attn.proj.weight",
+      "payload_bytes": 2654208,
+      "shape": [
+        1152,
+        1152
+      ],
+      "source_offset_bytes": 573565712,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.10.attn.qkv.bias",
+      "payload_bytes": 6912,
+      "shape": [
+        3456
+      ],
+      "source_offset_bytes": 576219920,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.10.attn.qkv.weight",
+      "payload_bytes": 7962624,
+      "shape": [
+        3456,
+        1152
+      ],
+      "source_offset_bytes": 576226832,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.10.mlp.linear_fc1.bias",
+      "payload_bytes": 8608,
+      "shape": [
+        4304
+      ],
+      "source_offset_bytes": 584189456,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.10.mlp.linear_fc1.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        4304,
+        1152
+      ],
+      "source_offset_bytes": 3875359520,
+      "source_shard": "model-00001-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.10.mlp.linear_fc2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 584198064,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.10.mlp.linear_fc2.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        1152,
+        4304
+      ],
+      "source_offset_bytes": 3885275936,
+      "source_shard": "model-00001-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.10.norm1.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 584200368,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.10.norm1.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 584202672,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.10.norm2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 584204976,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.10.norm2.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 584207280,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.11.attn.proj.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 584209584,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.11.attn.proj.weight",
+      "payload_bytes": 2654208,
+      "shape": [
+        1152,
+        1152
+      ],
+      "source_offset_bytes": 584211888,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.11.attn.qkv.bias",
+      "payload_bytes": 6912,
+      "shape": [
+        3456
+      ],
+      "source_offset_bytes": 586866096,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.11.attn.qkv.weight",
+      "payload_bytes": 7962624,
+      "shape": [
+        3456,
+        1152
+      ],
+      "source_offset_bytes": 586873008,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.11.mlp.linear_fc1.bias",
+      "payload_bytes": 8608,
+      "shape": [
+        4304
+      ],
+      "source_offset_bytes": 594835632,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.11.mlp.linear_fc1.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        4304,
+        1152
+      ],
+      "source_offset_bytes": 3895192352,
+      "source_shard": "model-00001-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.11.mlp.linear_fc2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 594844240,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.11.mlp.linear_fc2.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        1152,
+        4304
+      ],
+      "source_offset_bytes": 3905108768,
+      "source_shard": "model-00001-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.11.norm1.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 594846544,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.11.norm1.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 594848848,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.11.norm2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 594851152,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.11.norm2.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 594853456,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.12.attn.proj.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 594855760,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.12.attn.proj.weight",
+      "payload_bytes": 2654208,
+      "shape": [
+        1152,
+        1152
+      ],
+      "source_offset_bytes": 594858064,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.12.attn.qkv.bias",
+      "payload_bytes": 6912,
+      "shape": [
+        3456
+      ],
+      "source_offset_bytes": 597512272,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.12.attn.qkv.weight",
+      "payload_bytes": 7962624,
+      "shape": [
+        3456,
+        1152
+      ],
+      "source_offset_bytes": 597519184,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.12.mlp.linear_fc1.bias",
+      "payload_bytes": 8608,
+      "shape": [
+        4304
+      ],
+      "source_offset_bytes": 605481808,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.12.mlp.linear_fc1.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        4304,
+        1152
+      ],
+      "source_offset_bytes": 3915025184,
+      "source_shard": "model-00001-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.12.mlp.linear_fc2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 605490416,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.12.mlp.linear_fc2.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        1152,
+        4304
+      ],
+      "source_offset_bytes": 3924941600,
+      "source_shard": "model-00001-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.12.norm1.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 605492720,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.12.norm1.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 605495024,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.12.norm2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 605497328,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.12.norm2.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 605499632,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.13.attn.proj.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 605501936,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.13.attn.proj.weight",
+      "payload_bytes": 2654208,
+      "shape": [
+        1152,
+        1152
+      ],
+      "source_offset_bytes": 605504240,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.13.attn.qkv.bias",
+      "payload_bytes": 6912,
+      "shape": [
+        3456
+      ],
+      "source_offset_bytes": 608158448,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.13.attn.qkv.weight",
+      "payload_bytes": 7962624,
+      "shape": [
+        3456,
+        1152
+      ],
+      "source_offset_bytes": 608165360,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.13.mlp.linear_fc1.bias",
+      "payload_bytes": 8608,
+      "shape": [
+        4304
+      ],
+      "source_offset_bytes": 616127984,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.13.mlp.linear_fc1.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        4304,
+        1152
+      ],
+      "source_offset_bytes": 616136592,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.13.mlp.linear_fc2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 626053008,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.13.mlp.linear_fc2.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        1152,
+        4304
+      ],
+      "source_offset_bytes": 626055312,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.13.norm1.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 635971728,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.13.norm1.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 635974032,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.13.norm2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 635976336,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.13.norm2.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 635978640,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.14.attn.proj.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 635980944,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.14.attn.proj.weight",
+      "payload_bytes": 2654208,
+      "shape": [
+        1152,
+        1152
+      ],
+      "source_offset_bytes": 635983248,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.14.attn.qkv.bias",
+      "payload_bytes": 6912,
+      "shape": [
+        3456
+      ],
+      "source_offset_bytes": 638637456,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.14.attn.qkv.weight",
+      "payload_bytes": 7962624,
+      "shape": [
+        3456,
+        1152
+      ],
+      "source_offset_bytes": 638644368,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.14.mlp.linear_fc1.bias",
+      "payload_bytes": 8608,
+      "shape": [
+        4304
+      ],
+      "source_offset_bytes": 646606992,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.14.mlp.linear_fc1.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        4304,
+        1152
+      ],
+      "source_offset_bytes": 646615600,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.14.mlp.linear_fc2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 656532016,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.14.mlp.linear_fc2.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        1152,
+        4304
+      ],
+      "source_offset_bytes": 656534320,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.14.norm1.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 666450736,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.14.norm1.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 666453040,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.14.norm2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 666455344,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.14.norm2.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 666457648,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.15.attn.proj.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 666459952,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.15.attn.proj.weight",
+      "payload_bytes": 2654208,
+      "shape": [
+        1152,
+        1152
+      ],
+      "source_offset_bytes": 666462256,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.15.attn.qkv.bias",
+      "payload_bytes": 6912,
+      "shape": [
+        3456
+      ],
+      "source_offset_bytes": 669116464,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.15.attn.qkv.weight",
+      "payload_bytes": 7962624,
+      "shape": [
+        3456,
+        1152
+      ],
+      "source_offset_bytes": 669123376,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.15.mlp.linear_fc1.bias",
+      "payload_bytes": 8608,
+      "shape": [
+        4304
+      ],
+      "source_offset_bytes": 677086000,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.15.mlp.linear_fc1.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        4304,
+        1152
+      ],
+      "source_offset_bytes": 677094608,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.15.mlp.linear_fc2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 687011024,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.15.mlp.linear_fc2.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        1152,
+        4304
+      ],
+      "source_offset_bytes": 687013328,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.15.norm1.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 696929744,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.15.norm1.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 696932048,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.15.norm2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 696934352,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.15.norm2.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 696936656,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.16.attn.proj.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 696938960,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.16.attn.proj.weight",
+      "payload_bytes": 2654208,
+      "shape": [
+        1152,
+        1152
+      ],
+      "source_offset_bytes": 696941264,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.16.attn.qkv.bias",
+      "payload_bytes": 6912,
+      "shape": [
+        3456
+      ],
+      "source_offset_bytes": 699595472,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.16.attn.qkv.weight",
+      "payload_bytes": 7962624,
+      "shape": [
+        3456,
+        1152
+      ],
+      "source_offset_bytes": 699602384,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.16.mlp.linear_fc1.bias",
+      "payload_bytes": 8608,
+      "shape": [
+        4304
+      ],
+      "source_offset_bytes": 707565008,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.16.mlp.linear_fc1.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        4304,
+        1152
+      ],
+      "source_offset_bytes": 707573616,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.16.mlp.linear_fc2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 717490032,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.16.mlp.linear_fc2.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        1152,
+        4304
+      ],
+      "source_offset_bytes": 717492336,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.16.norm1.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 727408752,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.16.norm1.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 727411056,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.16.norm2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 727413360,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.16.norm2.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 727415664,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.17.attn.proj.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 727417968,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.17.attn.proj.weight",
+      "payload_bytes": 2654208,
+      "shape": [
+        1152,
+        1152
+      ],
+      "source_offset_bytes": 727420272,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.17.attn.qkv.bias",
+      "payload_bytes": 6912,
+      "shape": [
+        3456
+      ],
+      "source_offset_bytes": 730074480,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.17.attn.qkv.weight",
+      "payload_bytes": 7962624,
+      "shape": [
+        3456,
+        1152
+      ],
+      "source_offset_bytes": 730081392,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.17.mlp.linear_fc1.bias",
+      "payload_bytes": 8608,
+      "shape": [
+        4304
+      ],
+      "source_offset_bytes": 738044016,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.17.mlp.linear_fc1.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        4304,
+        1152
+      ],
+      "source_offset_bytes": 738052624,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.17.mlp.linear_fc2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 747969040,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.17.mlp.linear_fc2.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        1152,
+        4304
+      ],
+      "source_offset_bytes": 747971344,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.17.norm1.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 757887760,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.17.norm1.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 757890064,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.17.norm2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 757892368,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.17.norm2.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 757894672,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.18.attn.proj.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 757896976,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.18.attn.proj.weight",
+      "payload_bytes": 2654208,
+      "shape": [
+        1152,
+        1152
+      ],
+      "source_offset_bytes": 757899280,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.18.attn.qkv.bias",
+      "payload_bytes": 6912,
+      "shape": [
+        3456
+      ],
+      "source_offset_bytes": 760553488,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.18.attn.qkv.weight",
+      "payload_bytes": 7962624,
+      "shape": [
+        3456,
+        1152
+      ],
+      "source_offset_bytes": 760560400,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.18.mlp.linear_fc1.bias",
+      "payload_bytes": 8608,
+      "shape": [
+        4304
+      ],
+      "source_offset_bytes": 768523024,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.18.mlp.linear_fc1.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        4304,
+        1152
+      ],
+      "source_offset_bytes": 768531632,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.18.mlp.linear_fc2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 778448048,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.18.mlp.linear_fc2.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        1152,
+        4304
+      ],
+      "source_offset_bytes": 778450352,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.18.norm1.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 788366768,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.18.norm1.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 788369072,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.18.norm2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 788371376,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.18.norm2.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 788373680,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.19.attn.proj.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 788375984,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.19.attn.proj.weight",
+      "payload_bytes": 2654208,
+      "shape": [
+        1152,
+        1152
+      ],
+      "source_offset_bytes": 788378288,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.19.attn.qkv.bias",
+      "payload_bytes": 6912,
+      "shape": [
+        3456
+      ],
+      "source_offset_bytes": 791032496,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.19.attn.qkv.weight",
+      "payload_bytes": 7962624,
+      "shape": [
+        3456,
+        1152
+      ],
+      "source_offset_bytes": 791039408,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.19.mlp.linear_fc1.bias",
+      "payload_bytes": 8608,
+      "shape": [
+        4304
+      ],
+      "source_offset_bytes": 799002032,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.19.mlp.linear_fc1.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        4304,
+        1152
+      ],
+      "source_offset_bytes": 799010640,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.19.mlp.linear_fc2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 808927056,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.19.mlp.linear_fc2.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        1152,
+        4304
+      ],
+      "source_offset_bytes": 808929360,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.19.norm1.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 818845776,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.19.norm1.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 818848080,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.19.norm2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 818850384,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.19.norm2.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 818852688,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.2.attn.proj.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 818854992,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.2.attn.proj.weight",
+      "payload_bytes": 2654208,
+      "shape": [
+        1152,
+        1152
+      ],
+      "source_offset_bytes": 818857296,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.2.attn.qkv.bias",
+      "payload_bytes": 6912,
+      "shape": [
+        3456
+      ],
+      "source_offset_bytes": 821511504,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.2.attn.qkv.weight",
+      "payload_bytes": 7962624,
+      "shape": [
+        3456,
+        1152
+      ],
+      "source_offset_bytes": 821518416,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.2.mlp.linear_fc1.bias",
+      "payload_bytes": 8608,
+      "shape": [
+        4304
+      ],
+      "source_offset_bytes": 829481040,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.2.mlp.linear_fc1.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        4304,
+        1152
+      ],
+      "source_offset_bytes": 829489648,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.2.mlp.linear_fc2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 839406064,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.2.mlp.linear_fc2.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        1152,
+        4304
+      ],
+      "source_offset_bytes": 839408368,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.2.norm1.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 849324784,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.2.norm1.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 849327088,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.2.norm2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 849329392,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.2.norm2.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 849331696,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.20.attn.proj.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 849334000,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.20.attn.proj.weight",
+      "payload_bytes": 2654208,
+      "shape": [
+        1152,
+        1152
+      ],
+      "source_offset_bytes": 849336304,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.20.attn.qkv.bias",
+      "payload_bytes": 6912,
+      "shape": [
+        3456
+      ],
+      "source_offset_bytes": 851990512,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.20.attn.qkv.weight",
+      "payload_bytes": 7962624,
+      "shape": [
+        3456,
+        1152
+      ],
+      "source_offset_bytes": 851997424,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.20.mlp.linear_fc1.bias",
+      "payload_bytes": 8608,
+      "shape": [
+        4304
+      ],
+      "source_offset_bytes": 859960048,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.20.mlp.linear_fc1.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        4304,
+        1152
+      ],
+      "source_offset_bytes": 859968656,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.20.mlp.linear_fc2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 869885072,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.20.mlp.linear_fc2.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        1152,
+        4304
+      ],
+      "source_offset_bytes": 869887376,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.20.norm1.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 879803792,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.20.norm1.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 879806096,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.20.norm2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 879808400,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.20.norm2.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 879810704,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.21.attn.proj.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 879813008,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.21.attn.proj.weight",
+      "payload_bytes": 2654208,
+      "shape": [
+        1152,
+        1152
+      ],
+      "source_offset_bytes": 879815312,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.21.attn.qkv.bias",
+      "payload_bytes": 6912,
+      "shape": [
+        3456
+      ],
+      "source_offset_bytes": 882469520,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.21.attn.qkv.weight",
+      "payload_bytes": 7962624,
+      "shape": [
+        3456,
+        1152
+      ],
+      "source_offset_bytes": 882476432,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.21.mlp.linear_fc1.bias",
+      "payload_bytes": 8608,
+      "shape": [
+        4304
+      ],
+      "source_offset_bytes": 890439056,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.21.mlp.linear_fc1.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        4304,
+        1152
+      ],
+      "source_offset_bytes": 890447664,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.21.mlp.linear_fc2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 900364080,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.21.mlp.linear_fc2.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        1152,
+        4304
+      ],
+      "source_offset_bytes": 900366384,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.21.norm1.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 910282800,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.21.norm1.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 910285104,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.21.norm2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 910287408,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.21.norm2.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 910289712,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.22.attn.proj.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 910292016,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.22.attn.proj.weight",
+      "payload_bytes": 2654208,
+      "shape": [
+        1152,
+        1152
+      ],
+      "source_offset_bytes": 910294320,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.22.attn.qkv.bias",
+      "payload_bytes": 6912,
+      "shape": [
+        3456
+      ],
+      "source_offset_bytes": 912948528,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.22.attn.qkv.weight",
+      "payload_bytes": 7962624,
+      "shape": [
+        3456,
+        1152
+      ],
+      "source_offset_bytes": 912955440,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.22.mlp.linear_fc1.bias",
+      "payload_bytes": 8608,
+      "shape": [
+        4304
+      ],
+      "source_offset_bytes": 920918064,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.22.mlp.linear_fc1.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        4304,
+        1152
+      ],
+      "source_offset_bytes": 920926672,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.22.mlp.linear_fc2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 930843088,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.22.mlp.linear_fc2.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        1152,
+        4304
+      ],
+      "source_offset_bytes": 930845392,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.22.norm1.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 940761808,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.22.norm1.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 940764112,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.22.norm2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 940766416,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.22.norm2.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 940768720,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.23.attn.proj.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 940771024,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.23.attn.proj.weight",
+      "payload_bytes": 2654208,
+      "shape": [
+        1152,
+        1152
+      ],
+      "source_offset_bytes": 940773328,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.23.attn.qkv.bias",
+      "payload_bytes": 6912,
+      "shape": [
+        3456
+      ],
+      "source_offset_bytes": 943427536,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.23.attn.qkv.weight",
+      "payload_bytes": 7962624,
+      "shape": [
+        3456,
+        1152
+      ],
+      "source_offset_bytes": 943434448,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.23.mlp.linear_fc1.bias",
+      "payload_bytes": 8608,
+      "shape": [
+        4304
+      ],
+      "source_offset_bytes": 951397072,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.23.mlp.linear_fc1.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        4304,
+        1152
+      ],
+      "source_offset_bytes": 951405680,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.23.mlp.linear_fc2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 961322096,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.23.mlp.linear_fc2.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        1152,
+        4304
+      ],
+      "source_offset_bytes": 961324400,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.23.norm1.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 971240816,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.23.norm1.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 971243120,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.23.norm2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 971245424,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.23.norm2.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 971247728,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.24.attn.proj.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 971250032,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.24.attn.proj.weight",
+      "payload_bytes": 2654208,
+      "shape": [
+        1152,
+        1152
+      ],
+      "source_offset_bytes": 971252336,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.24.attn.qkv.bias",
+      "payload_bytes": 6912,
+      "shape": [
+        3456
+      ],
+      "source_offset_bytes": 973906544,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.24.attn.qkv.weight",
+      "payload_bytes": 7962624,
+      "shape": [
+        3456,
+        1152
+      ],
+      "source_offset_bytes": 973913456,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.24.mlp.linear_fc1.bias",
+      "payload_bytes": 8608,
+      "shape": [
+        4304
+      ],
+      "source_offset_bytes": 981876080,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.24.mlp.linear_fc1.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        4304,
+        1152
+      ],
+      "source_offset_bytes": 981884688,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.24.mlp.linear_fc2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 991801104,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.24.mlp.linear_fc2.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        1152,
+        4304
+      ],
+      "source_offset_bytes": 991803408,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.24.norm1.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1001719824,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.24.norm1.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1001722128,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.24.norm2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1001724432,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.24.norm2.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1001726736,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.25.attn.proj.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1001729040,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.25.attn.proj.weight",
+      "payload_bytes": 2654208,
+      "shape": [
+        1152,
+        1152
+      ],
+      "source_offset_bytes": 1001731344,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.25.attn.qkv.bias",
+      "payload_bytes": 6912,
+      "shape": [
+        3456
+      ],
+      "source_offset_bytes": 1004385552,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.25.attn.qkv.weight",
+      "payload_bytes": 7962624,
+      "shape": [
+        3456,
+        1152
+      ],
+      "source_offset_bytes": 1004392464,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.25.mlp.linear_fc1.bias",
+      "payload_bytes": 8608,
+      "shape": [
+        4304
+      ],
+      "source_offset_bytes": 1012355088,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.25.mlp.linear_fc1.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        4304,
+        1152
+      ],
+      "source_offset_bytes": 1012363696,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.25.mlp.linear_fc2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1022280112,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.25.mlp.linear_fc2.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        1152,
+        4304
+      ],
+      "source_offset_bytes": 1022282416,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.25.norm1.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1032198832,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.25.norm1.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1032201136,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.25.norm2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1032203440,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.25.norm2.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1032205744,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.26.attn.proj.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1032208048,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.26.attn.proj.weight",
+      "payload_bytes": 2654208,
+      "shape": [
+        1152,
+        1152
+      ],
+      "source_offset_bytes": 1032210352,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.26.attn.qkv.bias",
+      "payload_bytes": 6912,
+      "shape": [
+        3456
+      ],
+      "source_offset_bytes": 1034864560,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.26.attn.qkv.weight",
+      "payload_bytes": 7962624,
+      "shape": [
+        3456,
+        1152
+      ],
+      "source_offset_bytes": 1034871472,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.26.mlp.linear_fc1.bias",
+      "payload_bytes": 8608,
+      "shape": [
+        4304
+      ],
+      "source_offset_bytes": 1042834096,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.26.mlp.linear_fc1.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        4304,
+        1152
+      ],
+      "source_offset_bytes": 1042842704,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.26.mlp.linear_fc2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1052759120,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.26.mlp.linear_fc2.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        1152,
+        4304
+      ],
+      "source_offset_bytes": 1052761424,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.26.norm1.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1062677840,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.26.norm1.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1062680144,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.26.norm2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1062682448,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.26.norm2.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1062684752,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.3.attn.proj.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1062687056,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.3.attn.proj.weight",
+      "payload_bytes": 2654208,
+      "shape": [
+        1152,
+        1152
+      ],
+      "source_offset_bytes": 1062689360,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.3.attn.qkv.bias",
+      "payload_bytes": 6912,
+      "shape": [
+        3456
+      ],
+      "source_offset_bytes": 1065343568,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.3.attn.qkv.weight",
+      "payload_bytes": 7962624,
+      "shape": [
+        3456,
+        1152
+      ],
+      "source_offset_bytes": 1065350480,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.3.mlp.linear_fc1.bias",
+      "payload_bytes": 8608,
+      "shape": [
+        4304
+      ],
+      "source_offset_bytes": 1073313104,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.3.mlp.linear_fc1.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        4304,
+        1152
+      ],
+      "source_offset_bytes": 1073321712,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.3.mlp.linear_fc2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1083238128,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.3.mlp.linear_fc2.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        1152,
+        4304
+      ],
+      "source_offset_bytes": 1083240432,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.3.norm1.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1093156848,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.3.norm1.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1093159152,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.3.norm2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1093161456,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.3.norm2.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1093163760,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.4.attn.proj.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1093166064,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.4.attn.proj.weight",
+      "payload_bytes": 2654208,
+      "shape": [
+        1152,
+        1152
+      ],
+      "source_offset_bytes": 1093168368,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.4.attn.qkv.bias",
+      "payload_bytes": 6912,
+      "shape": [
+        3456
+      ],
+      "source_offset_bytes": 1095822576,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.4.attn.qkv.weight",
+      "payload_bytes": 7962624,
+      "shape": [
+        3456,
+        1152
+      ],
+      "source_offset_bytes": 1095829488,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.4.mlp.linear_fc1.bias",
+      "payload_bytes": 8608,
+      "shape": [
+        4304
+      ],
+      "source_offset_bytes": 1103792112,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.4.mlp.linear_fc1.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        4304,
+        1152
+      ],
+      "source_offset_bytes": 1103800720,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.4.mlp.linear_fc2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1113717136,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.4.mlp.linear_fc2.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        1152,
+        4304
+      ],
+      "source_offset_bytes": 1113719440,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.4.norm1.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1123635856,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.4.norm1.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1123638160,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.4.norm2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1123640464,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.4.norm2.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1123642768,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.5.attn.proj.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1123645072,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.5.attn.proj.weight",
+      "payload_bytes": 2654208,
+      "shape": [
+        1152,
+        1152
+      ],
+      "source_offset_bytes": 1123647376,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.5.attn.qkv.bias",
+      "payload_bytes": 6912,
+      "shape": [
+        3456
+      ],
+      "source_offset_bytes": 1126301584,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.5.attn.qkv.weight",
+      "payload_bytes": 7962624,
+      "shape": [
+        3456,
+        1152
+      ],
+      "source_offset_bytes": 1126308496,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.5.mlp.linear_fc1.bias",
+      "payload_bytes": 8608,
+      "shape": [
+        4304
+      ],
+      "source_offset_bytes": 1134271120,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.5.mlp.linear_fc1.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        4304,
+        1152
+      ],
+      "source_offset_bytes": 1134279728,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.5.mlp.linear_fc2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1144196144,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.5.mlp.linear_fc2.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        1152,
+        4304
+      ],
+      "source_offset_bytes": 1144198448,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.5.norm1.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1154114864,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.5.norm1.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1154117168,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.5.norm2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1154119472,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.5.norm2.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1154121776,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.6.attn.proj.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1154124080,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.6.attn.proj.weight",
+      "payload_bytes": 2654208,
+      "shape": [
+        1152,
+        1152
+      ],
+      "source_offset_bytes": 1154126384,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.6.attn.qkv.bias",
+      "payload_bytes": 6912,
+      "shape": [
+        3456
+      ],
+      "source_offset_bytes": 1156780592,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.6.attn.qkv.weight",
+      "payload_bytes": 7962624,
+      "shape": [
+        3456,
+        1152
+      ],
+      "source_offset_bytes": 1156787504,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.6.mlp.linear_fc1.bias",
+      "payload_bytes": 8608,
+      "shape": [
+        4304
+      ],
+      "source_offset_bytes": 1164750128,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.6.mlp.linear_fc1.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        4304,
+        1152
+      ],
+      "source_offset_bytes": 1164758736,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.6.mlp.linear_fc2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1174675152,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.6.mlp.linear_fc2.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        1152,
+        4304
+      ],
+      "source_offset_bytes": 1174677456,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.6.norm1.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1184593872,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.6.norm1.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1184596176,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.6.norm2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1184598480,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.6.norm2.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1184600784,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.7.attn.proj.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1184603088,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.7.attn.proj.weight",
+      "payload_bytes": 2654208,
+      "shape": [
+        1152,
+        1152
+      ],
+      "source_offset_bytes": 1184605392,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.7.attn.qkv.bias",
+      "payload_bytes": 6912,
+      "shape": [
+        3456
+      ],
+      "source_offset_bytes": 1187259600,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.7.attn.qkv.weight",
+      "payload_bytes": 7962624,
+      "shape": [
+        3456,
+        1152
+      ],
+      "source_offset_bytes": 1187266512,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.7.mlp.linear_fc1.bias",
+      "payload_bytes": 8608,
+      "shape": [
+        4304
+      ],
+      "source_offset_bytes": 1195229136,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.7.mlp.linear_fc1.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        4304,
+        1152
+      ],
+      "source_offset_bytes": 1195237744,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.7.mlp.linear_fc2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1205154160,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.7.mlp.linear_fc2.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        1152,
+        4304
+      ],
+      "source_offset_bytes": 1205156464,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.7.norm1.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1215072880,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.7.norm1.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1215075184,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.7.norm2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1215077488,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.7.norm2.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1215079792,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.8.attn.proj.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1215082096,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.8.attn.proj.weight",
+      "payload_bytes": 2654208,
+      "shape": [
+        1152,
+        1152
+      ],
+      "source_offset_bytes": 1215084400,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.8.attn.qkv.bias",
+      "payload_bytes": 6912,
+      "shape": [
+        3456
+      ],
+      "source_offset_bytes": 1217738608,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.8.attn.qkv.weight",
+      "payload_bytes": 7962624,
+      "shape": [
+        3456,
+        1152
+      ],
+      "source_offset_bytes": 1217745520,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.8.mlp.linear_fc1.bias",
+      "payload_bytes": 8608,
+      "shape": [
+        4304
+      ],
+      "source_offset_bytes": 1225708144,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.8.mlp.linear_fc1.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        4304,
+        1152
+      ],
+      "source_offset_bytes": 1225716752,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.8.mlp.linear_fc2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1235633168,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.8.mlp.linear_fc2.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        1152,
+        4304
+      ],
+      "source_offset_bytes": 1235635472,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.8.norm1.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1245551888,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.8.norm1.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1245554192,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.8.norm2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1245556496,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.8.norm2.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1245558800,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.9.attn.proj.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1245561104,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.9.attn.proj.weight",
+      "payload_bytes": 2654208,
+      "shape": [
+        1152,
+        1152
+      ],
+      "source_offset_bytes": 1245563408,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.9.attn.qkv.bias",
+      "payload_bytes": 6912,
+      "shape": [
+        3456
+      ],
+      "source_offset_bytes": 1248217616,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.9.attn.qkv.weight",
+      "payload_bytes": 7962624,
+      "shape": [
+        3456,
+        1152
+      ],
+      "source_offset_bytes": 1248224528,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.9.mlp.linear_fc1.bias",
+      "payload_bytes": 8608,
+      "shape": [
+        4304
+      ],
+      "source_offset_bytes": 1256187152,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.9.mlp.linear_fc1.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        4304,
+        1152
+      ],
+      "source_offset_bytes": 1256195760,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.9.mlp.linear_fc2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1266112176,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.9.mlp.linear_fc2.weight",
+      "payload_bytes": 9916416,
+      "shape": [
+        1152,
+        4304
+      ],
+      "source_offset_bytes": 1266114480,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.9.norm1.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1276030896,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.9.norm1.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1276033200,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.9.norm2.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1276035504,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.blocks.9.norm2.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1276037808,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.merger.linear_fc1.bias",
+      "payload_bytes": 9216,
+      "shape": [
+        4608
+      ],
+      "source_offset_bytes": 1276040112,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.merger.linear_fc1.weight",
+      "payload_bytes": 42467328,
+      "shape": [
+        4608,
+        4608
+      ],
+      "source_offset_bytes": 3934858016,
+      "source_shard": "model-00001-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.merger.linear_fc2.bias",
+      "payload_bytes": 4096,
+      "shape": [
+        2048
+      ],
+      "source_offset_bytes": 1276049328,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.merger.linear_fc2.weight",
+      "payload_bytes": 18874368,
+      "shape": [
+        2048,
+        4608
+      ],
+      "source_offset_bytes": 3977325344,
+      "source_shard": "model-00001-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.merger.norm.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1276053424,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.merger.norm.weight",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1276055728,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.patch_embed.proj.bias",
+      "payload_bytes": 2304,
+      "shape": [
+        1152
+      ],
+      "source_offset_bytes": 1276058032,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.patch_embed.proj.weight",
+      "payload_bytes": 3538944,
+      "shape": [
+        1152,
+        3,
+        2,
+        16,
+        16
+      ],
+      "source_offset_bytes": 1276060336,
+      "source_shard": "model-00002-of-00026.safetensors"
+    },
+    {
+      "dtype": "BF16",
+      "name": "model.visual.pos_embed.weight",
+      "payload_bytes": 5308416,
+      "shape": [
+        2304,
+        1152
+      ],
+      "source_offset_bytes": 1279599280,
+      "source_shard": "model-00002-of-00026.safetensors"
+    }
+  ],
+  "layout": {
+    "active_names_sha256": "ab17c9d0d0add95747ed2bb3b194aeb4443902702c7732bdcff995d7d84554dc",
+    "geometry_sha256": "74f365922baf28e84bffcd2f7cc8b1eaca7ed61d42762241c7fc2ba1529655bf",
+    "payload_bytes": 893142496,
+    "payload_sum_u64": "0xcbf21fe7cde36cdf",
+    "payload_xor_u64": "0xedae72382a609c99",
+    "tensor_count": 333
+  },
+  "model": {
+    "checkpoint_index_sha256": "41b9356101ebf8e7519e150dc811f80c4226e727301fbb032b890f006ed0be83",
+    "config_sha256": "93a4693fa9d8392fbfccd4b3c9873f4bfdcb14fdede978b123d07d19675efe99",
+    "id": "Qwen3.6-35B-A3B-BF16",
+    "revision": "995ad96eacd98c81ed38be0c5b274b04031597b0"
+  },
+  "schema": "aima-amd395-qwen36/native-visual-weight-manifest/v1",
+  "source_files": {
+    "model-00001-of-00026.safetensors": {
+      "bytes": 3996199712,
+      "sha256": "adee7bcb930aed22e0677e58d4873b48dadb1ed8001cb5c6a0487286eadb3478"
+    },
+    "model-00002-of-00026.safetensors": {
+      "bytes": 1284907696,
+      "sha256": "88f2dfd2b9e73e4b70be533dbf61bcfa3c9a0003758900fcbc9d9b96f5751d4b"
+    }
+  }
+}
