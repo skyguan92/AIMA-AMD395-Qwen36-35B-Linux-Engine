@@ -62,6 +62,8 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         self.assertIn(
             'post_attention_h2_oracle_label = "diagnostic-h2"', probe
         )
+        self.assertIn('"diagnostic-router_indices"', probe)
+        self.assertIn("value.exact_elements == value.elements", probe)
         self.assertIn('"linear_projection_fused_full_sequence"', probe)
         self.assertIn('"diagnostic-qkv"', linear_source)
         self.assertIn('"diagnostic-fused-input"', linear_source)
@@ -115,6 +117,10 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         self.assertIn('if mode == "prefill"', routing_weights)
         self.assertIn("return normalized", routing_weights)
         self.assertIn("FusedTopKRouter", routing_weights)
+        self.assertIn(
+            'compare_stage_if_present("router_weights", "float32"',
+            moe_source,
+        )
 
         capture = (ROOT / "scripts/capture-vllm-vl-oracles.py").read_text(
             encoding="utf-8"

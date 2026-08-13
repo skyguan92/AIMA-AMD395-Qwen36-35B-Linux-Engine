@@ -68,6 +68,12 @@ SOURCE_HASHES = {
     "vllm.model_executor.layers.fused_moe.shared_fused_moe": (
         "c944521d34792bf77bacb46e0de626d65dc61bd90f933a99e6a803e39bf0df1d"
     ),
+    "vllm.model_executor.layers.fused_moe.router.base_router": (
+        "5dba2d3781caa08360699e6d6d0d66197bad4d514ed1731471ada9065c1724e2"
+    ),
+    "vllm.model_executor.layers.fused_moe.router.fused_topk_router": (
+        "411faeb99079135084bef8734e82ff1e3d0c82c913198bb35d8140e77c41cbfa"
+    ),
 }
 REQUIRED_COMPONENTS = {
     "input_norm",
@@ -91,6 +97,9 @@ REQUIRED_COMPONENTS = {
     "attention_residual",
     "post_attention_norm",
     "router_logits",
+    "router_scores",
+    "router_weights",
+    "router_indices",
     "shared_gate_logits",
     "shared_moe_output",
     "routed_moe_output",
@@ -117,6 +126,10 @@ ORACLE_LABELS = {
     "launch-009-residual_out": "attention_residual",
     "launch-009-norm_out": "post_attention_norm",
     "diagnostic-h2": "post_attention_norm",
+    "diagnostic-router_logits": "router_logits",
+    "diagnostic-router_scores": "router_scores",
+    "diagnostic-router_weights": "router_weights",
+    "diagnostic-router_indices": "router_indices",
     "diagnostic-shared_out": "shared_moe_output",
     "diagnostic-routed_moe": "routed_moe_output",
     "diagnostic-moe_out": "combined_moe_output",
@@ -197,6 +210,9 @@ class InstallLanguageLayer0DiagnosticHooks:
             previous["gdn_module"].fused_post_conv_prep = previous[
                 "original_fused_post_conv_prep"
             ]
+            previous["router"].select_experts = previous[
+                "original_router_select_experts"
+            ]
 
         language = root.language_model
         if len(language.model.layers) < 2:
@@ -210,6 +226,7 @@ class InstallLanguageLayer0DiagnosticHooks:
         gdn_module = importlib.import_module(
             "vllm.model_executor.layers.mamba.gdn_linear_attn"
         )
+        router = mlp.experts.router
         state: dict[str, Any] = {
             "output_root": self.output_root,
             "case_id": self.case_id,
@@ -218,6 +235,8 @@ class InstallLanguageLayer0DiagnosticHooks:
             "gdn_module": gdn_module,
             "original_causal_conv1d_fn": gdn_module.causal_conv1d_fn,
             "original_fused_post_conv_prep": gdn_module.fused_post_conv_prep,
+            "router": router,
+            "original_router_select_experts": router.select_experts,
         }
 
         def capture(name: str, value: Any) -> None:
@@ -316,6 +335,26 @@ class InstallLanguageLayer0DiagnosticHooks:
                 capture(name, tensor)
             return output
 
+        def instrumented_router_select_experts(
+            *args: Any, **kwargs: Any
+        ) -> Any:
+            output = state["original_router_select_experts"](*args, **kwargs)
+            if not isinstance(output, (tuple, list)) or len(output) != 2:
+                raise RuntimeError("fused MoE router did not return two tensors")
+            weights, indices = output
+            router_logits = kwargs.get("router_logits")
+            if router_logits is None and len(args) > 1:
+                router_logits = args[1]
+            if not isinstance(router_logits, torch.Tensor):
+                raise RuntimeError("fused MoE router logits are unavailable")
+            capture("router_weights", weights)
+            capture("router_indices", indices.to(torch.int64))
+            capture(
+                "router_scores",
+                torch.gather(router_logits.float(), 1, indices.to(torch.int64)),
+            )
+            return output
+
         hooks = state["handles"]
         hooks.append(layer0.input_layernorm.register_forward_hook(output_hook("input_norm")))
         hooks.append(
@@ -346,6 +385,7 @@ class InstallLanguageLayer0DiagnosticHooks:
         hooks.append(layer1.input_layernorm.register_forward_hook(layer1_norm_hook))
         gdn_module.causal_conv1d_fn = instrumented_causal_conv1d_fn
         gdn_module.fused_post_conv_prep = instrumented_fused_post_conv_prep
+        router.select_experts = instrumented_router_select_experts
         root._aima_vl_language_layer0_diagnostic_state = state
         return {
             "layer0": _module_identity(layer0),
@@ -357,6 +397,7 @@ class InstallLanguageLayer0DiagnosticHooks:
             ),
             "moe": _module_identity(mlp),
             "experts": _module_identity(mlp.experts),
+            "router": _module_identity(router),
             "layer1_input_norm": _module_identity(layer1.input_layernorm),
         }
 
@@ -378,6 +419,9 @@ class FinalizeLanguageLayer0DiagnosticHooks:
         ]
         state["gdn_module"].fused_post_conv_prep = state[
             "original_fused_post_conv_prep"
+        ]
+        state["router"].select_experts = state[
+            "original_router_select_experts"
         ]
         captures = state["captures"]
         if {
@@ -450,6 +494,9 @@ class RemoveLanguageLayer0DiagnosticHooks:
         ]
         state["gdn_module"].fused_post_conv_prep = state[
             "original_fused_post_conv_prep"
+        ]
+        state["router"].select_experts = state[
+            "original_router_select_experts"
         ]
         delattr(root, "_aima_vl_language_layer0_diagnostic_state")
         return True

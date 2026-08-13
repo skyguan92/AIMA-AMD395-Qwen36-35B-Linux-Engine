@@ -469,6 +469,10 @@ json qualify_case(
         "post_attention_full_sequence",
         "post_attention_norm_full_sequence",
         "diagnostic-h2",
+        "diagnostic-router_logits",
+        "diagnostic-router_scores",
+        "diagnostic-router_weights",
+        "diagnostic-router_indices",
         "diagnostic-shared_out",
         "diagnostic-routed_moe",
         "diagnostic-moe_out",
@@ -481,7 +485,9 @@ json qualify_case(
       const bool stage_passed =
           value.finite_elements == value.elements &&
           value.relative_l2_error <= 0.002 &&
-          value.cosine_similarity >= 0.999;
+          value.cosine_similarity >= 0.999 &&
+          (value.label != "diagnostic-router_indices" ||
+           value.exact_elements == value.elements);
       if (!stage_passed && first_failed_diagnostic_stage.empty()) {
         first_failed_diagnostic_stage = value.label;
       }
@@ -515,6 +521,10 @@ json qualify_case(
 
     const std::set<std::string> expected_seeded_moe_labels = {
         "diagnostic-h2",
+        "diagnostic-router_logits",
+        "diagnostic-router_scores",
+        "diagnostic-router_weights",
+        "diagnostic-router_indices",
         "diagnostic-shared_out",
         "diagnostic-routed_moe",
         "diagnostic-moe_out",
@@ -527,7 +537,9 @@ json qualify_case(
       const bool stage_passed =
           value.finite_elements == value.elements &&
           value.relative_l2_error <= 0.002 &&
-          value.cosine_similarity >= 0.999;
+          value.cosine_similarity >= 0.999 &&
+          (value.label != "diagnostic-router_indices" ||
+           value.exact_elements == value.elements);
       if (!stage_passed && first_failed_seeded_moe_stage.empty()) {
         first_failed_seeded_moe_stage = value.label;
       }

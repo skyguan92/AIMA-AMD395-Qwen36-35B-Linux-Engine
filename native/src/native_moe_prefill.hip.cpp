@@ -1052,9 +1052,13 @@ NativeMoePrefillOracleResult probe_native_q8192_moe_prefill_layer0_oracle(
             }
           };
       compare_stage_if_present("h2", "bfloat16", h2, hidden_bytes);
-      compare_stage_if_present("scores", "float32", router_scores,
+      compare_stage_if_present("router_logits", "bfloat16", router_logits,
+                               tokens * kExperts * sizeof(std::uint16_t));
+      compare_stage_if_present("router_scores", "float32", router_scores,
                                tokens * kTopK * sizeof(float));
-      compare_stage_if_present("indices", "int64", router_indices_i64,
+      compare_stage_if_present("router_weights", "float32", topk_weights,
+                               tokens * kTopK * sizeof(float));
+      compare_stage_if_present("router_indices", "int64", router_indices_i64,
                                tokens * kTopK * sizeof(std::int64_t));
       compare_stage_if_present("shared_out", "bfloat16", shared_scaled,
                                hidden_bytes);
