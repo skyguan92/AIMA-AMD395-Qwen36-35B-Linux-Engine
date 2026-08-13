@@ -894,6 +894,41 @@ class NativeVisualLayoutTest(unittest.TestCase):
         self.assertIn('attention.bin', trace)
         self.assertIn('actual != expected', trace)
 
+        manifest_path = (
+            ROOT / "native/aot/gfx1151/vision-attention-v0.1.0/manifest.json"
+        )
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        self.assertEqual(manifest["kernel_count"], 1)
+        kernel = manifest["kernels"][0]
+        self.assertEqual(kernel["kernel_hash"], "e45a4026e641c9f89b75bc5e5c22072d45ff39c42046ce4edec8d0c617d1584c")
+        self.assertEqual(kernel["symbol"], "_fwd_kernel")
+        self.assertEqual(kernel["compile_constants"]["BLOCK_M"], 128)
+        self.assertEqual(kernel["compile_constants"]["BLOCK_N"], 128)
+        self.assertEqual(kernel["compile_constants"]["Lk"], 72)
+        self.assertFalse(kernel["compile_constants"]["IS_CAUSAL"])
+        image = kernel["image"]
+        self.assertEqual(
+            hashlib.sha256(
+                (manifest_path.parent / image["path"]).read_bytes()
+            ).hexdigest(),
+            image["sha256"],
+        )
+
+        header = (
+            ROOT / "native/include/aima/native_vision_aot_attention.h"
+        ).read_text(encoding="utf-8")
+        source = (
+            ROOT / "native/src/native_vision_aot_attention.hip.cpp"
+        ).read_text(encoding="utf-8")
+        probe = (
+            ROOT / "native/tools/vision_aot_attention_oracle_probe.hip.cpp"
+        ).read_text(encoding="utf-8")
+        self.assertIn("class NativeVisionAotAttentionPlan", header)
+        self.assertIn(kernel["image"]["sha256"], source)
+        self.assertIn("AotKernel::from_file", source)
+        self.assertIn("config.shared_memory_bytes = 32768", source)
+        self.assertIn("native-vision-aot-attention-oracle/v1", probe)
+
 
 if __name__ == "__main__":
     unittest.main()
