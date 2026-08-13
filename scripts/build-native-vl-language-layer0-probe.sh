@@ -63,6 +63,7 @@ done < "${AOT_OBJECT_PLAN}"
   "${ROOT}/native/src/native_decode_bindings.hip.cpp" \
   "${ROOT}/native/src/native_decode_executor.hip.cpp" \
   "${ROOT}/native/src/native_decode_invocation.cpp" \
+  "${ROOT}/native/src/native_decode_workspace.hip.cpp" \
   "${ROOT}/native/src/native_prefill_invocation.cpp" \
   "${ROOT}/native/src/native_prefill_workspace.hip.cpp" \
   "${ROOT}/native/src/native_prefill_gemm_plans.hip.cpp" \
