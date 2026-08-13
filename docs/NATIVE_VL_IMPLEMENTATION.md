@@ -237,6 +237,16 @@ second pass measured by the visual-only diagnostic. Resident load metrics and
 the HTTP ready event expose the total, language, visual and manifest identities.
 The vision kernels and processor-to-encoder execution remain the next boundary.
 
+The first visual compute boundary is qualified. Patch projection treats the
+frozen Conv3d kernel as its exact `[patches,1536] x [1152,1536]^T` BF16 linear
+surface and uses the checkpoint bias as a hipBLASLt epilogue before BF16
+quantization. A clean `9d29d9d` build matched the image, video, multi-image and
+multi-video patch oracles bit-for-bit across 1,548,288 BF16 elements (128, 256,
+320 and 640 patch rows); every actual SHA-256 equals its oracle SHA-256. The
+hash-bound result is `benchmarks/results/native-vision-patch-v0.1.0.json`.
+Position interpolation and the 27 vision blocks are not yet covered by this
+result, so it advances only the patch boundary of G2.
+
 `native_media_test` and `native_chat_protocol_test` both compile with strict
 warnings and pass on `amd395`. This is implementation progress, not G1 or G2
 acceptance evidence.

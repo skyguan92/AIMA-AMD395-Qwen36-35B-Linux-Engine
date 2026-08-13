@@ -16,6 +16,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_PATH = ROOT / "engine" / "native-visual-weight-manifest.json"
 HEADER_PATH = ROOT / "native" / "generated" / "visual_model_layout.h"
+PATCH_RESULT_PATH = ROOT / "benchmarks/results/native-vision-patch-v0.1.0.json"
 
 
 class NativeVisualLayoutTest(unittest.TestCase):
@@ -168,6 +169,20 @@ class NativeVisualLayoutTest(unittest.TestCase):
         self.assertIn("HIPBLASLT_EPILOGUE_BIAS", gemm)
         self.assertIn("native_vision_encoder.hip.cpp", build)
         self.assertIn("vision_patch_oracle_probe.hip.cpp", probe)
+
+        result = json.loads(PATCH_RESULT_PATH.read_text(encoding="utf-8"))
+        self.assertTrue(result["complete"])
+        self.assertTrue(result["source"]["clean"])
+        self.assertEqual(result["source"]["commit"], "9d29d9de9b4c68fd932b8616ef2bee6d65794266")
+        self.assertEqual(len(result["cases"]), 4)
+        self.assertTrue(result["decision"]["overall_pass"])
+        self.assertEqual(
+            result["decision"]["total_elements"],
+            result["decision"]["total_exact_elements"],
+        )
+        self.assertTrue(
+            all(case["expected_sha256"] == case["actual_sha256"] for case in result["cases"])
+        )
 
 
 if __name__ == "__main__":
