@@ -373,6 +373,23 @@ class NativeVisualLayoutTest(unittest.TestCase):
                 )
             )
 
+    def test_vision_depth_capture_hooks_all_representative_blocks(self) -> None:
+        capture = (
+            ROOT / "scripts/capture-vllm-vision-depth-oracles.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn("InstallVisionDepthHooks", capture)
+        self.assertIn("FinalizeVisionDepthHooks", capture)
+        self.assertIn("BLOCK_INDICES = (0, 13, 26)", capture)
+        self.assertIn("root.visual.blocks[block_index]", capture)
+        self.assertIn("block.register_forward_pre_hook", capture)
+        self.assertIn("block.attn.apply_rotary_emb.register_forward_pre_hook", capture)
+        self.assertIn("block.attn.attn.register_forward_pre_hook", capture)
+        self.assertIn("block.register_forward_hook", capture)
+        self.assertIn("full_model_output_comparison", capture)
+        self.assertIn("vision_block_{block_index}", capture)
+        self.assertIn("VLLM_ALLOW_INSECURE_SERIALIZATION", capture)
+        self.assertIn('llm_kwargs["skip_mm_profiling"] = True', capture)
+
     def test_vision_block_prefix_has_an_isolated_native_probe(self) -> None:
         header = (
             ROOT / "native/include/aima/native_vision_encoder.h"
