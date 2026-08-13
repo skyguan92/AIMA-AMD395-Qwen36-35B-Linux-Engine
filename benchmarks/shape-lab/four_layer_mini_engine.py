@@ -7790,7 +7790,17 @@ def run_with_torch(
     def routing_weights(scores: Any) -> Any:
         if triton_router_topk_softmax_decode:
             return scores.to(dtype)
-        return torch.softmax(scores, dim=-1).to(dtype)
+        normalized = torch.softmax(scores, dim=-1)
+        if mode == "prefill" and (
+            moe_variant in vllm_fused_moe_variants()
+            or moe_variant in native_moe_consumer_variants()
+        ):
+            # FusedTopKRouter hands fused_experts FP32 probabilities.  Keep
+            # that serving boundary in the captured prefill closure: rounding
+            # these weights to BF16 changes the routed expert result even when
+            # the selected experts and every GEMM input are otherwise exact.
+            return normalized
+        return normalized.to(dtype)
 
     def expanded_routed_moe(inp: Any, scores: Any, indices: Any, weights: dict[str, Any]) -> Any:
         expanded = inp.repeat_interleave(top_k, dim=0)

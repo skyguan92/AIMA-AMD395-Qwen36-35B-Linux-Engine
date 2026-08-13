@@ -102,6 +102,20 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         self.assertIn("const __hip_bfloat16 silu_bf16", shared_activation)
         self.assertIn("__bfloat162float(silu_bf16) * up_value", shared_activation)
 
+        router = moe_source.split(
+            "__global__ void router_topk8_softmax_256_kernel(", 1
+        )[1].split("__global__ void moe_align_block32_256_kernel", 1)[0]
+        self.assertIn("std::int32_t* indices_i32, float* weights", router)
+        self.assertIn("weights[base + rank] = probability", router)
+        self.assertNotIn("__float2bfloat16(probability)", router)
+
+        routing_weights = shape_lab.split(
+            "    def routing_weights(scores: Any) -> Any:", 1
+        )[1].split("    def expanded_routed_moe", 1)[0]
+        self.assertIn('if mode == "prefill"', routing_weights)
+        self.assertIn("return normalized", routing_weights)
+        self.assertIn("FusedTopKRouter", routing_weights)
+
         capture = (ROOT / "scripts/capture-vllm-vl-oracles.py").read_text(
             encoding="utf-8"
         )

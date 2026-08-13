@@ -239,7 +239,7 @@ __global__ void shared_sigmoid_scale_batched_kernel(
 
 __global__ void router_topk8_softmax_256_kernel(
     const __hip_bfloat16* logits, float* scores, std::int64_t* indices_i64,
-    std::int32_t* indices_i32, __hip_bfloat16* weights) {
+    std::int32_t* indices_i32, float* weights) {
   if (threadIdx.x != 0) return;
   const std::size_t token = blockIdx.x;
   const __hip_bfloat16* row = logits + token * kExperts;
@@ -324,7 +324,11 @@ __global__ void router_topk8_softmax_256_kernel(
     indices_i32[base + rank] = selected_indices[rank];
     const float probability =
         expf(selected_scores[rank] - selected_scores[0]) / denominator;
-    weights[base + rank] = __float2bfloat16(probability);
+    // vLLM's FusedTopKRouter passes FP32 probabilities to fused_experts.
+    // The AOT expert kernels consume this buffer directly, so an intermediate
+    // BF16 store is a visible model-arithmetic change rather than scratch
+    // precision that can be chosen independently.
+    weights[base + rank] = probability;
   }
 }
 
@@ -400,8 +404,7 @@ __global__ void expert_silu_multiply_kernel(
       __bfloat162float(gate_up[base + kSharedIntermediate + column]);
   const float silu = gate / (1.0f + expf(-gate));
   // vLLM's BF16 SiluAndMul rounds the SiLU result to BF16 before the
-  // multiply.  Preserve that boundary; the shared-expert path intentionally
-  // keeps its different FP32-intermediate semantics above.
+  // multiply.  Preserve that boundary in both expert implementations.
   const __hip_bfloat16 silu_bf16 = __float2bfloat16(silu);
   activated[index] =
       __float2bfloat16(__bfloat162float(silu_bf16) * up);
@@ -469,7 +472,7 @@ void launch_router(const void* logits, void* scores, void* indices_i64,
       static_cast<const __hip_bfloat16*>(logits), static_cast<float*>(scores),
       static_cast<std::int64_t*>(indices_i64),
       static_cast<std::int32_t*>(indices_i32),
-      static_cast<__hip_bfloat16*>(weights));
+      static_cast<float*>(weights));
   check_hip(hipGetLastError(), "router_topk8_softmax_256_kernel");
 }
 
@@ -967,8 +970,8 @@ NativeMoePrefillOracleResult probe_native_q8192_moe_prefill_layer0_oracle(
           tokens * kTopK * sizeof(std::int64_t),
           oracle_file("return-layer_body-indices")),
       compare_native_oracle_tensor(
-          "router_weights", "bfloat16", topk_weights,
-          tokens * kTopK * sizeof(std::uint16_t),
+          "router_weights", "float32", topk_weights,
+          tokens * kTopK * sizeof(float),
           oracle_file(launch_label(layer_schedule.moe_offset,
                                    "topk_weights_ptr"))),
       compare_native_oracle_tensor(
@@ -1089,7 +1092,7 @@ NativeMoePrefillOracleResult probe_native_q8192_moe_prefill_layer0_oracle(
         oracle_file(launch_label(layer_schedule.moe_offset,
                                  "topk_weights_ptr")),
         topk_weights,
-        tokens * kTopK * sizeof(std::uint16_t));
+        tokens * kTopK * sizeof(float));
     result.seed_bytes += seed_native_oracle_tensor(
         oracle_file(launch_label(layer_schedule.moe_offset,
                                  "sorted_token_ids_ptr")),
