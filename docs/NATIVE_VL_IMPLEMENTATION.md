@@ -4,7 +4,7 @@
 >
 > Frozen text baseline: `v1.5.1` (`6f3e669`)
 >
-> Current phase: Phase 0 — reference and capability foundation
+> Current phase: Phase 1 — native media and vision implementation
 
 This file is a live requirement-to-evidence index. A status of `in progress`
 or `implemented` is not a release claim. Only evidence that satisfies every
@@ -15,7 +15,7 @@ blocking condition in the governing goal can move a gate to `passed`.
 | Gate | Current state | Evidence required to pass | Next blocking action |
 |---|---|---|---|
 | G1 full VL functional parity | capability envelope qualified; native implementation not started | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | implement the native media and model path against the frozen capability manifest |
-| G2 VL correctness parity | reference frozen; oracle capture pending | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | capture processor, boundary, logits and generation oracles |
+| G2 VL correctness parity | reference processor/boundary/logits/generation oracles frozen; native comparison and task suites pending | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | implement native boundaries, then compare against the frozen raw tensors before running task quality |
 | G3 text product no regression | frozen baseline identified | paired 19-cell, maximum-window, correctness, MMLU, API, cache, startup and memory requalification | retain `v1.5.1` as an immutable paired binary |
 | G4 native VL performance | not started | paired per-cell stage timings and memory records against the fixed VL-enabled vLLM | generate matrix cells from the capability manifest |
 | G5 native release product | not started | native-only package, security, isolated bundle, second-host, soak and rollback evidence | keep Python tooling qualification-only and outside the product runtime |
@@ -92,3 +92,17 @@ model, launch and capability hashes. It was captured from clean commit
 `7d9813992d12f64bf668a04e9f25d17736dd984f`, then independently verified by a
 second full read of all checkpoint shards. Its file SHA-256 is
 `8f03e939a9b15f58c2e623541d48be88c328ff19adac9eb52210e171766e9a00`.
+
+The offline oracle capture is also complete for the five blocking numerical
+shapes: image, video, multi-image, multi-video and mixed image/video. Each case
+starts with empty processor and encoder caches, while the 67.64 GiB model stays
+resident in one process. The result contains 12 raw processor tensors and all
+50 required model boundaries (patch embed, vision blocks 0/13/26, merger,
+M-RoPE positions/delta, injected embeddings, language layer 0, final norm and
+selected full-vocabulary teacher-forced logits), totaling 51,064,728 bytes.
+All raw shape/byte/SHA-256 records were independently reread on `amd395`; the
+manifest contains no target-private paths. The manifest SHA-256 is
+`87dcdf76b7251f78da01a2a5f4312a9fb5c7d07a1ca2b2420566e77930f23d44` and
+was captured from clean commit `09e3fac8a07d9e5884007f0afdf46fb6603ae78d`.
+This closes oracle creation only; G2 remains blocked on native comparison,
+task-quality suites and error parity.
