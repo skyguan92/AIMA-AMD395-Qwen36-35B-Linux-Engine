@@ -81,10 +81,18 @@ COMPONENT_SUFFIXES = (
     "combined_moe_output",
     "output",
 )
+MOE_DIAGNOSTIC_SUFFIXES = (
+    "router_logits",
+    "router_scores",
+    "router_weights",
+    "router_indices",
+    "shared_moe_output",
+    "routed_moe_output",
+)
 REQUIRED_COMPONENTS = {
     f"layer_{layer:03d}_{suffix}"
     for layer in LINEAR_LAYERS
-    for suffix in COMPONENT_SUFFIXES
+    for suffix in COMPONENT_SUFFIXES + MOE_DIAGNOSTIC_SUFFIXES
 } | {"layer_003_attention_input"}
 STATE_ATTRIBUTE = "_aima_vl_language_prefix_diagnostic_state"
 
@@ -149,6 +157,9 @@ def _remove_hooks(root: Any, state: dict[str, Any]) -> None:
     for handle in state.get("handles", []):
         handle.remove()
     state["handles"] = []
+    for binding in state.get("router_bindings", []):
+        binding["router"].select_experts = binding["original"]
+    state["router_bindings"] = []
     if hasattr(root, STATE_ATTRIBUTE):
         delattr(root, STATE_ATTRIBUTE)
 
@@ -178,6 +189,30 @@ def _oracle_labels() -> dict[str, str]:
         )
         labels[prefix + "return-layer_body-output"] = _component_name(
             layer, "output"
+        )
+        labels[prefix + "return-layer_body-h2"] = _component_name(
+            layer, "post_attention_norm"
+        )
+        labels[prefix + "return-layer_body-after_attn"] = _component_name(
+            layer, "attention_residual"
+        )
+        for suffix in (
+            "router_logits",
+            "router_scores",
+            "router_weights",
+            "router_indices",
+        ):
+            labels[prefix + "return-layer_body-" + suffix] = _component_name(
+                layer, suffix
+            )
+        labels[prefix + "return-layer_body-shared_out"] = _component_name(
+            layer, "shared_moe_output"
+        )
+        labels[prefix + "return-layer_body-routed_moe"] = _component_name(
+            layer, "routed_moe_output"
+        )
+        labels[prefix + "return-layer_body-moe_out"] = _component_name(
+            layer, "combined_moe_output"
         )
     labels["layer-003-return-full_attention-inp"] = (
         "layer_003_attention_input"
@@ -217,6 +252,7 @@ class InstallLanguagePrefixDiagnosticHooks:
             "case_id": self.case_id,
             "captures": {},
             "handles": [],
+            "router_bindings": [],
         }
 
         def capture(name: str, value: Any) -> None:
@@ -281,6 +317,64 @@ class InstallLanguagePrefixDiagnosticHooks:
 
             return hook
 
+        def component_hook(layer_index: int, suffix: str):
+            def hook(_module: Any, _args: Any, output: Any) -> None:
+                capture(_component_name(layer_index, suffix), output)
+
+            return hook
+
+        def experts_hook(layer_index: int):
+            def hook(_module: Any, _args: Any, output: Any) -> None:
+                if not isinstance(output, (tuple, list)) or len(output) != 2:
+                    raise RuntimeError(
+                        f"language layer {layer_index} experts output differs"
+                    )
+                capture(
+                    _component_name(layer_index, "shared_moe_output"),
+                    output[0],
+                )
+                capture(
+                    _component_name(layer_index, "routed_moe_output"),
+                    output[1],
+                )
+
+            return hook
+
+        def instrument_router(layer_index: int, router: Any) -> None:
+            original = router.select_experts
+
+            def wrapped(*args: Any, **kwargs: Any) -> Any:
+                output = original(*args, **kwargs)
+                if not isinstance(output, (tuple, list)) or len(output) != 2:
+                    raise RuntimeError(
+                        f"language layer {layer_index} router output differs"
+                    )
+                weights, indices = output
+                router_logits = kwargs.get("router_logits")
+                if router_logits is None and len(args) > 1:
+                    router_logits = args[1]
+                if not isinstance(router_logits, torch.Tensor):
+                    raise RuntimeError(
+                        f"language layer {layer_index} router logits unavailable"
+                    )
+                indices_i64 = indices.to(torch.int64)
+                capture(
+                    _component_name(layer_index, "router_weights"), weights
+                )
+                capture(
+                    _component_name(layer_index, "router_indices"), indices_i64
+                )
+                capture(
+                    _component_name(layer_index, "router_scores"),
+                    torch.gather(router_logits.float(), 1, indices_i64),
+                )
+                return output
+
+            state["router_bindings"].append(
+                {"router": router, "original": original}
+            )
+            router.select_experts = wrapped
+
         handles = state["handles"]
         for layer_index in LINEAR_LAYERS:
             layer = language.model.layers[layer_index]
@@ -299,7 +393,18 @@ class InstallLanguagePrefixDiagnosticHooks:
                     post_attention_hook(layer_index)
                 )
             )
+            handles.append(
+                layer.mlp.gate.register_forward_hook(
+                    component_hook(layer_index, "router_logits")
+                )
+            )
+            handles.append(
+                layer.mlp.experts.register_forward_hook(
+                    experts_hook(layer_index)
+                )
+            )
             handles.append(layer.mlp.register_forward_hook(moe_hook(layer_index)))
+            instrument_router(layer_index, layer.mlp.experts.router)
         handles.append(
             language.model.layers[3].input_layernorm.register_forward_hook(
                 input_norm_hook(3)

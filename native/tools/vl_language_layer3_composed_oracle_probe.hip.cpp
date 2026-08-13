@@ -442,6 +442,18 @@ json qualify_case(
     expected_labels.insert(prefix + "post_attention_norm_full_sequence");
     expected_labels.insert(prefix + "return-layer_body-moe_out");
     expected_labels.insert(prefix + "same_request_layer_output");
+    for (const char* suffix : {
+             "return-layer_body-h2",
+             "return-layer_body-router_logits",
+             "return-layer_body-router_scores",
+             "return-layer_body-router_weights",
+             "return-layer_body-router_indices",
+             "return-layer_body-shared_out",
+             "return-layer_body-routed_moe",
+             "return-layer_body-moe_out",
+         }) {
+      expected_labels.insert(prefix + suffix);
+    }
   }
   std::set<std::string> actual_labels;
   json comparisons = json::array();
@@ -459,6 +471,77 @@ json qualify_case(
   if (actual_labels != expected_labels) {
     throw std::runtime_error(
         "layer 0-3 comparison set is incomplete for " + case_id);
+  }
+
+  // Qualification-only attribution: rerun Layer 1 MoE with the exact vLLM
+  // post-attention norm and residual.  This distinguishes intrinsic MoE
+  // arithmetic drift from discontinuous router amplification of the small
+  // upstream attention error.  The following measured product runs rebuild
+  // Layer 0-3 from injected embeddings, so this seeded rerun cannot affect
+  // operation counts, timing, or output determinism.
+  aima::NativeMoePrefillOracleOptions diagnostic_options;
+  diagnostic_options.layer_index = 1;
+  diagnostic_options.comparison_tokens = prompt_tokens;
+  diagnostic_options.seed_post_attention = true;
+  diagnostic_options.post_attention_h2_oracle_label =
+      "return-layer_body-h2";
+  diagnostic_options.post_attention_residual_oracle_label =
+      "return-layer_body-after_attn";
+  diagnostic_options.run_routing_diagnostic = false;
+  diagnostic_options.collect_oracle_comparisons = false;
+  diagnostic_options.gemm_plans = &gemm_plans;
+  diagnostic_options.oracle_label_prefix = "layer-001-";
+  diagnostic_options.chain_output_oracle_dir = prefix_case_oracle_dir;
+  diagnostic_options.chain_output_oracle_label =
+      "layer-001-return-layer_body-output";
+  const aima::NativeMoePrefillOracleResult layer1_exact_input =
+      aima::probe_native_q8192_moe_prefill_layer0_oracle(
+          prefix_case_oracle_dir, weights, workspace, invocations, executor,
+          diagnostic_options);
+  json layer1_diagnostic_comparisons = json::array();
+  bool layer1_diagnostic_passed = true;
+  std::string layer1_diagnostic_first_failed;
+  std::set<std::string> layer1_diagnostic_labels;
+  for (const aima::NativeOracleComparison& comparison :
+       layer1_exact_input.comparisons) {
+    layer1_diagnostic_labels.insert(comparison.label);
+    const bool passed = comparison_passed(comparison);
+    layer1_diagnostic_passed = layer1_diagnostic_passed && passed;
+    if (!passed && layer1_diagnostic_first_failed.empty()) {
+      layer1_diagnostic_first_failed = comparison.label;
+    }
+    layer1_diagnostic_comparisons.push_back(comparison_json(comparison));
+  }
+  if (!layer1_exact_input.chain_output_comparison_provided) {
+    throw std::runtime_error(
+        "layer 1 exact-input output comparison is absent for " + case_id);
+  }
+  aima::NativeOracleComparison layer1_diagnostic_output =
+      layer1_exact_input.chain_output_comparison;
+  layer1_diagnostic_output.label =
+      "layer-001-exact_input-same_request_layer_output";
+  const bool layer1_output_passed =
+      comparison_passed(layer1_diagnostic_output);
+  layer1_diagnostic_passed =
+      layer1_diagnostic_passed && layer1_output_passed;
+  if (!layer1_output_passed && layer1_diagnostic_first_failed.empty()) {
+    layer1_diagnostic_first_failed = layer1_diagnostic_output.label;
+  }
+  layer1_diagnostic_comparisons.push_back(
+      comparison_json(layer1_diagnostic_output));
+  const std::set<std::string> expected_layer1_diagnostic_labels = {
+      "layer-001-return-layer_body-h2",
+      "layer-001-return-layer_body-router_logits",
+      "layer-001-return-layer_body-router_scores",
+      "layer-001-return-layer_body-router_weights",
+      "layer-001-return-layer_body-router_indices",
+      "layer-001-return-layer_body-shared_out",
+      "layer-001-return-layer_body-routed_moe",
+      "layer-001-return-layer_body-moe_out",
+  };
+  if (layer1_diagnostic_labels != expected_layer1_diagnostic_labels) {
+    throw std::runtime_error(
+        "layer 1 exact-input diagnostic set is incomplete for " + case_id);
   }
 
   std::vector<Execution> measured;
@@ -501,6 +584,15 @@ json qualify_case(
       {"boundaries_passed", boundaries_passed},
       {"first_failed_boundary", first_failed_boundary},
       {"comparisons", std::move(comparisons)},
+      {"layer1_exact_input_moe_diagnostic",
+       {
+           {"complete", layer1_diagnostic_passed},
+           {"comparison_count", layer1_diagnostic_comparisons.size()},
+           {"first_failed_boundary", layer1_diagnostic_first_failed},
+           {"comparisons", std::move(layer1_diagnostic_comparisons)},
+           {"seed_tensors", layer1_exact_input.seed_tensors},
+           {"seed_bytes", layer1_exact_input.seed_bytes},
+       }},
       {"repeat_deterministic", deterministic},
       {"output_sha256",
        aima::sha256_bytes(measured.front().output.data(),
