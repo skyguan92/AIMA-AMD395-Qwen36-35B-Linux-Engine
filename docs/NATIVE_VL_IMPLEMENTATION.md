@@ -138,6 +138,17 @@ covers text-only preservation, same-media extension, A/B collision rejection
 and A/B/A identity recovery. The HTTP path will be required to provide this
 namespace before media requests are enabled.
 
+The frozen processor's discrete contract is now implemented independently in
+C++: ties-to-even image/video smart-resize geometry, spatial/temporal factors,
+per-item and aggregate token budgets, 2-fps frame sampling, temporal timestamp
+construction, image placeholder expansion and per-temporal-grid video prompt
+expansion. Its versioned configuration identity binds both preprocessor files,
+the chat template, all effective numeric parameters and the four special-token
+IDs. A native regression covers every frozen resize boundary and compares the
+complete frame-index vectors for all six accepted sampling cases by SHA-256;
+it passes both locally and on `amd395`. Pixel decode, bicubic resize/normalize
+and patch tensor materialization are the next processor boundary.
+
 `native_media_test` and `native_chat_protocol_test` both compile with strict
 warnings and pass on `amd395`. This is implementation progress, not G1 or G2
 acceptance evidence.
