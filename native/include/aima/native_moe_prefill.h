@@ -44,6 +44,9 @@ struct NativeMoePrefillOracleOptions {
   // complete-layer qualification disables this and consumes the tensors
   // produced by the native attention half in the same resident workspace.
   bool seed_post_attention = true;
+  std::string post_attention_h2_oracle_label = "return-layer_body-h2";
+  std::string post_attention_residual_oracle_label =
+      "return-layer_body-after_attn";
   // The exact-routing rerun mutates the layer output.  Disable it when the
   // output feeds another native layer in the same production chain.
   bool run_routing_diagnostic = true;

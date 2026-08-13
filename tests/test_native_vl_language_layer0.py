@@ -57,6 +57,11 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         self.assertIn("moe_options.chain_output_oracle_dir", probe)
         self.assertIn('"first_failed_diagnostic_stage"', probe)
         self.assertIn('"diagnostic_comparisons"', probe)
+        self.assertIn('"first_failed_seeded_moe_stage"', probe)
+        self.assertIn('"seeded_moe_diagnostic_comparisons"', probe)
+        self.assertIn(
+            'post_attention_h2_oracle_label = "diagnostic-h2"', probe
+        )
         self.assertIn('"linear_projection_fused_full_sequence"', probe)
         self.assertIn('"diagnostic-qkv"', linear_source)
         self.assertIn('"diagnostic-fused-input"', linear_source)

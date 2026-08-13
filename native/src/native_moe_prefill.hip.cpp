@@ -554,7 +554,7 @@ NativeMoePrefillOracleResult probe_native_q8192_moe_prefill_layer0_oracle(
         "native MoE prefill oracle requires complete resident owners");
   }
   if (!options.collect_oracle_comparisons &&
-      (options.run_routing_diagnostic || options.seed_post_attention ||
+      (options.run_routing_diagnostic ||
        !options.boundary_oracle_dir.empty())) {
     throw std::invalid_argument(
         "native MoE prefill execution cannot run oracle diagnostics");
@@ -752,12 +752,17 @@ NativeMoePrefillOracleResult probe_native_q8192_moe_prefill_layer0_oracle(
   };
   result.post_attention_seeded = options.seed_post_attention;
   if (options.seed_post_attention) {
+    if (options.post_attention_h2_oracle_label.empty() ||
+        options.post_attention_residual_oracle_label.empty()) {
+      throw std::invalid_argument(
+          "native MoE post-attention seed labels are required");
+    }
     result.seed_bytes += seed_native_oracle_tensor(
-        oracle_file("return-layer_body-h2"), h2,
+        oracle_file(options.post_attention_h2_oracle_label), h2,
         tokens * kHidden * sizeof(std::uint16_t));
     ++result.seed_tensors;
     result.seed_bytes += seed_native_oracle_tensor(
-        oracle_file("return-layer_body-after_attn"),
+        oracle_file(options.post_attention_residual_oracle_label),
         after_attention,
         tokens * kHidden * sizeof(std::uint16_t));
     ++result.seed_tensors;

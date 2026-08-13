@@ -213,6 +213,8 @@ struct Execution {
   std::vector<unsigned char> output;
   std::vector<unsigned char> residual_output;
   std::vector<aima::NativeOracleComparison> diagnostic_comparisons;
+  std::vector<aima::NativeOracleComparison>
+      seeded_moe_diagnostic_comparisons;
   float measured_ms = 0.0f;
   aima::NativePrefillWorkspaceMetrics workspace;
   aima::NativePrefillInvocationMetrics invocations;
@@ -328,6 +330,29 @@ Execution execute_layer0(
   check_hip(hipMemcpy(result.residual_output.data(), residual_output,
                       result.residual_output.size(), hipMemcpyDeviceToHost),
             "hipMemcpy native language layer-0 residual output");
+  if (!diagnostic_oracle_dir.empty()) {
+    aima::NativeMoePrefillOracleOptions seeded_moe_options;
+    seeded_moe_options.layer_index = 0;
+    seeded_moe_options.active_tokens = prompt_tokens;
+    seeded_moe_options.seed_post_attention = true;
+    seeded_moe_options.post_attention_h2_oracle_label = "diagnostic-h2";
+    seeded_moe_options.post_attention_residual_oracle_label =
+        "launch-009-residual_out";
+    seeded_moe_options.run_routing_diagnostic = false;
+    seeded_moe_options.collect_oracle_comparisons = false;
+    seeded_moe_options.gemm_plans = &active_gemm_plans;
+    seeded_moe_options.chain_output_oracle_dir = diagnostic_oracle_dir;
+    seeded_moe_options.chain_output_oracle_label = "diagnostic-output";
+    const aima::NativeMoePrefillOracleResult seeded_moe =
+        aima::probe_native_q8192_moe_prefill_layer0_oracle(
+            diagnostic_oracle_dir, weights, workspace, invocations, executor,
+            seeded_moe_options);
+    result.seeded_moe_diagnostic_comparisons = seeded_moe.comparisons;
+    if (seeded_moe.chain_output_comparison_provided) {
+      result.seeded_moe_diagnostic_comparisons.push_back(
+          seeded_moe.chain_output_comparison);
+    }
+  }
   return result;
 }
 
@@ -421,8 +446,11 @@ json qualify_case(
           .count();
 
   json diagnostic_comparisons = json::array();
+  json seeded_moe_diagnostic_comparisons = json::array();
   bool diagnostic_complete = diagnostic_oracle_root.empty();
+  bool seeded_moe_diagnostic_complete = diagnostic_oracle_root.empty();
   std::string first_failed_diagnostic_stage;
+  std::string first_failed_seeded_moe_stage;
   if (!diagnostic_oracle_root.empty()) {
     const std::set<std::string> expected_labels = {
         "input_norm_full_sequence",
@@ -484,6 +512,57 @@ json qualify_case(
           "language layer-0 diagnostic comparison set is incomplete:" +
           detail);
     }
+
+    const std::set<std::string> expected_seeded_moe_labels = {
+        "diagnostic-h2",
+        "diagnostic-shared_out",
+        "diagnostic-routed_moe",
+        "diagnostic-moe_out",
+        "same_request_layer_output",
+    };
+    std::set<std::string> actual_seeded_moe_labels;
+    for (const aima::NativeOracleComparison& value :
+         diagnostic.seeded_moe_diagnostic_comparisons) {
+      actual_seeded_moe_labels.insert(value.label);
+      const bool stage_passed =
+          value.finite_elements == value.elements &&
+          value.relative_l2_error <= 0.002 &&
+          value.cosine_similarity >= 0.999;
+      if (!stage_passed && first_failed_seeded_moe_stage.empty()) {
+        first_failed_seeded_moe_stage = value.label;
+      }
+      seeded_moe_diagnostic_comparisons.push_back({
+          {"label", value.label},
+          {"dtype", value.dtype},
+          {"elements", value.elements},
+          {"exact_elements", value.exact_elements},
+          {"finite_elements", value.finite_elements},
+          {"maximum_absolute_error", value.maximum_absolute_error},
+          {"relative_l2_error", value.relative_l2_error},
+          {"cosine_similarity", value.cosine_similarity},
+          {"expected_sha256", value.expected_sha256},
+          {"actual_sha256", value.actual_sha256},
+          {"passed", stage_passed},
+      });
+    }
+    seeded_moe_diagnostic_complete =
+        actual_seeded_moe_labels == expected_seeded_moe_labels;
+    if (!seeded_moe_diagnostic_complete) {
+      std::string detail;
+      for (const std::string& label : expected_seeded_moe_labels) {
+        if (actual_seeded_moe_labels.count(label) == 0) {
+          detail += " missing=" + label;
+        }
+      }
+      for (const std::string& label : actual_seeded_moe_labels) {
+        if (expected_seeded_moe_labels.count(label) == 0) {
+          detail += " extra=" + label;
+        }
+      }
+      throw std::runtime_error(
+          "language layer-0 seeded MoE diagnostic comparison set is "
+          "incomplete:" + detail);
+    }
   }
 
   return {
@@ -519,6 +598,10 @@ json qualify_case(
       {"diagnostic_complete", diagnostic_complete},
       {"first_failed_diagnostic_stage", first_failed_diagnostic_stage},
       {"diagnostic_comparisons", std::move(diagnostic_comparisons)},
+      {"seeded_moe_diagnostic_complete", seeded_moe_diagnostic_complete},
+      {"first_failed_seeded_moe_stage", first_failed_seeded_moe_stage},
+      {"seeded_moe_diagnostic_comparisons",
+       std::move(seeded_moe_diagnostic_comparisons)},
       {"measured_ms", measured_ms},
       {"median_ms", sorted_ms[sorted_ms.size() / 2]},
       {"case_wall_ms", case_wall_ms},
