@@ -55,7 +55,7 @@ class VlLanguageLayer0DiagnosticCaptureTest(unittest.TestCase):
             }.issubset(self.capture.REQUIRED_COMPONENTS)
         )
         self.assertEqual(
-            self.capture.ORACLE_LABELS["launch-010-norm_out"],
+            self.capture.ORACLE_LABELS["launch-009-norm_out"],
             "post_attention_norm",
         )
         self.assertEqual(
@@ -86,8 +86,8 @@ class VlLanguageLayer0DiagnosticCaptureTest(unittest.TestCase):
             "launch-008-o",
             "return-linear_attention-gated_out",
             "return-linear-attention-output",
-            "launch-010-residual_out",
-            "launch-010-norm_out",
+            "launch-009-residual_out",
+            "launch-009-norm_out",
             "diagnostic-h2",
             "diagnostic-shared_out",
             "diagnostic-routed_moe",
