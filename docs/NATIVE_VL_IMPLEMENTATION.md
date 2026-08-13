@@ -256,10 +256,15 @@ Triton enabled and selects `triton_pos_embed_interpolate`. The historical
 measurements remain in `benchmarks/results/native-vision-position-v0.1.0.json`
 with `status=withdrawn` and cannot satisfy a gate. The corrected capture binds
 the actual Triton function and the HIP implementation reproduces its fused
-float32 coordinate remainder plus gfx1151 BF16 dot-product lowering. Corrected
-clean-source qualification is required before this boundary can advance G2.
-The 27 vision blocks, merger and serving integration remain incomplete, so
-neither G1 nor G2 passes.
+float32 coordinate remainder plus gfx1151 BF16 dot-product lowering. Two
+independent serving-path captures produced the same manifest (SHA-256
+`9d316fd6904764f88cd5f25726ecaed33d95bb6cfb4bbe21454c909d66c5d9f6`).
+A clean `851605b` build matched all four square/non-square image/video cases
+bit-for-bit across 1,105,920 BF16 elements; duplicated-media concatenation and
+zero-input in-place addition each matched another 2,211,840 elements exactly.
+The corrected result is
+`benchmarks/results/native-vision-position-v0.2.0.json`. The 27 vision blocks,
+merger and serving integration remain incomplete, so neither G1 nor G2 passes.
 
 `native_media_test` and `native_chat_protocol_test` both compile with strict
 warnings and pass on `amd395`. This is implementation progress, not G1 or G2

@@ -20,6 +20,9 @@ PATCH_RESULT_PATH = ROOT / "benchmarks/results/native-vision-patch-v0.1.0.json"
 WITHDRAWN_POSITION_RESULT_PATH = (
     ROOT / "benchmarks/results/native-vision-position-v0.1.0.json"
 )
+POSITION_RESULT_PATH = (
+    ROOT / "benchmarks/results/native-vision-position-v0.2.0.json"
+)
 
 
 class NativeVisualLayoutTest(unittest.TestCase):
@@ -228,6 +231,62 @@ class NativeVisualLayoutTest(unittest.TestCase):
         self.assertEqual(withdrawn["status"], "withdrawn")
         self.assertTrue(withdrawn["withdrawal"]["serving_path_has_triton"])
         self.assertFalse(withdrawn["decision"]["overall_pass"])
+
+        result = json.loads(POSITION_RESULT_PATH.read_text(encoding="utf-8"))
+        self.assertTrue(result["complete"])
+        self.assertTrue(result["source"]["clean"])
+        self.assertEqual(
+            result["source"]["commit"],
+            "851605b0bfc3336123493aaab3f966f912def73a",
+        )
+        self.assertEqual(
+            result["correction"]["withdrawn_result"],
+            "benchmarks/results/native-vision-position-v0.1.0.json",
+        )
+        for source_name in (
+            "build_script",
+            "reference_capture",
+            "vision_encoder",
+            "probe",
+        ):
+            source_record = result["source"][source_name]
+            self.assertEqual(
+                hashlib.sha256(
+                    (ROOT / source_record["path"]).read_bytes()
+                ).hexdigest(),
+                source_record["sha256"],
+            )
+        self.assertEqual(
+            result["oracle"]["reference_function"],
+            "vllm.model_executor.models.qwen3_vl.triton_pos_embed_interpolate",
+        )
+        self.assertTrue(result["oracle"]["has_triton"])
+        self.assertEqual(result["oracle"]["independent_identical_captures"], 2)
+        self.assertEqual(len(result["cases"]), 4)
+        self.assertTrue(result["decision"]["overall_pass"])
+        self.assertEqual(
+            result["decision"]["total_elements"],
+            result["decision"]["total_exact_elements"],
+        )
+        self.assertEqual(
+            result["decision"]["total_elements"],
+            sum(case["elements"] for case in result["cases"]),
+        )
+        self.assertEqual(
+            result["decision"]["total_concatenated_exact_elements"],
+            2 * result["decision"]["total_elements"],
+        )
+        self.assertEqual(
+            result["decision"]["total_zero_add_exact_elements"],
+            2 * result["decision"]["total_elements"],
+        )
+        self.assertTrue(
+            all(
+                case["first_mismatch_index"] == -1
+                and case["expected_sha256"] == case["actual_sha256"]
+                for case in result["cases"]
+            )
+        )
 
 
 if __name__ == "__main__":

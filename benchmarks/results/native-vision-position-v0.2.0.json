@@ -1,0 +1,148 @@
+{
+  "schema": "aima-amd395-qwen36/native-vision-position-qualification/v2",
+  "complete": true,
+  "captured_at": "2026-08-13T21:16:54+08:00",
+  "correction": {
+    "withdrawn_result": "benchmarks/results/native-vision-position-v0.1.0.json",
+    "reason": "v0.1 selected the eager helper instead of the Triton function selected by the frozen serving runtime",
+    "serving_path_has_triton": true
+  },
+  "host": {
+    "label": "amd395",
+    "hostname": "quings",
+    "gpu_arch": "gfx1151",
+    "device_name": "Radeon 8060S Graphics",
+    "float_round_mode": "NEAR"
+  },
+  "source": {
+    "commit": "851605b0bfc3336123493aaab3f966f912def73a",
+    "clean": true,
+    "export_method": "git archive 851605b0bfc3336123493aaab3f966f912def73a",
+    "build_script": {
+      "path": "scripts/build-native-vision-position-probe.sh",
+      "sha256": "840e7b801d7c93fdae360dee12ba2c3ff5f54036aa62a6254c719fa8a7417b6d"
+    },
+    "reference_capture": {
+      "path": "scripts/capture-vllm-vision-position-oracles.py",
+      "sha256": "b61f4786113c0884d8beb3d8c8ae04db6d6e0919c6b0e0425b32aabe89bd3332"
+    },
+    "vision_encoder": {
+      "path": "native/src/native_vision_encoder.hip.cpp",
+      "sha256": "1cae988269e2b0ca399f4247a78b812d0ea40bfe3607a4247160f1553161661c"
+    },
+    "probe": {
+      "path": "native/tools/vision_position_oracle_probe.hip.cpp",
+      "sha256": "90b8c84157d6b77b1e0765d81fc362ec7caad2b3e4c0811583158ea1985bf427"
+    }
+  },
+  "binary": {
+    "path": "${AIMA_BUILD_DIR}/native-vision-position-probe",
+    "bytes": 284080,
+    "sha256": "265786646a045fc5dab386fa9b55331918786ea3a7a0937385a81128efaff0a7",
+    "runtime_python": false,
+    "runtime_torch": false,
+    "runtime_vllm": false,
+    "runtime_triton": false
+  },
+  "model": {
+    "repository": "Qwen/Qwen3.6-35B-A3B",
+    "revision": "995ad96eacd98c81ed38be0c5b274b04031597b0",
+    "dtype": "bfloat16",
+    "position_tensor": "model.visual.pos_embed.weight",
+    "position_tensor_sha256": "d8c31bfca543800fa9d759b46098816d26ebc49093c42b1a371577483d37acfa",
+    "visual_weight_manifest_sha256": "abc5b3a0cc0881ba2d3e815b472eebe3404a6e3bc6438a430faccfbe8093c0aa",
+    "visual_weight_payload_bytes": 893142496
+  },
+  "oracle": {
+    "path": "${AIMA_ORACLE_DIR}/vision-position-v0.2.0/manifest.json",
+    "schema": "aima-amd395-qwen36/vision-position-oracle/v2",
+    "sha256": "9d316fd6904764f88cd5f25726ecaed33d95bb6cfb4bbe21454c909d66c5d9f6",
+    "independent_identical_captures": 2,
+    "reference_function": "vllm.model_executor.models.qwen3_vl.triton_pos_embed_interpolate",
+    "reference_source_sha256": "8ba3592a0fb481a959d6952af25a721cfaeab966558ac11214304e5cf7524d1a",
+    "has_triton": true,
+    "boundary": "vision_position_interpolation",
+    "thresholds": {
+      "finite_fraction": 1.0,
+      "maximum_relative_l2_error": 0.002,
+      "minimum_cosine_similarity": 0.999
+    }
+  },
+  "cases": [
+    {
+      "case_id": "image_16x16",
+      "grid_thw": [1, 16, 16],
+      "elements": 294912,
+      "exact_elements": 294912,
+      "finite_elements": 294912,
+      "first_mismatch_index": -1,
+      "concatenated_exact_elements": 589824,
+      "zero_add_exact_elements": 589824,
+      "maximum_absolute_error": 0.0,
+      "relative_l2_error": 0.0,
+      "cosine_similarity": 1.0,
+      "expected_sha256": "f4773c0c8b2d82652412ac988040247337d5ab5f33156a6e1ae15cd4d5422d9b",
+      "actual_sha256": "f4773c0c8b2d82652412ac988040247337d5ab5f33156a6e1ae15cd4d5422d9b",
+      "passed": true
+    },
+    {
+      "case_id": "image_12x32",
+      "grid_thw": [1, 12, 32],
+      "elements": 442368,
+      "exact_elements": 442368,
+      "finite_elements": 442368,
+      "first_mismatch_index": -1,
+      "concatenated_exact_elements": 884736,
+      "zero_add_exact_elements": 884736,
+      "maximum_absolute_error": 0.0,
+      "relative_l2_error": 0.0,
+      "cosine_similarity": 1.0,
+      "expected_sha256": "5474135f4f59c9beb3ab1618f2832f542db04cc4ae0c932af6545d2028bee911",
+      "actual_sha256": "5474135f4f59c9beb3ab1618f2832f542db04cc4ae0c932af6545d2028bee911",
+      "passed": true
+    },
+    {
+      "case_id": "video_2x8x8",
+      "grid_thw": [2, 8, 8],
+      "elements": 147456,
+      "exact_elements": 147456,
+      "finite_elements": 147456,
+      "first_mismatch_index": -1,
+      "concatenated_exact_elements": 294912,
+      "zero_add_exact_elements": 294912,
+      "maximum_absolute_error": 0.0,
+      "relative_l2_error": 0.0,
+      "cosine_similarity": 1.0,
+      "expected_sha256": "fb0b4c6ed87088bbff12f3923d22cd790d2ae3cba0cdfec56bb6340d4c7334ff",
+      "actual_sha256": "fb0b4c6ed87088bbff12f3923d22cd790d2ae3cba0cdfec56bb6340d4c7334ff",
+      "passed": true
+    },
+    {
+      "case_id": "video_2x8x12",
+      "grid_thw": [2, 8, 12],
+      "elements": 221184,
+      "exact_elements": 221184,
+      "finite_elements": 221184,
+      "first_mismatch_index": -1,
+      "concatenated_exact_elements": 442368,
+      "zero_add_exact_elements": 442368,
+      "maximum_absolute_error": 0.0,
+      "relative_l2_error": 0.0,
+      "cosine_similarity": 1.0,
+      "expected_sha256": "26a141ad0eace178041f6882e653578274b8112e035bccf71786678b8a3de933",
+      "actual_sha256": "26a141ad0eace178041f6882e653578274b8112e035bccf71786678b8a3de933",
+      "passed": true
+    }
+  ],
+  "decision": {
+    "case_count": 4,
+    "passed_cases": 4,
+    "total_elements": 1105920,
+    "total_exact_elements": 1105920,
+    "total_concatenated_exact_elements": 2211840,
+    "total_zero_add_exact_elements": 2211840,
+    "all_finite": true,
+    "all_sha256_exact": true,
+    "overall_pass": true
+  }
+}
