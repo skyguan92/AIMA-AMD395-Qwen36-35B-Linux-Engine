@@ -526,6 +526,38 @@ class NativeVisualLayoutTest(unittest.TestCase):
         self.assertIn("vision_segmented_attention_oracle_probe.hip.cpp", build)
         self.assertIn("native_vision_segmented_attention.hip.cpp", build)
 
+    def test_vision_block_suffix_has_isolated_boundaries(self) -> None:
+        header = (
+            ROOT / "native/include/aima/native_vision_block_suffix.h"
+        ).read_text(encoding="utf-8")
+        source = (
+            ROOT / "native/src/native_vision_block_suffix.hip.cpp"
+        ).read_text(encoding="utf-8")
+        probe = (
+            ROOT / "native/tools/vision_block_suffix_oracle_probe.hip.cpp"
+        ).read_text(encoding="utf-8")
+        build = (
+            ROOT / "scripts/build-native-vision-block-suffix-probe.sh"
+        ).read_text(encoding="utf-8")
+        self.assertIn("class NativeVisionBlockSuffixPlan", header)
+        for method in (
+            "launch_attention_projection",
+            "launch_residual",
+            "launch_norm2",
+            "launch_mlp_fc1",
+            "launch_gelu",
+            "launch_mlp_fc2",
+        ):
+            self.assertIn(method, header)
+        self.assertIn("vision_exact_gelu_kernel", source)
+        self.assertIn("erff", source)
+        self.assertIn('"mlp.linear_fc1.weight"', source)
+        self.assertIn('"mlp.linear_fc2.weight"', source)
+        self.assertIn("block_output_isolated", probe)
+        self.assertIn("block_output_chained", probe)
+        self.assertIn("native-vision-block-suffix-oracle/v1", probe)
+        self.assertIn("vision_block_suffix_oracle_probe.hip.cpp", build)
+
         result = json.loads(
             VISION_ATTENTION_RESULT_PATH.read_text(encoding="utf-8")
         )

@@ -1,4 +1,4 @@
-.PHONY: check check-cpu check-native-syntax check-python-package security-scan verify-evidence test verify native-layout-check native-chat-template-parity build-native build-direct-loader build-native-visual-weight-probe build-native-vision-patch-probe build-native-vision-position-probe build-native-vision-block-prefix-probe build-native-vision-rotary-probe build-native-vision-segmented-attention-probe build-native-runtime package-native package-native-foundation package-evidence
+.PHONY: check check-cpu check-native-syntax check-python-package security-scan verify-evidence test verify native-layout-check native-chat-template-parity build-native build-direct-loader build-native-visual-weight-probe build-native-vision-patch-probe build-native-vision-position-probe build-native-vision-block-prefix-probe build-native-vision-block-suffix-probe build-native-vision-rotary-probe build-native-vision-segmented-attention-probe build-native-runtime package-native package-native-foundation package-evidence
 
 check: check-cpu
 	@if test -f /opt/rocm/include/hip/hip_runtime_api.h && \
@@ -80,6 +80,9 @@ build-native-vision-position-probe:
 
 build-native-vision-block-prefix-probe:
 	bash scripts/build-native-vision-block-prefix-probe.sh
+
+build-native-vision-block-suffix-probe:
+	bash scripts/build-native-vision-block-suffix-probe.sh
 
 build-native-vision-rotary-probe:
 	bash scripts/build-native-vision-rotary-probe.sh

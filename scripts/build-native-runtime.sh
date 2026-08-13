@@ -174,6 +174,7 @@ done < "${AOT_OBJECT_PLAN}"
   "${ROOT}/native/src/native_video_decoder.cpp" \
   "${ROOT}/native/src/native_vision_encoder.hip.cpp" \
   "${ROOT}/native/src/native_vision_block_prefix.hip.cpp" \
+  "${ROOT}/native/src/native_vision_block_suffix.hip.cpp" \
   "${ROOT}/native/src/native_vision_rotary.hip.cpp" \
   "${ROOT}/native/src/native_vision_segmented_attention.hip.cpp" \
   "${ROOT}/native/src/native_doctor.cpp" \
