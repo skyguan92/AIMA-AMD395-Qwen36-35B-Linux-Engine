@@ -1,0 +1,126 @@
+{
+  "schema": "aima-amd395-qwen36/native-vision-segmented-attention-qualification/v1",
+  "complete": true,
+  "recorded_at": "2026-08-13T22:31:50+08:00",
+  "host": {
+    "label": "amd395",
+    "hostname": "quings",
+    "gpu_arch": "gfx1151",
+    "device_name": "Radeon 8060S Graphics"
+  },
+  "source": {
+    "commit": "e86b76b07bb66e590456b13347ffd43c8c3422b9",
+    "clean": true,
+    "incremental_bundle_sha256": "69184e63bf191dcc025e946eaae57d2b863c7fbfb1bc561ebdab559131712f8f",
+    "bundle_prerequisite_commit": "b35d5dbe7ce77856c0e970d0c9060833d91d419e",
+    "build_script": {
+      "path": "scripts/build-native-vision-segmented-attention-probe.sh",
+      "sha256": "78f740bd2aac83f3c1053e54b63b96dd4108435e0bec91c856f106adcab39dd5"
+    },
+    "header": {
+      "path": "native/include/aima/native_vision_segmented_attention.h",
+      "sha256": "e9fc1e21a2526aba158f70916266a579cc09294cd8eb401af6ddba80d4edc75f"
+    },
+    "attention": {
+      "path": "native/src/native_vision_segmented_attention.hip.cpp",
+      "sha256": "a13a0962482633dccb1bf61f7f4a0d4ea71009180bdb2a84d1814d9a76886123"
+    },
+    "probe": {
+      "path": "native/tools/vision_segmented_attention_oracle_probe.hip.cpp",
+      "sha256": "9b17f4b5afab7c7204149a3fde97e441f6ff432319387dc891b7ded74c78eb55"
+    }
+  },
+  "binary": {
+    "path": "${AIMA_BUILD_DIR}/native-vision-segmented-attention-probe",
+    "bytes": 58560,
+    "sha256": "f25f7239c71ce5641c10ba34f0f8239f71682f59cb3a18acdee98fe8b132e10d",
+    "runtime_python": false,
+    "runtime_torch": false,
+    "runtime_vllm": false,
+    "runtime_triton": false
+  },
+  "reference": {
+    "attention_backend": "TRITON_ATTN",
+    "serving_function": "vllm.v1.attention.ops.triton_prefill_attention.context_attention_fwd",
+    "causal": false,
+    "head_count": 16,
+    "head_dimension": 72,
+    "score_compute": "bfloat16 dot with float32 accumulation",
+    "softmax_compute": "float32 exp2",
+    "probability_storage_for_value_dot": "bfloat16"
+  },
+  "oracle": {
+    "public_record": "benchmarks/results/native-vision-block-oracle-v0.1.0.json",
+    "public_record_sha256": "bfd1a29b4fc1d52c81e574029f772bfef68400b7146fbd4e8a09b7ed3ac7648a",
+    "raw_manifest_sha256": "443cae9b5dc0b426ec04725a7dede893c3c433d6cb910b81cbd48ecd9bfd782a",
+    "canonical_payload_sha256": "5aa66cd7163a8653f40f4ad6cbcfd2bd13afa77897e1c183fb28dfa962c0521e",
+    "boundary": "vision_block_0_segmented_attention",
+    "thresholds": {
+      "finite_fraction": 1.0,
+      "maximum_relative_l2_error": 0.002,
+      "minimum_cosine_similarity": 0.999,
+      "segment_isolation": "bit_exact"
+    }
+  },
+  "implementation": {
+    "score_matrix_workspace_bytes": 0,
+    "metadata_bytes_per_patch": 8,
+    "online_softmax_key_block": 64,
+    "cross_segment_access": false
+  },
+  "cases": [
+    {
+      "case_id": "image_local_png",
+      "patches": 256,
+      "cu_seqlens": [0, 256],
+      "segment_count": 1,
+      "workspace_bytes": 2048,
+      "elements": 294912,
+      "exact_elements": 288318,
+      "finite_elements": 294912,
+      "maximum_absolute_error": 0.0078125,
+      "relative_l2_error": 0.00045309583150103132,
+      "cosine_similarity": 0.99999989735261796,
+      "expected_sha256": "c0a89bb9a6cb9d02285ef9928278baa5c4f302f7768ca561cc5ed94f78037bf4",
+      "actual_sha256": "79f50961a06c87ed8fc597b86967859e953776fb9304fb039c276a0b0d54accd",
+      "segment_isolation_applicable": false,
+      "segment_isolation_elements": 0,
+      "segment_isolation_exact_elements": 0,
+      "segment_isolation_passed": true,
+      "passed": true
+    },
+    {
+      "case_id": "video_local_mp4",
+      "patches": 128,
+      "cu_seqlens": [0, 64, 128],
+      "segment_count": 2,
+      "workspace_bytes": 1024,
+      "elements": 147456,
+      "exact_elements": 147445,
+      "finite_elements": 147456,
+      "maximum_absolute_error": 0.001953125,
+      "relative_l2_error": 0.000039912550018768351,
+      "cosine_similarity": 0.99999999920352445,
+      "expected_sha256": "39436288deb01068fef0d0e2fe32b5e8e5a84d27c725c4e70f2b8f5c847db452",
+      "actual_sha256": "822069e2a0cd054f83c7f5f068eec322e5cacecb78fbe96db8cc4ce2bbcda613",
+      "segment_isolation_applicable": true,
+      "segment_isolation_elements": 73728,
+      "segment_isolation_exact_elements": 73728,
+      "segment_isolation_passed": true,
+      "passed": true
+    }
+  ],
+  "decision": {
+    "case_count": 2,
+    "passed_cases": 2,
+    "total_elements": 442368,
+    "total_exact_elements": 435763,
+    "all_finite": true,
+    "all_boundaries_within_threshold": true,
+    "all_applicable_segment_isolation_exact": true,
+    "full_vision_block_qualified": false,
+    "g1_passed": false,
+    "g2_passed": false,
+    "overall_pass": true
+  }
+}

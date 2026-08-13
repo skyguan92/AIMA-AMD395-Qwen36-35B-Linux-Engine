@@ -299,7 +299,14 @@ clean `b35d5db` native build reproduced query, key and value tensors for both
 the image and two-frame video byte-for-byte: 1,327,104 of 1,327,104 BF16
 elements and every SHA-256 matched. The compact record is
 `benchmarks/results/native-vision-rotary-v0.1.0.json`. Segmented attention is
-still the next unqualified block boundary.
+implemented as a bounded online-softmax kernel rather than an `S x S` score
+allocation. A clean `e86b76b` build passed the 256-token image and two
+independent 64-token video-frame sequences. Maximum relative L2 error was
+`4.54e-4`, minimum cosine was `0.999999897`, and all 442,368 outputs were
+finite. After zeroing the entire second video segment, all 73,728 BF16 outputs
+in the first segment remained bit-exact, directly proving the frame boundary.
+The result is
+`benchmarks/results/native-vision-segmented-attention-v0.1.0.json`.
 
 `native_media_test` and `native_chat_protocol_test` both compile with strict
 warnings and pass on `amd395`. This is implementation progress, not G1 or G2

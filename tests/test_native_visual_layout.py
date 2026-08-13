@@ -32,6 +32,9 @@ VISION_BLOCK_PREFIX_RESULT_PATH = (
 VISION_ROTARY_RESULT_PATH = (
     ROOT / "benchmarks/results/native-vision-rotary-v0.1.0.json"
 )
+VISION_ATTENTION_RESULT_PATH = (
+    ROOT / "benchmarks/results/native-vision-segmented-attention-v0.1.0.json"
+)
 
 
 class NativeVisualLayoutTest(unittest.TestCase):
@@ -522,6 +525,47 @@ class NativeVisualLayoutTest(unittest.TestCase):
         self.assertIn("native-vision-segmented-attention-oracle/v1", probe)
         self.assertIn("vision_segmented_attention_oracle_probe.hip.cpp", build)
         self.assertIn("native_vision_segmented_attention.hip.cpp", build)
+
+        result = json.loads(
+            VISION_ATTENTION_RESULT_PATH.read_text(encoding="utf-8")
+        )
+        self.assertTrue(result["complete"])
+        self.assertTrue(result["source"]["clean"])
+        self.assertEqual(
+            result["source"]["commit"],
+            "e86b76b07bb66e590456b13347ffd43c8c3422b9",
+        )
+        for source_name in ("build_script", "header", "attention", "probe"):
+            source_record = result["source"][source_name]
+            self.assertEqual(
+                hashlib.sha256(
+                    (ROOT / source_record["path"]).read_bytes()
+                ).hexdigest(),
+                source_record["sha256"],
+            )
+        self.assertEqual(len(result["cases"]), 2)
+        for case in result["cases"]:
+            self.assertTrue(case["passed"])
+            self.assertEqual(case["finite_elements"], case["elements"])
+            self.assertLessEqual(case["relative_l2_error"], 0.002)
+            self.assertGreaterEqual(case["cosine_similarity"], 0.999)
+            self.assertEqual(case["workspace_bytes"], 8 * case["patches"])
+        video = next(
+            case for case in result["cases"]
+            if case["case_id"] == "video_local_mp4"
+        )
+        self.assertEqual(video["cu_seqlens"], [0, 64, 128])
+        self.assertTrue(video["segment_isolation_applicable"])
+        self.assertEqual(
+            video["segment_isolation_exact_elements"],
+            video["segment_isolation_elements"],
+        )
+        decision = result["decision"]
+        self.assertTrue(decision["all_applicable_segment_isolation_exact"])
+        self.assertTrue(decision["overall_pass"])
+        self.assertFalse(decision["full_vision_block_qualified"])
+        self.assertFalse(decision["g1_passed"])
+        self.assertFalse(decision["g2_passed"])
 
 
 if __name__ == "__main__":
