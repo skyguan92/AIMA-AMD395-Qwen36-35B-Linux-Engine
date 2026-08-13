@@ -288,6 +288,28 @@ class NativeVisualLayoutTest(unittest.TestCase):
             )
         )
 
+    def test_vision_block_capture_uses_full_model_serving_hooks(self) -> None:
+        capture = (
+            ROOT / "scripts/capture-vllm-vision-block-oracles.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn("InstallVisionBlockHooks", capture)
+        self.assertIn("FinalizeVisionBlockHooks", capture)
+        self.assertIn("root.visual.blocks[0]", capture)
+        self.assertIn("block.attn.qkv.register_forward_hook", capture)
+        self.assertIn("block.attn.attn.register_forward_pre_hook", capture)
+        self.assertIn("block.mlp.act_fn.register_forward_hook", capture)
+        self.assertIn("independent block capture is not byte-identical", capture)
+        self.assertIn("VLLM_ALLOW_INSECURE_SERIALIZATION", capture)
+        self.assertIn('llm_kwargs["skip_mm_profiling"] = True', capture)
+        self.assertIn(
+            "87dcdf76b7251f78da01a2a5f4312a9fb5c7d07a1ca2b2420566e77930f23d44",
+            capture,
+        )
+        self.assertIn(
+            "9d316fd6904764f88cd5f25726ecaed33d95bb6cfb4bbe21454c909d66c5d9f6",
+            capture,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
