@@ -1,0 +1,119 @@
+{
+  "schema": "aima-amd395-qwen36/native-vision-exact-layer-norm-qualification/v1",
+  "complete": true,
+  "recorded_at": "2026-08-13T23:54:59+08:00",
+  "host": {
+    "label": "amd395",
+    "hostname": "quings",
+    "gpu_arch": "gfx1151",
+    "device_name": "Radeon 8060S Graphics"
+  },
+  "source": {
+    "commit": "16933e3c994d345c01f65f35b9c00feeb7478693",
+    "clean": true,
+    "qualification_bundle_sha256": "604424b29cd4f3e4d4bcd9ca6aafbddd3d30b567f9712aef3e48583ef95a1953",
+    "bundle_prerequisite_commit": "046d9b92f8f890b1c9848682f90d8b761a1c548c",
+    "header": {
+      "path": "native/include/aima/native_vision_exact_layer_norm.h",
+      "sha256": "656ee0a1d612b424e139a73e60491467d22e0118be75e279aacd1a51572e9b22"
+    },
+    "implementation": {
+      "path": "native/src/native_vision_exact_layer_norm.hip.cpp",
+      "sha256": "bf36d00326d206bea7e3a26072e4f40f7b3c4711224add0e1913b3eecb2674ce"
+    },
+    "probe": {
+      "path": "native/tools/vision_exact_layer_norm_oracle_probe.hip.cpp",
+      "sha256": "6c5432d962d7b423ad4a74ca97e2e1dce294fc98d6a5615e1c4c4ce929e50e5a"
+    },
+    "build_script": {
+      "path": "scripts/build-native-vision-exact-layer-norm-probe.sh",
+      "sha256": "9ec31373afd9a2eb53a34bb512c26e034de5c8089668df0a837317204f10fcdd"
+    },
+    "upstream": {
+      "project": "PyTorch",
+      "license": "BSD-3-Clause",
+      "commit": "8514f05131610dab50233027b2fab9c01235081b",
+      "path": "aten/src/ATen/native/cuda/layer_norm_kernel.cu",
+      "sha256": "6bc37b0cbeb94b534668c6c34b91067acf085ec7e4276a2776dec9351466e066"
+    }
+  },
+  "binary": {
+    "path": "${AIMA_BUILD_DIR}/native-vision-exact-layer-norm-probe",
+    "sha256": "cd7bd3bddb9af6bb84d3c3d981558abb47d113a7235f0b8b36ada94539df8e20",
+    "runtime_python": false,
+    "runtime_torch": false,
+    "runtime_vllm": false,
+    "runtime_triton": false
+  },
+  "model": {
+    "repository": "Qwen/Qwen3.6-35B-A3B",
+    "revision": "995ad96eacd98c81ed38be0c5b274b04031597b0",
+    "dtype": "bfloat16",
+    "visual_weight_payload_bytes": 893142496
+  },
+  "oracle": {
+    "public_record": "benchmarks/results/native-vision-block-oracle-v0.1.0.json",
+    "public_record_sha256": "bfd1a29b4fc1d52c81e574029f772bfef68400b7146fbd4e8a09b7ed3ac7648a",
+    "boundary": "vision_block_0_norm1",
+    "required_comparison": "bit_exact"
+  },
+  "implementation_contract": {
+    "hidden_size": 1152,
+    "vector_size": 4,
+    "warp_size": 32,
+    "warps_per_block": 8,
+    "epsilon": 0.000001,
+    "selected_reciprocal": "fast_amd_reciprocal"
+  },
+  "cases": [
+    {
+      "case_id": "image_local_png",
+      "rows": 256,
+      "elements": 294912,
+      "expected_sha256": "afbd74178ed9107cd35b2b50cf5e9abe67a9074391e369a4d98974fe87820f86",
+      "candidates": {
+        "division": {
+          "exact_elements": 294912,
+          "actual_sha256": "afbd74178ed9107cd35b2b50cf5e9abe67a9074391e369a4d98974fe87820f86",
+          "exact": true
+        },
+        "fast_amd_reciprocal": {
+          "exact_elements": 294912,
+          "actual_sha256": "afbd74178ed9107cd35b2b50cf5e9abe67a9074391e369a4d98974fe87820f86",
+          "exact": true
+        }
+      },
+      "passed": true
+    },
+    {
+      "case_id": "video_local_mp4",
+      "rows": 128,
+      "elements": 147456,
+      "expected_sha256": "645a5f8de98d173d2f22e7e0f299ef49813b77313b5e3a46e3d0b6e41feb4e15",
+      "candidates": {
+        "division": {
+          "exact_elements": 147455,
+          "actual_sha256": "6a082af7e154bdf2372f97cc0f2f23105fae00e4c9ba55575ea2afd13c122ea8",
+          "exact": false
+        },
+        "fast_amd_reciprocal": {
+          "exact_elements": 147456,
+          "actual_sha256": "645a5f8de98d173d2f22e7e0f299ef49813b77313b5e3a46e3d0b6e41feb4e15",
+          "exact": true
+        }
+      },
+      "passed": true
+    }
+  ],
+  "decision": {
+    "case_count": 2,
+    "passed_cases": 2,
+    "selected_mode_bit_exact_for_all_cases": true,
+    "full_vision_encoder_qualified": false,
+    "vision_merger_qualified": false,
+    "serving_integration_qualified": false,
+    "g1_passed": false,
+    "g2_passed": false,
+    "overall_pass": true
+  }
+}

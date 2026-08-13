@@ -14,8 +14,8 @@ blocking condition in the governing goal can move a gate to `passed`.
 
 | Gate | Current state | Evidence required to pass | Next blocking action |
 |---|---|---|---|
-| G1 full VL functional parity | ordered chat media parts, bounded local/data/HTTP/HTTPS admission, image/video processors and resident visual weights are implemented; vision execution and serving remain incomplete | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | execute processor tensors through the resident vision/model path |
-| G2 VL correctness parity | reference processor/boundary/logits/generation oracles frozen; native patch and position boundaries qualified; remaining native comparison and task suites pending | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | implement vision blocks and merger, then compare the remaining frozen raw tensors before running task quality |
+| G1 full VL functional parity | ordered chat media parts, bounded local/data/HTTP/HTTPS admission, image/video processors, resident visual weights and the complete 27-block encoder are implemented; merger, injection and serving remain incomplete | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | compose the merger, media embedding injection and resident serving path |
+| G2 VL correctness parity | reference processor/boundary/logits/generation oracles frozen; native patch, position and all 27 vision blocks are qualified on the frozen image/video cases; merger and downstream suites remain pending | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | qualify merger and injection before language boundaries, logits and task quality |
 | G3 text product no regression | frozen baseline identified | paired 19-cell, maximum-window, correctness, MMLU, API, cache, startup and memory requalification | retain `v1.5.1` as an immutable paired binary |
 | G4 native VL performance | not started | paired per-cell stage timings and memory records against the fixed VL-enabled vLLM | generate matrix cells from the capability manifest |
 | G5 native release product | not started | native-only package, security, isolated bundle, second-host, soak and rollback evidence | keep Python tooling qualification-only and outside the product runtime |
@@ -324,9 +324,9 @@ was finite and both repeated outputs were SHA-256 identical. The 256-patch
 case uses 4,997,120 bytes of temporary storage (19,520 bytes per patch), with
 no full attention score matrix. The hash-bound record is
 `benchmarks/results/native-vision-block-v0.1.0.json`. The timings in that
-record are diagnostic probe timings, not G4 serving evidence. Blocks 13 and
-26, the complete 27-block encoder, merger and serving integration remain
-unqualified, so neither G1 nor G2 passes.
+record are diagnostic probe timings, not G4 serving evidence. At that
+implementation checkpoint blocks 13 and 26, the complete 27-block encoder,
+merger and serving integration were still unqualified.
 
 The representative-depth inputs are now frozen from the same serving path. A
 clean `41d6f6b` capture hooked blocks 0, 13 and 26 during one image and one
@@ -345,8 +345,32 @@ has a maximum absolute delta of 32 only in its large BF16 tail (reference
 maximum magnitude 12,480); its relative L2 is `0.000646`, within the frozen
 metric without changing thresholds. The result is
 `benchmarks/results/native-vision-representative-blocks-v0.1.0.json`.
-Representative blocks now pass, but the sequential 27-block encoder, merger
-and serving integration are still unqualified; G1/G2 therefore remain false.
+That record qualifies isolated representative blocks, not a sequential
+encoder.
+
+The cumulative error was then resolved without weakening any threshold. The
+reference Triton attention launch was frozen as a standalone gfx1151 code
+object (`BLOCK_M=128`, `BLOCK_N=128`, head dimension 72) and the native loader
+replayed it with no Python, Torch, vLLM or Triton runtime. Both raw attention
+cases are bit-exact: 294,912 image and 147,456 video BF16 elements. The
+remaining cumulative delta came from using a different LayerNorm reduction
+shape and expression order. A native port of the pinned PyTorch `8514f05`
+ROCm vec4, 32-by-8 Welford path selected the AMD fast reciprocal using the
+video discriminator and reproduced both norm1 cases bit-for-bit. The sealed
+record is
+`benchmarks/results/native-vision-exact-layer-norm-v0.1.0.json`.
+
+The exact LayerNorm and shared AOT attention module are now composed in one
+parameterized resident 27-block stack. On the frozen image and two-frame video
+cases, cumulative outputs after blocks 0, 13 and 26 are all bit-exact: all
+1,327,104 BF16 elements match, relative L2 is zero, cosine is one, and every
+repeat SHA-256 is identical. Full block-stack medians were `14.817 ms` for
+256 image patches and `11.741 ms` for two 64-patch video segments; these are
+diagnostic kernel timings, not G4 serving evidence. The hash-bound source,
+binary, AOT and six comparisons are in
+`benchmarks/results/native-vision-aot-encoder-v0.1.0.json`. The representative
+27-block encoder is qualified; merger, embedding injection and serving remain
+unqualified, so G1 and G2 remain false.
 
 `native_media_test` and `native_chat_protocol_test` both compile with strict
 warnings and pass on `amd395`. This is implementation progress, not G1 or G2

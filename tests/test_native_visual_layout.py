@@ -969,6 +969,62 @@ class NativeVisualLayoutTest(unittest.TestCase):
         self.assertIn("native-vision-exact-layer-norm-oracle/v1", probe)
         self.assertIn("const bool complete = fast_result.exact", probe)
 
+    def test_exact_aot_vision_encoder_evidence_is_hash_bound(self) -> None:
+        layer_norm = json.loads(
+            (
+                ROOT
+                / "benchmarks/results/native-vision-exact-layer-norm-v0.1.0.json"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertTrue(layer_norm["complete"])
+        self.assertEqual(
+            layer_norm["implementation_contract"]["selected_reciprocal"],
+            "fast_amd_reciprocal",
+        )
+        for case in layer_norm["cases"]:
+            self.assertTrue(case["passed"])
+            self.assertTrue(case["candidates"]["fast_amd_reciprocal"]["exact"])
+
+        encoder = json.loads(
+            (
+                ROOT / "benchmarks/results/native-vision-aot-encoder-v0.1.0.json"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertTrue(encoder["complete"])
+        for source in encoder["source"]["files"]:
+            self.assertEqual(
+                hashlib.sha256((ROOT / source["path"]).read_bytes()).hexdigest(),
+                source["sha256"],
+            )
+        self.assertEqual(encoder["attention_aot"]["shared_plan_count"], 1)
+        self.assertEqual(len(encoder["cases"]), 2)
+        for case in encoder["cases"]:
+            self.assertEqual(
+                [item["block_index"] for item in case["checkpoints"]],
+                [0, 13, 26],
+            )
+            for checkpoint in case["checkpoints"]:
+                self.assertTrue(checkpoint["passed"])
+                self.assertEqual(
+                    checkpoint["exact_elements"], checkpoint["elements"]
+                )
+                self.assertEqual(checkpoint["relative_l2_error"], 0.0)
+                self.assertEqual(checkpoint["cosine_similarity"], 1.0)
+                self.assertEqual(
+                    checkpoint["expected_sha256"], checkpoint["actual_sha256"]
+                )
+                self.assertEqual(
+                    checkpoint["actual_sha256"],
+                    checkpoint["repeat_actual_sha256"],
+                )
+        decision = encoder["decision"]
+        self.assertTrue(decision["all_outputs_bit_exact"])
+        self.assertTrue(decision["all_27_blocks_executed"])
+        self.assertTrue(decision["representative_image_video_encoder_qualified"])
+        self.assertFalse(decision["vision_merger_qualified"])
+        self.assertFalse(decision["g1_passed"])
+        self.assertFalse(decision["g2_passed"])
+
 
 if __name__ == "__main__":
     unittest.main()

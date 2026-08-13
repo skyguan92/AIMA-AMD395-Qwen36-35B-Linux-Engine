@@ -1,0 +1,248 @@
+{
+  "schema": "aima-amd395-qwen36/native-vision-aot-encoder-qualification/v1",
+  "complete": true,
+  "recorded_at": "2026-08-13T23:54:59+08:00",
+  "host": {
+    "label": "amd395",
+    "hostname": "quings",
+    "gpu_arch": "gfx1151",
+    "device_name": "Radeon 8060S Graphics"
+  },
+  "source": {
+    "commit": "16933e3c994d345c01f65f35b9c00feeb7478693",
+    "clean": true,
+    "qualification_bundle_sha256": "604424b29cd4f3e4d4bcd9ca6aafbddd3d30b567f9712aef3e48583ef95a1953",
+    "bundle_prerequisite_commit": "046d9b92f8f890b1c9848682f90d8b761a1c548c",
+    "files": [
+      {
+        "path": "native/include/aima/native_vision_aot_attention.h",
+        "sha256": "42166cc41a942b74c63e78d3cceed45c5c4464bbc2c33e28879a11c00d8f4f1c"
+      },
+      {
+        "path": "native/src/native_vision_aot_attention.hip.cpp",
+        "sha256": "602346aa02227f32e33bd05fbdd17eb24843bd9485c8718497ad10ac77b09310"
+      },
+      {
+        "path": "native/include/aima/native_vision_exact_layer_norm.h",
+        "sha256": "656ee0a1d612b424e139a73e60491467d22e0118be75e279aacd1a51572e9b22"
+      },
+      {
+        "path": "native/src/native_vision_exact_layer_norm.hip.cpp",
+        "sha256": "bf36d00326d206bea7e3a26072e4f40f7b3c4711224add0e1913b3eecb2674ce"
+      },
+      {
+        "path": "native/include/aima/native_vision_aot_block.h",
+        "sha256": "fa3b856271a537a3ee0349c5e41f3d9ed90c5a1521aec0c804c0dc281d844317"
+      },
+      {
+        "path": "native/src/native_vision_aot_block.hip.cpp",
+        "sha256": "9b06e7feadb260a6980001ae53459271e8ad179dfffbd87ab8940a814498df9d"
+      },
+      {
+        "path": "native/include/aima/native_vision_aot_block_stack.h",
+        "sha256": "7ce70f46a3824aa9e15affa4fa2f3595bf68c22609541b798acdd144be88cb3e"
+      },
+      {
+        "path": "native/src/native_vision_aot_block_stack.hip.cpp",
+        "sha256": "ed4b724fc85460f19401617d074d2cee0b9cffbbec169d3e188da22c345e5fc5"
+      },
+      {
+        "path": "native/src/native_vision_rotary.hip.cpp",
+        "sha256": "6975ff24396e92ad36f32860874a022f77712aa31499933843c053b6879ed0b9"
+      },
+      {
+        "path": "native/src/native_vision_block_suffix.hip.cpp",
+        "sha256": "f0753d4d0ddbe42dfd04d7de3e946246e36e937247fbecf255cafcc98427e759"
+      },
+      {
+        "path": "native/src/bf16_gemm.hip.cpp",
+        "sha256": "1b6b62085e295c8c61a17e8cf003042c16842c96b6d23bcd0e758f94a08a9861"
+      },
+      {
+        "path": "native/src/aot_kernel.hip.cpp",
+        "sha256": "9ff9cdfa424205de96489458295fa380b60c8083462313f61c280312cd2f44c2"
+      },
+      {
+        "path": "native/src/native_weight_store.hip.cpp",
+        "sha256": "4be034f46581215ff93a97a2add54e02953b95321682eabf063f422311d4ec0d"
+      },
+      {
+        "path": "native/tools/vision_aot_block_stack_oracle_probe.hip.cpp",
+        "sha256": "edb865a7fc0ba9adac738c399c72f0afcfa6a85edad52776a00930be10287417"
+      },
+      {
+        "path": "scripts/build-native-vision-aot-block-stack-probe.sh",
+        "sha256": "3a23876098d267d7484ac0aeb454c0357017a34a6c7d4f1698a4ca78c8bc2f17"
+      }
+    ]
+  },
+  "binary": {
+    "path": "${AIMA_BUILD_DIR}/native-vision-aot-block-stack-probe",
+    "sha256": "0e1e9e6e76cc62655f96d8e7cee0f756478401f1e7df19bf37c30158e3239445",
+    "runtime_python": false,
+    "runtime_torch": false,
+    "runtime_vllm": false,
+    "runtime_triton": false
+  },
+  "model": {
+    "repository": "Qwen/Qwen3.6-35B-A3B",
+    "revision": "995ad96eacd98c81ed38be0c5b274b04031597b0",
+    "dtype": "bfloat16",
+    "block_count": 27,
+    "hidden_size": 1152,
+    "visual_weight_payload_bytes": 893142496
+  },
+  "oracle": {
+    "public_record": "benchmarks/results/native-vision-depth-oracle-v0.1.0.json",
+    "public_record_sha256": "d3916eb24bede4ba7e8abaaf2faaa450b29c430187df2cda790266daf4880ae0",
+    "raw_manifest_sha256": "0e4967ca0c0ca0d54be1ab0854736b60e7b0cd57141340c9743f46aec8d69604",
+    "canonical_payload_sha256": "43b365aef9f330e3ac68a47d882536b814fc38853e80320211af238f6d3bc152",
+    "checkpoints": [
+      0,
+      13,
+      26
+    ],
+    "required_comparison": "bit_exact",
+    "goal_thresholds": {
+      "maximum_relative_l2_error": 0.002,
+      "minimum_cosine_similarity": 0.999
+    }
+  },
+  "attention_aot": {
+    "manifest": "native/aot/gfx1151/vision-attention-v0.1.0/manifest.json",
+    "manifest_sha256": "f1d9dc6820ec5a58df8c44cea71b0264e216b4b4971f3abbdfce9985682ecb8e",
+    "image": "native/aot/gfx1151/vision-attention-v0.1.0/kernels/e45a4026e641c9f8-_fwd_kernel.hsaco",
+    "image_sha256": "b709a058a77d61e14db73c1ff7d7f4c20859d997bec811cad7339d3e59223d00",
+    "shared_plan_count": 1,
+    "block_m": 128,
+    "block_n": 128,
+    "head_dimension": 72,
+    "causal": false
+  },
+  "layer_norm": {
+    "qualification": "benchmarks/results/native-vision-exact-layer-norm-v0.1.0.json",
+    "qualification_sha256": "4238973fa7cee1a41fc52ac26f72ded4099ba82cc049f6b9f1ab57190ffd1a3c",
+    "reciprocal": "fast_amd_reciprocal"
+  },
+  "cases": [
+    {
+      "case_id": "image_local_png",
+      "patches": 256,
+      "cu_seqlens": [
+        0,
+        256
+      ],
+      "temporary_bytes": 5586944,
+      "library_workspace_bytes": 143327240,
+      "checkpoints": [
+        {
+          "block_index": 0,
+          "executed_block_count": 1,
+          "elements": 294912,
+          "exact_elements": 294912,
+          "expected_sha256": "dbeff2fe17c9dfaf8f5022d6f73a33c55ac9e6a05c52c0bb51ef595a08063561",
+          "actual_sha256": "dbeff2fe17c9dfaf8f5022d6f73a33c55ac9e6a05c52c0bb51ef595a08063561",
+          "repeat_actual_sha256": "dbeff2fe17c9dfaf8f5022d6f73a33c55ac9e6a05c52c0bb51ef595a08063561",
+          "relative_l2_error": 0.0,
+          "cosine_similarity": 1.0,
+          "median_ms": 0.5309100151062012,
+          "passed": true
+        },
+        {
+          "block_index": 13,
+          "executed_block_count": 14,
+          "elements": 294912,
+          "exact_elements": 294912,
+          "expected_sha256": "84c4524ccaf11888315f39c609a5b358fd3217b34cead7ed818d4c3eafba0bf2",
+          "actual_sha256": "84c4524ccaf11888315f39c609a5b358fd3217b34cead7ed818d4c3eafba0bf2",
+          "repeat_actual_sha256": "84c4524ccaf11888315f39c609a5b358fd3217b34cead7ed818d4c3eafba0bf2",
+          "relative_l2_error": 0.0,
+          "cosine_similarity": 1.0,
+          "median_ms": 7.812908172607422,
+          "passed": true
+        },
+        {
+          "block_index": 26,
+          "executed_block_count": 27,
+          "elements": 294912,
+          "exact_elements": 294912,
+          "expected_sha256": "57cdb01ae726fb15154b0bce11bc50cdc648ab7012143246169abab880b2632d",
+          "actual_sha256": "57cdb01ae726fb15154b0bce11bc50cdc648ab7012143246169abab880b2632d",
+          "repeat_actual_sha256": "57cdb01ae726fb15154b0bce11bc50cdc648ab7012143246169abab880b2632d",
+          "relative_l2_error": 0.0,
+          "cosine_similarity": 1.0,
+          "median_ms": 14.816965103149414,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "case_id": "video_local_mp4",
+      "patches": 128,
+      "cu_seqlens": [
+        0,
+        64,
+        128
+      ],
+      "temporary_bytes": 2793472,
+      "library_workspace_bytes": 95551504,
+      "checkpoints": [
+        {
+          "block_index": 0,
+          "executed_block_count": 1,
+          "elements": 147456,
+          "exact_elements": 147456,
+          "expected_sha256": "98199a56bd10c6c94aafb43beb5ed0f9a9ac1ea09fe432923cd631202b305246",
+          "actual_sha256": "98199a56bd10c6c94aafb43beb5ed0f9a9ac1ea09fe432923cd631202b305246",
+          "repeat_actual_sha256": "98199a56bd10c6c94aafb43beb5ed0f9a9ac1ea09fe432923cd631202b305246",
+          "relative_l2_error": 0.0,
+          "cosine_similarity": 1.0,
+          "median_ms": 0.42974400520324707,
+          "passed": true
+        },
+        {
+          "block_index": 13,
+          "executed_block_count": 14,
+          "elements": 147456,
+          "exact_elements": 147456,
+          "expected_sha256": "aa408f83cb4a88a311f063c0e3a4ee6df505181d2b0707eb228985198d2a36aa",
+          "actual_sha256": "aa408f83cb4a88a311f063c0e3a4ee6df505181d2b0707eb228985198d2a36aa",
+          "repeat_actual_sha256": "aa408f83cb4a88a311f063c0e3a4ee6df505181d2b0707eb228985198d2a36aa",
+          "relative_l2_error": 0.0,
+          "cosine_similarity": 1.0,
+          "median_ms": 6.163654804229736,
+          "passed": true
+        },
+        {
+          "block_index": 26,
+          "executed_block_count": 27,
+          "elements": 147456,
+          "exact_elements": 147456,
+          "expected_sha256": "764178cd51383c638860aa18affb7ce5f890ae390a7191b666e264accd8ded88",
+          "actual_sha256": "764178cd51383c638860aa18affb7ce5f890ae390a7191b666e264accd8ded88",
+          "repeat_actual_sha256": "764178cd51383c638860aa18affb7ce5f890ae390a7191b666e264accd8ded88",
+          "relative_l2_error": 0.0,
+          "cosine_similarity": 1.0,
+          "median_ms": 11.741191864013672,
+          "passed": true
+        }
+      ]
+    }
+  ],
+  "decision": {
+    "comparison_count": 6,
+    "passed_comparisons": 6,
+    "all_finite": true,
+    "all_repeats_deterministic": true,
+    "all_outputs_bit_exact": true,
+    "all_27_blocks_executed": true,
+    "representative_image_video_encoder_qualified": true,
+    "vision_merger_qualified": false,
+    "media_embedding_injection_qualified": false,
+    "serving_integration_qualified": false,
+    "g1_passed": false,
+    "g2_passed": false,
+    "g4_passed": false,
+    "overall_pass": true
+  }
+}
