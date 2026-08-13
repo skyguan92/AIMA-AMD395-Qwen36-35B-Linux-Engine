@@ -1130,6 +1130,7 @@ class NativeVisualLayoutTest(unittest.TestCase):
         self.assertIn("capture-vllm-vision-block-oracles.py", capture)
         self.assertIn('(\"multi_image\", \"multi_video\")', capture)
         self.assertIn("vision-multimedia-block-oracle/v1", capture)
+        self.assertIn("cloudpickle.register_pickle_by_value(module)", capture)
 
 
 if __name__ == "__main__":

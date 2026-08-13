@@ -10,6 +10,8 @@ import importlib.util
 from pathlib import Path
 import sys
 
+import cloudpickle
+
 
 ROOT = Path(__file__).resolve().parents[1]
 BASE_CAPTURE = ROOT / "scripts/capture-vllm-vision-block-oracles.py"
@@ -24,6 +26,10 @@ def main() -> int:
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
+    # The worker is spawned in a fresh interpreter and cannot import a module
+    # created from the hyphenated script filename. Preserve the frozen module
+    # as serialized code for the isolated apply_model callables.
+    cloudpickle.register_pickle_by_value(module)
     module.SCHEMA = (
         "aima-amd395-qwen36/vision-multimedia-block-oracle/v1"
     )
