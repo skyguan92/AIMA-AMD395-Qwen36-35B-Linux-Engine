@@ -505,6 +505,56 @@ json qualify_case(
         "layer 0-3 comparison set is incomplete for " + case_id);
   }
 
+  // Qualification-only attribution: rerun Layer 1 attention from the exact
+  // preceding-layer output while preserving the same q1024 kernels and GEMM
+  // plans. This separates intrinsic Layer 1 arithmetic drift from Layer 0
+  // propagation before the MoE amplification check below.
+  aima::NativeLinearPrefillOracleOptions attention_diagnostic_options;
+  attention_diagnostic_options.layer_index = 1;
+  attention_diagnostic_options.comparison_tokens = prompt_tokens;
+  attention_diagnostic_options.seed_layer_input = true;
+  attention_diagnostic_options.layer_input_oracle_label =
+      "return-layer_body-output";
+  attention_diagnostic_options.run_output_projection_diagnostic = false;
+  attention_diagnostic_options.collect_oracle_comparisons = false;
+  attention_diagnostic_options.gemm_plans = &gemm_plans;
+  attention_diagnostic_options.bindings = &bindings;
+  attention_diagnostic_options.oracle_label_prefix = "layer-000-";
+  attention_diagnostic_options.sequence_oracle_dir =
+      prefix_case_oracle_dir;
+  attention_diagnostic_options.sequence_oracle_label_prefix = "layer-001-";
+  const aima::NativeLinearPrefillOracleResult layer1_exact_input_attention =
+      aima::probe_native_q8192_linear_prefill_layer0_oracle(
+          prefix_case_oracle_dir, weights, workspace, invocations, executor,
+          attention_diagnostic_options);
+  json layer1_attention_diagnostic_comparisons = json::array();
+  bool layer1_attention_diagnostic_passed = true;
+  std::string layer1_attention_diagnostic_first_failed;
+  std::set<std::string> layer1_attention_diagnostic_labels;
+  for (const aima::NativeOracleComparison& comparison :
+       layer1_exact_input_attention.boundary_comparisons) {
+    layer1_attention_diagnostic_labels.insert(comparison.label);
+    const bool passed = comparison_passed(comparison);
+    layer1_attention_diagnostic_passed =
+        layer1_attention_diagnostic_passed && passed;
+    if (!passed && layer1_attention_diagnostic_first_failed.empty()) {
+      layer1_attention_diagnostic_first_failed = comparison.label;
+    }
+    layer1_attention_diagnostic_comparisons.push_back(
+        comparison_json(comparison));
+  }
+  const std::set<std::string> expected_layer1_attention_labels = {
+      "layer-001-input_norm_full_sequence",
+      "layer-001-attention_output_full_sequence",
+      "layer-001-post_attention_full_sequence",
+      "layer-001-post_attention_norm_full_sequence",
+  };
+  if (layer1_attention_diagnostic_labels !=
+      expected_layer1_attention_labels) {
+    throw std::runtime_error(
+        "layer 1 exact-input attention set is incomplete for " + case_id);
+  }
+
   // Qualification-only attribution: rerun Layer 1 MoE with the exact vLLM
   // post-attention norm and residual.  This distinguishes intrinsic MoE
   // arithmetic drift from discontinuous router amplification of the small
@@ -629,6 +679,18 @@ json qualify_case(
       {"boundaries_passed", boundaries_passed},
       {"first_failed_boundary", first_failed_boundary},
       {"comparisons", std::move(comparisons)},
+      {"layer1_exact_input_attention_diagnostic",
+       {
+           {"complete", layer1_attention_diagnostic_passed},
+           {"comparison_count",
+            layer1_attention_diagnostic_comparisons.size()},
+           {"first_failed_boundary",
+            layer1_attention_diagnostic_first_failed},
+           {"comparisons",
+            std::move(layer1_attention_diagnostic_comparisons)},
+           {"seed_tensors", layer1_exact_input_attention.seed_tensors},
+           {"seed_bytes", layer1_exact_input_attention.seed_bytes},
+       }},
       {"layer1_exact_input_moe_diagnostic",
        {
            {"complete", layer1_diagnostic_passed},

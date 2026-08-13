@@ -480,9 +480,18 @@ probe_native_q8192_linear_prefill_layer0_oracle(
   result.layer.tokens = tokens;
   result.layer_input_seeded = options.seed_layer_input;
   if (options.seed_layer_input) {
+    if (options.layer_input_oracle_label.empty()) {
+      throw std::invalid_argument(
+          "native linear prefill layer-input oracle label is empty");
+    }
+    if (comparison_tokens != tokens) {
+      check_hip(hipMemset(x, 0,
+                          tokens * kHidden * sizeof(std::uint16_t)),
+                "hipMemset padded seeded linear input");
+    }
     result.seed_bytes += seed_native_oracle_tensor(
-        oracle_file("launch-000-x"), x,
-        tokens * kHidden * sizeof(std::uint16_t));
+        oracle_file(options.layer_input_oracle_label.c_str()), x,
+        comparison_tokens * kHidden * sizeof(std::uint16_t));
     ++result.seed_tensors;
   }
 

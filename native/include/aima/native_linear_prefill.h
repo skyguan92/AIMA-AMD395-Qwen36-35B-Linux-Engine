@@ -52,6 +52,9 @@ struct NativeLinearPrefillOracleOptions {
   // Zero disables the override.
   std::size_t exact_b_projection_tokens = 0;
   bool seed_layer_input = true;
+  // Qualification-only ledgers may name a preceding layer output instead of
+  // a standalone launch-000 input.  Product execution never reads this.
+  std::string layer_input_oracle_label = "launch-000-x";
   // Keep the production layer output intact when composing multiple layers.
   // Single-layer qualification enables the seeded projection isolation pass.
   bool run_output_projection_diagnostic = true;

@@ -133,6 +133,10 @@ class NativeVlLanguageLayer3MropeTest(unittest.TestCase):
         self.assertIn("moe_options.chain_output_oracle_label", probe)
         self.assertIn('"same_request_layer_output"', probe)
         self.assertIn("layer1_exact_input_moe_diagnostic", probe)
+        self.assertIn("layer1_exact_input_attention_diagnostic", probe)
+        self.assertIn(
+            'attention_diagnostic_options.layer_input_oracle_label =', probe
+        )
         self.assertIn("diagnostic_options.seed_post_attention = true", probe)
         self.assertIn("return-layer_body-router_indices", probe)
         self.assertIn("kMeasuredRuns = 5", probe)
