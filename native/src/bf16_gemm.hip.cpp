@@ -98,6 +98,7 @@ struct Bf16GemmPlan::Impl {
   int library_version = 0;
   bool right_operand_is_transposed = false;
   bool torch_n1_layout = false;
+  bool bias_epilogue = false;
 
   ~Impl() { release(); }
 
@@ -123,7 +124,8 @@ struct Bf16GemmPlan::Impl {
 
 Bf16GemmPlan::Bf16GemmPlan(std::size_t m, std::size_t n, std::size_t k,
                            std::size_t workspace_limit_bytes,
-                           bool right_operand_is_transposed)
+                           bool right_operand_is_transposed,
+                           bool bias_epilogue)
     : impl_(std::make_unique<Impl>()) {
   if (m == 0 || n == 0 || k == 0 || workspace_limit_bytes == 0) {
     throw std::invalid_argument("BF16 GEMM dimensions and workspace must be non-zero");
@@ -133,6 +135,7 @@ Bf16GemmPlan::Bf16GemmPlan(std::size_t m, std::size_t n, std::size_t k,
   impl_->k = k;
   impl_->right_operand_is_transposed = right_operand_is_transposed;
   impl_->torch_n1_layout = right_operand_is_transposed && n == 1;
+  impl_->bias_epilogue = bias_epilogue;
   try {
     check_blas(hipblasLtCreate(&impl_->handle), "hipblasLtCreate");
     check_blas(hipblasLtGetVersion(impl_->handle, &impl_->library_version),
@@ -140,6 +143,19 @@ Bf16GemmPlan::Bf16GemmPlan(std::size_t m, std::size_t n, std::size_t k,
     check_blas(hipblasLtMatmulDescCreate(&impl_->operation,
                                          HIPBLAS_COMPUTE_32F, HIP_R_32F),
                "hipblasLtMatmulDescCreate");
+    if (impl_->bias_epilogue) {
+      const hipblasLtEpilogue_t epilogue = HIPBLASLT_EPILOGUE_BIAS;
+      const hipDataType bias_type = HIP_R_16BF;
+      check_blas(hipblasLtMatmulDescSetAttribute(
+                     impl_->operation, HIPBLASLT_MATMUL_DESC_EPILOGUE,
+                     &epilogue, sizeof(epilogue)),
+                 "hipblasLtMatmulDescSetAttribute bias epilogue");
+      check_blas(hipblasLtMatmulDescSetAttribute(
+                     impl_->operation,
+                     HIPBLASLT_MATMUL_DESC_BIAS_DATA_TYPE,
+                     &bias_type, sizeof(bias_type)),
+                 "hipblasLtMatmulDescSetAttribute bias type");
+    }
     // hipBLASLt's gfx1151 row-major heuristic surface contains algorithms that
     // can pass selection and still access outside the output for this large
     // production shape. Use the equivalent, mature column-major formulation:
@@ -219,7 +235,7 @@ Bf16GemmPlan& Bf16GemmPlan::operator=(Bf16GemmPlan&&) noexcept = default;
 
 void Bf16GemmPlan::launch(const void* a, const void* b, void* d,
                           void* stream) const {
-  if (!impl_ || !a || !b || !d) {
+  if (!impl_ || !a || !b || !d || impl_->bias_epilogue) {
     throw std::invalid_argument("BF16 GEMM launch requires initialized non-null inputs");
   }
   constexpr float alpha = 1.0f;
@@ -233,12 +249,35 @@ void Bf16GemmPlan::launch(const void* a, const void* b, void* d,
              "hipblasLtMatmul");
 }
 
+void Bf16GemmPlan::launch_with_bias(const void* a, const void* b,
+                                    const void* bias, void* d,
+                                    void* stream) const {
+  if (!impl_ || !a || !b || !bias || !d || !impl_->bias_epilogue) {
+    throw std::invalid_argument(
+        "biased BF16 GEMM launch requires a biased plan and non-null inputs");
+  }
+  check_blas(hipblasLtMatmulDescSetAttribute(
+                 impl_->operation, HIPBLASLT_MATMUL_DESC_BIAS_POINTER,
+                 &bias, sizeof(bias)),
+             "hipblasLtMatmulDescSetAttribute bias pointer");
+  constexpr float alpha = 1.0f;
+  constexpr float beta = 0.0f;
+  check_blas(hipblasLtMatmul(
+                 impl_->handle, impl_->operation, &alpha, b,
+                 impl_->a_layout, a, impl_->b_layout, &beta, d,
+                 impl_->c_layout, d, impl_->d_layout, &impl_->algorithm,
+                 impl_->workspace, impl_->workspace_bytes,
+                 static_cast<hipStream_t>(stream)),
+             "hipblasLtMatmul bias");
+}
+
 std::size_t Bf16GemmPlan::m() const { return impl_->m; }
 std::size_t Bf16GemmPlan::n() const { return impl_->n; }
 std::size_t Bf16GemmPlan::k() const { return impl_->k; }
 std::size_t Bf16GemmPlan::workspace_bytes() const { return impl_->workspace_bytes; }
 int Bf16GemmPlan::heuristic_count() const { return impl_->heuristic_count; }
 int Bf16GemmPlan::library_version() const { return impl_->library_version; }
+bool Bf16GemmPlan::bias_epilogue() const { return impl_->bias_epilogue; }
 
 Bf16GemmProbeResult probe_bf16_gemm() {
   Bf16GemmProbeResult result;

@@ -145,6 +145,30 @@ class NativeVisualLayoutTest(unittest.TestCase):
         self.assertIn("generated::kExpectedPayloadXor ^", loader)
         self.assertIn("torch_owned_safetensors_loader.hip.cpp", build)
 
+    def test_patch_embedding_is_native_and_oracle_qualified(self) -> None:
+        header = (ROOT / "native/include/aima/native_vision_encoder.h").read_text(
+            encoding="utf-8"
+        )
+        source = (ROOT / "native/src/native_vision_encoder.hip.cpp").read_text(
+            encoding="utf-8"
+        )
+        gemm = (ROOT / "native/src/bf16_gemm.hip.cpp").read_text(
+            encoding="utf-8"
+        )
+        build = (ROOT / "scripts/build-native-runtime.sh").read_text(
+            encoding="utf-8"
+        )
+        probe = (ROOT / "scripts/build-native-vision-patch-probe.sh").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("class NativeVisionPatchEmbedPlan", header)
+        self.assertIn("model.visual.patch_embed.proj.weight", source)
+        self.assertIn("model.visual.patch_embed.proj.bias", source)
+        self.assertIn("launch_with_bias", source)
+        self.assertIn("HIPBLASLT_EPILOGUE_BIAS", gemm)
+        self.assertIn("native_vision_encoder.hip.cpp", build)
+        self.assertIn("vision_patch_oracle_probe.hip.cpp", probe)
+
 
 if __name__ == "__main__":
     unittest.main()

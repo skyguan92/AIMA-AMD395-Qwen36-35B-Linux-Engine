@@ -15,7 +15,8 @@ class Bf16GemmPlan {
  public:
   Bf16GemmPlan(std::size_t m, std::size_t n, std::size_t k,
                std::size_t workspace_limit_bytes = 128ULL * 1024 * 1024,
-               bool right_operand_is_transposed = false);
+               bool right_operand_is_transposed = false,
+               bool bias_epilogue = false);
   ~Bf16GemmPlan();
 
   Bf16GemmPlan(const Bf16GemmPlan&) = delete;
@@ -29,6 +30,8 @@ class Bf16GemmPlan {
   // accumulation is FP32, matching the qualified projection surface.
   void launch(const void* a, const void* b, void* d,
               void* stream = nullptr) const;
+  void launch_with_bias(const void* a, const void* b, const void* bias,
+                        void* d, void* stream = nullptr) const;
 
   std::size_t m() const;
   std::size_t n() const;
@@ -36,6 +39,7 @@ class Bf16GemmPlan {
   std::size_t workspace_bytes() const;
   int heuristic_count() const;
   int library_version() const;
+  bool bias_epilogue() const;
 
  private:
   struct Impl;

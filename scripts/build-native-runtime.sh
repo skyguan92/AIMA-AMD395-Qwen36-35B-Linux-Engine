@@ -172,6 +172,7 @@ done < "${AOT_OBJECT_PLAN}"
   "${ROOT}/native/src/native_vl_processor.cpp" \
   "${ROOT}/native/src/native_image_decoder.cpp" \
   "${ROOT}/native/src/native_video_decoder.cpp" \
+  "${ROOT}/native/src/native_vision_encoder.hip.cpp" \
   "${ROOT}/native/src/native_doctor.cpp" \
   "${ROOT}/native/src/native_http_server.cpp" \
   "${ROOT}/native/src/native_pointwise.hip.cpp" \
