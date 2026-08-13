@@ -26,6 +26,7 @@
 #include <fstream>
 #include <iostream>
 #include <limits>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -211,6 +212,7 @@ Comparison compare_bf16(const std::vector<unsigned char>& actual,
 struct Execution {
   std::vector<unsigned char> output;
   std::vector<unsigned char> residual_output;
+  std::vector<aima::NativeOracleComparison> diagnostic_comparisons;
   float measured_ms = 0.0f;
   aima::NativePrefillWorkspaceMetrics workspace;
   aima::NativePrefillInvocationMetrics invocations;
@@ -244,7 +246,8 @@ Execution execute_layer0(
     const aima::NativeWeightStore& weights,
     const aima::NativeDecodeBindings& bindings,
     aima::NativeDecodeExecutor& executor,
-    aima::NativeQ8192PrefillGemmPlans& active_gemm_plans) {
+    aima::NativeQ8192PrefillGemmPlans& active_gemm_plans,
+    const std::filesystem::path& diagnostic_oracle_dir = {}) {
   if (prompt_tokens == 0 || prompt_tokens > kBucketTokens ||
       injected_embeddings.size() !=
           prompt_tokens * kLanguageHidden * kBf16Bytes) {
@@ -276,6 +279,7 @@ Execution execute_layer0(
   linear_options.has_initial_state = false;
   linear_options.gemm_plans = &active_gemm_plans;
   linear_options.bindings = &bindings;
+  linear_options.sequence_oracle_dir = diagnostic_oracle_dir;
   aima::NativeMoePrefillOracleOptions moe_options;
   moe_options.layer_index = 0;
   moe_options.active_tokens = prompt_tokens;
@@ -283,6 +287,10 @@ Execution execute_layer0(
   moe_options.run_routing_diagnostic = false;
   moe_options.collect_oracle_comparisons = false;
   moe_options.gemm_plans = &active_gemm_plans;
+  if (!diagnostic_oracle_dir.empty()) {
+    moe_options.chain_output_oracle_dir = diagnostic_oracle_dir;
+    moe_options.chain_output_oracle_label = "diagnostic-output";
+  }
 
   Event start;
   Event stop;
@@ -300,6 +308,13 @@ Execution execute_layer0(
             "hipEventElapsedTime language layer 0");
   result.linear = linear.layer;
   result.moe = moe.layer;
+  result.diagnostic_comparisons = linear.boundary_comparisons;
+  result.diagnostic_comparisons.insert(
+      result.diagnostic_comparisons.end(), moe.comparisons.begin(),
+      moe.comparisons.end());
+  if (moe.chain_output_comparison_provided) {
+    result.diagnostic_comparisons.push_back(moe.chain_output_comparison);
+  }
 
   const void* layer_output =
       reference_layer0_first_tensor_pointer(invocations);
@@ -318,7 +333,8 @@ Execution execute_layer0(
 
 json qualify_case(
     const json& case_record, const std::filesystem::path& oracle_root,
-    const std::filesystem::path& actual_output, int device,
+    const std::filesystem::path& actual_output,
+    const std::filesystem::path& diagnostic_oracle_root, int device,
     const aima::NativeWeightStore& weights,
     const aima::NativeDecodeBindings& bindings,
     aima::NativeDecodeExecutor& executor) {
@@ -362,6 +378,12 @@ json qualify_case(
   (void)active_gemm_plans.moe_router();
 
   const auto case_started = std::chrono::steady_clock::now();
+  Execution diagnostic;
+  if (!diagnostic_oracle_root.empty()) {
+    diagnostic = execute_layer0(
+        injected, prompt_tokens, device, weights, bindings, executor,
+        active_gemm_plans, diagnostic_oracle_root / case_id);
+  }
   const Execution warmup = execute_layer0(
       injected, prompt_tokens, device, weights, bindings, executor,
       active_gemm_plans);
@@ -398,6 +420,55 @@ json qualify_case(
           std::chrono::steady_clock::now() - case_started)
           .count();
 
+  json diagnostic_comparisons = json::array();
+  bool diagnostic_complete = diagnostic_oracle_root.empty();
+  std::string first_failed_diagnostic_stage;
+  if (!diagnostic_oracle_root.empty()) {
+    const std::set<std::string> expected_labels = {
+        "input_norm_full_sequence",
+        "fla_core_full_sequence",
+        "linear_gated_output_full_sequence",
+        "attention_output_full_sequence",
+        "post_attention_full_sequence",
+        "post_attention_norm_full_sequence",
+        "diagnostic-h2",
+        "diagnostic-shared_out",
+        "diagnostic-routed_moe",
+        "diagnostic-moe_out",
+        "same_request_layer_output",
+    };
+    std::set<std::string> actual_labels;
+    for (const aima::NativeOracleComparison& value :
+         diagnostic.diagnostic_comparisons) {
+      actual_labels.insert(value.label);
+      const bool stage_passed =
+          value.finite_elements == value.elements &&
+          value.relative_l2_error <= 0.002 &&
+          value.cosine_similarity >= 0.999;
+      if (!stage_passed && first_failed_diagnostic_stage.empty()) {
+        first_failed_diagnostic_stage = value.label;
+      }
+      diagnostic_comparisons.push_back({
+          {"label", value.label},
+          {"dtype", value.dtype},
+          {"elements", value.elements},
+          {"exact_elements", value.exact_elements},
+          {"finite_elements", value.finite_elements},
+          {"maximum_absolute_error", value.maximum_absolute_error},
+          {"relative_l2_error", value.relative_l2_error},
+          {"cosine_similarity", value.cosine_similarity},
+          {"expected_sha256", value.expected_sha256},
+          {"actual_sha256", value.actual_sha256},
+          {"passed", stage_passed},
+      });
+    }
+    diagnostic_complete = actual_labels == expected_labels;
+    if (!diagnostic_complete) {
+      throw std::runtime_error(
+          "language layer-0 diagnostic comparison set is incomplete");
+    }
+  }
+
   return {
       {"schema", "aima-amd395-qwen36/native-vl-language-layer0-case/v1"},
       {"complete", passed},
@@ -427,6 +498,10 @@ json qualify_case(
                           representative.residual_output.size())},
       {"native_residual_repeat_deterministic", residual_deterministic},
       {"bit_exact", comparison.exact_elements == comparison.elements},
+      {"diagnostic_oracle_provided", !diagnostic_oracle_root.empty()},
+      {"diagnostic_complete", diagnostic_complete},
+      {"first_failed_diagnostic_stage", first_failed_diagnostic_stage},
+      {"diagnostic_comparisons", std::move(diagnostic_comparisons)},
       {"measured_ms", measured_ms},
       {"median_ms", sorted_ms[sorted_ms.size() / 2]},
       {"case_wall_ms", case_wall_ms},
@@ -455,10 +530,11 @@ json qualify_case(
 }  // namespace
 
 int main(int argc, char** argv) {
-  if (argc != 7) {
+  if (argc != 7 && argc != 8) {
     std::cerr
         << "usage: native-vl-language-layer0-probe MODEL_DIR ORACLE_MANIFEST "
-           "ORACLE_ROOT CASE_ID_OR_ALL LOAD_REPORT ACTUAL_OUTPUT_OR_DIR\n";
+           "ORACLE_ROOT CASE_ID_OR_ALL LOAD_REPORT ACTUAL_OUTPUT_OR_DIR "
+           "[DIAGNOSTIC_ORACLE_ROOT]\n";
     return 2;
   }
   try {
@@ -469,6 +545,9 @@ int main(int argc, char** argv) {
     const std::string selector = argv[4];
     const bool all_cases = selector == "all";
     const std::filesystem::path output = std::filesystem::absolute(argv[6]);
+    const std::filesystem::path diagnostic_oracle_root =
+        argc == 8 ? std::filesystem::absolute(argv[7])
+                  : std::filesystem::path{};
     const json manifest = read_json(manifest_path);
     if (manifest.value("schema", "") !=
             "aima-amd395-qwen36/vl-oracle-manifest/v1" ||
@@ -526,8 +605,8 @@ int main(int argc, char** argv) {
       const std::filesystem::path actual_output =
           all_cases ? output / (case_id + ".bin") : output;
       json result = qualify_case(
-          *case_record, oracle_root, actual_output, options.device, weights,
-          bindings, executor);
+          *case_record, oracle_root, actual_output, diagnostic_oracle_root,
+          options.device, weights, bindings, executor);
       complete = complete && result.at("complete").get<bool>();
       total_elements += result.at("elements").get<std::size_t>();
       total_exact_elements +=
