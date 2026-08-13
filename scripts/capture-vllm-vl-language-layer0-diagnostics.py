@@ -91,7 +91,7 @@ ORACLE_LABELS = {
     "launch-000-out": "input_norm",
     "launch-008-o": "gdn_core",
     "return-linear_attention-gated_out": "gdn_gated_norm",
-    "return-linear-attention-output": "linear_attention_output",
+    "return-linear_attention-output": "linear_attention_output",
     "launch-009-residual_out": "attention_residual",
     "launch-009-norm_out": "post_attention_norm",
     "diagnostic-h2": "post_attention_norm",

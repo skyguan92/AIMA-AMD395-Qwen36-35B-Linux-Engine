@@ -85,7 +85,7 @@ class VlLanguageLayer0DiagnosticCaptureTest(unittest.TestCase):
             "launch-000-out",
             "launch-008-o",
             "return-linear_attention-gated_out",
-            "return-linear-attention-output",
+            "return-linear_attention-output",
             "launch-009-residual_out",
             "launch-009-norm_out",
             "diagnostic-h2",
