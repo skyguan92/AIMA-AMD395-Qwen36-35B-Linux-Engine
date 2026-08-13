@@ -444,7 +444,10 @@ int main(int argc, char** argv) {
       const auto& plan = *plans[group];
       std::cout << "{\"patches\":" << plan.patch_count()
                 << ",\"merged_tokens\":" << plan.merged_token_count()
-                << ",\"cu_seqlens\":[";
+                << ",\"rotary_cos_sha256\":\""
+                << plan.rotary_cos_sha256()
+                << "\",\"rotary_sin_sha256\":\""
+                << plan.rotary_sin_sha256() << "\",\"cu_seqlens\":[";
       for (std::size_t index = 0; index < plan.cu_seqlens().size(); ++index) {
         if (index != 0) std::cout << ',';
         std::cout << plan.cu_seqlens()[index];

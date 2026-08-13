@@ -34,6 +34,8 @@ class NativeVisionEncoderMetadataPlan {
   const void* rotary_cos_device() const;
   const void* rotary_sin_device() const;
   const std::vector<std::uint32_t>& cu_seqlens() const;
+  const std::string& rotary_cos_sha256() const;
+  const std::string& rotary_sin_sha256() const;
   std::size_t patch_count() const;
   std::size_t resident_bytes() const;
 
@@ -76,6 +78,8 @@ class NativeVisionPipelinePlan {
   std::size_t metadata_resident_bytes() const;
   std::size_t library_workspace_bytes() const;
   const std::vector<std::uint32_t>& cu_seqlens() const;
+  const std::string& rotary_cos_sha256() const;
+  const std::string& rotary_sin_sha256() const;
   const std::string& attention_image_sha256() const;
 
  private:

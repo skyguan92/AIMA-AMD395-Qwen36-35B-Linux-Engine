@@ -1110,6 +1110,8 @@ class NativeVisualLayoutTest(unittest.TestCase):
         self.assertIn("kVisionRotaryBase = 10000.0f", source)
         self.assertIn("static_cast<float>(2 * frequency)", source)
         self.assertIn("result.cu_seqlens.push_back", source)
+        self.assertIn("cos_sha256_value = sha256_bytes", source)
+        self.assertIn("rotary_cos_sha256", probe)
         self.assertIn("impl_->patch.launch", source)
         self.assertIn("impl_->position.launch_add", source)
         self.assertIn("impl_->blocks.launch", source)

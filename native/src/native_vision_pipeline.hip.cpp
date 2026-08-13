@@ -7,6 +7,7 @@
 #include "aima/native_vision_encoder.h"
 #include "aima/native_vision_merger.h"
 #include "aima/native_weight_store.h"
+#include "aima/sha256.h"
 
 #include <hip/hip_runtime.h>
 
@@ -203,6 +204,8 @@ struct NativeVisionEncoderMetadataPlan::Impl {
         sizeof(std::uint16_t), "vision rotary bytes");
     resident_bytes_value =
         checked_multiply(2, one_table_bytes, "vision metadata residency");
+    cos_sha256_value = sha256_bytes(host.cos.data(), one_table_bytes);
+    sin_sha256_value = sha256_bytes(host.sin.data(), one_table_bytes);
     try {
       check_hip(hipMalloc(&metadata_device, resident_bytes_value),
                 "hipMalloc native vision encoder metadata");
@@ -236,6 +239,8 @@ struct NativeVisionEncoderMetadataPlan::Impl {
   std::size_t patch_count_value = 0;
   std::size_t resident_bytes_value = 0;
   std::vector<std::uint32_t> cu_seqlens_value;
+  std::string cos_sha256_value;
+  std::string sin_sha256_value;
   void* metadata_device = nullptr;
   void* cos_device = nullptr;
   void* sin_device = nullptr;
@@ -261,6 +266,14 @@ const void* NativeVisionEncoderMetadataPlan::rotary_sin_device() const {
 const std::vector<std::uint32_t>&
 NativeVisionEncoderMetadataPlan::cu_seqlens() const {
   return impl_->cu_seqlens_value;
+}
+
+const std::string& NativeVisionEncoderMetadataPlan::rotary_cos_sha256() const {
+  return impl_->cos_sha256_value;
+}
+
+const std::string& NativeVisionEncoderMetadataPlan::rotary_sin_sha256() const {
+  return impl_->sin_sha256_value;
 }
 
 std::size_t NativeVisionEncoderMetadataPlan::patch_count() const {
@@ -394,6 +407,14 @@ std::size_t NativeVisionPipelinePlan::library_workspace_bytes() const {
 
 const std::vector<std::uint32_t>& NativeVisionPipelinePlan::cu_seqlens() const {
   return impl_->metadata.cu_seqlens();
+}
+
+const std::string& NativeVisionPipelinePlan::rotary_cos_sha256() const {
+  return impl_->metadata.rotary_cos_sha256();
+}
+
+const std::string& NativeVisionPipelinePlan::rotary_sin_sha256() const {
+  return impl_->metadata.rotary_sin_sha256();
 }
 
 const std::string& NativeVisionPipelinePlan::attention_image_sha256() const {
