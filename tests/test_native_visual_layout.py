@@ -23,6 +23,9 @@ WITHDRAWN_POSITION_RESULT_PATH = (
 POSITION_RESULT_PATH = (
     ROOT / "benchmarks/results/native-vision-position-v0.2.0.json"
 )
+VISION_BLOCK_ORACLE_RESULT_PATH = (
+    ROOT / "benchmarks/results/native-vision-block-oracle-v0.1.0.json"
+)
 
 
 class NativeVisualLayoutTest(unittest.TestCase):
@@ -309,6 +312,51 @@ class NativeVisualLayoutTest(unittest.TestCase):
             "9d316fd6904764f88cd5f25726ecaed33d95bb6cfb4bbe21454c909d66c5d9f6",
             capture,
         )
+        result = json.loads(
+            VISION_BLOCK_ORACLE_RESULT_PATH.read_text(encoding="utf-8")
+        )
+        self.assertTrue(result["complete"])
+        self.assertTrue(result["source"]["clean"])
+        self.assertEqual(
+            result["source"]["commit"],
+            "23ddda59502b6ba807ee374fb2b730d2c835cce3",
+        )
+        self.assertEqual(
+            result["source"]["capture_script_sha256"],
+            hashlib.sha256(
+                (ROOT / result["source"]["capture_script"]).read_bytes()
+            ).hexdigest(),
+        )
+        self.assertEqual(result["oracle"]["case_count"], 2)
+        self.assertEqual(result["oracle"]["component_count_per_case"], 16)
+        expected_components = {
+            "block_input",
+            "norm1",
+            "qkv_linear",
+            "rotary_cos",
+            "rotary_sin",
+            "query_rotated",
+            "key_rotated",
+            "value",
+            "attention",
+            "attention_projection",
+            "attention_residual",
+            "norm2",
+            "mlp_fc1",
+            "mlp_activation",
+            "mlp_fc2",
+            "block_output",
+        }
+        self.assertTrue(result["decision"]["overall_pass"])
+        for case in result["cases"]:
+            self.assertEqual(set(case["components"]), expected_components)
+            self.assertTrue(case["independent_full_model_output_exact"])
+            self.assertTrue(
+                all(
+                    len(component["sha256"]) == 64
+                    for component in case["components"].values()
+                )
+            )
 
 
 if __name__ == "__main__":

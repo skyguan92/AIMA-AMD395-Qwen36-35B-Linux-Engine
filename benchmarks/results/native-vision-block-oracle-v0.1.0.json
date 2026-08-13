@@ -1,0 +1,94 @@
+{
+  "schema": "aima-amd395-qwen36/native-vision-block-oracle-qualification/v1",
+  "complete": true,
+  "recorded_at": "2026-08-13T21:54:56+08:00",
+  "host": {
+    "label": "amd395",
+    "hostname": "quings",
+    "gpu_arch": "gfx1151",
+    "device_name": "Radeon 8060S Graphics"
+  },
+  "source": {
+    "commit": "23ddda59502b6ba807ee374fb2b730d2c835cce3",
+    "clean": true,
+    "capture_script": "scripts/capture-vllm-vision-block-oracles.py",
+    "capture_script_sha256": "9c850f7ac3a25270d89c87f822c4fb4193371abda1f4f5fd593db53b3c73dd5f"
+  },
+  "reference": {
+    "model_revision": "995ad96eacd98c81ed38be0c5b274b04031597b0",
+    "attention_backend": "TRITON_ATTN",
+    "enforce_eager": true,
+    "gelu": "GELU(approximate='none')",
+    "vl_reference_manifest_sha256": "8f03e939a9b15f58c2e623541d48be88c328ff19adac9eb52210e171766e9a00",
+    "vl_oracle_manifest_sha256": "87dcdf76b7251f78da01a2a5f4312a9fb5c7d07a1ca2b2420566e77930f23d44",
+    "position_oracle_manifest_sha256": "9d316fd6904764f88cd5f25726ecaed33d95bb6cfb4bbe21454c909d66c5d9f6"
+  },
+  "oracle": {
+    "path": "${AIMA_ORACLE_DIR}/vision-block-v0.1.0/manifest.json",
+    "schema": "aima-amd395-qwen36/vision-block-oracle/v1",
+    "manifest_sha256": "443cae9b5dc0b426ec04725a7dede893c3c433d6cb910b81cbd48ecd9bfd782a",
+    "canonical_payload_sha256": "5aa66cd7163a8653f40f4ad6cbcfd2bd13afa77897e1c183fb28dfa962c0521e",
+    "binary_file_count": 38,
+    "binary_bytes": 19937308,
+    "component_count_per_case": 16,
+    "case_count": 2,
+    "qualified_for_native_boundary_comparison": true
+  },
+  "cases": [
+    {
+      "case_id": "image_local_png",
+      "grid_thw": [1, 16, 16],
+      "cu_seqlens": [0, 256],
+      "max_seqlen": 256,
+      "components": {
+        "block_input": {"shape": [256, 1, 1152], "sha256": "7e820a695d68117384bab1e4e17424a669ec48ddf5b2f7fc2e391e723946740a"},
+        "norm1": {"shape": [256, 1, 1152], "sha256": "afbd74178ed9107cd35b2b50cf5e9abe67a9074391e369a4d98974fe87820f86"},
+        "qkv_linear": {"shape": [256, 1, 3456], "sha256": "4b4603370c6df0574fbb97a5156b57b99340a516d8d877f696e64e3962f6907a"},
+        "rotary_cos": {"shape": [256, 36], "sha256": "f22f04daec88e3d2f7c38fa18e60f60ff44e494c42b2ee99fc7bb72f9f151a44"},
+        "rotary_sin": {"shape": [256, 36], "sha256": "2bff934386f67ad20f22116a83091153220d1a569344cef692f0f5ce91d50c5c"},
+        "query_rotated": {"shape": [1, 256, 16, 72], "sha256": "8fc797a5c8599063a3c167357cc835d1aeaea4976374d2f761e75dca0921b4ba"},
+        "key_rotated": {"shape": [1, 256, 16, 72], "sha256": "a8240cb6545772d17c6bf919a05628b3d1ccf5db95b2ac596adb8334074c47f4"},
+        "value": {"shape": [1, 256, 16, 72], "sha256": "b970dea7ca410cc8195ee959fd270296bca76498a5f3ea56383f9f5f38218226"},
+        "attention": {"shape": [1, 256, 16, 72], "sha256": "c0a89bb9a6cb9d02285ef9928278baa5c4f302f7768ca561cc5ed94f78037bf4"},
+        "attention_projection": {"shape": [256, 1, 1152], "sha256": "744bb0634448105537bf68134bcf06363c783fbad9667485605b8b4da73717aa"},
+        "attention_residual": {"shape": [256, 1, 1152], "sha256": "ad9d1ed765d3f6f61e889518da440e24fa47304deeec529a3c75a48425c40f3f"},
+        "norm2": {"shape": [256, 1, 1152], "sha256": "f9c62b19b0041124adffa30b861b87bcc7ac7212e20dff20c40e71e28c80e594"},
+        "mlp_fc1": {"shape": [256, 1, 4304], "sha256": "53006291aa1b1e877fd3bae612ad7f1bb1423411c30292d814ec4edf1f3b7e1e"},
+        "mlp_activation": {"shape": [256, 1, 4304], "sha256": "b1c5b3f8d5a47caee1c68855170ec1dda0c14f1a43834d77ff3d7dd10050ea61"},
+        "mlp_fc2": {"shape": [256, 1, 1152], "sha256": "489f01daff12906a7778689cc3c517e679dca122c19d5324872f68ed67450757"},
+        "block_output": {"shape": [256, 1, 1152], "sha256": "dbeff2fe17c9dfaf8f5022d6f73a33c55ac9e6a05c52c0bb51ef595a08063561"}
+      },
+      "independent_full_model_output_exact": true
+    },
+    {
+      "case_id": "video_local_mp4",
+      "grid_thw": [2, 8, 8],
+      "cu_seqlens": [0, 64, 128],
+      "max_seqlen": 64,
+      "components": {
+        "block_input": {"shape": [128, 1, 1152], "sha256": "82e89773adcc9bdf342afb7949dfa8578144a6d5a6d05863017c1dc7984ca30b"},
+        "norm1": {"shape": [128, 1, 1152], "sha256": "645a5f8de98d173d2f22e7e0f299ef49813b77313b5e3a46e3d0b6e41feb4e15"},
+        "qkv_linear": {"shape": [128, 1, 3456], "sha256": "33cebf0fed8d5aebfacd3e55dab1f8af1544e3c5ad4a6ffdef9c6f450d8e6c32"},
+        "rotary_cos": {"shape": [128, 36], "sha256": "3969d66676f0da607df61b5e221e49715ea9372a63ee4bce2b325388a7c5f82a"},
+        "rotary_sin": {"shape": [128, 36], "sha256": "9002eb29ee5e78cd78b35a685609cbc9f93b113ae2f259e2e45fd1946e7817be"},
+        "query_rotated": {"shape": [1, 128, 16, 72], "sha256": "ef91b7bea696443f9324b686c640a3f8ae27499be86850e18d69ff27f240860e"},
+        "key_rotated": {"shape": [1, 128, 16, 72], "sha256": "ba986f614c95a2d559f11890f4dafbcf8397d0a7455e1c0d8bfc14ae01eb6284"},
+        "value": {"shape": [1, 128, 16, 72], "sha256": "97be8b23597f93ddb32f55da94a9ff8a87254cf93cd89f64357d6b3302d60acd"},
+        "attention": {"shape": [1, 128, 16, 72], "sha256": "39436288deb01068fef0d0e2fe32b5e8e5a84d27c725c4e70f2b8f5c847db452"},
+        "attention_projection": {"shape": [128, 1, 1152], "sha256": "a6a9a211f6e3406222c7b965de3b13a8988d1e58796092eecec76151a0b73452"},
+        "attention_residual": {"shape": [128, 1, 1152], "sha256": "8acf64a0b39add02a862a3b08477454c40d04292732df6f2dbbbca20d0921977"},
+        "norm2": {"shape": [128, 1, 1152], "sha256": "e6431bba734931a1c00d6995b265b567f8be3e0485105370dcd37352174f4d59"},
+        "mlp_fc1": {"shape": [128, 1, 4304], "sha256": "4a7eb7bc82981c537fb4f878b3c713521e8b7038eb8c2d13136a394799a159c3"},
+        "mlp_activation": {"shape": [128, 1, 4304], "sha256": "a766765600d548176bbed0fd19d34f8a1e2222a78aefb157a166c67e2b0efd52"},
+        "mlp_fc2": {"shape": [128, 1, 1152], "sha256": "e772f2fcdf0996edbc389956171a84d9b776a831a6f8147b65ee0a98c3545f34"},
+        "block_output": {"shape": [128, 1, 1152], "sha256": "98199a56bd10c6c94aafb43beb5ed0f9a9ac1ea09fe432923cd631202b305246"}
+      },
+      "independent_full_model_output_exact": true
+    }
+  ],
+  "decision": {
+    "all_required_components_captured": true,
+    "all_outputs_independently_exact": true,
+    "overall_pass": true
+  }
+}

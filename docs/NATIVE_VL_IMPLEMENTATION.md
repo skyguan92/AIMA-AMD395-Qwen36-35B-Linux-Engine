@@ -266,6 +266,20 @@ The corrected result is
 `benchmarks/results/native-vision-position-v0.2.0.json`. The 27 vision blocks,
 merger and serving integration remain incomplete, so neither G1 nor G2 passes.
 
+Vision block development now has a serving-path internal oracle rather than a
+standalone mathematical replay. A clean `23ddda5` full-model run hooked block 0
+at 16 boundaries: input, both LayerNorms, QKV, BF16 rotary inputs and rotated
+Q/K/V, segmented Triton attention, projection/residual, both MLP projections,
+GELU and output. It captured one 256-patch image and one 128-patch/two-frame
+video, including `[0,256]` and `[0,64,128]` sequence boundaries. Both newly
+captured block outputs were byte-identical to the earlier independent full-model
+oracle. The sealed raw manifest SHA-256 is
+`443cae9b5dc0b426ec04725a7dede893c3c433d6cb910b81cbd48ecd9bfd782a`;
+the public compact record is
+`benchmarks/results/native-vision-block-oracle-v0.1.0.json`. This freezes the
+next implementation boundaries but does not claim that a native vision block
+exists yet.
+
 `native_media_test` and `native_chat_protocol_test` both compile with strict
 warnings and pass on `amd395`. This is implementation progress, not G1 or G2
 acceptance evidence.
