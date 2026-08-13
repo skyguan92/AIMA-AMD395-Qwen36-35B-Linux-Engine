@@ -229,6 +229,9 @@ class InstallLanguagePrefixDiagnosticHooks:
 
         def input_norm_hook(layer_index: int):
             def hook(_module: Any, _args: Any, output: Any) -> None:
+                if isinstance(output, torch.Tensor) and layer_index == 0:
+                    capture(_component_name(0, "attention_input"), output)
+                    return
                 if not isinstance(output, (tuple, list)) or len(output) != 2:
                     raise RuntimeError(
                         f"language layer {layer_index} input norm differs"
