@@ -559,9 +559,13 @@ NativeMoePrefillOracleResult probe_native_q8192_moe_prefill_layer0_oracle(
     throw std::invalid_argument(
         "native MoE prefill execution cannot run oracle diagnostics");
   }
-  const std::size_t tokens = workspace.context_tokens();
-  if (tokens == 0 || tokens > 262144 ||
-      (tokens != 8192 && options.collect_oracle_comparisons)) {
+  const std::size_t bucket_tokens = workspace.context_tokens();
+  const std::size_t tokens =
+      options.active_tokens == 0 ? bucket_tokens : options.active_tokens;
+  if (bucket_tokens == 0 || bucket_tokens > 262144 || tokens == 0 ||
+      tokens > bucket_tokens ||
+      (tokens != bucket_tokens && options.collect_oracle_comparisons) ||
+      (bucket_tokens != 8192 && options.collect_oracle_comparisons)) {
     throw std::invalid_argument(
         "native MoE prefill context or oracle mode is unsupported");
   }
@@ -615,7 +619,7 @@ NativeMoePrefillOracleResult probe_native_q8192_moe_prefill_layer0_oracle(
 
   void* after_attention =
       invocations.tensor_pointer(fused_add_sequence, "residual_out");
-  const bool q8192 = tokens == 8192;
+  const bool q8192 = bucket_tokens == 8192;
   void* shared_gate = nullptr;
   void* shared_projected_gate = nullptr;
   void* shared_projected_up = nullptr;
@@ -852,6 +856,14 @@ NativeMoePrefillOracleResult probe_native_q8192_moe_prefill_layer0_oracle(
               "hipDeviceSynchronize native MoE dispatch");
   }
   diagnostic_stage("after_dispatch");
+  // The embedded fused kernels retain the bucket's maximum launch grid and
+  // storage geometry.  Their num_valid_tokens scalar is the semantic guard
+  // that excludes dispatch sentinels beyond the causal active prefix.
+  invocations.set_int32_argument(
+      moe_first, "num_valid_tokens", static_cast<std::int32_t>(routed_rows));
+  invocations.set_int32_argument(
+      moe_first + 1, "num_valid_tokens",
+      static_cast<std::int32_t>(routed_rows));
   if (options.collect_oracle_comparisons) {
     check_hip(hipMemcpy(&result.layer.padded_routed_rows,
                         num_tokens_post_padded, sizeof(std::int32_t),

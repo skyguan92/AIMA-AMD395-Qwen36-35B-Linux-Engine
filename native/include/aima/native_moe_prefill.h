@@ -36,6 +36,10 @@ struct NativeMoePrefillMetrics {
 
 struct NativeMoePrefillOracleOptions {
   std::size_t layer_index = 0;
+  // A padded fixed-shape schedule may execute only its causal active prefix.
+  // Zero preserves the full workspace context.  The caller supplies GEMM
+  // plans for this active shape; AOT storage/grid capacity remains unchanged.
+  std::size_t active_tokens = 0;
   // Standalone MoE qualification seeds the two post-attention inputs.  A
   // complete-layer qualification disables this and consumes the tensors
   // produced by the native attention half in the same resident workspace.
