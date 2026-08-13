@@ -520,6 +520,9 @@ class NativeRuntimeContractTest(unittest.TestCase):
         self.assertIn("portable_launcher.c", script)
         self.assertIn("-static", script)
         self.assertIn("-lhipblaslt", script)
+        self.assertIn("FFMPEG_ROOT", script)
+        self.assertIn("CURL_ROOT", script)
+        self.assertIn("-l:libcurl.so.4", script)
         self.assertIn("objcopy", script.lower())
         self.assertNotIn("-Wl,-rpath,/opt/rocm", script)
         self.assertNotIn("patchelf", script)
@@ -558,8 +561,19 @@ class NativeRuntimeContractTest(unittest.TestCase):
             "libz.so.1",
             "libzstd.so.1",
             "liblzma.so.5",
+            "libavformat.so.60",
+            "libavcodec.so.60",
+            "libavutil.so.58",
+            "libswscale.so.7",
+            "libcurl.so.4",
+            "libcares.so.2",
+            "libssl.so.3",
+            "libcrypto.so.3",
         ):
             self.assertIn(soname, package)
+        self.assertIn("ca-certificates.crt", package)
+        self.assertIn("FFMPEG-BUILD-CONTRACT.txt", package)
+        self.assertIn("CURL-BUILD-CONTRACT.txt", package)
         for product_payload in (
             "libaima-fmha-aotriton.so",
             "libaima-fmha-ck.so",

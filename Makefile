@@ -28,9 +28,9 @@ check-python-package:
 check-native-syntax:
 	mkdir -p build && g++ -std=c++17 -Wall -Wextra -Wpedantic -Werror -O2 -I native/include tests/native_chat_protocol_test.cpp native/src/native_chat_protocol.cpp -o build/native_chat_protocol_test
 	./build/native_chat_protocol_test
-	g++ -std=c++17 -Wall -Wextra -Wpedantic -Werror -O2 -I native/include tests/native_media_test.cpp native/src/native_media.cpp native/src/sha256.cpp -o build/native_media_test
+	g++ -std=c++17 -Wall -Wextra -Wpedantic -Werror -O2 -I native/include tests/native_media_test.cpp native/src/native_media.cpp native/src/native_remote_media.cpp native/src/sha256.cpp $$(pkg-config --cflags --libs libcurl openssl) -o build/native_media_test
 	./build/native_media_test
-	g++ -std=c++17 -Wall -Wextra -Wpedantic -Werror -O2 -I native/include tests/native_multimodal_cache_test.cpp native/src/native_multimodal_cache.cpp native/src/native_media.cpp native/src/sha256.cpp -o build/native_multimodal_cache_test
+	g++ -std=c++17 -Wall -Wextra -Wpedantic -Werror -O2 -I native/include tests/native_multimodal_cache_test.cpp native/src/native_multimodal_cache.cpp native/src/native_media.cpp native/src/native_remote_media.cpp native/src/sha256.cpp $$(pkg-config --cflags --libs libcurl) -o build/native_multimodal_cache_test
 	./build/native_multimodal_cache_test
 	g++ -std=c++17 -Wall -Wextra -Wpedantic -Werror -O2 -I native/include tests/native_vl_processor_test.cpp native/src/native_vl_processor.cpp native/src/sha256.cpp -o build/native_vl_processor_test
 	./build/native_vl_processor_test
@@ -40,7 +40,7 @@ check-native-syntax:
 	./build/native_video_decoder_test benchmarks/fixtures/vl-capability-v0.1.0
 	g++ -std=c++17 -O2 -I native/include tests/native_prompt_plan_test.cpp -o build/native_prompt_plan_test
 	./build/native_prompt_plan_test
-	g++ -std=c++17 -D__HIP_PLATFORM_AMD__ -DU_STATIC_IMPLEMENTATION -I /opt/rocm/include -I native/include -I native/generated -fsyntax-only native/src/main.cpp native/src/decode_schedule_probe.cpp native/src/sha256.cpp native/src/native_tokenizer.cpp native/src/native_chat_protocol.cpp native/src/native_media.cpp native/src/native_multimodal_cache.cpp native/src/native_vl_processor.cpp native/src/native_image_decoder.cpp native/src/native_video_decoder.cpp native/src/native_doctor.cpp native/src/native_http_server.cpp
+	g++ -std=c++17 -D__HIP_PLATFORM_AMD__ -DU_STATIC_IMPLEMENTATION -I /opt/rocm/include -I native/include -I native/generated $$(pkg-config --cflags libcurl) -fsyntax-only native/src/main.cpp native/src/decode_schedule_probe.cpp native/src/sha256.cpp native/src/native_tokenizer.cpp native/src/native_chat_protocol.cpp native/src/native_media.cpp native/src/native_remote_media.cpp native/src/native_multimodal_cache.cpp native/src/native_vl_processor.cpp native/src/native_image_decoder.cpp native/src/native_video_decoder.cpp native/src/native_doctor.cpp native/src/native_http_server.cpp
 
 test:
 	python3 -m unittest discover -s tests -p 'test_*.py'

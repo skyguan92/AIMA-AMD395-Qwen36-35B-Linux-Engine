@@ -3,6 +3,7 @@
 
 #include "aima/native_media.h"
 
+#include "aima/native_remote_media.h"
 #include "aima/sha256.h"
 
 #include <algorithm>
@@ -388,102 +389,6 @@ std::pair<std::string, std::vector<unsigned char>> parse_data_uri(
   return {actual_mime, std::move(bytes)};
 }
 
-std::string remote_host(std::string_view source, std::string_view scheme) {
-  if (source.find_first_of("\\\r\n\t ") != std::string_view::npos) {
-    throw std::invalid_argument("remote media URL contains an unsafe character");
-  }
-  std::string_view remainder = source.substr(scheme.size());
-  const std::size_t authority_end = remainder.find_first_of("/?#");
-  std::string authority(remainder.substr(0, authority_end));
-  if (authority.empty() || authority.find('@') != std::string::npos) {
-    throw std::invalid_argument("remote media URL has an invalid authority");
-  }
-  std::string host;
-  std::string_view port;
-  bool bracketed_ipv6 = false;
-  if (authority.front() == '[') {
-    bracketed_ipv6 = true;
-    const std::size_t closing = authority.find(']');
-    if (closing == std::string::npos) {
-      throw std::invalid_argument("remote media URL has malformed IPv6");
-    }
-    host = authority.substr(1, closing - 1);
-    if (closing + 1 < authority.size()) {
-      if (authority[closing + 1] != ':') {
-        throw std::invalid_argument("remote media URL has malformed authority");
-      }
-      port = std::string_view(authority).substr(closing + 2);
-    }
-  } else {
-    const std::size_t colon = authority.rfind(':');
-    if (colon != std::string::npos && authority.find(':') != colon) {
-      throw std::invalid_argument(
-          "remote media IPv6 addresses must use brackets");
-    }
-    host = colon == std::string::npos ? authority : authority.substr(0, colon);
-    if (colon != std::string::npos) {
-      port = std::string_view(authority).substr(colon + 1);
-    }
-  }
-  host = lower_ascii(std::move(host));
-  if (host.empty()) throw std::invalid_argument("remote media URL has no host");
-  if (host.find('%') != std::string::npos) {
-    throw std::invalid_argument(
-        "remote media URL cannot percent-encode its authority");
-  }
-  if (bracketed_ipv6) {
-    const bool valid = std::all_of(
-        host.begin(), host.end(), [](unsigned char byte) {
-          return std::isxdigit(byte) != 0 || byte == ':' || byte == '.';
-        });
-    if (!valid || host.find(':') == std::string::npos) {
-      throw std::invalid_argument("remote media URL has malformed IPv6");
-    }
-  } else {
-    const bool valid = std::all_of(
-        host.begin(), host.end(), [](unsigned char byte) {
-          return std::isalnum(byte) != 0 || byte == '.' || byte == '-';
-        });
-    if (!valid || host.front() == '.' || host.back() == '.' ||
-        host.find("..") != std::string::npos) {
-      throw std::invalid_argument("remote media URL has malformed host");
-    }
-  }
-  if (!port.empty()) {
-    if (!std::all_of(port.begin(), port.end(), [](unsigned char byte) {
-          return std::isdigit(byte) != 0;
-        })) {
-      throw std::invalid_argument("remote media URL has malformed port");
-    }
-    std::uint32_t parsed_port = 0;
-    for (unsigned char byte : port) {
-      const std::uint32_t digit = static_cast<std::uint32_t>(byte - '0');
-      if (parsed_port > 6553 || (parsed_port == 6553 && digit > 5)) {
-        throw std::invalid_argument("remote media URL has invalid port");
-      }
-      parsed_port = parsed_port * 10 + digit;
-    }
-    if (parsed_port == 0) {
-      throw std::invalid_argument("remote media URL has invalid port");
-    }
-  } else if (authority.back() == ':') {
-    throw std::invalid_argument("remote media URL has an empty port");
-  }
-  return host;
-}
-
-void require_allowed_domain(std::string host,
-                            const NativeMediaPolicy& policy) {
-  const bool allowed = std::any_of(
-      policy.allowed_media_domains.begin(), policy.allowed_media_domains.end(),
-      [&](std::string candidate) {
-        return lower_ascii(std::move(candidate)) == host;
-      });
-  if (!allowed) {
-    throw std::invalid_argument("remote media domain is not allowlisted");
-  }
-}
-
 NativeMediaPayload finalize_payload(
     const NativeMediaPart& media, NativeMediaTransport transport,
     std::string mime, std::vector<unsigned char> bytes) {
@@ -510,13 +415,9 @@ NativeMediaTransport validate_native_media_source(
     (void)open_admitted_local_file(media, policy);
     return NativeMediaTransport::kLocalFile;
   }
-  if (media.source.rfind("http://", 0) == 0) {
-    require_allowed_domain(remote_host(media.source, "http://"), policy);
-    return NativeMediaTransport::kHttpUrl;
-  }
-  if (media.source.rfind("https://", 0) == 0) {
-    require_allowed_domain(remote_host(media.source, "https://"), policy);
-    return NativeMediaTransport::kHttpsUrl;
+  if (media.source.rfind("http://", 0) == 0 ||
+      media.source.rfind("https://", 0) == 0) {
+    return validate_native_remote_media_source(media, policy);
   }
   throw std::invalid_argument("unsupported media source scheme");
 }
@@ -537,8 +438,10 @@ NativeMediaPayload load_native_media_payload(
     require_kind_matches(media.kind, mime);
     return finalize_payload(media, transport, std::move(mime), std::move(bytes));
   }
-  throw std::invalid_argument(
-      "remote media transport is validated but not linked in this build");
+  std::vector<unsigned char> bytes = fetch_native_remote_media(media, policy);
+  std::string mime = sniff_mime(bytes);
+  require_kind_matches(media.kind, mime);
+  return finalize_payload(media, transport, std::move(mime), std::move(bytes));
 }
 
 std::string_view native_media_kind_name(NativeMediaKind kind) {

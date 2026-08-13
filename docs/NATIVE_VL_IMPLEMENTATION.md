@@ -14,7 +14,7 @@ blocking condition in the governing goal can move a gate to `passed`.
 
 | Gate | Current state | Evidence required to pass | Next blocking action |
 |---|---|---|---|
-| G1 full VL functional parity | ordered chat media parts plus bounded local/data admission and image/video processors are implemented; remote transport, vision and serving remain incomplete | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | attach ordered processor outputs to the vision/model path |
+| G1 full VL functional parity | ordered chat media parts, bounded local/data/HTTP/HTTPS admission and image/video processors are implemented; vision and serving remain incomplete | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | attach ordered processor outputs to the vision/model path |
 | G2 VL correctness parity | reference processor/boundary/logits/generation oracles frozen; native comparison and task suites pending | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | implement native boundaries, then compare against the frozen raw tensors before running task quality |
 | G3 text product no regression | frozen baseline identified | paired 19-cell, maximum-window, correctness, MMLU, API, cache, startup and memory requalification | retain `v1.5.1` as an immutable paired binary |
 | G4 native VL performance | not started | paired per-cell stage timings and memory records against the fixed VL-enabled vLLM | generate matrix cells from the capability manifest |
@@ -123,9 +123,8 @@ The first native media boundary is also present. It:
   a validated root through descriptor-relative, no-symlink traversal;
 - rejects malformed/non-canonical base64, MIME/kind mismatches, empty or
   over-limit payloads, local-root escapes and credential-bearing URLs;
-- validates HTTP/HTTPS authorities and exact domain allowlists while keeping
-  remote fetch fail-closed until redirect, timeout and SSRF controls are
-  implemented;
+- fetches HTTP/HTTPS through exact per-hop domain allowlists, manual bounded
+  redirects, aggregate byte/deadline limits and checked socket addresses;
 - identifies cacheable media by the SHA-256 of the decoded source bytes, so
   equivalent data/local transports have the same content identity.
 
@@ -135,6 +134,25 @@ with `openat`/`O_NOFOLLOW`, verifies the final regular-file descriptor and reads
 that descriptor under a stable metadata check. Parent traversal, intermediate
 or final symlinks, and a file swapped to a symlink after validation all fail
 closed.
+
+Remote fetch disables proxy inheritance, credentials, non-HTTP protocols and
+automatic redirects. Every hop is reparsed and allowlisted, an HTTPS hop cannot
+downgrade to HTTP, and the socket callback rejects DNS rebinding into loopback,
+private, link-local, carrier-grade, multicast or unspecified space unless the
+operator explicitly authorizes the private hostname; canonical literal
+loopback remains available for the frozen local transport fixture. Redirect
+bodies and the final payload share one byte budget, while DNS, connect,
+redirect and body transfer share one deadline. Tests cover relative and
+cross-host redirects, redirect loops, proxy environment poisoning, numeric-IP
+aliases, over-limit/slow bodies, untrusted TLS, a dedicated trusted test CA and
+TLS downgrade rejection.
+
+The portable dependency is a 1.4 MiB self-verifying distribution built from
+curl 8.21.0 and c-ares 1.34.8. It exposes only HTTP/HTTPS, uses asynchronous DNS
+and OpenSSL, disables proxy and ambient CA-store discovery, and carries the
+qualified CA bundle plus curl/c-ares/CA licenses. Its two libraries depend only
+on bundled c-ares/OpenSSL/glibc. This is transport implementation evidence; a
+final product archive and live native API conformance run remain pending.
 
 The resident prefix cache now uses a composite identity: exact/prefix text
 token comparison plus a versioned digest over the processor configuration and

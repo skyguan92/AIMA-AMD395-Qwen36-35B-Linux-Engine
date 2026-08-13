@@ -10,6 +10,7 @@ OUTPUT="${OUT_DIR}/aima-engine-native"
 LAUNCHER="${OUT_DIR}/aima-engine-launcher"
 ICU_STATIC_DIR="${ICU_STATIC_DIR:-/usr/lib/x86_64-linux-gnu}"
 FFMPEG_ROOT="${FFMPEG_ROOT:?set FFMPEG_ROOT to the pinned minimal FFmpeg distribution root}"
+CURL_ROOT="${CURL_ROOT:?set CURL_ROOT to the pinned minimal curl distribution root}"
 PREFILL_CONTEXTS="${PREFILL_CONTEXTS:-1024:2048:4096:7168:7680:8191:8192:16384:32768}"
 prefill_closure_dir() {
   local context="$1"
@@ -72,6 +73,21 @@ if ! grep -Fxq 'source_sha256=8684f4b00f94b85461884c3719382f1261f0d9eb3d59640a1f
   echo "minimal FFmpeg build contract does not match the pinned surface" >&2
   exit 1
 fi
+if [[ ! -f "${CURL_ROOT}/SHA256SUMS" ]] ||
+   ! (cd "${CURL_ROOT}" && sha256sum -c SHA256SUMS >/dev/null); then
+  echo "minimal curl distribution is missing or failed integrity verification" >&2
+  exit 1
+fi
+if ! grep -Fxq 'curl_source_sha256=aa1b66a70eace83dc624508745646c08ae561de512ab403adffb93ac87fc72e6' \
+    "${CURL_ROOT}/BUILD-CONTRACT.txt" ||
+   ! grep -Fxq 'cares_source_sha256=c222b6d681096f9444d2c4863d2c1174019e27cacca0a4a5c114d36dd7d7bf78' \
+    "${CURL_ROOT}/BUILD-CONTRACT.txt" ||
+   ! grep -Fxq 'protocols=HTTP,HTTPS' "${CURL_ROOT}/BUILD-CONTRACT.txt" ||
+   ! grep -Fxq 'dns=async-c-ares' "${CURL_ROOT}/BUILD-CONTRACT.txt" ||
+   ! grep -Fxq 'proxy=disabled' "${CURL_ROOT}/BUILD-CONTRACT.txt"; then
+  echo "minimal curl build contract does not match the pinned surface" >&2
+  exit 1
+fi
 
 python3 "${ROOT}/scripts/generate-native-layout.py" --check
 mkdir -p "${OUT_DIR}"
@@ -131,6 +147,7 @@ done < "${AOT_OBJECT_PLAN}"
   -I "${ROOT}/native/include" \
   -I "${ROOT}/native/generated" \
   -I "${FFMPEG_ROOT}/include" \
+  -I "${CURL_ROOT}/include" \
   "${ROOT}/native/src/main.cpp" \
   "${ROOT}/native/src/aot_kernel.hip.cpp" \
   "${ROOT}/native/src/aot_registry_probe.hip.cpp" \
@@ -149,6 +166,7 @@ done < "${AOT_OBJECT_PLAN}"
   "${ROOT}/native/src/native_resident_engine.hip.cpp" \
   "${ROOT}/native/src/native_chat_protocol.cpp" \
   "${ROOT}/native/src/native_media.cpp" \
+  "${ROOT}/native/src/native_remote_media.cpp" \
   "${ROOT}/native/src/native_multimodal_cache.cpp" \
   "${ROOT}/native/src/native_vl_processor.cpp" \
   "${ROOT}/native/src/native_image_decoder.cpp" \
@@ -178,7 +196,9 @@ done < "${AOT_OBJECT_PLAN}"
   "${ICU_STATIC_DIR}/libicuuc.a" \
   "${ICU_STATIC_DIR}/libicudata.a" \
   -L "${FFMPEG_ROOT}/lib" \
-  -lhipblaslt -lpng -ljpeg -lwebp -lavformat -lavcodec -lavutil -lswscale -ldl \
+  -L "${CURL_ROOT}/lib" \
+  -lhipblaslt -lpng -ljpeg -lwebp -lavformat -lavcodec -lavutil -lswscale \
+  -l:libcurl.so.4 -ldl \
   -Wl,--gc-sections -Wl,--exclude-libs,ALL -Wl,-z,noexecstack \
   -Wl,-z,origin -Wl,--enable-new-dtags -Wl,-rpath,'$ORIGIN/../lib' \
   -o "${OUTPUT}"

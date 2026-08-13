@@ -61,8 +61,16 @@ avformat, avcodec, avutil and swscale libraries needed by the frozen media
 surface. Its source URL, source SHA-256, build contract and LGPL text are
 preserved in the generated bundle. FFmpeg is not relicensed by this project.
 
+Native HTTP/HTTPS media fetch dynamically links a pinned curl 8.21.0 build
+with c-ares 1.34.8 and OpenSSL. The curl build enables only HTTP/HTTPS,
+disables proxy and ambient CA-store discovery, and uses c-ares so the request
+deadline also covers DNS resolution. The source URLs, source SHA-256 values,
+build contract, curl/c-ares licenses and a qualified CA certificate bundle are
+preserved in the generated bundle. These components are not relicensed by
+this project.
+
 The portable native bundle also contains the GNU C Library dynamic loader and
-runtime, libstdc++, libgcc, libelf, libdrm, libnuma, zlib, zstd, liblzma,
+runtime, libstdc++, libgcc, libelf, libdrm, libnuma, OpenSSL, zlib, zstd, liblzma,
 libpng, libjpeg-turbo, libwebp and libsharpyuv copied from
 the qualified builder. These libraries retain their respective upstream
 licenses; the generated bundle includes the corresponding distribution

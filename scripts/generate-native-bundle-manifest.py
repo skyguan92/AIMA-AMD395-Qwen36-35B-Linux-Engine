@@ -184,6 +184,10 @@ def main() -> int:
             "libnuma",
             "zlib and zstd",
             "liblzma",
+            "libpng, libjpeg-turbo, libwebp and libsharpyuv",
+            "minimal FFmpeg avformat/avcodec/avutil/swscale",
+            "minimal curl with c-ares",
+            "OpenSSL and the bundled CA certificate store",
         ],
         "host_contract": [
             "Linux x86_64 kernel",
