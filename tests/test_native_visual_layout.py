@@ -498,6 +498,31 @@ class NativeVisualLayoutTest(unittest.TestCase):
         self.assertFalse(decision["g1_passed"])
         self.assertFalse(decision["g2_passed"])
 
+    def test_segmented_attention_has_an_isolated_native_probe(self) -> None:
+        header = (
+            ROOT / "native/include/aima/native_vision_segmented_attention.h"
+        ).read_text(encoding="utf-8")
+        source = (
+            ROOT / "native/src/native_vision_segmented_attention.hip.cpp"
+        ).read_text(encoding="utf-8")
+        probe = (
+            ROOT
+            / "native/tools/vision_segmented_attention_oracle_probe.hip.cpp"
+        ).read_text(encoding="utf-8")
+        build = (
+            ROOT
+            / "scripts/build-native-vision-segmented-attention-probe.sh"
+        ).read_text(encoding="utf-8")
+        self.assertIn("class NativeVisionSegmentedAttentionPlan", header)
+        self.assertIn("vision_segmented_attention_kernel", source)
+        self.assertIn("kSoftmaxScaleLog2", source)
+        self.assertIn("probabilities[kAttentionKeyBlock]", source)
+        self.assertNotIn("patch_count * patch_count", source)
+        self.assertIn("segment_isolation_exact_elements", probe)
+        self.assertIn("native-vision-segmented-attention-oracle/v1", probe)
+        self.assertIn("vision_segmented_attention_oracle_probe.hip.cpp", build)
+        self.assertIn("native_vision_segmented_attention.hip.cpp", build)
+
 
 if __name__ == "__main__":
     unittest.main()
