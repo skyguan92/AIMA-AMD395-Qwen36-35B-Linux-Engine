@@ -295,49 +295,19 @@ std::vector<aima::NativeVlEmbeddingSpan> embedding_spans(
   return spans;
 }
 
-}  // namespace
-
-int main(int argc, char** argv) {
-  if (argc != 7) {
-    std::cerr <<
-        "usage: native-vl-embedding-probe MODEL_DIR ORACLE_MANIFEST "
-        "ORACLE_ROOT CASE_ID LOAD_REPORT ACTUAL_OUTPUT\n";
-    return 2;
-  }
-  try {
-    const std::filesystem::path manifest_path =
-        std::filesystem::absolute(argv[2]);
-    const std::filesystem::path oracle_root =
-        std::filesystem::absolute(argv[3]);
-    const std::string case_id = argv[4];
-    const json manifest = read_json(manifest_path);
-    if (manifest.value("schema", "") !=
-            "aima-amd395-qwen36/vl-oracle-manifest/v1" ||
-        !manifest.value("complete", false) ||
-        !manifest.contains("cases") || !manifest.at("cases").is_array()) {
-      throw std::runtime_error("VL oracle manifest is incomplete");
-    }
-    const json* case_record = nullptr;
-    for (const json& value : manifest.at("cases")) {
-      if (value.value("case_id", "") == case_id) {
-        if (case_record != nullptr) {
-          throw std::runtime_error("VL oracle case id is duplicated");
-        }
-        case_record = &value;
-      }
-    }
-    if (case_record == nullptr) {
-      throw std::runtime_error("VL oracle case id was not found");
-    }
-
-    const std::vector<std::uint32_t> tokens = prompt_token_ids(*case_record);
+json qualify_case(const json& case_record,
+                  const std::filesystem::path& oracle_root,
+                  const aima::NativeTensorView& embedding,
+                  const std::filesystem::path& actual_output) {
+    const std::string case_id = case_record.at("case_id").get<std::string>();
+    const std::vector<std::uint32_t> tokens = prompt_token_ids(case_record);
     std::size_t visual_embedding_count = 0;
     const std::vector<aima::NativeVlEmbeddingSpan> spans = embedding_spans(
-        *case_record, tokens, &visual_embedding_count);
+        case_record, tokens, &visual_embedding_count);
     const aima::NativeVlEmbeddingPlan plan =
         aima::build_native_vl_embedding_plan(tokens, spans,
                                              visual_embedding_count);
-    const json& boundaries = case_record->at("boundaries");
+    const json& boundaries = case_record.at("boundaries");
     const json& visual_record = boundaries.at("vision_merger");
     const json& expected_record = boundaries.at("injected_embeddings");
     if (visual_record.at("shape") !=
@@ -357,20 +327,6 @@ int main(int argc, char** argv) {
       throw std::runtime_error("VL embedding oracle byte count is invalid");
     }
 
-    aima::NativeWeightLoadOptions options;
-    options.model_dir = std::filesystem::absolute(argv[1]);
-    options.native_report = std::filesystem::absolute(argv[5]);
-    aima::NativeWeightStore weights;
-    const aima::NativeWeightLoadMetrics load = weights.load(options);
-    const aima::NativeTensorView* embedding =
-        weights.find("model.language_model.embed_tokens.weight");
-    if (embedding == nullptr || embedding->device_pointer == nullptr ||
-        embedding->rank != 2 || embedding->shape[0] != 248320 ||
-        embedding->shape[1] != kLanguageHidden ||
-        embedding->payload_bytes != 248320ULL * kLanguageHidden * 2) {
-      throw std::runtime_error("language token embedding weight is invalid");
-    }
-
     DeviceAllocation visual_device(visual.size());
     DeviceAllocation prompt_ids_device(tokens.size() * sizeof(std::uint32_t));
     DeviceAllocation scatter_indices(plan.device_index_bytes());
@@ -379,7 +335,7 @@ int main(int argc, char** argv) {
                         hipMemcpyHostToDevice),
               "hipMemcpy visual merger rows");
     aima::launch_native_vl_embeddings(
-        embedding->device_pointer, tokens.data(), plan, visual_device.get(),
+        embedding.device_pointer, tokens.data(), plan, visual_device.get(),
         prompt_ids_device.get(), scatter_indices.get(), output_device.get());
     check_hip(hipDeviceSynchronize(),
               "hipDeviceSynchronize VL embedding warmup");
@@ -395,7 +351,7 @@ int main(int argc, char** argv) {
     for (std::size_t repetition = 0; repetition < 5; ++repetition) {
       check_hip(hipEventRecord(start), "hipEventRecord VL embedding start");
       aima::launch_native_vl_embeddings(
-          embedding->device_pointer, tokens.data(), plan, visual_device.get(),
+          embedding.device_pointer, tokens.data(), plan, visual_device.get(),
           prompt_ids_device.get(), scatter_indices.get(), output_device.get());
       check_hip(hipEventRecord(stop), "hipEventRecord VL embedding stop");
       check_hip(hipEventSynchronize(stop),
@@ -409,7 +365,7 @@ int main(int argc, char** argv) {
     check_hip(hipMemcpy(actual.data(), output_device.get(), actual.size(),
                         hipMemcpyDeviceToHost),
               "hipMemcpy VL embeddings");
-    write_file(std::filesystem::absolute(argv[6]), actual);
+    write_file(actual_output, actual);
     const Comparison comparison = compare_bf16(actual, expected);
     std::vector<float> sorted_ms = measured_ms;
     std::sort(sorted_ms.begin(), sorted_ms.end());
@@ -426,7 +382,6 @@ int main(int argc, char** argv) {
         {"visual_embeddings", plan.visual_embedding_count()},
         {"span_count", spans.size()},
         {"device_index_bytes", plan.device_index_bytes()},
-        {"language_weight_payload_bytes", load.payload_bytes},
         {"measured_ms", measured_ms},
         {"median_ms", sorted_ms[sorted_ms.size() / 2]},
         {"elements", comparison.elements},
@@ -449,11 +404,110 @@ int main(int argc, char** argv) {
         {"repeat_deterministic", deterministic},
         {"bit_exact", exact},
         {"prompt_token_ids_sha256",
-         case_record->at("processor").at("prompt_token_ids_sha256")},
+         case_record.at("processor").at("prompt_token_ids_sha256")},
         {"vision_merger_sha256", visual_record.at("sha256")},
     };
+    return result;
+}
+
+}  // namespace
+
+int main(int argc, char** argv) {
+  if (argc != 7) {
+    std::cerr <<
+        "usage: native-vl-embedding-probe MODEL_DIR ORACLE_MANIFEST "
+        "ORACLE_ROOT CASE_ID_OR_ALL LOAD_REPORT ACTUAL_OUTPUT_OR_DIR\n";
+    return 2;
+  }
+  try {
+    const std::filesystem::path manifest_path =
+        std::filesystem::absolute(argv[2]);
+    const std::filesystem::path oracle_root =
+        std::filesystem::absolute(argv[3]);
+    const std::string selector = argv[4];
+    const bool all_cases = selector == "all";
+    const std::filesystem::path output = std::filesystem::absolute(argv[6]);
+    const json manifest = read_json(manifest_path);
+    if (manifest.value("schema", "") !=
+            "aima-amd395-qwen36/vl-oracle-manifest/v1" ||
+        !manifest.value("complete", false) ||
+        !manifest.contains("cases") || !manifest.at("cases").is_array()) {
+      throw std::runtime_error("VL oracle manifest is incomplete");
+    }
+    std::vector<const json*> selected;
+    std::vector<std::string> case_ids;
+    for (const json& value : manifest.at("cases")) {
+      const std::string case_id = value.value("case_id", "");
+      if (case_id.empty() ||
+          std::find(case_ids.begin(), case_ids.end(), case_id) !=
+              case_ids.end()) {
+        throw std::runtime_error("VL oracle case id is empty or duplicated");
+      }
+      case_ids.push_back(case_id);
+      if (all_cases || case_id == selector) selected.push_back(&value);
+    }
+    if (selected.empty()) {
+      throw std::runtime_error("VL oracle case id was not found");
+    }
+    if (all_cases) {
+      if (std::filesystem::exists(output) &&
+          !std::filesystem::is_directory(output)) {
+        throw std::runtime_error("all-case output path is not a directory");
+      }
+      std::filesystem::create_directories(output);
+    }
+
+    aima::NativeWeightLoadOptions options;
+    options.model_dir = std::filesystem::absolute(argv[1]);
+    options.native_report = std::filesystem::absolute(argv[5]);
+    aima::NativeWeightStore weights;
+    const aima::NativeWeightLoadMetrics load = weights.load(options);
+    const aima::NativeTensorView* embedding =
+        weights.find("model.language_model.embed_tokens.weight");
+    if (embedding == nullptr || embedding->device_pointer == nullptr ||
+        embedding->rank != 2 || embedding->shape[0] != 248320 ||
+        embedding->shape[1] != kLanguageHidden ||
+        embedding->payload_bytes != 248320ULL * kLanguageHidden * 2) {
+      throw std::runtime_error("language token embedding weight is invalid");
+    }
+
+    json case_results = json::array();
+    bool complete = true;
+    std::size_t total_elements = 0;
+    std::size_t total_exact_elements = 0;
+    std::size_t total_visual_embeddings = 0;
+    for (const json* case_record : selected) {
+      const std::string case_id =
+          case_record->at("case_id").get<std::string>();
+      const std::filesystem::path actual_output =
+          all_cases ? output / (case_id + ".bin") : output;
+      json result =
+          qualify_case(*case_record, oracle_root, *embedding, actual_output);
+      complete = complete && result.at("complete").get<bool>();
+      total_elements += result.at("elements").get<std::size_t>();
+      total_exact_elements +=
+          result.at("exact_elements").get<std::size_t>();
+      total_visual_embeddings +=
+          result.at("visual_embeddings").get<std::size_t>();
+      case_results.push_back(std::move(result));
+    }
+    json result = {
+        {"schema",
+         "aima-amd395-qwen36/native-vl-embedding-qualification-run/v1"},
+        {"complete", complete},
+        {"case_selector", selector},
+        {"case_count", case_results.size()},
+        {"oracle_manifest_sha256", aima::sha256_file(manifest_path)},
+        {"language_weight_payload_bytes", load.payload_bytes},
+        {"language_weight_load_wall_ms", load.load_wall_ms},
+        {"total_visual_embeddings", total_visual_embeddings},
+        {"total_elements", total_elements},
+        {"total_exact_elements", total_exact_elements},
+        {"all_bit_exact", total_exact_elements == total_elements},
+        {"cases", std::move(case_results)},
+    };
     std::cout << result.dump() << '\n';
-    return exact && deterministic ? 0 : 3;
+    return complete ? 0 : 3;
   } catch (const std::exception& error) {
     std::cerr << "native VL embedding probe: " << error.what() << '\n';
     return 1;
