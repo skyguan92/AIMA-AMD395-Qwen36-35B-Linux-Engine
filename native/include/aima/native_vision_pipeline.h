@@ -63,6 +63,13 @@ class NativeVisionPipelinePlan {
               void* temporary_device, std::size_t temporary_bytes,
               void* stream = nullptr) const;
 
+  // Qualification boundary with the same patch/position/metadata path as
+  // launch(). output_device is BF16 [patch_count,1152].
+  void launch_encoder_through(
+      std::size_t last_block_index, const void* pixel_values_device,
+      void* output_device, void* temporary_device,
+      std::size_t temporary_bytes, void* stream = nullptr) const;
+
   std::size_t patch_count() const;
   std::size_t merged_token_count() const;
   std::size_t temporary_bytes() const;

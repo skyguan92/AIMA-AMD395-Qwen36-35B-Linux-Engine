@@ -349,6 +349,29 @@ void NativeVisionPipelinePlan::launch(
                        impl_->shared_temporary_bytes, stream);
 }
 
+void NativeVisionPipelinePlan::launch_encoder_through(
+    std::size_t last_block_index, const void* pixel_values_device,
+    void* output_device, void* temporary_device,
+    std::size_t supplied_temporary_bytes, void* stream) const {
+  if (!impl_ || pixel_values_device == nullptr || output_device == nullptr ||
+      temporary_device == nullptr || pixel_values_device == output_device ||
+      pixel_values_device == temporary_device ||
+      output_device == temporary_device ||
+      supplied_temporary_bytes < impl_->temporary_bytes_value) {
+    throw std::invalid_argument(
+        "native vision pipeline encoder launch is invalid");
+  }
+  auto* hidden_a = static_cast<unsigned char*>(temporary_device);
+  auto* hidden_b = hidden_a + impl_->hidden_bytes;
+  auto* shared_temporary = hidden_b + impl_->hidden_bytes;
+  impl_->patch.launch(pixel_values_device, hidden_a, stream);
+  impl_->position.launch_add(hidden_a, hidden_b, stream);
+  impl_->blocks.launch_through(
+      last_block_index, hidden_b, impl_->metadata.rotary_cos_device(),
+      impl_->metadata.rotary_sin_device(), output_device, shared_temporary,
+      impl_->shared_temporary_bytes, stream);
+}
+
 std::size_t NativeVisionPipelinePlan::patch_count() const {
   return impl_->metadata.patch_count();
 }

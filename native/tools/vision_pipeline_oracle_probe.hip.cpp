@@ -226,17 +226,46 @@ Comparison compare_bf16(const std::vector<unsigned char>& actual,
   return result;
 }
 
+void print_comparison(const Comparison& comparison) {
+  std::cout << "{\"passed\":"
+            << (comparison.passed() ? "true" : "false")
+            << ",\"elements\":" << comparison.elements
+            << ",\"exact_elements\":" << comparison.exact_elements
+            << ",\"finite_elements\":" << comparison.finite_elements
+            << ",\"first_mismatch_index\":"
+            << (comparison.first_mismatch_index ==
+                        std::numeric_limits<std::size_t>::max()
+                    ? -1LL
+                    : static_cast<long long>(comparison.first_mismatch_index))
+            << ",\"first_expected_bits\":"
+            << comparison.first_expected_bits
+            << ",\"first_actual_bits\":" << comparison.first_actual_bits
+            << ",\"maximum_absolute_error\":"
+            << comparison.maximum_absolute_error
+            << ",\"relative_l2_error\":" << comparison.relative_l2_error
+            << ",\"cosine_similarity\":" << comparison.cosine_similarity
+            << ",\"expected_sha256\":\"" << comparison.expected_sha256
+            << "\",\"actual_sha256\":\"" << comparison.actual_sha256
+            << "\",\"bit_exact\":"
+            << (comparison.exact_elements == comparison.elements ? "true"
+                                                                  : "false")
+            << '}';
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
-  if (argc != 8) {
+  if (argc != 12) {
     std::cerr
         << "usage: native-vision-pipeline-probe MODEL_DIR ATTENTION_IMAGE "
-           "GRID_SPEC PIXEL_INPUTS EXPECTED_OUTPUT LOAD_REPORT ACTUAL_OUTPUT\n";
+           "GRID_SPEC PIXEL_INPUTS EXPECTED_BLOCK0 EXPECTED_BLOCK26 "
+           "EXPECTED_MERGER LOAD_REPORT ACTUAL_BLOCK0 ACTUAL_BLOCK26 "
+           "ACTUAL_MERGER\n";
     return 2;
   }
   try {
     constexpr std::size_t kPatchFeatures = 1536;
+    constexpr std::size_t kVisionHidden = 1152;
     constexpr std::size_t kLanguageHidden = 2048;
     const std::vector<std::string> grid_groups = split(argv[3], '|');
     const std::vector<std::string> pixel_groups = split(argv[4], '|');
@@ -247,7 +276,7 @@ int main(int argc, char** argv) {
 
     aima::NativeWeightLoadOptions options;
     options.model_dir = std::filesystem::absolute(argv[1]);
-    options.native_report = std::filesystem::absolute(argv[6]);
+    options.native_report = std::filesystem::absolute(argv[8]);
     aima::NativeWeightStore weights;
     const aima::NativeWeightLoadMetrics load = weights.load_visual(options);
     std::vector<std::unique_ptr<aima::NativeVisionPipelinePlan>> plans;
@@ -279,6 +308,8 @@ int main(int argc, char** argv) {
 
     const std::size_t pixel_bytes =
         total_patches * kPatchFeatures * sizeof(std::uint16_t);
+    const std::size_t hidden_bytes =
+        total_patches * kVisionHidden * sizeof(std::uint16_t);
     const std::size_t output_bytes =
         total_merged_tokens * kLanguageHidden * sizeof(std::uint16_t);
     std::vector<unsigned char> pixels;
@@ -286,13 +317,21 @@ int main(int argc, char** argv) {
     for (const auto& group : grouped_pixels) {
       pixels.insert(pixels.end(), group.begin(), group.end());
     }
-    const std::vector<unsigned char> expected =
+    const std::vector<unsigned char> expected_block0 =
         read_file(std::filesystem::absolute(argv[5]));
-    if (pixels.size() != pixel_bytes || expected.size() != output_bytes) {
+    const std::vector<unsigned char> expected_block26 =
+        read_file(std::filesystem::absolute(argv[6]));
+    const std::vector<unsigned char> expected_merger =
+        read_file(std::filesystem::absolute(argv[7]));
+    if (pixels.size() != pixel_bytes ||
+        expected_block0.size() != hidden_bytes ||
+        expected_block26.size() != hidden_bytes ||
+        expected_merger.size() != output_bytes) {
       throw std::runtime_error("pipeline oracle byte size mismatch");
     }
 
     DeviceAllocation pixel_device(pixel_bytes);
+    DeviceAllocation hidden_device(hidden_bytes);
     DeviceAllocation output_device(output_bytes);
     DeviceAllocation temporary(temporary_bytes);
     check_hip(hipMemcpy(pixel_device.get(), pixels.data(), pixels.size(),
@@ -314,6 +353,44 @@ int main(int argc, char** argv) {
         token_offset += plan->merged_token_count();
       }
     };
+
+    const auto launch_encoder_all = [&](std::size_t last_block_index) {
+      std::size_t patch_offset = 0;
+      for (const auto& plan : plans) {
+        auto* pixel_input =
+            static_cast<unsigned char*>(pixel_device.get()) +
+            patch_offset * kPatchFeatures * sizeof(std::uint16_t);
+        auto* hidden_output =
+            static_cast<unsigned char*>(hidden_device.get()) +
+            patch_offset * kVisionHidden * sizeof(std::uint16_t);
+        plan->launch_encoder_through(
+            last_block_index, pixel_input, hidden_output, temporary.get(),
+            temporary_bytes);
+        patch_offset += plan->patch_count();
+      }
+    };
+
+    launch_encoder_all(0);
+    check_hip(hipDeviceSynchronize(),
+              "hipDeviceSynchronize pipeline block 0");
+    std::vector<unsigned char> actual_block0(hidden_bytes);
+    check_hip(hipMemcpy(actual_block0.data(), hidden_device.get(), hidden_bytes,
+                        hipMemcpyDeviceToHost),
+              "hipMemcpy pipeline block 0");
+    write_file(std::filesystem::absolute(argv[9]), actual_block0);
+    const Comparison block0_comparison =
+        compare_bf16(actual_block0, expected_block0);
+
+    launch_encoder_all(26);
+    check_hip(hipDeviceSynchronize(),
+              "hipDeviceSynchronize pipeline block 26");
+    std::vector<unsigned char> actual_block26(hidden_bytes);
+    check_hip(hipMemcpy(actual_block26.data(), hidden_device.get(), hidden_bytes,
+                        hipMemcpyDeviceToHost),
+              "hipMemcpy pipeline block 26");
+    write_file(std::filesystem::absolute(argv[10]), actual_block26);
+    const Comparison block26_comparison =
+        compare_bf16(actual_block26, expected_block26);
 
     launch_all();
     check_hip(hipDeviceSynchronize(), "hipDeviceSynchronize pipeline warmup");
@@ -343,13 +420,16 @@ int main(int argc, char** argv) {
     check_hip(hipMemcpy(actual.data(), output_device.get(), output_bytes,
                         hipMemcpyDeviceToHost),
               "hipMemcpy pipeline output");
-    write_file(std::filesystem::absolute(argv[7]), actual);
-    const Comparison comparison = compare_bf16(actual, expected);
+    write_file(std::filesystem::absolute(argv[11]), actual);
+    const Comparison merger_comparison = compare_bf16(actual, expected_merger);
     std::vector<double> sorted_ms = measured_ms;
     std::sort(sorted_ms.begin(), sorted_ms.end());
     const double median_ms = sorted_ms[sorted_ms.size() / 2];
-    const bool deterministic = first_sha256 == comparison.actual_sha256;
-    const bool passed = comparison.passed() && deterministic;
+    const bool deterministic =
+        first_sha256 == merger_comparison.actual_sha256;
+    const bool passed = block0_comparison.passed() &&
+                        block26_comparison.passed() &&
+                        merger_comparison.passed() && deterministic;
 
     std::cout << std::setprecision(17)
               << "{\"schema\":\"aima-amd395-qwen36/"
@@ -385,30 +465,15 @@ int main(int argc, char** argv) {
       std::cout << measured_ms[index];
     }
     std::cout << "],\"median_ms\":" << median_ms
-              << ",\"elements\":" << comparison.elements
-              << ",\"exact_elements\":" << comparison.exact_elements
-              << ",\"finite_elements\":" << comparison.finite_elements
-              << ",\"first_mismatch_index\":"
-              << (comparison.first_mismatch_index ==
-                          std::numeric_limits<std::size_t>::max()
-                      ? -1LL
-                      : static_cast<long long>(
-                            comparison.first_mismatch_index))
-              << ",\"first_expected_bits\":"
-              << comparison.first_expected_bits
-              << ",\"first_actual_bits\":" << comparison.first_actual_bits
-              << ",\"maximum_absolute_error\":"
-              << comparison.maximum_absolute_error
-              << ",\"relative_l2_error\":" << comparison.relative_l2_error
-              << ",\"cosine_similarity\":" << comparison.cosine_similarity
-              << ",\"expected_sha256\":\"" << comparison.expected_sha256
-              << "\",\"actual_sha256\":\"" << comparison.actual_sha256
-              << "\",\"repeat_actual_sha256\":\"" << first_sha256
+              << ",\"comparisons\":{\"vision_block_0\":";
+    print_comparison(block0_comparison);
+    std::cout << ",\"vision_block_26\":";
+    print_comparison(block26_comparison);
+    std::cout << ",\"vision_merger\":";
+    print_comparison(merger_comparison);
+    std::cout << "},\"repeat_actual_sha256\":\"" << first_sha256
               << "\",\"repeat_deterministic\":"
               << (deterministic ? "true" : "false")
-              << ",\"bit_exact\":"
-              << (comparison.exact_elements == comparison.elements ? "true"
-                                                                    : "false")
               << "}\n";
     return passed ? 0 : 3;
   } catch (const std::exception& error) {
