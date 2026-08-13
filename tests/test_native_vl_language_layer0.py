@@ -31,6 +31,9 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         linear_source = (
             ROOT / "native/src/native_linear_prefill.hip.cpp"
         ).read_text(encoding="utf-8")
+        pointwise_source = (
+            ROOT / "native/src/native_pointwise.hip.cpp"
+        ).read_text(encoding="utf-8")
         build = (
             ROOT / "scripts/build-native-vl-language-layer0-probe.sh"
         ).read_text(encoding="utf-8")
@@ -80,6 +83,13 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
             prefill_conv,
         )
         self.assertIn("each BF16", prefill_conv)
+
+        gated_norm = pointwise_source.split(
+            "__global__ void linear_gated_norm_fused_kernel(", 1
+        )[1].split("__global__ void bf16_rowwise_variance_128_pytorch_kernel", 1)[0]
+        self.assertIn("const float normalized", gated_norm)
+        self.assertNotIn("const __hip_bfloat16 normalized", gated_norm)
+        self.assertIn("__float2bfloat16(normalized * silu)", gated_norm)
 
         capture = (ROOT / "scripts/capture-vllm-vl-oracles.py").read_text(
             encoding="utf-8"

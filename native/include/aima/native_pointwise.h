@@ -109,8 +109,8 @@ void launch_extract_linear_ab_fused(const void* fused_input_bf16,
                                     std::size_t fused_row_stride = 12352,
                                     void* stream = nullptr);
 
-// Reproduces the frozen fallback's RMSNorm -> BF16 boundary -> SiLU gate for
-// q32768, where there is deliberately no Triton gated-norm AOT launch.
+// Reproduces the pinned vLLM RMSNormGated FP32 normalization and SiLU product,
+// with a single BF16 boundary at the final output store.
 void launch_linear_gated_norm_fused(
     const void* core_bf16, const void* fused_input_bf16,
     const void* norm_weight_bf16, void* output_bf16,

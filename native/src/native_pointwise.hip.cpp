@@ -418,14 +418,13 @@ __global__ void linear_gated_norm_fused_kernel(
   for (unsigned element = 0; element < 4; ++element) {
     const unsigned dimension = lane * 4 + element;
     const float value = __bfloat162float(core[index + element]);
-    const __hip_bfloat16 normalized = __float2bfloat16(
-        value * row_inverse_rms * __bfloat162float(weight[dimension]));
+    const float normalized =
+        value * row_inverse_rms * __bfloat162float(weight[dimension]);
     const float gate_value = __bfloat162float(
         gate_storage[token * gate_row_stride + gate_offset +
                      head * kInvstdWidth + dimension]);
     const float silu = gate_value / (1.0f + expf(-gate_value));
-    output[index + element] =
-        __float2bfloat16(__bfloat162float(normalized) * silu);
+    output[index + element] = __float2bfloat16(normalized * silu);
   }
 }
 
