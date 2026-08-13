@@ -1122,6 +1122,15 @@ class NativeVisualLayoutTest(unittest.TestCase):
         self.assertIn("read_concatenated_files", probe)
         self.assertIn("native_vision_pipeline.hip.cpp", build)
 
+    def test_multimedia_block_capture_reuses_frozen_hooks(self) -> None:
+        capture = (
+            ROOT
+            / "scripts/capture-vllm-vision-multimedia-block-oracles.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn("capture-vllm-vision-block-oracles.py", capture)
+        self.assertIn('(\"multi_image\", \"multi_video\")', capture)
+        self.assertIn("vision-multimedia-block-oracle/v1", capture)
+
 
 if __name__ == "__main__":
     unittest.main()
