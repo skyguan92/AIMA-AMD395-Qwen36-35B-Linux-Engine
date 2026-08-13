@@ -358,6 +358,31 @@ class NativeVisualLayoutTest(unittest.TestCase):
                 )
             )
 
+    def test_vision_block_prefix_has_an_isolated_native_probe(self) -> None:
+        header = (
+            ROOT / "native/include/aima/native_vision_encoder.h"
+        ).read_text(encoding="utf-8")
+        source = (
+            ROOT / "native/src/native_vision_block_prefix.hip.cpp"
+        ).read_text(encoding="utf-8")
+        probe = (
+            ROOT / "native/tools/vision_block_prefix_oracle_probe.hip.cpp"
+        ).read_text(encoding="utf-8")
+        build = (
+            ROOT / "scripts/build-native-vision-block-prefix-probe.sh"
+        ).read_text(encoding="utf-8")
+        self.assertIn("class NativeVisionBlockPrefixPlan", header)
+        self.assertIn("vision_layer_norm_kernel", source)
+        self.assertIn("WelfordState", source)
+        self.assertIn("kVisionLayerNormEpsilon = 1.0e-6f", source)
+        self.assertIn('"attn.qkv.weight"', source)
+        self.assertIn('"attn.qkv.bias"', source)
+        self.assertIn("qkv_gemm.launch_with_bias", source)
+        self.assertIn("native-vision-block-prefix-oracle/v1", probe)
+        self.assertIn("norm1.passed() && qkv.passed()", probe)
+        self.assertIn("vision_block_prefix_oracle_probe.hip.cpp", build)
+        self.assertIn("native_vision_block_prefix.hip.cpp", build)
+
 
 if __name__ == "__main__":
     unittest.main()
