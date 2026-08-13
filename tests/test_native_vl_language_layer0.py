@@ -34,6 +34,9 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         build = (
             ROOT / "scripts/build-native-vl-language-layer0-probe.sh"
         ).read_text(encoding="utf-8")
+        shape_lab = (
+            ROOT / "benchmarks/shape-lab/four_layer_mini_engine.py"
+        ).read_text(encoding="utf-8")
         makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
 
         self.assertIn("constexpr std::size_t kBucketTokens = 1024", probe)
@@ -67,6 +70,16 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         self.assertIn('Q8192_DIR="${ROOT}/native/aot/gfx1151/q8192-output2"', build)
         self.assertIn('--schedule "${Q8192_DIR}/decode-schedule.json"', build)
         self.assertIn("build-native-vl-language-layer0-probe", makefile)
+
+        prefill_conv = shape_lab.split(
+            "def triton_prefill_direct_conv_kernel(", 1
+        )[1].split("    @triton.jit", 1)[0]
+        self.assertNotIn(".to(tl.float32)", prefill_conv)
+        self.assertIn(
+            "acc += (state_values + raw_values) * weight_values[None, :]",
+            prefill_conv,
+        )
+        self.assertIn("each BF16", prefill_conv)
 
         capture = (ROOT / "scripts/capture-vllm-vl-oracles.py").read_text(
             encoding="utf-8"

@@ -535,13 +535,17 @@ if triton is not None and tl is not None:
                 state_in + offs_c[None, :] * state_len + conv_input_idx[:, None],
                 mask=mask_c[None, :] & use_state[:, None],
                 other=0.0,
-            ).to(tl.float32)
+            )
             raw_values = tl.load(
                 raw + raw_t[:, None] * raw_stride_t + offs_c[None, :] * raw_stride_c,
                 mask=mask_t[:, None] & mask_c[None, :] & ~use_state[:, None],
                 other=0.0,
-            ).to(tl.float32)
-            weight_values = tl.load(weight + offs_c * kernel_dim + idx, mask=mask_c, other=0.0).to(tl.float32)
+            )
+            weight_values = tl.load(weight + offs_c * kernel_dim + idx, mask=mask_c, other=0.0)
+            # Match vLLM's pinned _causal_conv1d_fwd_kernel: each BF16
+            # elementwise product is rounded before it is promoted into the
+            # FP32 accumulator.  Promoting the operands first changes the
+            # layer-0 boundary materially even though the formula is the same.
             acc += (state_values + raw_values) * weight_values[None, :]
         activated = acc / (1.0 + tl.exp(-acc))
         tl.store(out + offs_t[:, None] * channels + offs_c[None, :], activated, mask=mask_t[:, None] & mask_c[None, :])
