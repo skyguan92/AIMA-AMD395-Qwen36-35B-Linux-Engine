@@ -929,6 +929,28 @@ class NativeVisualLayoutTest(unittest.TestCase):
         self.assertIn("config.shared_memory_bytes = 32768", source)
         self.assertIn("native-vision-aot-attention-oracle/v1", probe)
 
+    def test_vision_aot_block_stack_shares_one_exact_attention_plan(self) -> None:
+        block = (
+            ROOT / "native/src/native_vision_aot_block.hip.cpp"
+        ).read_text(encoding="utf-8")
+        stack = (
+            ROOT / "native/src/native_vision_aot_block_stack.hip.cpp"
+        ).read_text(encoding="utf-8")
+        probe = (
+            ROOT / "native/tools/vision_aot_block_stack_oracle_probe.hip.cpp"
+        ).read_text(encoding="utf-8")
+        build = (
+            ROOT / "scripts/build-native-vision-aot-block-stack-probe.sh"
+        ).read_text(encoding="utf-8")
+        self.assertIn("impl_->attention->launch", block)
+        self.assertNotIn("NativeVisionSegmentedAttentionPlan", block)
+        self.assertIn("std::make_shared<NativeVisionAotAttentionPlan>", stack)
+        self.assertIn("constexpr std::size_t kVisionBlockCount = 27", stack)
+        self.assertIn("blocks.emplace_back(weights, block_index, patches, attention)", stack)
+        self.assertIn("plan.launch_through(last_block_index", probe)
+        self.assertIn("native-vision-aot-block-stack-oracle/v1", probe)
+        self.assertIn("native_vision_aot_attention.hip.cpp", build)
+
 
 if __name__ == "__main__":
     unittest.main()
