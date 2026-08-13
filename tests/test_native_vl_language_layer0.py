@@ -27,6 +27,8 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         self.assertIn("constexpr std::size_t kBucketTokens = 1024", probe)
         self.assertIn("native_prefill_layer_input_pointer", probe)
         self.assertIn("native_prefill_layer_output_pointer", probe)
+        self.assertIn("reference_layer0_first_tensor_pointer", probe)
+        self.assertIn('tensor_pointer(sequence, "v_new")', probe)
         self.assertIn("linear_options.seed_layer_input = false", probe)
         self.assertIn("linear_options.collect_oracle_comparisons = false", probe)
         self.assertIn("moe_options.seed_post_attention = false", probe)
@@ -36,6 +38,12 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         self.assertIn('Q8192_DIR="${ROOT}/native/aot/gfx1151/q8192-output2"', build)
         self.assertIn('--schedule "${Q8192_DIR}/decode-schedule.json"', build)
         self.assertIn("build-native-vl-language-layer0-probe", makefile)
+
+        capture = (ROOT / "scripts/capture-vllm-vl-oracles.py").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("def _first_tensor", capture)
+        self.assertIn('"language_layer_0": language.model.layers[0]', capture)
 
     def test_frozen_layer0_boundaries_cover_all_blocking_cases(self) -> None:
         manifest = json.loads(ORACLE_MANIFEST.read_text(encoding="utf-8"))

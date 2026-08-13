@@ -210,12 +210,33 @@ Comparison compare_bf16(const std::vector<unsigned char>& actual,
 
 struct Execution {
   std::vector<unsigned char> output;
+  std::vector<unsigned char> residual_output;
   float measured_ms = 0.0f;
   aima::NativePrefillWorkspaceMetrics workspace;
   aima::NativePrefillInvocationMetrics invocations;
   aima::NativeLinearPrefillMetrics linear;
   aima::NativeMoePrefillMetrics moe;
 };
+
+void* reference_layer0_first_tensor_pointer(
+    const aima::NativePrefillInvocations& invocations) {
+  // Qwen3_5DecoderLayer returns (hidden_states, residual).  The frozen hook's
+  // recursive first-tensor rule therefore captures the MoE branch before it
+  // is added to the residual stream.  The direct q1024 lifetime plan reuses
+  // the now-dead FLA v_new storage for that combined routed/shared MoE value.
+  const auto& launches = invocations.launches();
+  for (std::size_t sequence = 0; sequence < launches.size(); ++sequence) {
+    const auto* launch = launches[sequence].launch;
+    if (launch != nullptr && launch->symbol != nullptr &&
+        launch->layer_index == 0 &&
+        std::string_view(launch->symbol) ==
+            "chunk_gated_delta_rule_fwd_kernel_h_blockdim64") {
+      return invocations.tensor_pointer(sequence, "v_new");
+    }
+  }
+  throw std::runtime_error(
+      "q1024 layer-0 MoE branch lifetime owner is missing");
+}
 
 Execution execute_layer0(
     const std::vector<unsigned char>& injected_embeddings,
@@ -279,11 +300,17 @@ Execution execute_layer0(
   result.moe = moe.layer;
 
   const void* layer_output =
+      reference_layer0_first_tensor_pointer(invocations);
+  const void* residual_output =
       aima::native_prefill_layer_output_pointer(workspace, invocations, 0);
   result.output.resize(injected_embeddings.size());
+  result.residual_output.resize(injected_embeddings.size());
   check_hip(hipMemcpy(result.output.data(), layer_output, result.output.size(),
                       hipMemcpyDeviceToHost),
-            "hipMemcpy active language layer-0 output");
+            "hipMemcpy vLLM first-tensor language layer-0 output");
+  check_hip(hipMemcpy(result.residual_output.data(), residual_output,
+                      result.residual_output.size(), hipMemcpyDeviceToHost),
+            "hipMemcpy native language layer-0 residual output");
   return result;
 }
 
@@ -340,11 +367,16 @@ json qualify_case(
   const std::string repeat_sha256 =
       aima::sha256_bytes(warmup.output.data(), warmup.output.size());
   bool deterministic = warmup.output == measured.front().output;
+  bool residual_deterministic =
+      warmup.residual_output == measured.front().residual_output;
   std::vector<float> measured_ms;
   measured_ms.reserve(measured.size());
   for (const Execution& execution : measured) {
     deterministic = deterministic &&
                     execution.output == measured.front().output;
+    residual_deterministic =
+        residual_deterministic &&
+        execution.residual_output == measured.front().residual_output;
     measured_ms.push_back(execution.measured_ms);
   }
   std::vector<float> sorted_ms = measured_ms;
@@ -380,6 +412,10 @@ json qualify_case(
       {"actual_sha256", comparison.actual_sha256},
       {"warmup_actual_sha256", repeat_sha256},
       {"repeat_deterministic", deterministic},
+      {"native_residual_output_sha256",
+       aima::sha256_bytes(representative.residual_output.data(),
+                          representative.residual_output.size())},
+      {"native_residual_repeat_deterministic", residual_deterministic},
       {"bit_exact", comparison.exact_elements == comparison.elements},
       {"measured_ms", measured_ms},
       {"median_ms", sorted_ms[sorted_ms.size() / 2]},
