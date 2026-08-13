@@ -881,6 +881,19 @@ class NativeVisualLayoutTest(unittest.TestCase):
         self.assertIn("vision_block_stack_oracle_probe.hip.cpp", build)
         self.assertIn("native_vision_block_stack.hip.cpp", build)
 
+    def test_vision_attention_aot_trace_replays_frozen_raw_tensors(self) -> None:
+        trace = (
+            ROOT / "scripts/trace-vllm-vision-attention-aot.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn("context_attention_fwd", trace)
+        self.assertIn('is_causal=False', trace)
+        self.assertIn('torch.bfloat16', trace)
+        self.assertIn('query_rotated.bin', trace)
+        self.assertIn('key_rotated.bin', trace)
+        self.assertIn('value.bin', trace)
+        self.assertIn('attention.bin', trace)
+        self.assertIn('actual != expected', trace)
+
 
 if __name__ == "__main__":
     unittest.main()
