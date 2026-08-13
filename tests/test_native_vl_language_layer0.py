@@ -140,6 +140,12 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         self.assertIn("const float normalized", gated_norm)
         self.assertNotIn("const __hip_bfloat16 normalized", gated_norm)
         self.assertIn("__float2bfloat16(normalized * silu)", gated_norm)
+        self.assertIn("const unsigned lane_in_row = lane & 15U", gated_norm)
+        self.assertIn("row_repeat < 2", gated_norm)
+        self.assertIn("__shfl_xor(square_sum, offset, 16)", gated_norm)
+        self.assertIn("rsqrtf(fmaf(square_sum", gated_norm)
+        self.assertIn("exp2f(-gate_value", gated_norm)
+        self.assertNotIn("pytorch_rounded_rsqrtf", gated_norm)
 
         shared_activation = moe_source.split(
             "__global__ void shared_silu_multiply_batched_kernel(", 1

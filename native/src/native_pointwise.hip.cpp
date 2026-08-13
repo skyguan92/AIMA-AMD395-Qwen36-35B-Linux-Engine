@@ -547,54 +547,59 @@ __global__ void linear_gated_norm_fused_kernel(
     const __hip_bfloat16* core, const __hip_bfloat16* gate_storage,
     const __hip_bfloat16* weight, __hip_bfloat16* output,
     std::size_t gate_row_stride, std::size_t gate_offset) {
-  // Match the frozen PyTorch fallback's contiguous-width-128 MeanOps
-  // reduction. Its ROCm launch uses a 32x16 workgroup, four contiguous
-  // values per x lane, left-associated per-lane accumulation, then the ROCm
-  // ascending-offset shuffle tree. The ordering matters at the BF16
-  // normalization boundary even though the FP32 variance delta is tiny.
-  __shared__ volatile float row_statistic[16];
+  // Match the pinned vLLM Triton RMSNormGated forward path. A single wave
+  // covers four rows: each 16-lane half-wave owns one row at a time, with
+  // eight contiguous BF16 values per lane and two row iterations. Triton's
+  // blocked layout lowers the row reduction to a 16-lane XOR tree. Its
+  // rsqrt and sigmoid lower to the native reciprocal-square-root and exp2
+  // approximations, respectively; all three details can flip BF16 ties.
   const unsigned lane = threadIdx.x;
-  const unsigned row_in_block = threadIdx.y;
-  const std::size_t row = blockIdx.x * blockDim.y + row_in_block;
-  const std::size_t token = row / 32;
-  const std::size_t head = row - token * 32;
-  const std::size_t index = row * kInvstdWidth + lane * 4;
-  const float value0 = __bfloat162float(core[index]);
-  const float value1 = __bfloat162float(core[index + 1]);
-  const float value2 = __bfloat162float(core[index + 2]);
-  const float value3 = __bfloat162float(core[index + 3]);
-  float square_sum = value0 * value0;
-  square_sum += value1 * value1;
-  square_sum += value2 * value2;
-  square_sum += value3 * value3;
-  for (unsigned offset = 1; offset < 32; offset <<= 1) {
-    square_sum += __shfl_down(square_sum, offset);
-  }
-  if (lane == 0) {
-    // The fallback materializes `mean()` before its separate epsilon-add and
-    // rsqrt kernels. Preserve both FP32 rounding boundaries; otherwise the
-    // compiler may contract the multiply-add and flip rare BF16 ties.
-    row_statistic[row_in_block] = square_sum * (1.0f / 128.0f);
-  }
-  __syncthreads();
-  if (lane == 0) {
-    const float variance = row_statistic[row_in_block];
-    row_statistic[row_in_block] =
-        pytorch_rounded_rsqrtf(variance + 1.0e-6f);
-  }
-  __syncthreads();
-  const float row_inverse_rms = row_statistic[row_in_block];
+  const unsigned lane_in_row = lane & 15U;
+  const unsigned row_parity = lane >> 4;
 #pragma unroll
-  for (unsigned element = 0; element < 4; ++element) {
-    const unsigned dimension = lane * 4 + element;
-    const float value = __bfloat162float(core[index + element]);
-    const float normalized =
-        value * row_inverse_rms * __bfloat162float(weight[dimension]);
-    const float gate_value = __bfloat162float(
-        gate_storage[token * gate_row_stride + gate_offset +
-                     head * kInvstdWidth + dimension]);
-    const float silu = gate_value / (1.0f + expf(-gate_value));
-    output[index + element] = __float2bfloat16(normalized * silu);
+  for (unsigned row_repeat = 0; row_repeat < 2; ++row_repeat) {
+    const std::size_t row =
+        blockIdx.x * 4 + row_parity + row_repeat * 2;
+    const std::size_t token = row / 32;
+    const std::size_t head = row - token * 32;
+    const std::size_t index =
+        row * kInvstdWidth + lane_in_row * 8;
+    float values[8];
+#pragma unroll
+    for (unsigned element = 0; element < 8; ++element) {
+      values[element] = __bfloat162float(core[index + element]);
+    }
+
+    // The first packed pair is extracted high-half then low-half by Triton;
+    // subsequent values accumulate in logical dimension order.
+    float square_sum = values[1] * values[1];
+    square_sum = fmaf(values[0], values[0], square_sum);
+#pragma unroll
+    for (unsigned element = 2; element < 8; ++element) {
+      square_sum = fmaf(values[element], values[element], square_sum);
+    }
+#pragma unroll
+    for (unsigned offset = 8; offset != 0; offset >>= 1) {
+      square_sum += __shfl_xor(square_sum, offset, 16);
+    }
+    const float row_inverse_rms =
+        rsqrtf(fmaf(square_sum, 1.0f / 128.0f, 1.0e-6f));
+
+#pragma unroll
+    for (unsigned element = 0; element < 8; ++element) {
+      const unsigned dimension = lane_in_row * 8 + element;
+      const float normalized =
+          (values[element] * row_inverse_rms) *
+          __bfloat162float(weight[dimension]);
+      const float gate_value = __bfloat162float(
+          gate_storage[token * gate_row_stride + gate_offset +
+                       head * kInvstdWidth + dimension]);
+      const float sigmoid =
+          1.0f /
+          (1.0f + exp2f(-gate_value * 1.4426950408889634074f));
+      const float silu = gate_value * sigmoid;
+      output[index + element] = __float2bfloat16(normalized * silu);
+    }
   }
 }
 
@@ -982,8 +987,8 @@ void launch_linear_gated_norm_fused(
     throw std::invalid_argument("native fused linear gated norm geometry is invalid");
   }
   hipLaunchKernelGGL(
-      linear_gated_norm_fused_kernel, dim3(token_count * 2),
-      dim3(32, 16), 0, static_cast<hipStream_t>(stream_value),
+      linear_gated_norm_fused_kernel, dim3(token_count * 8),
+      dim3(32), 0, static_cast<hipStream_t>(stream_value),
       static_cast<const __hip_bfloat16*>(core_bf16),
       static_cast<const __hip_bfloat16*>(fused_input_bf16),
       static_cast<const __hip_bfloat16*>(norm_weight_bf16),
@@ -1002,8 +1007,8 @@ void launch_linear_gated_norm_separate(
         "native separate linear gated norm geometry is invalid");
   }
   hipLaunchKernelGGL(
-      linear_gated_norm_fused_kernel, dim3(token_count * 2),
-      dim3(32, 16), 0, static_cast<hipStream_t>(stream_value),
+      linear_gated_norm_fused_kernel, dim3(token_count * 8),
+      dim3(32), 0, static_cast<hipStream_t>(stream_value),
       static_cast<const __hip_bfloat16*>(core_bf16),
       static_cast<const __hip_bfloat16*>(gate_bf16),
       static_cast<const __hip_bfloat16*>(norm_weight_bf16),
