@@ -34,10 +34,21 @@ constexpr std::size_t kVisionRotaryDimension = 36;
 constexpr std::size_t kVisionRotaryFrequencyCount = 18;
 constexpr std::size_t kVisionRotaryAxes = 2;
 constexpr std::size_t kVisionRotaryMaximumPosition = 8192;
-constexpr float kVisionRotaryBase = 10000.0f;
 static_assert(kVisionRotaryAxes * kVisionRotaryFrequencyCount ==
               kVisionRotaryDimension);
 static_assert(kVisionHeadDimension / 2 == kVisionRotaryDimension);
+
+// Exact float32 output of vLLM's gfx1151
+//   1 / (10000 ** (arange(0, 36, 2) / 36))
+// cache initialization. PyTorch deliberately builds this cache on the GPU;
+// CPU libm differs by one BF16 ULP for a small set of positions above the
+// original square-image qualification range.
+__device__ __constant__ std::int32_t kVisionInverseFrequencyBits[
+    kVisionRotaryFrequencyCount] = {
+    0x3f800000, 0x3f1977cc, 0x3eb800d6, 0x3e5c9d37, 0x3e044133,
+    0x3d9e91b6, 0x3d3e1e95, 0x3ce3f27e, 0x3c88a69b, 0x3c23d70a,
+    0x3bc47060, 0x3b6b8631, 0x3b0d3169, 0x3aa94938, 0x3a4af7f3,
+    0x39f35a5c, 0x3991e2e1, 0x392ee9b8};
 
 void check_hip(hipError_t status, const char* operation) {
   if (status != hipSuccess) {
@@ -62,21 +73,30 @@ std::size_t checked_add(std::size_t left, std::size_t right,
   return left + right;
 }
 
-std::uint16_t float_to_bf16(float value) {
-  std::uint32_t bits = 0;
-  static_assert(sizeof(bits) == sizeof(value));
-  std::memcpy(&bits, &value, sizeof(bits));
-  const std::uint32_t round_to_nearest_even =
-      0x7fffU + ((bits >> 16U) & 1U);
-  return static_cast<std::uint16_t>((bits + round_to_nearest_even) >> 16U);
-}
-
 struct HostEncoderMetadata {
   std::size_t patch_count = 0;
   std::vector<std::uint32_t> cu_seqlens;
-  std::vector<std::uint16_t> cos;
-  std::vector<std::uint16_t> sin;
+  std::vector<std::uint16_t> position_ids;
 };
+
+__global__ void vision_rotary_metadata_kernel(
+    const std::uint16_t* position_ids, __hip_bfloat16* cos,
+    __hip_bfloat16* sin, std::size_t element_count) {
+  const std::size_t index =
+      static_cast<std::size_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+  if (index >= element_count) return;
+  const std::size_t patch = index / kVisionRotaryDimension;
+  const std::size_t dimension = index % kVisionRotaryDimension;
+  const std::size_t axis = dimension / kVisionRotaryFrequencyCount;
+  const std::size_t frequency = dimension % kVisionRotaryFrequencyCount;
+  const float inverse_frequency =
+      __int_as_float(kVisionInverseFrequencyBits[frequency]);
+  const float angle = static_cast<float>(
+                          position_ids[patch * kVisionRotaryAxes + axis]) *
+                      inverse_frequency;
+  cos[index] = __float2bfloat16(cosf(angle));
+  sin[index] = __float2bfloat16(sinf(angle));
+}
 
 HostEncoderMetadata build_host_metadata(
     const std::vector<NativeVlGrid>& grids) {
@@ -86,7 +106,6 @@ HostEncoderMetadata build_host_metadata(
 
   HostEncoderMetadata result;
   result.cu_seqlens.push_back(0);
-  std::size_t maximum_grid_size = 0;
   for (const NativeVlGrid& grid : grids) {
     if (grid.temporal == 0 || grid.height == 0 || grid.width == 0 ||
         grid.height % kNativeVlMergeSize != 0 ||
@@ -115,42 +134,11 @@ HostEncoderMetadata build_host_metadata(
       result.cu_seqlens.push_back(static_cast<std::uint32_t>(end));
     }
     result.patch_count += grid_patches;
-    maximum_grid_size =
-        std::max(maximum_grid_size, std::max(grid.height, grid.width));
   }
 
-  std::array<float, kVisionRotaryFrequencyCount> inverse_frequencies{};
-  for (std::size_t frequency = 0;
-       frequency < kVisionRotaryFrequencyCount; ++frequency) {
-    const float exponent =
-        static_cast<float>(2 * frequency) /
-        static_cast<float>(kVisionRotaryDimension);
-    inverse_frequencies[frequency] =
-        1.0f / std::pow(kVisionRotaryBase, exponent);
-  }
-
-  const std::size_t cache_elements = checked_multiply(
-      maximum_grid_size, kVisionRotaryFrequencyCount,
-      "vision rotary cache");
-  std::vector<std::uint16_t> cos_cache(cache_elements);
-  std::vector<std::uint16_t> sin_cache(cache_elements);
-  for (std::size_t position = 0; position < maximum_grid_size; ++position) {
-    for (std::size_t frequency = 0;
-         frequency < kVisionRotaryFrequencyCount; ++frequency) {
-      const float angle =
-          static_cast<float>(position) * inverse_frequencies[frequency];
-      const std::size_t index =
-          position * kVisionRotaryFrequencyCount + frequency;
-      cos_cache[index] = float_to_bf16(std::cos(angle));
-      sin_cache[index] = float_to_bf16(std::sin(angle));
-    }
-  }
-
-  const std::size_t output_elements = checked_multiply(
-      result.patch_count, kVisionRotaryDimension,
-      "vision rotary metadata");
-  result.cos.reserve(output_elements);
-  result.sin.reserve(output_elements);
+  const std::size_t position_elements = checked_multiply(
+      result.patch_count, kVisionRotaryAxes, "vision rotary positions");
+  result.position_ids.reserve(position_elements);
   for (const NativeVlGrid& grid : grids) {
     const std::size_t merged_height = grid.height / kNativeVlMergeSize;
     const std::size_t merged_width = grid.width / kNativeVlMergeSize;
@@ -166,16 +154,8 @@ HostEncoderMetadata build_host_metadata(
                   merged_y * kNativeVlMergeSize + inner_y,
                   merged_x * kNativeVlMergeSize + inner_x};
               for (const std::size_t position : positions) {
-                const std::size_t cache_offset =
-                    position * kVisionRotaryFrequencyCount;
-                result.cos.insert(
-                    result.cos.end(), cos_cache.begin() + cache_offset,
-                    cos_cache.begin() + cache_offset +
-                        kVisionRotaryFrequencyCount);
-                result.sin.insert(
-                    result.sin.end(), sin_cache.begin() + cache_offset,
-                    sin_cache.begin() + cache_offset +
-                        kVisionRotaryFrequencyCount);
+                result.position_ids.push_back(
+                    static_cast<std::uint16_t>(position));
               }
             }
           }
@@ -183,8 +163,7 @@ HostEncoderMetadata build_host_metadata(
       }
     }
   }
-  if (result.cos.size() != output_elements ||
-      result.sin.size() != output_elements ||
+  if (result.position_ids.size() != position_elements ||
       result.cu_seqlens.back() != result.patch_count) {
     throw std::runtime_error("native vision encoder metadata is inconsistent");
   }
@@ -204,21 +183,51 @@ struct NativeVisionEncoderMetadataPlan::Impl {
         sizeof(std::uint16_t), "vision rotary bytes");
     resident_bytes_value =
         checked_multiply(2, one_table_bytes, "vision metadata residency");
-    cos_sha256_value = sha256_bytes(host.cos.data(), one_table_bytes);
-    sin_sha256_value = sha256_bytes(host.sin.data(), one_table_bytes);
+    const std::size_t position_bytes = checked_multiply(
+        host.position_ids.size(), sizeof(std::uint16_t),
+        "vision position metadata bytes");
+    void* position_device = nullptr;
     try {
       check_hip(hipMalloc(&metadata_device, resident_bytes_value),
                 "hipMalloc native vision encoder metadata");
       cos_device = metadata_device;
       sin_device = static_cast<unsigned char*>(metadata_device) +
                    one_table_bytes;
-      check_hip(hipMemcpy(cos_device, host.cos.data(), one_table_bytes,
-                          hipMemcpyHostToDevice),
-                "hipMemcpy native vision rotary cosine");
-      check_hip(hipMemcpy(sin_device, host.sin.data(), one_table_bytes,
-                          hipMemcpyHostToDevice),
-                "hipMemcpy native vision rotary sine");
+      check_hip(hipMalloc(&position_device, position_bytes),
+                "hipMalloc native vision rotary positions");
+      check_hip(hipMemcpy(position_device, host.position_ids.data(),
+                          position_bytes, hipMemcpyHostToDevice),
+                "hipMemcpy native vision rotary positions");
+      const std::size_t output_elements =
+          patch_count_value * kVisionRotaryDimension;
+      constexpr std::size_t kThreads = 256;
+      const std::size_t blocks =
+          (output_elements + kThreads - 1) / kThreads;
+      hipLaunchKernelGGL(
+          vision_rotary_metadata_kernel, dim3(blocks), dim3(kThreads), 0,
+          nullptr, static_cast<const std::uint16_t*>(position_device),
+          static_cast<__hip_bfloat16*>(cos_device),
+          static_cast<__hip_bfloat16*>(sin_device), output_elements);
+      check_hip(hipGetLastError(),
+                "native vision rotary metadata kernel launch");
+      std::vector<std::uint16_t> cos_host(output_elements);
+      std::vector<std::uint16_t> sin_host(output_elements);
+      check_hip(hipMemcpy(cos_host.data(), cos_device, one_table_bytes,
+                          hipMemcpyDeviceToHost),
+                "hipMemcpy native vision rotary cosine hash");
+      check_hip(hipMemcpy(sin_host.data(), sin_device, one_table_bytes,
+                          hipMemcpyDeviceToHost),
+                "hipMemcpy native vision rotary sine hash");
+      cos_sha256_value = sha256_bytes(cos_host.data(), one_table_bytes);
+      sin_sha256_value = sha256_bytes(sin_host.data(), one_table_bytes);
+      check_hip(hipFree(position_device),
+                "hipFree native vision rotary positions");
+      position_device = nullptr;
     } catch (...) {
+      if (position_device != nullptr) {
+        const hipError_t ignored = hipFree(position_device);
+        static_cast<void>(ignored);
+      }
       release();
       throw;
     }
