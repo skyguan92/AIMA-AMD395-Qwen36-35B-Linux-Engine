@@ -38,6 +38,9 @@ VISION_ATTENTION_RESULT_PATH = (
 VISION_BLOCK_SUFFIX_RESULT_PATH = (
     ROOT / "benchmarks/results/native-vision-block-suffix-v0.1.0.json"
 )
+VISION_BLOCK_RESULT_PATH = (
+    ROOT / "benchmarks/results/native-vision-block-v0.1.0.json"
+)
 
 
 class NativeVisualLayoutTest(unittest.TestCase):
@@ -529,6 +532,47 @@ class NativeVisualLayoutTest(unittest.TestCase):
         self.assertIn("vision_segmented_attention_oracle_probe.hip.cpp", build)
         self.assertIn("native_vision_segmented_attention.hip.cpp", build)
 
+        result = json.loads(
+            VISION_ATTENTION_RESULT_PATH.read_text(encoding="utf-8")
+        )
+        self.assertTrue(result["complete"])
+        self.assertTrue(result["source"]["clean"])
+        self.assertEqual(
+            result["source"]["commit"],
+            "e86b76b07bb66e590456b13347ffd43c8c3422b9",
+        )
+        for source_name in ("build_script", "header", "attention", "probe"):
+            source_record = result["source"][source_name]
+            self.assertEqual(
+                hashlib.sha256(
+                    (ROOT / source_record["path"]).read_bytes()
+                ).hexdigest(),
+                source_record["sha256"],
+            )
+        self.assertEqual(len(result["cases"]), 2)
+        for case in result["cases"]:
+            self.assertTrue(case["passed"])
+            self.assertEqual(case["finite_elements"], case["elements"])
+            self.assertLessEqual(case["relative_l2_error"], 0.002)
+            self.assertGreaterEqual(case["cosine_similarity"], 0.999)
+            self.assertEqual(case["workspace_bytes"], 8 * case["patches"])
+        video = next(
+            case for case in result["cases"]
+            if case["case_id"] == "video_local_mp4"
+        )
+        self.assertEqual(video["cu_seqlens"], [0, 64, 128])
+        self.assertTrue(video["segment_isolation_applicable"])
+        self.assertEqual(
+            video["segment_isolation_exact_elements"],
+            video["segment_isolation_elements"],
+        )
+        decision = result["decision"]
+        self.assertTrue(decision["all_applicable_segment_isolation_exact"])
+        self.assertTrue(decision["overall_pass"])
+        self.assertFalse(decision["full_vision_block_qualified"])
+        self.assertFalse(decision["g1_passed"])
+        self.assertFalse(decision["g2_passed"])
+
     def test_vision_block_suffix_has_isolated_boundaries(self) -> None:
         header = (
             ROOT / "native/include/aima/native_vision_block_suffix.h"
@@ -634,15 +678,18 @@ class NativeVisualLayoutTest(unittest.TestCase):
         self.assertIn("vision_block_oracle_probe.hip.cpp", build)
 
         result = json.loads(
-            VISION_ATTENTION_RESULT_PATH.read_text(encoding="utf-8")
+            VISION_BLOCK_RESULT_PATH.read_text(encoding="utf-8")
         )
         self.assertTrue(result["complete"])
         self.assertTrue(result["source"]["clean"])
         self.assertEqual(
             result["source"]["commit"],
-            "e86b76b07bb66e590456b13347ffd43c8c3422b9",
+            "e1b4680a1f7348b2820a1b79c7efab335cba1ce0",
         )
-        for source_name in ("build_script", "header", "attention", "probe"):
+        for source_name in (
+            "build_script", "header", "block", "probe", "prefix", "rotary",
+            "attention", "suffix", "gemm",
+        ):
             source_record = result["source"][source_name]
             self.assertEqual(
                 hashlib.sha256(
@@ -656,21 +703,26 @@ class NativeVisualLayoutTest(unittest.TestCase):
             self.assertEqual(case["finite_elements"], case["elements"])
             self.assertLessEqual(case["relative_l2_error"], 0.002)
             self.assertGreaterEqual(case["cosine_similarity"], 0.999)
-            self.assertEqual(case["workspace_bytes"], 8 * case["patches"])
+            self.assertEqual(case["temporary_bytes"], 19520 * case["patches"])
+            self.assertEqual(
+                case["actual_sha256"], case["repeat_actual_sha256"]
+            )
+            self.assertTrue(case["repeat_deterministic"])
         video = next(
             case for case in result["cases"]
             if case["case_id"] == "video_local_mp4"
         )
         self.assertEqual(video["cu_seqlens"], [0, 64, 128])
-        self.assertTrue(video["segment_isolation_applicable"])
-        self.assertEqual(
-            video["segment_isolation_exact_elements"],
-            video["segment_isolation_elements"],
-        )
         decision = result["decision"]
-        self.assertTrue(decision["all_applicable_segment_isolation_exact"])
+        self.assertEqual(decision["qualified_block_indices"], [0])
+        self.assertEqual(
+            decision["required_representative_block_indices"], [0, 13, 26]
+        )
+        self.assertFalse(decision["all_representative_blocks_qualified"])
+        self.assertFalse(decision["full_vision_encoder_qualified"])
+        self.assertFalse(decision["vision_merger_qualified"])
+        self.assertFalse(decision["serving_integration_qualified"])
         self.assertTrue(decision["overall_pass"])
-        self.assertFalse(decision["full_vision_block_qualified"])
         self.assertFalse(decision["g1_passed"])
         self.assertFalse(decision["g2_passed"])
 

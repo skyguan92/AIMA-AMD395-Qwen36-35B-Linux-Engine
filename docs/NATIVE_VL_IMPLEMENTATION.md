@@ -315,8 +315,18 @@ bit-for-bit for both cases. Norm2 differed by only 4 image and 5 video BF16
 elements; the complete suffix chain ended at relative L2 `3.54e-5` for image
 and `1.28e-4` for video. All 5,959,680 compared values were finite and the
 result is `benchmarks/results/native-vision-block-suffix-v0.1.0.json`.
-The next boundary is a single end-to-end native block invocation fed only by
-the frozen block input, rotary tables and sequence metadata.
+The same components are now composed behind `NativeVisionBlockPlan`, with an
+external temporary arena reusable across the 27 resident block plans. A clean
+`e1b4680` build passed the end-to-end block 0 serving oracle for both cases:
+image relative L2 `0.001729` and cosine `0.999998506`; two-frame video relative
+L2 `0.001116` and cosine `0.999999377`. Every one of the 442,368 BF16 outputs
+was finite and both repeated outputs were SHA-256 identical. The 256-patch
+case uses 4,997,120 bytes of temporary storage (19,520 bytes per patch), with
+no full attention score matrix. The hash-bound record is
+`benchmarks/results/native-vision-block-v0.1.0.json`. The timings in that
+record are diagnostic probe timings, not G4 serving evidence. Blocks 13 and
+26, the complete 27-block encoder, merger and serving integration remain
+unqualified, so neither G1 nor G2 passes.
 
 `native_media_test` and `native_chat_protocol_test` both compile with strict
 warnings and pass on `amd395`. This is implementation progress, not G1 or G2

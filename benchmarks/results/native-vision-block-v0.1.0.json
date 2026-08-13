@@ -1,0 +1,159 @@
+{
+  "schema": "aima-amd395-qwen36/native-vision-block-qualification/v1",
+  "complete": true,
+  "recorded_at": "2026-08-13T22:53:20+08:00",
+  "host": {
+    "label": "amd395",
+    "hostname": "quings",
+    "gpu_arch": "gfx1151",
+    "device_name": "Radeon 8060S Graphics"
+  },
+  "source": {
+    "commit": "e1b4680a1f7348b2820a1b79c7efab335cba1ce0",
+    "clean": true,
+    "incremental_bundle_sha256": "f2aa867eb2e17ec9e7d4c7c8cddbc6e4a5070bda911c9e2a4635d80642e656f4",
+    "bundle_prerequisite_commit": "8e278f80205588ec8b00ce2c23c782f14656cd16",
+    "build_script": {
+      "path": "scripts/build-native-vision-block-probe.sh",
+      "sha256": "f5f77e6457d8bdd9149617f2ff749b358a6b65dd25a13fa3c29601bb62ae1bc9"
+    },
+    "header": {
+      "path": "native/include/aima/native_vision_block.h",
+      "sha256": "8d06c895f3f70b62f6e1160652d3adc73a20e095a28b308a4475269385bd9159"
+    },
+    "block": {
+      "path": "native/src/native_vision_block.hip.cpp",
+      "sha256": "5ea9839555495035bbcd1ffc32f6185a6f3b659916378fdd8cec881bbec25af1"
+    },
+    "probe": {
+      "path": "native/tools/vision_block_oracle_probe.hip.cpp",
+      "sha256": "246ba9d00b4402f808761d0a90008ba759311116cfa0901314c0079f7bda7efb"
+    },
+    "prefix": {
+      "path": "native/src/native_vision_block_prefix.hip.cpp",
+      "sha256": "4d19a99ebc65344b2ce0ab132a6b0987699d5d23413ee6716b4df521c0c5b8c0"
+    },
+    "rotary": {
+      "path": "native/src/native_vision_rotary.hip.cpp",
+      "sha256": "6975ff24396e92ad36f32860874a022f77712aa31499933843c053b6879ed0b9"
+    },
+    "attention": {
+      "path": "native/src/native_vision_segmented_attention.hip.cpp",
+      "sha256": "a13a0962482633dccb1bf61f7f4a0d4ea71009180bdb2a84d1814d9a76886123"
+    },
+    "suffix": {
+      "path": "native/src/native_vision_block_suffix.hip.cpp",
+      "sha256": "f0753d4d0ddbe42dfd04d7de3e946246e36e937247fbecf255cafcc98427e759"
+    },
+    "gemm": {
+      "path": "native/src/bf16_gemm.hip.cpp",
+      "sha256": "1b6b62085e295c8c61a17e8cf003042c16842c96b6d23bcd0e758f94a08a9861"
+    }
+  },
+  "binary": {
+    "path": "${AIMA_BUILD_DIR}/native-vision-block-probe",
+    "bytes": 354224,
+    "sha256": "323dcb30b19e9315d9e9bc77aed6edcd57acce5907c0ae83b842c8a71a17d5fe",
+    "runtime_python": false,
+    "runtime_torch": false,
+    "runtime_vllm": false,
+    "runtime_triton": false
+  },
+  "model": {
+    "repository": "Qwen/Qwen3.6-35B-A3B",
+    "revision": "995ad96eacd98c81ed38be0c5b274b04031597b0",
+    "dtype": "bfloat16",
+    "visual_weight_manifest_sha256": "abc5b3a0cc0881ba2d3e815b472eebe3404a6e3bc6438a430faccfbe8093c0aa",
+    "visual_weight_payload_bytes": 893142496
+  },
+  "oracle": {
+    "public_record": "benchmarks/results/native-vision-block-oracle-v0.1.0.json",
+    "public_record_sha256": "bfd1a29b4fc1d52c81e574029f772bfef68400b7146fbd4e8a09b7ed3ac7648a",
+    "raw_manifest_sha256": "443cae9b5dc0b426ec04725a7dede893c3c433d6cb910b81cbd48ecd9bfd782a",
+    "canonical_payload_sha256": "5aa66cd7163a8653f40f4ad6cbcfd2bd13afa77897e1c183fb28dfa962c0521e",
+    "boundary": "vision_block_0_end_to_end",
+    "thresholds": {
+      "finite_fraction": 1.0,
+      "maximum_relative_l2_error": 0.002,
+      "minimum_cosine_similarity": 0.999
+    }
+  },
+  "implementation": {
+    "temporary_bytes_per_patch": 19520,
+    "temporary_storage_external_and_reusable_across_blocks": true,
+    "full_score_matrix_workspace_bytes": 0,
+    "weight_plans_resident_after_construction": true
+  },
+  "commands": {
+    "build": "bash scripts/build-native-vision-block-probe.sh",
+    "probe": "${AIMA_BUILD_DIR}/native-vision-block-probe ${AIMA_MODEL_DIR} ${AIMA_VISION_BLOCK_ORACLE_DIR}/${CASE}/block_input.bin ${AIMA_VISION_BLOCK_ORACLE_DIR}/${CASE}/rotary_cos.bin ${AIMA_VISION_BLOCK_ORACLE_DIR}/${CASE}/rotary_sin.bin ${AIMA_VISION_BLOCK_ORACLE_DIR}/${CASE}/block_output.bin ${CU_SEQLENS} ${PATCHES} ${AIMA_LOAD_REPORT}"
+  },
+  "cases": [
+    {
+      "case_id": "image_local_png",
+      "block_index": 0,
+      "patches": 256,
+      "cu_seqlens": [0, 256],
+      "temporary_bytes": 4997120,
+      "library_workspace_bytes": 5310464,
+      "diagnostic_measured_ms": [2.00433897972106934, 1.09476697444915771, 1.08864700794219971, 1.09116601943969727, 1.23664295673370361, 1.08304703235626221, 1.08492696285247803],
+      "diagnostic_median_ms": 1.09116601943969727,
+      "elements": 294912,
+      "exact_elements": 250797,
+      "finite_elements": 294912,
+      "first_mismatch_index": 28,
+      "first_expected_bits": 48358,
+      "first_actual_bits": 48357,
+      "maximum_absolute_error": 0.03125,
+      "relative_l2_error": 0.00172856081021988,
+      "cosine_similarity": 0.9999985060502421,
+      "expected_sha256": "dbeff2fe17c9dfaf8f5022d6f73a33c55ac9e6a05c52c0bb51ef595a08063561",
+      "actual_sha256": "b0ec06fe992f06d22aec29c218fd4fb1ca51a8018b758d9b73a3dedf17546a30",
+      "repeat_actual_sha256": "b0ec06fe992f06d22aec29c218fd4fb1ca51a8018b758d9b73a3dedf17546a30",
+      "repeat_deterministic": true,
+      "passed": true
+    },
+    {
+      "case_id": "video_local_mp4",
+      "block_index": 0,
+      "patches": 128,
+      "cu_seqlens": [0, 64, 128],
+      "temporary_bytes": 2498560,
+      "library_workspace_bytes": 3539968,
+      "diagnostic_measured_ms": [0.44910699129104614, 0.40590798854827881, 0.41806799173355103, 0.41074800491333008, 0.41942799091339111, 0.41754698753356934, 0.41158801317214966],
+      "diagnostic_median_ms": 0.41754698753356934,
+      "elements": 147456,
+      "exact_elements": 135144,
+      "finite_elements": 147456,
+      "first_mismatch_index": 0,
+      "first_expected_bits": 48518,
+      "first_actual_bits": 48517,
+      "maximum_absolute_error": 0.03125,
+      "relative_l2_error": 0.00111610267279703,
+      "cosine_similarity": 0.9999993771594766,
+      "expected_sha256": "98199a56bd10c6c94aafb43beb5ed0f9a9ac1ea09fe432923cd631202b305246",
+      "actual_sha256": "252bf289819e9e4c7a3251b97a0d3907fd6d1b131470b0a55c279e5668083b26",
+      "repeat_actual_sha256": "252bf289819e9e4c7a3251b97a0d3907fd6d1b131470b0a55c279e5668083b26",
+      "repeat_deterministic": true,
+      "passed": true
+    }
+  ],
+  "decision": {
+    "case_count": 2,
+    "passed_cases": 2,
+    "total_elements": 442368,
+    "total_exact_elements": 385941,
+    "all_finite": true,
+    "all_repeat_deterministic": true,
+    "all_cases_within_threshold": true,
+    "qualified_block_indices": [0],
+    "required_representative_block_indices": [0, 13, 26],
+    "all_representative_blocks_qualified": false,
+    "full_vision_encoder_qualified": false,
+    "vision_merger_qualified": false,
+    "serving_integration_qualified": false,
+    "g1_passed": false,
+    "g2_passed": false,
+    "overall_pass": true
+  }
+}
