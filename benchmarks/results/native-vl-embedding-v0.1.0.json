@@ -1,0 +1,220 @@
+{
+  "schema": "aima-amd395-qwen36/native-vl-embedding-qualification/v1",
+  "complete": true,
+  "recorded_at": "2026-08-14T01:08:42+08:00",
+  "host": {
+    "label": "amd395",
+    "gpu_arch": "gfx1151",
+    "device_name": "Radeon 8060S Graphics"
+  },
+  "source": {
+    "commit": "ca92be35e16508ff3a469d9bd60c684c990d3502",
+    "clean": true,
+    "qualification_bundle_sha256": "e0c9045d0985b1185fa534c87854db0a503e7b08e8aa07210d13e1812a325624",
+    "bundle_prerequisite_commit": "c688a35db0ec0c7e2315fe636fcee19e42362190",
+    "files": [
+      {
+        "path": "native/include/aima/native_vl_embedding.h",
+        "sha256": "5a7535b9dd6146bca2570682f3732be4e3cb18f1a6e9b3ed7ca1806365be88f1"
+      },
+      {
+        "path": "native/src/native_vl_embedding.cpp",
+        "sha256": "739e5fd64ff76e01dd49e9171386294a2f762c4b152e5019087a9ec6f9057c60"
+      },
+      {
+        "path": "native/src/native_vl_embedding.hip.cpp",
+        "sha256": "5b77fdb0e622d5ae44c754ec567548306e4ba82dc26070ad7d55d87da39f5ba4"
+      },
+      {
+        "path": "native/tools/vl_embedding_oracle_probe.hip.cpp",
+        "sha256": "0fdc1813897c3ab51ab23c918d471f7ea4d602cba8e40f44be9f4958bb695d30"
+      },
+      {
+        "path": "scripts/build-native-vl-embedding-probe.sh",
+        "sha256": "9abf0fc5cf54fba2f0d0820d9f419e9e535206b93df52e6571a39a48a3158716"
+      },
+      {
+        "path": "tests/native_vl_embedding_test.cpp",
+        "sha256": "72c1d2d33c0f9cfa6a16e94fdc3fe87cc01abd0b3f8446dca0901851c43004f1"
+      }
+    ]
+  },
+  "binary": {
+    "path": "${AIMA_BUILD_DIR}/native-vl-embedding-probe",
+    "sha256": "13ce93508011855ffb6f3d4285edd4090bdd6a24d727c0680aab4a1b1e3817d4",
+    "format": "ELF 64-bit x86-64",
+    "runtime_python": false,
+    "runtime_torch": false,
+    "runtime_vllm": false,
+    "runtime_triton": false
+  },
+  "model": {
+    "repository": "Qwen/Qwen3.6-35B-A3B",
+    "revision": "995ad96eacd98c81ed38be0c5b274b04031597b0",
+    "dtype": "bfloat16",
+    "vocabulary_size": 248320,
+    "language_hidden_size": 2048,
+    "language_weight_payload_bytes": 69321221376
+  },
+  "dependencies": {
+    "visual_pipeline": {
+      "path": "benchmarks/results/native-vision-pipeline-v0.1.0.json",
+      "sha256": "037fc26c25c5586959e1f3119a933c1f964e2aeb1d1ec0df056ae958072c1b7b"
+    },
+    "full_model_oracle": {
+      "path": "benchmarks/results/vl-oracle-manifest.json",
+      "sha256": "87dcdf76b7251f78da01a2a5f4312a9fb5c7d07a1ca2b2420566e77930f23d44"
+    }
+  },
+  "implementation_contract": {
+    "input": "prompt uint32 token ids plus request-ordered BF16 visual merger rows",
+    "text_rows": "resident model.language_model.embed_tokens.weight lookup",
+    "visual_rows": "replace only image/video pad-token rows inside processor-owned spans",
+    "video_mask": "derived exactly from token_id == 248057 and cross-checked against frozen is_embed masks",
+    "image_mask": "derived exactly from token_id == 248056",
+    "source_order": "each span explicitly maps to a visual embedding offset; source rows must be covered exactly once",
+    "fail_closed_validation": [
+      "prompt span bounds and non-overlap",
+      "visual span bounds, non-overlap and complete coverage",
+      "placeholder kind and visual-row count",
+      "no orphan image/video placeholder tokens"
+    ],
+    "output": "BF16 injected embeddings in [prompt_tokens,2048] order"
+  },
+  "qualification_run": {
+    "raw_result_sha256": "1c967e661f9ee3bee199662ea3cf247b9f0d5b2c11e0cd3a437d87a2ac7dc209",
+    "weight_load_report_sha256": "2f03f128fa9ef667e488d7128d619346633f46a8222c36b5a2be003f08e8c255",
+    "single_resident_weight_load": true,
+    "language_weight_load_wall_ms": 46027.173819,
+    "direct_scatter_aggregate_ms": 42250.625547000003,
+    "direct_scatter_payload_gib_s": 1.5280346156193174,
+    "gpu_payload_checksum_equal": true,
+    "cases": [
+      {
+        "case_id": "image_local_png",
+        "prompt_tokens": 81,
+        "visual_embeddings": 64,
+        "span_count": 1,
+        "device_index_bytes": 512,
+        "measured_ms": [
+          0.05863700062036514,
+          0.01791900023818016,
+          0.01823900081217289,
+          0.01831899955868721,
+          0.017719000577926636
+        ],
+        "median_ms": 0.01823900081217289,
+        "elements": 165888,
+        "exact_elements": 165888,
+        "expected_sha256": "2f412756e0eac356047a6e4d8f3080bf51578d54d36d83a2c262383a351dfc3e",
+        "actual_sha256": "2f412756e0eac356047a6e4d8f3080bf51578d54d36d83a2c262383a351dfc3e",
+        "repeat_deterministic": true,
+        "relative_l2_error": 0.0,
+        "cosine_similarity": 1.0
+      },
+      {
+        "case_id": "video_local_mp4",
+        "prompt_tokens": 63,
+        "visual_embeddings": 32,
+        "span_count": 1,
+        "device_index_bytes": 256,
+        "measured_ms": [
+          0.060837000608444214,
+          0.055316999554634094,
+          0.05419699847698212,
+          0.05439700186252594,
+          0.054437000304460526
+        ],
+        "median_ms": 0.054437000304460526,
+        "elements": 129024,
+        "exact_elements": 129024,
+        "expected_sha256": "cf016350d38899e068184a1518dcdee31389ca99eebf39e1e85a3b81d284b552",
+        "actual_sha256": "cf016350d38899e068184a1518dcdee31389ca99eebf39e1e85a3b81d284b552",
+        "repeat_deterministic": true,
+        "relative_l2_error": 0.0,
+        "cosine_similarity": 1.0
+      },
+      {
+        "case_id": "multi_image",
+        "prompt_tokens": 182,
+        "visual_embeddings": 160,
+        "span_count": 2,
+        "device_index_bytes": 1280,
+        "measured_ms": [
+          0.10267399996519089,
+          0.07799500226974487,
+          0.07779599726200104,
+          0.0824349969625473,
+          0.07879599928855896
+        ],
+        "median_ms": 0.07879599928855896,
+        "elements": 372736,
+        "exact_elements": 372736,
+        "expected_sha256": "4b114efb38da44a759412b46c710338a07bf23fc7e2c17cb6fdbb1c986539129",
+        "actual_sha256": "4b114efb38da44a759412b46c710338a07bf23fc7e2c17cb6fdbb1c986539129",
+        "repeat_deterministic": true,
+        "relative_l2_error": 0.0,
+        "cosine_similarity": 1.0
+      },
+      {
+        "case_id": "multi_video",
+        "prompt_tokens": 128,
+        "visual_embeddings": 80,
+        "span_count": 2,
+        "device_index_bytes": 640,
+        "measured_ms": [
+          0.06371700018644333,
+          0.06319600343704224,
+          0.06347600370645523,
+          0.06827700138092041,
+          0.06263600289821625
+        ],
+        "median_ms": 0.06347600370645523,
+        "elements": 262144,
+        "exact_elements": 262144,
+        "expected_sha256": "cf61f2c8faa10f422127bc6e5b3b86bc3ae8f9182ec2911232b380213e056b3f",
+        "actual_sha256": "cf61f2c8faa10f422127bc6e5b3b86bc3ae8f9182ec2911232b380213e056b3f",
+        "repeat_deterministic": true,
+        "relative_l2_error": 0.0,
+        "cosine_similarity": 1.0
+      },
+      {
+        "case_id": "mixed_image_video",
+        "prompt_tokens": 131,
+        "visual_embeddings": 96,
+        "span_count": 2,
+        "device_index_bytes": 768,
+        "measured_ms": [
+          0.07003600150346756,
+          0.06763599812984467,
+          0.07359600067138672,
+          0.07271599769592285,
+          0.06731600314378738
+        ],
+        "median_ms": 0.07003600150346756,
+        "elements": 268288,
+        "exact_elements": 268288,
+        "expected_sha256": "289379c795da4abd05806cbfc90f9ca342293c915a7650c4e09c90b241354639",
+        "actual_sha256": "289379c795da4abd05806cbfc90f9ca342293c915a7650c4e09c90b241354639",
+        "repeat_deterministic": true,
+        "relative_l2_error": 0.0,
+        "cosine_similarity": 1.0
+      }
+    ]
+  },
+  "decision": {
+    "total_visual_embeddings": 432,
+    "total_elements": 1198080,
+    "total_exact_elements": 1198080,
+    "all_sha256_exact": true,
+    "all_repeat_deterministic": true,
+    "frozen_masks_derived_exactly": true,
+    "injected_embedding_boundary_qualified": true,
+    "mrope_positions_qualified": false,
+    "language_boundaries_qualified": false,
+    "g1_passed": false,
+    "g2_passed": false,
+    "overall_pass": true,
+    "next_blocking_boundary": "M-RoPE positions and position delta"
+  }
+}

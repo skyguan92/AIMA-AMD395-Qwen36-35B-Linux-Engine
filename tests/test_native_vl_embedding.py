@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 import unittest
@@ -13,6 +14,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 ORACLE_MANIFEST = ROOT / "benchmarks/results/vl-oracle-manifest.json"
 ORACLE_ROOT = ROOT / "benchmarks/oracles/vl-v0.1.0"
+QUALIFICATION_RESULT = ROOT / "benchmarks/results/native-vl-embedding-v0.1.0.json"
 IMAGE_PAD_TOKEN = 248056
 VIDEO_PAD_TOKEN = 248057
 HIDDEN_ROW_BYTES = 2048 * 2
@@ -96,6 +98,53 @@ class NativeVlEmbeddingTest(unittest.TestCase):
             )
             self.assertEqual(len(selected), merger_record["bytes"])
             self.assertEqual(selected, merger, case["case_id"])
+
+    def test_gpu_qualification_is_hash_bound_and_bit_exact(self) -> None:
+        result = json.loads(QUALIFICATION_RESULT.read_text(encoding="utf-8"))
+        self.assertTrue(result["complete"])
+        self.assertTrue(result["source"]["clean"])
+        self.assertEqual(
+            result["source"]["commit"],
+            "ca92be35e16508ff3a469d9bd60c684c990d3502",
+        )
+        for record in result["source"]["files"]:
+            self.assertEqual(
+                hashlib.sha256((ROOT / record["path"]).read_bytes()).hexdigest(),
+                record["sha256"],
+            )
+        for dependency in result["dependencies"].values():
+            self.assertEqual(
+                hashlib.sha256((ROOT / dependency["path"]).read_bytes()).hexdigest(),
+                dependency["sha256"],
+            )
+        run = result["qualification_run"]
+        self.assertTrue(run["single_resident_weight_load"])
+        self.assertEqual(len(run["cases"]), 5)
+        self.assertEqual(
+            {case["case_id"] for case in run["cases"]},
+            {
+                "image_local_png",
+                "video_local_mp4",
+                "multi_image",
+                "multi_video",
+                "mixed_image_video",
+            },
+        )
+        for case in run["cases"]:
+            self.assertEqual(case["elements"], case["exact_elements"])
+            self.assertEqual(case["expected_sha256"], case["actual_sha256"])
+            self.assertTrue(case["repeat_deterministic"])
+            self.assertEqual(case["relative_l2_error"], 0.0)
+            self.assertEqual(case["cosine_similarity"], 1.0)
+        decision = result["decision"]
+        self.assertEqual(
+            decision["total_elements"], decision["total_exact_elements"]
+        )
+        self.assertTrue(decision["injected_embedding_boundary_qualified"])
+        self.assertFalse(decision["mrope_positions_qualified"])
+        self.assertFalse(decision["language_boundaries_qualified"])
+        self.assertFalse(decision["g1_passed"])
+        self.assertFalse(decision["g2_passed"])
 
 
 if __name__ == "__main__":

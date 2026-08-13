@@ -14,8 +14,8 @@ blocking condition in the governing goal can move a gate to `passed`.
 
 | Gate | Current state | Evidence required to pass | Next blocking action |
 |---|---|---|---|
-| G1 full VL functional parity | ordered chat media parts, bounded local/data/HTTP/HTTPS admission, image/video processors, resident visual weights and the complete pixel-to-visual-embedding path are implemented; injection and serving remain incomplete | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | connect media embedding injection and the resident serving path |
-| G2 VL correctness parity | reference processor/boundary/logits/generation oracles frozen; the complete native visual tower is bit-exact on all five blocking shapes; injection and language suites remain pending | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | qualify injection before language boundaries, logits and task quality |
+| G1 full VL functional parity | ordered chat media parts, bounded local/data/HTTP/HTTPS admission, image/video processors, resident visual weights, the complete pixel-to-visual-embedding path and media embedding injection are implemented; M-RoPE and serving remain incomplete | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | implement M-RoPE, then connect the resident language/serving path |
+| G2 VL correctness parity | reference processor/boundary/logits/generation oracles frozen; the complete native visual tower and injected prompt embeddings are bit-exact on all five blocking shapes; M-RoPE and language suites remain pending | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | qualify M-RoPE positions/delta before language layer 0 |
 | G3 text product no regression | frozen baseline identified | paired 19-cell, maximum-window, correctness, MMLU, API, cache, startup and memory requalification | retain `v1.5.1` as an immutable paired binary |
 | G4 native VL performance | not started | paired per-cell stage timings and memory records against the fixed VL-enabled vLLM | generate matrix cells from the capability manifest |
 | G5 native release product | not started | native-only package, security, isolated bundle, second-host, soak and rollback evidence | keep Python tooling qualification-only and outside the product runtime |
@@ -400,9 +400,27 @@ their outputs in request order. Diagnostic full-pipeline medians range from
 `12.213 ms` for the two-frame video to `35.281 ms` for multi-image; they are
 kernel-chain measurements, not G4 serving results. The hash-bound records are
 `benchmarks/results/native-vision-multimedia-block-oracle-v0.1.0.json` and
-`benchmarks/results/native-vision-pipeline-v0.1.0.json`. Media embedding
-injection, language boundaries and serving remain unqualified, so G1 and G2
-remain false.
+`benchmarks/results/native-vision-pipeline-v0.1.0.json`.
+
+Media embedding injection is now a separate fail-closed native boundary. The
+host plan accepts processor-owned prompt spans and explicit visual source
+offsets, derives image/video replacement positions from token IDs `248056`
+and `248057`, and rejects overlapping spans, wrong modality/count, incomplete
+visual-row coverage and orphan placeholders. This reproduces vLLM's video
+`is_embed` behavior without carrying a second mutable mask: every frozen mask
+bit was independently re-derived from the prompt token vector. The GPU path
+first performs the existing resident token-embedding lookup, then scatters
+BF16 merger rows only into those validated positions.
+
+A clean `ca92be3` build loaded the 69,321,221,376-byte language layout once and
+qualified image, video, multi-image, multi-video and mixed image/video in one
+resident run. All 1,198,080 injected BF16 elements are bit-exact, all five
+actual SHA-256 values equal their frozen oracle values, and repeated outputs
+are deterministic. Per-case diagnostic injection medians were `0.0182` to
+`0.0788 ms`; these include prompt/index host-to-device uploads but are not G4
+serving timings. The hash-bound evidence is
+`benchmarks/results/native-vl-embedding-v0.1.0.json`. M-RoPE positions/delta,
+language boundaries and serving remain unqualified, so G1 and G2 remain false.
 
 `native_media_test` and `native_chat_protocol_test` both compile with strict
 warnings and pass on `amd395`. This is implementation progress, not G1 or G2
