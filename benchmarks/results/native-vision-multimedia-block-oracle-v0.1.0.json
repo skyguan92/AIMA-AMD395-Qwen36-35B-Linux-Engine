@@ -1,0 +1,118 @@
+{
+  "schema": "aima-amd395-qwen36/native-vision-multimedia-block-oracle-record/v1",
+  "complete": true,
+  "recorded_at": "2026-08-14T00:47:24+08:00",
+  "host": {
+    "label": "amd395",
+    "gpu_arch": "gfx1151",
+    "device_name": "Radeon 8060S Graphics"
+  },
+  "source": {
+    "commit": "e6a79ee84684884c40e18baa7a92929ae29c9950",
+    "clean": true,
+    "deployment_bundle_sha256": [
+      "f43e00ba7cd70c1e2beb523dd92459fef19ef4cdfbbef0537f5f052f55c1af64",
+      "4fe67642a3694387eb7db8bb6b15947dac901dbb21bc58afcaede1dd3f77cc9d"
+    ],
+    "files": [
+      {
+        "path": "scripts/capture-vllm-vision-multimedia-block-oracles.py",
+        "sha256": "64f54d43e11547c1d4b3607ac31e5f9a13e934c5751b2f149c38070711489d21"
+      },
+      {
+        "path": "scripts/capture-vllm-vision-block-oracles.py",
+        "sha256": "9c850f7ac3a25270d89c87f822c4fb4193371abda1f4f5fd593db53b3c73dd5f"
+      }
+    ]
+  },
+  "model": {
+    "repository": "Qwen/Qwen3.6-35B-A3B",
+    "revision": "995ad96eacd98c81ed38be0c5b274b04031597b0",
+    "dtype": "bfloat16"
+  },
+  "runtime": {
+    "vllm": "0.19.1rc1.dev300+g29e5d1020.rocm721",
+    "torch": "2.10.0+git8514f05",
+    "transformers": "4.57.6",
+    "attention_backend": "TRITON_ATTN",
+    "enforce_eager": true
+  },
+  "oracle": {
+    "path": "${AIMA_ORACLE_DIR}/vision-multimedia-block-v0.1.0/manifest.json",
+    "schema": "aima-amd395-qwen36/vision-multimedia-block-oracle/v1",
+    "manifest_sha256": "ef22c2764c7964ef35c20bf18ee949eb228b3a8aed462517c96efe15e21f7167",
+    "canonical_payload_sha256": "7deefa6091112c416cf4ae20d8328f823ea568394340c194ffa3002f1f066e32",
+    "vl_oracle_manifest_sha256": "87dcdf76b7251f78da01a2a5f4312a9fb5c7d07a1ca2b2420566e77930f23d44",
+    "binary_file_count": 38,
+    "binary_bytes": 49843240,
+    "component_count_per_case": 16,
+    "metadata_count_per_case": 2
+  },
+  "cases": [
+    {
+      "case_id": "multi_image",
+      "patches": 640,
+      "cu_seqlens": [
+        0,
+        256,
+        640
+      ],
+      "max_seqlen": 384,
+      "metadata": {
+        "cu_seqlens_sha256": "b4b779e490ac39ee685acbd1205159d254babf42b48dde23359e868e47a594ce",
+        "rotary_cos_sha256": "6dd72d329802496f5c8c843e119d12a91e34c685279e185f6bb69231d6e6343f",
+        "rotary_sin_sha256": "b7eadbae171d68894738b40c7192dc8f816d6a493f2fe4560c395f3b74d9fac0"
+      },
+      "components": {
+        "block_input_sha256": "bff2f6cb2eb34b7ef26eb2d24c42e0771b74710d44265bca988f82ba3b32d65e",
+        "norm1_sha256": "4f958382378ff75422f19cb92112680e2f74022c33b55bdc50c98e3cdafede65",
+        "qkv_linear_sha256": "f6be7ae8a31669315c588ebdb229316ca3b23e2b456c91a844c80f4dca43f475",
+        "query_rotated_sha256": "5271ab342a437b301077e7d074700c28d683cd47e4788dcd59b3f8da5b949c1f",
+        "key_rotated_sha256": "7a1de51f74dd5873cfd7fc2d5edf7f4dddc854f02787284f7b92f6677177f482",
+        "value_sha256": "822cc33751d617ac1c16627122e64e7507abc838a5cd2a80476bb36a00a7d13c",
+        "attention_sha256": "79d7bc416702e0f9161fc8b07865c9d3578f4245ad09369b561869a5c7033768",
+        "block_output_sha256": "811ad6059ec8d9613e300d0612bd96d722218a00697eff7e3d02227eba7d1566"
+      },
+      "independent_full_model_block_output_sha256": "811ad6059ec8d9613e300d0612bd96d722218a00697eff7e3d02227eba7d1566",
+      "independent_comparison_exact": true
+    },
+    {
+      "case_id": "multi_video",
+      "patches": 320,
+      "cu_seqlens": [
+        0,
+        64,
+        128,
+        224,
+        320
+      ],
+      "max_seqlen": 96,
+      "metadata": {
+        "cu_seqlens_sha256": "c45aa262d38b091df86dc7e89d24ad81a740658f9dec69b4a6dd65d728c9dac0",
+        "rotary_cos_sha256": "e561d56905f3d860b19095e32d4d8f32408fcb8262b3de5e9b2d602a89a7b0a9",
+        "rotary_sin_sha256": "64bbe2f2b859bee747e2a2554eda5fa7cac5e5ebc331285270198143bb9505b2"
+      },
+      "components": {
+        "block_input_sha256": "d6e53e442066e7fa894a92a19eacadfb44aaad386f56f057af2019db62b687c4",
+        "norm1_sha256": "4932d26a10bb9af9d9b0cb80924ad40a1d03a21366396c361fae8cb516aa5776",
+        "qkv_linear_sha256": "2783445334e87c534a13bb6173499c6e7e45d7c9d65d5d8a19e8e734d22ea9a2",
+        "query_rotated_sha256": "a68087571f4fd823b46ec7871a8f9cc6e4613f2a712bd406b273659a24df8d47",
+        "key_rotated_sha256": "902d9b3816cbfb82763657f6c0929de81444986da2809de55b4f180718d19fc7",
+        "value_sha256": "cf4e26753abb7ba1d417cd6839ba4a235e051fd6642c47e6bf4e0e2d57e9243d",
+        "attention_sha256": "c01fc5b283298e4219404a5cfa999eb999a5ec196979f6440c0cef1df5d8c8a2",
+        "block_output_sha256": "c65425e53d0f386eed99465fe387aa43a331ab9aa713d328869f81e93772f4b2"
+      },
+      "independent_full_model_block_output_sha256": "c65425e53d0f386eed99465fe387aa43a331ab9aa713d328869f81e93772f4b2",
+      "independent_comparison_exact": true
+    }
+  ],
+  "decision": {
+    "case_count": 2,
+    "passed_cases": 2,
+    "all_components_captured": true,
+    "all_metadata_captured": true,
+    "all_independent_block_outputs_bit_exact": true,
+    "qualified_for_native_boundary_comparison": true,
+    "overall_pass": true
+  }
+}

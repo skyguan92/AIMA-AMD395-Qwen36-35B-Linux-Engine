@@ -1133,6 +1133,89 @@ class NativeVisualLayoutTest(unittest.TestCase):
         self.assertIn("vision-multimedia-block-oracle/v1", capture)
         self.assertIn("cloudpickle.register_pickle_by_value(module)", capture)
 
+    def test_full_native_vision_pipeline_evidence_is_hash_bound(self) -> None:
+        multimedia = json.loads(
+            (
+                ROOT
+                / "benchmarks/results/"
+                "native-vision-multimedia-block-oracle-v0.1.0.json"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertTrue(multimedia["complete"])
+        for source in multimedia["source"]["files"]:
+            self.assertEqual(
+                hashlib.sha256((ROOT / source["path"]).read_bytes()).hexdigest(),
+                source["sha256"],
+            )
+        self.assertEqual(
+            [case["case_id"] for case in multimedia["cases"]],
+            ["multi_image", "multi_video"],
+        )
+        self.assertTrue(
+            multimedia["decision"]["all_independent_block_outputs_bit_exact"]
+        )
+
+        evidence = json.loads(
+            (
+                ROOT / "benchmarks/results/native-vision-pipeline-v0.1.0.json"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertTrue(evidence["complete"])
+        for source in evidence["source"]["files"]:
+            self.assertEqual(
+                hashlib.sha256((ROOT / source["path"]).read_bytes()).hexdigest(),
+                source["sha256"],
+            )
+        for dependency in ("encoder_qualification", "merger_qualification"):
+            record = evidence["dependencies"][dependency]
+            self.assertEqual(
+                hashlib.sha256((ROOT / record["path"]).read_bytes()).hexdigest(),
+                record["sha256"],
+            )
+        multimedia_dependency = evidence["dependencies"][
+            "multimedia_block_oracle"
+        ]
+        self.assertEqual(
+            hashlib.sha256(
+                (ROOT / multimedia_dependency["path"]).read_bytes()
+            ).hexdigest(),
+            multimedia_dependency["public_record_sha256"],
+        )
+        self.assertEqual(
+            [case["case_id"] for case in evidence["cases"]],
+            [
+                "image_local_png",
+                "video_local_mp4",
+                "multi_image",
+                "multi_video",
+                "mixed_image_video",
+            ],
+        )
+        boundary_elements = 0
+        exact_elements = 0
+        for case in evidence["cases"]:
+            self.assertTrue(case["passed"])
+            self.assertEqual(case["relative_l2_error"], 0.0)
+            self.assertEqual(case["cosine_similarity"], 1.0)
+            self.assertEqual(len(case["boundaries"]), 3)
+            for boundary in case["boundaries"]:
+                boundary_elements += boundary["elements"]
+                exact_elements += boundary["exact_elements"]
+                self.assertEqual(
+                    boundary["exact_elements"], boundary["elements"]
+                )
+        decision = evidence["decision"]
+        self.assertEqual(boundary_elements, 4866048)
+        self.assertEqual(exact_elements, 4866048)
+        self.assertEqual(decision["total_boundary_elements"], boundary_elements)
+        self.assertEqual(decision["exact_boundary_elements"], exact_elements)
+        self.assertTrue(decision["all_metadata_hashes_exact"])
+        self.assertTrue(decision["all_boundaries_bit_exact"])
+        self.assertTrue(decision["full_visual_pipeline_qualified"])
+        self.assertFalse(decision["media_embedding_injection_qualified"])
+        self.assertFalse(decision["g1_passed"])
+        self.assertFalse(decision["g2_passed"])
+
 
 if __name__ == "__main__":
     unittest.main()

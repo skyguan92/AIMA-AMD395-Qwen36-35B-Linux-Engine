@@ -1,0 +1,376 @@
+{
+  "schema": "aima-amd395-qwen36/native-vision-pipeline-qualification/v1",
+  "complete": true,
+  "recorded_at": "2026-08-14T00:47:24+08:00",
+  "host": {
+    "label": "amd395",
+    "gpu_arch": "gfx1151",
+    "device_name": "Radeon 8060S Graphics"
+  },
+  "source": {
+    "commit": "c688a35db0ec0c7e2315fe636fcee19e42362190",
+    "clean": true,
+    "qualification_bundle_sha256": "d2de40558cb6a14661e1a73fbd4d0361eb9d5bade3a8a9159c3c55fd27859fc1",
+    "bundle_prerequisite_commit": "6b382f812dc63153add2a31f6892067027e345c5",
+    "files": [
+      {
+        "path": "native/include/aima/native_vision_pipeline.h",
+        "sha256": "8bd9bfc1ab4f358acad4b348189a1f305a25860c1fe29c915efce2f8d68cb013"
+      },
+      {
+        "path": "native/src/native_vision_pipeline.hip.cpp",
+        "sha256": "72888d6e92cbdab0b4b6791f9384b76cf128e755164b72f868e98a088f624cfd"
+      },
+      {
+        "path": "native/tools/vision_pipeline_oracle_probe.hip.cpp",
+        "sha256": "72c20f20adbef83567350d573467bf4b6d96cad6acba1f11f683af3f05aa6699"
+      },
+      {
+        "path": "scripts/build-native-vision-pipeline-probe.sh",
+        "sha256": "bd9fe3b2d912e42f10a725228de2afe66340189050243d41ff6c843ec44a511f"
+      }
+    ]
+  },
+  "binary": {
+    "path": "${AIMA_BUILD_DIR}/native-vision-pipeline-probe",
+    "sha256": "3a473e9250c3f8bdc56b298c005098d0f4cae58903ea66cf1755685b9303d727",
+    "runtime_python": false,
+    "runtime_torch": false,
+    "runtime_vllm": false,
+    "runtime_triton": false
+  },
+  "model": {
+    "repository": "Qwen/Qwen3.6-35B-A3B",
+    "revision": "995ad96eacd98c81ed38be0c5b274b04031597b0",
+    "dtype": "bfloat16",
+    "visual_weight_payload_bytes": 893142496,
+    "vision_block_count": 27,
+    "vision_hidden_size": 1152,
+    "language_hidden_size": 2048
+  },
+  "dependencies": {
+    "encoder_qualification": {
+      "path": "benchmarks/results/native-vision-aot-encoder-v0.1.0.json",
+      "sha256": "337857fd2ab1017dccb846cceb246c63617f7a5068ec49ceee0352d990d8726e"
+    },
+    "merger_qualification": {
+      "path": "benchmarks/results/native-vision-merger-v0.1.0.json",
+      "sha256": "d44220db098b302f1303d1ece80b114c39a6569187a53752e09c551728b86f39"
+    },
+    "multimedia_block_oracle": {
+      "path": "benchmarks/results/native-vision-multimedia-block-oracle-v0.1.0.json",
+      "public_record_sha256": "d7186069bf5b266f65972f173b5784ab246df8a173f6d7e8453b9abbd74d8289",
+      "raw_manifest_sha256": "ef22c2764c7964ef35c20bf18ee949eb228b3a8aed462517c96efe15e21f7167",
+      "canonical_payload_sha256": "7deefa6091112c416cf4ae20d8328f823ea568394340c194ffa3002f1f066e32"
+    },
+    "full_model_oracle": {
+      "path": "benchmarks/results/vl-oracle-manifest.json",
+      "sha256": "87dcdf76b7251f78da01a2a5f4312a9fb5c7d07a1ca2b2420566e77930f23d44"
+    }
+  },
+  "implementation_contract": {
+    "input": "processor BF16 pixel_values in [patches,1536] order",
+    "stages": [
+      "patch_embed",
+      "interpolated_position_add",
+      "27_block_aot_encoder",
+      "patch_merger"
+    ],
+    "output": "BF16 visual embeddings in [merged_tokens,2048] order",
+    "attention_segments": "one independent segment per temporal frame",
+    "mixed_media_batches": "image and video visual calls remain separate and concatenate in request order",
+    "rotary_cache": {
+      "device": "gfx1151",
+      "compute_dtype": "float32",
+      "storage_dtype": "bfloat16",
+      "maximum_position": 8192,
+      "inverse_frequency_count": 18,
+      "generator": "native HIP cosf/sinf",
+      "cpu_libm_rejected": true,
+      "diagnostic": "CPU cache differed from the serving GPU cache by one BF16 ULP in 12 of 23040 multi-image cosine elements"
+    }
+  },
+  "oracle": {
+    "required_cases": [
+      "image_local_png",
+      "video_local_mp4",
+      "multi_image",
+      "multi_video",
+      "mixed_image_video"
+    ],
+    "boundaries": [
+      "vision_block_0",
+      "vision_block_26",
+      "vision_merger"
+    ],
+    "required_comparison": "bit_exact",
+    "goal_thresholds": {
+      "maximum_relative_l2_error": 0.002,
+      "minimum_cosine_similarity": 0.999
+    }
+  },
+  "cases": [
+    {
+      "case_id": "image_local_png",
+      "patches": 256,
+      "merged_tokens": 64,
+      "group_count": 1,
+      "groups": [
+        {
+          "patches": 256,
+          "cu_seqlens": [
+            0,
+            256
+          ],
+          "rotary_cos_sha256": "f22f04daec88e3d2f7c38fa18e60f60ff44e494c42b2ee99fc7bb72f9f151a44",
+          "rotary_sin_sha256": "2bff934386f67ad20f22116a83091153220d1a569344cef692f0f5ce91d50c5c"
+        }
+      ],
+      "temporary_bytes": 6766592,
+      "metadata_resident_bytes": 36864,
+      "library_workspace_bytes": 143327240,
+      "median_ms": 14.890853881835938,
+      "boundaries": [
+        {
+          "name": "vision_block_0",
+          "elements": 294912,
+          "exact_elements": 294912,
+          "sha256": "dbeff2fe17c9dfaf8f5022d6f73a33c55ac9e6a05c52c0bb51ef595a08063561"
+        },
+        {
+          "name": "vision_block_26",
+          "elements": 294912,
+          "exact_elements": 294912,
+          "sha256": "57cdb01ae726fb15154b0bce11bc50cdc648ab7012143246169abab880b2632d"
+        },
+        {
+          "name": "vision_merger",
+          "elements": 131072,
+          "exact_elements": 131072,
+          "sha256": "6f16cb0635a0a0dc079c4b99906e9e0fc16b8426746ab571ec24a8e43147b71b"
+        }
+      ],
+      "repeat_actual_sha256": "6f16cb0635a0a0dc079c4b99906e9e0fc16b8426746ab571ec24a8e43147b71b",
+      "relative_l2_error": 0.0,
+      "cosine_similarity": 1.0,
+      "passed": true
+    },
+    {
+      "case_id": "video_local_mp4",
+      "patches": 128,
+      "merged_tokens": 32,
+      "group_count": 1,
+      "groups": [
+        {
+          "patches": 128,
+          "cu_seqlens": [
+            0,
+            64,
+            128
+          ],
+          "rotary_cos_sha256": "3969d66676f0da607df61b5e221e49715ea9372a63ee4bce2b325388a7c5f82a",
+          "rotary_sin_sha256": "9002eb29ee5e78cd78b35a685609cbc9f93b113ae2f259e2e45fd1946e7817be"
+        }
+      ],
+      "temporary_bytes": 3383296,
+      "metadata_resident_bytes": 18432,
+      "library_workspace_bytes": 95551504,
+      "median_ms": 12.21280288696289,
+      "boundaries": [
+        {
+          "name": "vision_block_0",
+          "elements": 147456,
+          "exact_elements": 147456,
+          "sha256": "98199a56bd10c6c94aafb43beb5ed0f9a9ac1ea09fe432923cd631202b305246"
+        },
+        {
+          "name": "vision_block_26",
+          "elements": 147456,
+          "exact_elements": 147456,
+          "sha256": "764178cd51383c638860aa18affb7ce5f890ae390a7191b666e264accd8ded88"
+        },
+        {
+          "name": "vision_merger",
+          "elements": 65536,
+          "exact_elements": 65536,
+          "sha256": "af932a97af69adea968c8c36d90ad2effe83f1f4bb3d89e431120b83079d02f6"
+        }
+      ],
+      "repeat_actual_sha256": "af932a97af69adea968c8c36d90ad2effe83f1f4bb3d89e431120b83079d02f6",
+      "relative_l2_error": 0.0,
+      "cosine_similarity": 1.0,
+      "passed": true
+    },
+    {
+      "case_id": "multi_image",
+      "patches": 640,
+      "merged_tokens": 160,
+      "group_count": 1,
+      "groups": [
+        {
+          "patches": 640,
+          "cu_seqlens": [
+            0,
+            256,
+            640
+          ],
+          "rotary_cos_sha256": "6dd72d329802496f5c8c843e119d12a91e34c685279e185f6bb69231d6e6343f",
+          "rotary_sin_sha256": "b7eadbae171d68894738b40c7192dc8f816d6a493f2fe4560c395f3b74d9fac0"
+        }
+      ],
+      "temporary_bytes": 16916480,
+      "metadata_resident_bytes": 92160,
+      "library_workspace_bytes": 334430224,
+      "median_ms": 35.281410217285156,
+      "boundaries": [
+        {
+          "name": "vision_block_0",
+          "elements": 737280,
+          "exact_elements": 737280,
+          "sha256": "811ad6059ec8d9613e300d0612bd96d722218a00697eff7e3d02227eba7d1566"
+        },
+        {
+          "name": "vision_block_26",
+          "elements": 737280,
+          "exact_elements": 737280,
+          "sha256": "9670cf14d41899bb8dbeb0e3279d39853e1beb2cd8ae10aed4beb6c449f6ef38"
+        },
+        {
+          "name": "vision_merger",
+          "elements": 327680,
+          "exact_elements": 327680,
+          "sha256": "e41018daf2034608da0a472a0136518967998bb06908467655af1c5e72be74a1"
+        }
+      ],
+      "repeat_actual_sha256": "e41018daf2034608da0a472a0136518967998bb06908467655af1c5e72be74a1",
+      "relative_l2_error": 0.0,
+      "cosine_similarity": 1.0,
+      "passed": true
+    },
+    {
+      "case_id": "multi_video",
+      "patches": 320,
+      "merged_tokens": 80,
+      "group_count": 1,
+      "groups": [
+        {
+          "patches": 320,
+          "cu_seqlens": [
+            0,
+            64,
+            128,
+            224,
+            320
+          ],
+          "rotary_cos_sha256": "e561d56905f3d860b19095e32d4d8f32408fcb8262b3de5e9b2d602a89a7b0a9",
+          "rotary_sin_sha256": "64bbe2f2b859bee747e2a2554eda5fa7cac5e5ebc331285270198143bb9505b2"
+        }
+      ],
+      "temporary_bytes": 8458240,
+      "metadata_resident_bytes": 46080,
+      "library_workspace_bytes": 191103008,
+      "median_ms": 19.723770141601562,
+      "boundaries": [
+        {
+          "name": "vision_block_0",
+          "elements": 368640,
+          "exact_elements": 368640,
+          "sha256": "c65425e53d0f386eed99465fe387aa43a331ab9aa713d328869f81e93772f4b2"
+        },
+        {
+          "name": "vision_block_26",
+          "elements": 368640,
+          "exact_elements": 368640,
+          "sha256": "422f6427fd546df4ca0ad0b93dc423f5de7d80ea4f53dbddabc9d05254ed905c"
+        },
+        {
+          "name": "vision_merger",
+          "elements": 163840,
+          "exact_elements": 163840,
+          "sha256": "d2bad3cd0b0c7de5731104a72702c9e9ccab7e23db551b9296b39d2ccbc70dec"
+        }
+      ],
+      "repeat_actual_sha256": "d2bad3cd0b0c7de5731104a72702c9e9ccab7e23db551b9296b39d2ccbc70dec",
+      "relative_l2_error": 0.0,
+      "cosine_similarity": 1.0,
+      "passed": true
+    },
+    {
+      "case_id": "mixed_image_video",
+      "patches": 384,
+      "merged_tokens": 96,
+      "group_count": 2,
+      "groups": [
+        {
+          "patches": 256,
+          "cu_seqlens": [
+            0,
+            256
+          ],
+          "rotary_cos_sha256": "f22f04daec88e3d2f7c38fa18e60f60ff44e494c42b2ee99fc7bb72f9f151a44",
+          "rotary_sin_sha256": "2bff934386f67ad20f22116a83091153220d1a569344cef692f0f5ce91d50c5c"
+        },
+        {
+          "patches": 128,
+          "cu_seqlens": [
+            0,
+            64,
+            128
+          ],
+          "rotary_cos_sha256": "3969d66676f0da607df61b5e221e49715ea9372a63ee4bce2b325388a7c5f82a",
+          "rotary_sin_sha256": "9002eb29ee5e78cd78b35a685609cbc9f93b113ae2f259e2e45fd1946e7817be"
+        }
+      ],
+      "temporary_bytes": 6766592,
+      "metadata_resident_bytes": 55296,
+      "library_workspace_bytes": 238878744,
+      "median_ms": 27.20769691467285,
+      "boundaries": [
+        {
+          "name": "vision_block_0",
+          "elements": 442368,
+          "exact_elements": 442368,
+          "sha256": "f00c6acd112b9bd9a0717033a23a0e4e76dbb359a372201340dde2ae2f705da6"
+        },
+        {
+          "name": "vision_block_26",
+          "elements": 442368,
+          "exact_elements": 442368,
+          "sha256": "0a9f39e36ffd147a363a58a9fe50cc090e56bcf89a9b968a5080f3db4ec8534e"
+        },
+        {
+          "name": "vision_merger",
+          "elements": 196608,
+          "exact_elements": 196608,
+          "sha256": "93e337efdf73d9ac8b63a7c67275f4ca31c65155a2477ca5684601e8a63b2779"
+        }
+      ],
+      "repeat_actual_sha256": "93e337efdf73d9ac8b63a7c67275f4ca31c65155a2477ca5684601e8a63b2779",
+      "relative_l2_error": 0.0,
+      "cosine_similarity": 1.0,
+      "passed": true
+    }
+  ],
+  "decision": {
+    "case_count": 5,
+    "passed_cases": 5,
+    "boundary_comparison_count": 15,
+    "total_boundary_elements": 4866048,
+    "exact_boundary_elements": 4866048,
+    "total_visual_output_elements": 884736,
+    "all_finite": true,
+    "all_repeats_deterministic": true,
+    "all_metadata_hashes_exact": true,
+    "all_boundaries_bit_exact": true,
+    "all_27_blocks_executed": true,
+    "full_visual_pipeline_qualified": true,
+    "visual_tower_output_qualified": true,
+    "media_embedding_injection_qualified": false,
+    "language_boundary_qualified": false,
+    "serving_integration_qualified": false,
+    "g1_passed": false,
+    "g2_passed": false,
+    "g4_passed": false,
+    "overall_pass": true
+  }
+}
