@@ -70,6 +70,16 @@ void launch_prefill_rotary_table(void* cosine_fp32, void* sine_fp32,
                                  std::size_t position_start = 0,
                                  void* stream = nullptr);
 
+// Builds the Qwen3.6 language M-RoPE table from resident row-major
+// int64 positions [3, position_row_stride].  Each selected T/H/W cache value
+// is rounded through BF16 before being stored in the existing FP32 rotary
+// workspace, matching vLLM's cache-to-model-dtype boundary without changing
+// the already-qualified scalar-position text path.
+void launch_prefill_mrope_rotary_table(
+    void* cosine_fp32, void* sine_fp32,
+    const void* positions_i64, std::size_t token_count,
+    std::size_t position_row_stride = 0, void* stream = nullptr);
+
 // q_gate is BF16 [8192,16,512] with Q in each head's first 256 values;
 // k_raw is BF16 [8192,2,256].  Outputs are contiguous BF16 Q/K after the
 // checkpoint's head RMSNorm and partial (64-dimension) RoPE.
@@ -82,6 +92,18 @@ void launch_q8192_full_attention_head_norm_rope(
 // Generic fixed-context form. q/k row strides are in BF16 elements, allowing
 // q32768 to consume the single derived [tokens,9216] QKV projection directly.
 void launch_full_attention_head_norm_rope_prefill(
+    const void* q_gate, const void* k_raw, const void* v_raw,
+    const void* q_norm_weight, const void* k_norm_weight,
+    const void* cosine_fp32, const void* sine_fp32,
+    void* q_output, void* k_output, void* v_output,
+    std::size_t token_count, std::size_t q_row_stride,
+    std::size_t k_row_stride, std::size_t v_row_stride,
+    void* stream = nullptr);
+
+// M-RoPE consumer for the pinned vLLM Triton arithmetic: each BF16 rotary
+// product is truncated toward zero before the FP32 add/subtract and final
+// BF16 RNE store.  The scalar-position text consumer above remains unchanged.
+void launch_full_attention_head_norm_mrope_prefill(
     const void* q_gate, const void* k_raw, const void* v_raw,
     const void* q_norm_weight, const void* k_norm_weight,
     const void* cosine_fp32, const void* sine_fp32,

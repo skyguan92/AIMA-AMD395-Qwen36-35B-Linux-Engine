@@ -297,8 +297,48 @@ __global__ void prefill_rotary_table_kernel(float* cosine, float* sine,
   sine[index] = sinf(angle);
 }
 
+__device__ __forceinline__ unsigned mrope_axis_for_pair(unsigned pair) {
+  // Pinned Qwen3.6 interleaved mrope_section=[11,11,10].  This is the exact
+  // predicate used by vLLM's Triton M-RoPE kernel, including its inclusive
+  // section bounds.
+  const bool height = pair % 3 == 1 && pair <= 3 * 11;
+  const bool width = pair % 3 == 2 && pair <= 3 * 10;
+  return height ? 1U : (width ? 2U : 0U);
+}
+
+__global__ void prefill_mrope_rotary_table_kernel(
+    float* cosine, float* sine, const std::int64_t* positions,
+    std::size_t token_count, std::size_t position_row_stride) {
+  const std::size_t index = blockIdx.x * blockDim.x + threadIdx.x;
+  if (index >= token_count * kRotaryPairs) return;
+  const std::size_t token = index / kRotaryPairs;
+  const unsigned pair =
+      static_cast<unsigned>(index - token * kRotaryPairs);
+  const unsigned axis = mrope_axis_for_pair(pair);
+  const std::int64_t position =
+      positions[static_cast<std::size_t>(axis) * position_row_stride + token];
+  const float exponent =
+      static_cast<float>(2 * pair) / static_cast<float>(kRotaryDim);
+  const float inverse_frequency = 1.0f / powf(kRopeTheta, exponent);
+  const float angle = static_cast<float>(position) * inverse_frequency;
+  // The pinned vLLM cache is created in FP32 and converted to the query's
+  // BF16 dtype before triton_mrope consumes it.  Preserve that boundary while
+  // retaining the existing FP32 workspace/consumer ABI.
+  cosine[index] =
+      __bfloat162float(__float2bfloat16(cosf(angle)));
+  sine[index] =
+      __bfloat162float(__float2bfloat16(sinf(angle)));
+}
+
+__device__ __forceinline__ float triton_bf16_product_rtz(float left,
+                                                         float right) {
+  volatile float product = left * right;
+  return __uint_as_float(__float_as_uint(product) & 0xffff0000U);
+}
+
 template <std::size_t QRowStride, std::size_t KRowStride,
-          std::size_t VRowStride, bool CopyV>
+          std::size_t VRowStride, bool CopyV,
+          bool TruncateRotaryProducts>
 __global__ void full_attention_head_norm_rope_prefill_kernel(
     const __hip_bfloat16* q_gate, const __hip_bfloat16* k_raw,
     const __hip_bfloat16* v_raw,
@@ -376,8 +416,20 @@ __global__ void full_attention_head_norm_rope_prefill_kernel(
           dimension < kRotaryPairs ? dimension : dimension - kRotaryPairs;
       const float cos_value = cosine[token * kRotaryPairs + pair];
       const float sin_value = sine[token * kRotaryPairs + pair];
-      volatile float first_product = output * cos_value;
-      volatile float second_product = mate * sin_value;
+      float first_product = 0.0f;
+      float second_product = 0.0f;
+      if constexpr (TruncateRotaryProducts) {
+        // Triton's AMD BF16 multiply lowers to RTZ, followed by an FP32
+        // add/subtract and an RNE BF16 store.  Preserving both boundaries is
+        // required for bit-exact Qwen3.6 M-RoPE consumption.
+        first_product = triton_bf16_product_rtz(output, cos_value);
+        second_product = triton_bf16_product_rtz(mate, sin_value);
+      } else {
+        volatile float first_product_storage = output * cos_value;
+        volatile float second_product_storage = mate * sin_value;
+        first_product = first_product_storage;
+        second_product = second_product_storage;
+      }
       output = dimension < kRotaryPairs
                    ? first_product - second_product
                    : first_product + second_product;
@@ -393,6 +445,64 @@ __global__ void full_attention_head_norm_rope_prefill_kernel(
       }
     }
   }
+}
+
+template <bool TruncateRotaryProducts>
+void launch_full_attention_head_norm_rope_prefill_impl(
+    const void* q_gate, const void* k_raw, const void* v_raw,
+    const void* q_norm_weight, const void* k_norm_weight,
+    const void* cosine_fp32, const void* sine_fp32,
+    void* q_output, void* k_output, void* v_output,
+    std::size_t token_count, std::size_t q_row_stride,
+    std::size_t k_row_stride, std::size_t v_row_stride,
+    void* stream_value) {
+  const bool split_projection =
+      q_row_stride == 8192 && k_row_stride == 512 && v_row_stride == 0 &&
+      v_raw == nullptr && v_output == nullptr;
+  const bool fused_projection =
+      q_row_stride == 9216 && k_row_stride == 9216 &&
+      v_row_stride == 9216 && v_raw != nullptr && v_output != nullptr;
+  if (q_gate == nullptr || k_raw == nullptr || q_norm_weight == nullptr ||
+      k_norm_weight == nullptr || cosine_fp32 == nullptr ||
+      sine_fp32 == nullptr || q_output == nullptr || k_output == nullptr ||
+      token_count == 0 || token_count > kMaxPrefillTokens ||
+      (!split_projection && !fused_projection)) {
+    throw std::invalid_argument(
+        "native full-attention head norm geometry is unsupported");
+  }
+  if (split_projection) {
+    hipLaunchKernelGGL(
+        (full_attention_head_norm_rope_prefill_kernel<
+            8192, 512, 0, false, TruncateRotaryProducts>),
+        dim3(token_count), dim3(32, kQueryHeads + kKvHeads), 0,
+        static_cast<hipStream_t>(stream_value),
+        static_cast<const __hip_bfloat16*>(q_gate),
+        static_cast<const __hip_bfloat16*>(k_raw), nullptr,
+        static_cast<const __hip_bfloat16*>(q_norm_weight),
+        static_cast<const __hip_bfloat16*>(k_norm_weight),
+        static_cast<const float*>(cosine_fp32),
+        static_cast<const float*>(sine_fp32),
+        static_cast<__hip_bfloat16*>(q_output),
+        static_cast<__hip_bfloat16*>(k_output), nullptr);
+  } else {
+    hipLaunchKernelGGL(
+        (full_attention_head_norm_rope_prefill_kernel<
+            9216, 9216, 9216, true, TruncateRotaryProducts>),
+        dim3(token_count), dim3(32, kQueryHeads + kKvHeads), 0,
+        static_cast<hipStream_t>(stream_value),
+        static_cast<const __hip_bfloat16*>(q_gate),
+        static_cast<const __hip_bfloat16*>(k_raw),
+        static_cast<const __hip_bfloat16*>(v_raw),
+        static_cast<const __hip_bfloat16*>(q_norm_weight),
+        static_cast<const __hip_bfloat16*>(k_norm_weight),
+        static_cast<const float*>(cosine_fp32),
+        static_cast<const float*>(sine_fp32),
+        static_cast<__hip_bfloat16*>(q_output),
+        static_cast<__hip_bfloat16*>(k_output),
+        static_cast<__hip_bfloat16*>(v_output));
+  }
+  check_hip(hipGetLastError(),
+            "full_attention_head_norm_rope_prefill_kernel");
 }
 
 template <std::size_t QRowStride>
@@ -722,6 +832,36 @@ void launch_prefill_rotary_table(void* cosine_fp32, void* sine_fp32,
   check_hip(hipGetLastError(), "prefill_rotary_table_kernel");
 }
 
+void launch_prefill_mrope_rotary_table(
+    void* cosine_fp32, void* sine_fp32, const void* positions_i64,
+    std::size_t token_count, std::size_t position_row_stride,
+    void* stream_value) {
+  if (cosine_fp32 == nullptr || sine_fp32 == nullptr ||
+      positions_i64 == nullptr) {
+    throw std::invalid_argument(
+        "native M-RoPE table requires non-null inputs and outputs");
+  }
+  if (token_count == 0 || token_count > kMaxPrefillTokens) {
+    throw std::invalid_argument(
+        "native M-RoPE table context is unsupported");
+  }
+  if (position_row_stride == 0) position_row_stride = token_count;
+  if (position_row_stride < token_count) {
+    throw std::invalid_argument(
+        "native M-RoPE position row stride is invalid");
+  }
+  const std::size_t elements = token_count * kRotaryPairs;
+  const unsigned blocks =
+      static_cast<unsigned>((elements + kThreads - 1) / kThreads);
+  hipLaunchKernelGGL(
+      prefill_mrope_rotary_table_kernel, dim3(blocks), dim3(kThreads), 0,
+      static_cast<hipStream_t>(stream_value),
+      static_cast<float*>(cosine_fp32), static_cast<float*>(sine_fp32),
+      static_cast<const std::int64_t*>(positions_i64), token_count,
+      position_row_stride);
+  check_hip(hipGetLastError(), "prefill_mrope_rotary_table_kernel");
+}
+
 void launch_q8192_full_attention_head_norm_rope(
     const void* q_gate, const void* k_raw,
     const void* q_norm_weight, const void* k_norm_weight,
@@ -741,52 +881,24 @@ void launch_full_attention_head_norm_rope_prefill(
     std::size_t token_count, std::size_t q_row_stride,
     std::size_t k_row_stride, std::size_t v_row_stride,
     void* stream_value) {
-  const bool split_projection =
-      q_row_stride == 8192 && k_row_stride == 512 && v_row_stride == 0 &&
-      v_raw == nullptr && v_output == nullptr;
-  const bool fused_projection =
-      q_row_stride == 9216 && k_row_stride == 9216 &&
-      v_row_stride == 9216 && v_raw != nullptr && v_output != nullptr;
-  if (q_gate == nullptr || k_raw == nullptr || q_norm_weight == nullptr ||
-      k_norm_weight == nullptr || cosine_fp32 == nullptr ||
-      sine_fp32 == nullptr || q_output == nullptr || k_output == nullptr ||
-      token_count == 0 || token_count > kMaxPrefillTokens ||
-      (!split_projection && !fused_projection)) {
-    throw std::invalid_argument(
-        "native full-attention head norm geometry is unsupported");
-  }
-  if (split_projection) {
-    hipLaunchKernelGGL(
-        (full_attention_head_norm_rope_prefill_kernel<8192, 512, 0, false>),
-        dim3(token_count), dim3(32, kQueryHeads + kKvHeads), 0,
-        static_cast<hipStream_t>(stream_value),
-        static_cast<const __hip_bfloat16*>(q_gate),
-        static_cast<const __hip_bfloat16*>(k_raw), nullptr,
-        static_cast<const __hip_bfloat16*>(q_norm_weight),
-        static_cast<const __hip_bfloat16*>(k_norm_weight),
-        static_cast<const float*>(cosine_fp32),
-        static_cast<const float*>(sine_fp32),
-        static_cast<__hip_bfloat16*>(q_output),
-        static_cast<__hip_bfloat16*>(k_output), nullptr);
-  } else {
-    hipLaunchKernelGGL(
-        (full_attention_head_norm_rope_prefill_kernel<9216, 9216, 9216,
-                                                       true>),
-        dim3(token_count), dim3(32, kQueryHeads + kKvHeads), 0,
-        static_cast<hipStream_t>(stream_value),
-        static_cast<const __hip_bfloat16*>(q_gate),
-        static_cast<const __hip_bfloat16*>(k_raw),
-        static_cast<const __hip_bfloat16*>(v_raw),
-        static_cast<const __hip_bfloat16*>(q_norm_weight),
-        static_cast<const __hip_bfloat16*>(k_norm_weight),
-        static_cast<const float*>(cosine_fp32),
-        static_cast<const float*>(sine_fp32),
-        static_cast<__hip_bfloat16*>(q_output),
-        static_cast<__hip_bfloat16*>(k_output),
-        static_cast<__hip_bfloat16*>(v_output));
-  }
-  check_hip(hipGetLastError(),
-            "full_attention_head_norm_rope_prefill_kernel");
+  launch_full_attention_head_norm_rope_prefill_impl<false>(
+      q_gate, k_raw, v_raw, q_norm_weight, k_norm_weight, cosine_fp32,
+      sine_fp32, q_output, k_output, v_output, token_count, q_row_stride,
+      k_row_stride, v_row_stride, stream_value);
+}
+
+void launch_full_attention_head_norm_mrope_prefill(
+    const void* q_gate, const void* k_raw, const void* v_raw,
+    const void* q_norm_weight, const void* k_norm_weight,
+    const void* cosine_fp32, const void* sine_fp32,
+    void* q_output, void* k_output, void* v_output,
+    std::size_t token_count, std::size_t q_row_stride,
+    std::size_t k_row_stride, std::size_t v_row_stride,
+    void* stream_value) {
+  launch_full_attention_head_norm_rope_prefill_impl<true>(
+      q_gate, k_raw, v_raw, q_norm_weight, k_norm_weight, cosine_fp32,
+      sine_fp32, q_output, k_output, v_output, token_count, q_row_stride,
+      k_row_stride, v_row_stride, stream_value);
 }
 
 void launch_q8192_full_attention_sigmoid_gate_f32(
