@@ -1,7 +1,7 @@
 {
   "schema": "aima-amd395-qwen36/native-vl-language-layer0-qualification/v1",
   "complete": true,
-  "recorded_at": "2026-08-14T05:23:33+08:00",
+  "recorded_at": "2026-08-14T06:21:00+08:00",
   "host": {
     "label": "amd395",
     "os": "Linux",
@@ -9,16 +9,16 @@
     "device_name": "Radeon 8060S Graphics"
   },
   "source": {
-    "commit": "fed57973ce8041bef1dfffee2d40d756b0d75223",
+    "commit": "764fd57a08105f79b2d86cdcba45f9c25b17a864",
     "clean": true,
     "qualification_source_archives": [
       {
-        "content": "native, scripts, shape-lab loader and third-party source",
-        "sha256": "74d69da8d1858abc4464cbbf30f7ddd96865e742f4faa27d010fa040973692bc"
+        "content": "repository bundle through the layer-3 oracle-capture commit",
+        "sha256": "258f26c90947e074359c364abd31b3961dc34b274f377769d3988f6cff414f4c"
       },
       {
-        "content": "engine layout manifests",
-        "sha256": "16217c41bdfa83f43d4bc3a059658ddb8943abe2bb12fc1d2fbcd8011253d68f"
+        "content": "incremental native M-RoPE implementation commit bundle",
+        "sha256": "819e1402780bf3a6789562d93149493fbe98e00b5fe97632b248f4500b5e3360"
       }
     ],
     "files": [
@@ -40,7 +40,7 @@
       },
       {
         "path": "native/src/native_pointwise.hip.cpp",
-        "sha256": "36577bac402589e2fb42c92e895132c01672dba5fd9999eb9345376c4d585411"
+        "sha256": "4ab61766ae83f9ccba6d88e922b93dce51fea7faf6cdc36706dd914982a7ad07"
       },
       {
         "path": "native/src/native_resident_engine.hip.cpp",
@@ -131,15 +131,15 @@
   "qualification_run": {
     "probe_binary": {
       "path": "${AIMA_QUALIFICATION_DIR}/native-vl-language-layer0-probe",
-      "sha256": "54982c0e0e46e5f50e682c6761c05d076c9e58ea8f31172967422a08c78e8ec0",
-      "source_commit": "fed57973ce8041bef1dfffee2d40d756b0d75223",
+      "sha256": "cd2a022df6a0ed8c9ba759b1b1cffc3bf274e4c587457c547256535d5568c600",
+      "source_commit": "764fd57a08105f79b2d86cdcba45f9c25b17a864",
       "runtime_python": false,
       "runtime_torch": false,
       "runtime_vllm": false,
       "runtime_triton": false
     },
-    "raw_result_sha256": "072223dbf31ab7299a1a179044ab0ca83448bacee23b53c4d1396a2e147cff1d",
-    "weight_load_report_sha256": "649d75c1afb4a6fcf9e742f30d3948f1d99ac9da59932d0566dbd23664fe4a7f",
+    "raw_result_sha256": "05e7f29894d82e1433ffaf115491cffe3ae5ac28c6fdb8694b1d254c8a267c0d",
+    "weight_load_report_sha256": "a4a263958572b5f0aad991bd313f1e57d7775c461c21000f485fccf05c942e91",
     "single_resident_weight_load": true,
     "warmup_runs_per_case": 1,
     "measured_runs_per_case": 5,
@@ -172,7 +172,7 @@
         "expected_sha256": "730f078bc97c7553f40f2f9f1c92c72608152f7cac7b18afea133b55e583a3cb",
         "actual_sha256": "e56626b7d481cbabe13ab4d22dcb5af8dff5b905de7d343e6689d67bfde77e6e",
         "repeat_deterministic": true,
-        "median_ms": 19.35079574584961,
+        "median_ms": 19.34793472290039,
         "diagnostic_comparison_count": 33,
         "diagnostic_maximum_relative_l2_error": 0.00034364117800152823,
         "diagnostic_minimum_cosine_similarity": 0.999999940961417,
@@ -197,7 +197,7 @@
         "expected_sha256": "bc822e132eeeee9824c6ceeb43aabcafe0a31843ca88f990ff18734250bc192e",
         "actual_sha256": "2144107774d33c6e20e2e5b9cb8a01c674bd60fd55ff5a45d3d27fb0f6c82da7",
         "repeat_deterministic": true,
-        "median_ms": 19.429874420166016,
+        "median_ms": 19.80087661743164,
         "diagnostic_comparison_count": 33,
         "diagnostic_maximum_relative_l2_error": 0.00017008158208699548,
         "diagnostic_minimum_cosine_similarity": 0.9999999855362481,
@@ -222,7 +222,7 @@
         "expected_sha256": "7603077857c6ff64b7c4fd03fc76dfb5bbfabb9ac85be2d387b32df433531e25",
         "actual_sha256": "6a44a2c5e14e51905bba08c305463772d686e7178dfe5a276acbbca926093ec3",
         "repeat_deterministic": true,
-        "median_ms": 20.15997886657715,
+        "median_ms": 20.465389251708984,
         "diagnostic_comparison_count": 33,
         "diagnostic_maximum_relative_l2_error": 0.0002537179067466864,
         "diagnostic_minimum_cosine_similarity": 0.9999999678144567,
@@ -247,7 +247,7 @@
         "expected_sha256": "69a4f890bbee2bf79f979b0198fb6710e515cc79aae3c67580c957059ad5910c",
         "actual_sha256": "43f351c5a218a006c4794822da4d712ae558c86543b5f3c6333a07e938f86ab8",
         "repeat_deterministic": true,
-        "median_ms": 20.274503707885742,
+        "median_ms": 20.316452026367188,
         "diagnostic_comparison_count": 33,
         "diagnostic_maximum_relative_l2_error": 0.0007193353062903569,
         "diagnostic_minimum_cosine_similarity": 0.9999997414016113,
@@ -272,7 +272,7 @@
         "expected_sha256": "277c5cbc0833fbd4a40f845669a6beab43478b54a0fe27d1f64406687a8cc446",
         "actual_sha256": "253e75d706dc61b46c62519f74c9aeeb8f8759a405f31cbc6de4b230dffecca9",
         "repeat_deterministic": true,
-        "median_ms": 20.28633689880371,
+        "median_ms": 20.453872680664062,
         "diagnostic_comparison_count": 33,
         "diagnostic_maximum_relative_l2_error": 0.0006964529522926769,
         "diagnostic_minimum_cosine_similarity": 0.9999997574869892,
@@ -290,8 +290,8 @@
   "runtime_closure": {
     "binary": {
       "path": "${AIMA_QUALIFICATION_DIR}/aima-engine-native",
-      "sha256": "dfcc959c698f0d609d014922bedc38152db45fc36067b532f16e20f9dd9fdd10",
-      "embedded_source_commit": "fed57973ce8041bef1dfffee2d40d756b0d75223"
+      "sha256": "1f6b674b5d28ca2ba78e2db52f436245f704e60b1fd5a3b24ee404b505c0fa6b",
+      "embedded_source_commit": "764fd57a08105f79b2d86cdcba45f9c25b17a864"
     },
     "prefill_schedule_probe": {
       "complete": true,
@@ -310,7 +310,7 @@
     },
     "aot_closure_probe": {
       "complete": true,
-      "result_sha256": "14e0d415fdf188723781772be92369391351c1223d2595e711ab9f9aedca5a58",
+      "result_sha256": "645bc252d5ed49059b8a06148bc3041c48ca1fd1076a1eba2c631b3a478ee3ee",
       "image_count": 59,
       "loaded_count": 59,
       "image_bytes": 1053800,
@@ -330,9 +330,9 @@
     "g3_text_product_no_regression": false,
     "g4_native_vl_performance": false,
     "g5_native_release_product": false,
-    "next_blocking_boundary": "consume and qualify the frozen three-axis M-RoPE positions at the first full-attention language layer, layer 3",
+    "next_blocking_boundary": "wire the qualified M-RoPE positions and Q/K consumer into the resident q1024 layer-3 path, then compose and qualify layers 0 through 3",
     "non_claims": [
-      "layer 0 does not exercise the language full-attention rotary path",
+      "this requalification proves that the new isolated M-RoPE entry points did not change the layer-0 output; layer 0 itself does not exercise rotary",
       "the remaining 39 language layers, final norm, lm_head and full-vocabulary logits are not qualified by this record",
       "the q1024 shared text path still requires the complete G3 paired no-regression matrix",
       "diagnostic medians are not end-to-end TTFT or G4 performance evidence",

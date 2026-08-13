@@ -14,9 +14,9 @@ blocking condition in the governing goal can move a gate to `passed`.
 
 | Gate | Current state | Evidence required to pass | Next blocking action |
 |---|---|---|---|
-| G1 full VL functional parity | ordered chat media parts, bounded local/data/HTTP/HTTPS admission, image/video processors, resident visual weights, the complete pixel-to-visual-embedding path, media embedding injection, M-RoPE planning and the layer-0 language boundary are implemented; full-attention position consumption, the remaining language stack and serving remain incomplete | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | consume M-RoPE at the first full-attention layer, then compose the complete language and serving path |
-| G2 VL correctness parity | reference processor/boundary/logits/generation oracles frozen; the complete native visual tower, injected prompt embeddings and M-RoPE positions/delta are exact on all five blocking shapes; the q1024 language layer-0 boundary now passes all five shapes | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | qualify M-RoPE consumption at language layer 3, then final norm, lm_head and full-vocabulary logits |
-| G3 text product no regression | frozen baseline identified; the shared q1024 AOT/RMSNorm path changed and has not yet been paired against the release binary | paired 19-cell, maximum-window, correctness, MMLU, API, cache, startup and memory requalification | retain `v1.5.1` as an immutable paired binary and requalify every shared q1024 change |
+| G1 full VL functional parity | ordered chat media parts, bounded local/data/HTTP/HTTPS admission, image/video processors, resident visual weights, the complete pixel-to-visual-embedding path, media embedding injection, M-RoPE planning, layer 0 and isolated layer-3 M-RoPE table/Q/K consumption are implemented; resident position wiring, complete layer 3, the remaining language stack and serving remain incomplete | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | bind the exact three-axis positions in the resident q1024 layer-3 path, then compose the complete language and serving path |
+| G2 VL correctness parity | reference processor/boundary/logits/generation oracles frozen; the visual tower, injected embeddings, positions/delta, q1024 layer 0 and isolated layer-3 table/head-RMSNorm/rotary Q/K are exact on all five blocking shapes | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | compose layers 0 through 3 and qualify complete layer-3 attention/MoE, then final norm, lm_head and full-vocabulary logits |
+| G3 text product no regression | frozen baseline identified; the shared pointwise source changed, while exact-commit layer-0 requalification retained every prior output hash and numerical metric; the complete paired release matrix has not run | paired 19-cell, maximum-window, correctness, MMLU, API, cache, startup and memory requalification | retain `v1.5.1` as an immutable paired binary and run the complete paired matrix after language integration stabilizes |
 | G4 native VL performance | not started | paired per-cell stage timings and memory records against the fixed VL-enabled vLLM | generate matrix cells from the capability manifest |
 | G5 native release product | an exact-commit full runtime build and its 59-image AOT closure compile and probe successfully without Python inference dependencies; portable packaging and release qualification have not run | native-only package, security, isolated bundle, second-host, soak and rollback evidence | keep Python tooling qualification-only and qualify the final portable product only after the complete VL path exists |
 
@@ -47,7 +47,7 @@ logits or generation oracle may be accepted before
 `benchmarks/results/vl-reference-manifest.json` is generated and verified on
 `amd395`.
 
-## Verified live facts (2026-08-13)
+## Verified live facts (2026-08-14)
 
 Read-only probing on the target established:
 
@@ -440,11 +440,12 @@ The hash-bound evidence is
 `benchmarks/results/native-vl-mrope-v0.1.0.json`. This closes the discrete
 prompt-position boundary and implements the decode-position formula. Language
 layer 0 is a linear-attention layer and does not consume rotary positions; the
-first blocking consumption boundary is the full-attention layer 3. G1 and G2
-therefore remain false.
+first consumer is the full-attention layer 3. Its isolated table and Q/K
+boundary is now qualified below, while resident integration and the complete
+layer remain blocking. G1 and G2 therefore remain false.
 
-The first resident language compute boundary is now qualified at the actual
-product geometry. A clean `fed5797` source archive executes the complete
+The first resident language compute boundary is qualified at the actual
+product geometry. A clean `764fd57` worktree executes the complete
 q1024 bucket for every case, including its zero-padded tail, and compares only
 the 63-to-182-token logical prefix. The q1024 closure uses the serving
 `BT=64` FLA chain (401 launches, 13 code objects), while native 32-by-16 vec4
@@ -455,26 +456,28 @@ not enter that override.
 
 | Case | Logical tokens | Layer-0 relL2 | Cosine | Diagnostic median | Main/seeded expert sets |
 |---|---:|---:|---:|---:|---:|
-| Image | 81 | `0.000343641` | `0.999999941` | `19.351 ms` | `81/81`, `81/81` |
-| Video | 63 | `0.000170082` | `0.999999986` | `19.430 ms` | `63/63`, `63/63` |
-| Multi-image | 182 | `0.000253718` | `0.999999968` | `20.160 ms` | `182/182`, `182/182` |
-| Multi-video | 128 | `0.000719335` | `0.999999741` | `20.275 ms` | `128/128`, `128/128` |
-| Mixed image/video | 131 | `0.000433011` | `0.999999906` | `20.286 ms` | `131/131`, `131/131` |
+| Image | 81 | `0.000343641` | `0.999999941` | `19.348 ms` | `81/81`, `81/81` |
+| Video | 63 | `0.000170082` | `0.999999986` | `19.801 ms` | `63/63`, `63/63` |
+| Multi-image | 182 | `0.000253718` | `0.999999968` | `20.465 ms` | `182/182`, `182/182` |
+| Multi-video | 128 | `0.000719335` | `0.999999741` | `20.316 ms` | `128/128`, `128/128` |
+| Mixed image/video | 131 | `0.000433011` | `0.999999906` | `20.454 ms` | `131/131`, `131/131` |
 
 All five outputs are finite, repeat deterministic and within the frozen
 `relL2<=0.002`, `cosine>=0.999` thresholds. Each case also passes 24 main-chain
 and 9 seeded-MoE diagnostic comparisons. Input RMSNorm is bit-exact in all five
 cases, and the unordered top-k expert sets are exact for all 585 rows in both
-the main and seeded runs. The exact-commit probe binary SHA-256 is
-`54982c0e0e46e5f50e682c6761c05d076c9e58ea8f31172967422a08c78e8ec0`;
+the main and seeded runs. These output hashes and metrics are unchanged from
+the previous source identity, proving that the separate M-RoPE consumer did
+not alter layer 0. The exact-commit probe binary SHA-256 is
+`cd2a022df6a0ed8c9ba759b1b1cffc3bf274e4c587457c547256535d5568c600`;
 the raw result SHA-256 is
-`072223dbf31ab7299a1a179044ab0ca83448bacee23b53c4d1396a2e147cff1d`.
+`05e7f29894d82e1433ffaf115491cffe3ae5ac28c6fdb8694b1d254c8a267c0d`.
 The curated record is
 `benchmarks/results/native-vl-language-layer0-v0.1.0.json`.
 
 The same commit also builds the complete native runtime. Its binary SHA-256 is
-`dfcc959c698f0d609d014922bedc38152db45fc36067b532f16e20f9dd9fdd10`
-and it embeds the full `fed57973ce8041bef1dfffee2d40d756b0d75223` source
+`1f6b674b5d28ca2ba78e2db52f436245f704e60b1fd5a3b24ee404b505c0fa6b`
+and it embeds the full `764fd57a08105f79b2d86cdcba45f9c25b17a864` source
 identity. The q8192 compatibility prefill schedule closes all 431 launches,
 decode closes all 402 launches, and the AOT loader closes all 59 of 59 images;
 all three probes report no Python, Torch, vLLM or Triton runtime dependency.
@@ -482,10 +485,44 @@ This is compile and AOT-closure evidence only. The build-tree binary resolves
 target-system libraries and is not a portable-package, isolated-bundle,
 second-host, soak or release qualification, so G5 remains false.
 
-This record advances only the language layer-0 numerical boundary. Layer 3
-M-RoPE consumption, the remaining language layers, final norm, lm_head,
-full-vocabulary logits, deterministic generation, task quality, G3 paired text
-requalification and G4 serving performance remain blocking.
+The layer-3 reference capture uses the real pinned vLLM serving path. Two
+clean `8e6f66c` runs each captured 24 components for image, video,
+multi-image, multi-video and mixed image/video. All 120 component shapes,
+dtypes and 57,227,480 payload bytes repeat exactly, and every captured
+`int64[3,tokens]` position tensor is byte-identical to the frozen processor
+oracle.
+
+The native consumer reads those resident positions, selects the interleaved
+`[11,11,10]` T/H/W pair axes and rounds the FP32 trigonometric cache through
+BF16 before using the existing FP32 workspace ABI. Attribution established
+that the 256-wide head RMSNorm was already bit-exact; the remaining rotary
+discriminator was the pinned AMD Triton sequence of BF16 RTZ products,
+FP32 add/subtract and final BF16 RNE store. This arithmetic is exposed only by
+the explicit M-RoPE entry point, leaving the scalar-position text consumer
+unchanged.
+
+On clean `764fd57`, generated cos/sin, head-RMSNorm Q/K, oracle-table rotary
+Q/K and generated-table rotary Q/K all pass bit-for-bit for all five cases.
+The six nonduplicate comparisons total 5,428,800 of 5,428,800 exact BF16
+elements; 1 warmup plus 5 measured runs per case are deterministic. A second
+independent reference capture produces the same 20 native output files and
+all 5,466,240 bytes exactly. Diagnostic medians are `0.042` to `0.085 ms` and
+cover only table generation plus Q/K normalization/rotation. The probe binary
+SHA-256 is
+`fab0bd21e95f6f1f497a02e45a739b042418a0f1b031966e12d7c19e71dca8af`;
+the two result SHA-256 values are
+`95697e3faab79a95b00a10249599412a6065fd1f7547b713e7c5248bcd571fe6`
+and
+`7a27750619bf709ba5e3b892f264bf10cdab036ac8deb7aa77ed7ae2fdca0c9d`.
+The curated record is
+`benchmarks/results/native-vl-language-layer3-mrope-v0.1.0.json`.
+
+This closes the isolated layer-3 position-table and Q/K-consumption boundary,
+not the complete layer. The resident q1024 request path still must upload and
+bind the plan, layers 0 through 3 must be composed in one request, and layer-3
+causal attention, output projection, residual and MoE must pass before moving
+to the remaining language layers, final norm, lm_head and logits. G3 paired
+text qualification and G4 serving performance also remain blocking.
 
 `native_media_test` and `native_chat_protocol_test` both compile with strict
 warnings and pass on `amd395`. This is implementation progress, not G1 or G2

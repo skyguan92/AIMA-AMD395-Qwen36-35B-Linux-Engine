@@ -260,7 +260,7 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         self.assertTrue(result["source"]["clean"])
         self.assertEqual(
             result["source"]["commit"],
-            "fed57973ce8041bef1dfffee2d40d756b0d75223",
+            "764fd57a08105f79b2d86cdcba45f9c25b17a864",
         )
         for record in result["source"]["files"]:
             self.assertEqual(
