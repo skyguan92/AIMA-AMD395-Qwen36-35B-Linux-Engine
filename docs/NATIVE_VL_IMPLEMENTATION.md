@@ -277,8 +277,20 @@ oracle. The sealed raw manifest SHA-256 is
 `443cae9b5dc0b426ec04725a7dede893c3c433d6cb910b81cbd48ecd9bfd782a`;
 the public compact record is
 `benchmarks/results/native-vision-block-oracle-v0.1.0.json`. This freezes the
-next implementation boundaries but does not claim that a native vision block
-exists yet.
+next implementation boundaries.
+
+The first native block compute slice is now qualified without overstating it as
+a complete block. `NativeVisionBlockPrefixPlan` implements parameterized BF16
+LayerNorm (`epsilon=1e-6`, FP32 Welford reduction) followed by the checkpoint
+QKV projection and bias. From a clean `7349828` checkout, block 0 passed both
+the 256-row image and 128-row/two-frame video serving oracles. Across the two
+cases, LayerNorm had relative L2 error at most `1.37e-5` and cosine above
+`0.9999999999`; QKV had relative L2 error at most `5.62e-5` and cosine above
+`0.9999999984`. All 1,769,472 compared BF16 elements were finite. The hash-bound
+record is `benchmarks/results/native-vision-block-prefix-v0.1.0.json`.
+Attention, the projection/residual and MLP half of each block, blocks 13/26,
+the merger and serving integration remain unqualified, so neither G1 nor G2
+passes.
 
 `native_media_test` and `native_chat_protocol_test` both compile with strict
 warnings and pass on `amd395`. This is implementation progress, not G1 or G2

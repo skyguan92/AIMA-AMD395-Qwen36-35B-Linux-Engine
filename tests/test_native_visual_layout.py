@@ -26,6 +26,9 @@ POSITION_RESULT_PATH = (
 VISION_BLOCK_ORACLE_RESULT_PATH = (
     ROOT / "benchmarks/results/native-vision-block-oracle-v0.1.0.json"
 )
+VISION_BLOCK_PREFIX_RESULT_PATH = (
+    ROOT / "benchmarks/results/native-vision-block-prefix-v0.1.0.json"
+)
 
 
 class NativeVisualLayoutTest(unittest.TestCase):
@@ -382,6 +385,54 @@ class NativeVisualLayoutTest(unittest.TestCase):
         self.assertIn("norm1.passed() && qkv.passed()", probe)
         self.assertIn("vision_block_prefix_oracle_probe.hip.cpp", build)
         self.assertIn("native_vision_block_prefix.hip.cpp", build)
+
+        result = json.loads(
+            VISION_BLOCK_PREFIX_RESULT_PATH.read_text(encoding="utf-8")
+        )
+        self.assertTrue(result["complete"])
+        self.assertTrue(result["source"]["clean"])
+        self.assertEqual(
+            result["source"]["commit"],
+            "73498285c1538097f2c7ade11a49b6ce3936e481",
+        )
+        for source_name in ("build_script", "block_prefix", "probe", "gemm"):
+            source_record = result["source"][source_name]
+            self.assertEqual(
+                hashlib.sha256(
+                    (ROOT / source_record["path"]).read_bytes()
+                ).hexdigest(),
+                source_record["sha256"],
+            )
+        oracle_record = json.loads(
+            (ROOT / result["oracle"]["public_record"]).read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(
+            hashlib.sha256(
+                (ROOT / result["oracle"]["public_record"]).read_bytes()
+            ).hexdigest(),
+            result["oracle"]["public_record_sha256"],
+        )
+        self.assertEqual(
+            oracle_record["oracle"]["manifest_sha256"],
+            result["oracle"]["raw_manifest_sha256"],
+        )
+        self.assertEqual(len(result["cases"]), 2)
+        for case in result["cases"]:
+            self.assertEqual(set(case["comparisons"]), {"norm1", "qkv_linear"})
+            for comparison in case["comparisons"].values():
+                self.assertTrue(comparison["passed"])
+                self.assertEqual(
+                    comparison["finite_elements"], comparison["elements"]
+                )
+                self.assertLessEqual(comparison["relative_l2_error"], 0.002)
+                self.assertGreaterEqual(comparison["cosine_similarity"], 0.999)
+        decision = result["decision"]
+        self.assertTrue(decision["overall_pass"])
+        self.assertFalse(decision["full_vision_block_qualified"])
+        self.assertFalse(decision["g1_passed"])
+        self.assertFalse(decision["g2_passed"])
 
 
 if __name__ == "__main__":

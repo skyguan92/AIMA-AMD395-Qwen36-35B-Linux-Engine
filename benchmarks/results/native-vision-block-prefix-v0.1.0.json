@@ -1,0 +1,156 @@
+{
+  "schema": "aima-amd395-qwen36/native-vision-block-prefix-qualification/v1",
+  "complete": true,
+  "recorded_at": "2026-08-13T22:12:22+08:00",
+  "host": {
+    "label": "amd395",
+    "hostname": "quings",
+    "gpu_arch": "gfx1151",
+    "device_name": "Radeon 8060S Graphics"
+  },
+  "source": {
+    "commit": "73498285c1538097f2c7ade11a49b6ce3936e481",
+    "clean": true,
+    "bundle_sha256": "048db5ab74456deb0d60587b61f99477ef54ebbdffd2397ab47d4ce0b8daeacb",
+    "build_script": {
+      "path": "scripts/build-native-vision-block-prefix-probe.sh",
+      "sha256": "ca19a033715a8df115678f8a5d4071eafcba9859cba87568d4b17138fb63e4b9"
+    },
+    "header": {
+      "path": "native/include/aima/native_vision_encoder.h",
+      "sha256": "b7d93a05c9bdd35f36a899c2397dce0f2160287c46e41b75cbb6572b68d9fed3"
+    },
+    "block_prefix": {
+      "path": "native/src/native_vision_block_prefix.hip.cpp",
+      "sha256": "4d19a99ebc65344b2ce0ab132a6b0987699d5d23413ee6716b4df521c0c5b8c0"
+    },
+    "probe": {
+      "path": "native/tools/vision_block_prefix_oracle_probe.hip.cpp",
+      "sha256": "dee1653ef3748c934eadf92700f16aa703b6e3b9163664c7f2614bcb2bf3c9f3"
+    },
+    "gemm": {
+      "path": "native/src/bf16_gemm.hip.cpp",
+      "sha256": "1b6b62085e295c8c61a17e8cf003042c16842c96b6d23bcd0e758f94a08a9861"
+    },
+    "weight_store": {
+      "path": "native/src/native_weight_store.hip.cpp",
+      "sha256": "4be034f46581215ff93a97a2add54e02953b95321682eabf063f422311d4ec0d"
+    }
+  },
+  "binary": {
+    "path": "${AIMA_BUILD_DIR}/native-vision-block-prefix-probe",
+    "bytes": 277360,
+    "sha256": "855323a5119fb6fb16417794e2d8ac2958e71875a985d80e65cc66077960ffda",
+    "runtime_python": false,
+    "runtime_torch": false,
+    "runtime_vllm": false,
+    "runtime_triton": false
+  },
+  "model": {
+    "repository": "Qwen/Qwen3.6-35B-A3B",
+    "revision": "995ad96eacd98c81ed38be0c5b274b04031597b0",
+    "dtype": "bfloat16",
+    "visual_weight_manifest_sha256": "abc5b3a0cc0881ba2d3e815b472eebe3404a6e3bc6438a430faccfbe8093c0aa",
+    "visual_weight_payload_bytes": 893142496
+  },
+  "oracle": {
+    "public_record": "benchmarks/results/native-vision-block-oracle-v0.1.0.json",
+    "public_record_sha256": "bfd1a29b4fc1d52c81e574029f772bfef68400b7146fbd4e8a09b7ed3ac7648a",
+    "raw_manifest_sha256": "443cae9b5dc0b426ec04725a7dede893c3c433d6cb910b81cbd48ecd9bfd782a",
+    "canonical_payload_sha256": "5aa66cd7163a8653f40f4ad6cbcfd2bd13afa77897e1c183fb28dfa962c0521e",
+    "boundary": "vision_block_0_norm1_qkv_prefix",
+    "thresholds": {
+      "finite_fraction": 1.0,
+      "maximum_relative_l2_error": 0.002,
+      "minimum_cosine_similarity": 0.999
+    }
+  },
+  "commands": {
+    "build": "bash scripts/build-native-vision-block-prefix-probe.sh",
+    "probe": "${AIMA_BUILD_DIR}/native-vision-block-prefix-probe ${AIMA_MODEL_DIR} ${AIMA_VISION_BLOCK_ORACLE_DIR}/${CASE}/block_input.bin ${AIMA_VISION_BLOCK_ORACLE_DIR}/${CASE}/norm1.bin ${AIMA_VISION_BLOCK_ORACLE_DIR}/${CASE}/qkv_linear.bin ${PATCHES} ${AIMA_LOAD_REPORT}"
+  },
+  "cases": [
+    {
+      "case_id": "image_local_png",
+      "patches": 256,
+      "comparisons": {
+        "norm1": {
+          "passed": true,
+          "elements": 294912,
+          "exact_elements": 294906,
+          "finite_elements": 294912,
+          "first_mismatch_index": 140000,
+          "first_expected_bits": 13527,
+          "first_actual_bits": 13528,
+          "maximum_absolute_error": 0.00390625,
+          "relative_l2_error": 0.00001337240623525,
+          "cosine_similarity": 0.99999999991059019,
+          "expected_sha256": "afbd74178ed9107cd35b2b50cf5e9abe67a9074391e369a4d98974fe87820f86",
+          "actual_sha256": "73932850af9a638da7335a19c64ec8e53a2dfa0a048f0722b8ff3bfb3faed3c3"
+        },
+        "qkv_linear": {
+          "passed": true,
+          "elements": 884736,
+          "exact_elements": 884500,
+          "finite_elements": 884736,
+          "first_mismatch_index": 584987,
+          "first_expected_bits": 15941,
+          "first_actual_bits": 15942,
+          "maximum_absolute_error": 0.015625,
+          "relative_l2_error": 0.00002637743408571,
+          "cosine_similarity": 0.99999999965211817,
+          "expected_sha256": "4b4603370c6df0574fbb97a5156b57b99340a516d8d877f696e64e3962f6907a",
+          "actual_sha256": "23c27930e3dc23c97fbb02737ac40834417cf3df6e311b472ac5607f1775ca81"
+        }
+      }
+    },
+    {
+      "case_id": "video_local_mp4",
+      "patches": 128,
+      "comparisons": {
+        "norm1": {
+          "passed": true,
+          "elements": 147456,
+          "exact_elements": 147448,
+          "finite_elements": 147456,
+          "first_mismatch_index": 114,
+          "first_expected_bits": 15061,
+          "first_actual_bits": 15060,
+          "maximum_absolute_error": 0.001953125,
+          "relative_l2_error": 0.00001365286365526,
+          "cosine_similarity": 0.99999999990679966,
+          "expected_sha256": "645a5f8de98d173d2f22e7e0f299ef49813b77313b5e3a46e3d0b6e41feb4e15",
+          "actual_sha256": "b743ba061c96f1620259c579aef69669b6404326942ecc599039235cf07cd496"
+        },
+        "qkv_linear": {
+          "passed": true,
+          "elements": 442368,
+          "exact_elements": 442060,
+          "finite_elements": 442368,
+          "first_mismatch_index": 34231,
+          "first_expected_bits": 47572,
+          "first_actual_bits": 47571,
+          "maximum_absolute_error": 0.03125,
+          "relative_l2_error": 0.00005615464167985,
+          "cosine_similarity": 0.99999999842339315,
+          "expected_sha256": "33cebf0fed8d5aebfacd3e55dab1f8af1544e3c5ad4a6ffdef9c6f450d8e6c32",
+          "actual_sha256": "f265eb39f86b523224308d43d4740ec7a3eeafc5efbe8f8e6e6ea6a57bb31eed"
+        }
+      }
+    }
+  ],
+  "decision": {
+    "case_count": 2,
+    "passed_cases": 2,
+    "norm1_total_elements": 442368,
+    "norm1_total_exact_elements": 442354,
+    "qkv_total_elements": 1327104,
+    "qkv_total_exact_elements": 1326560,
+    "all_finite": true,
+    "all_boundaries_within_threshold": true,
+    "full_vision_block_qualified": false,
+    "g1_passed": false,
+    "g2_passed": false,
+    "overall_pass": true
+  }
+}
