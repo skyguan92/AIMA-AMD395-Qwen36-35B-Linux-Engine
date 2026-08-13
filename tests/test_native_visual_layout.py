@@ -29,6 +29,9 @@ VISION_BLOCK_ORACLE_RESULT_PATH = (
 VISION_BLOCK_PREFIX_RESULT_PATH = (
     ROOT / "benchmarks/results/native-vision-block-prefix-v0.1.0.json"
 )
+VISION_ROTARY_RESULT_PATH = (
+    ROOT / "benchmarks/results/native-vision-rotary-v0.1.0.json"
+)
 
 
 class NativeVisualLayoutTest(unittest.TestCase):
@@ -455,6 +458,45 @@ class NativeVisualLayoutTest(unittest.TestCase):
         self.assertIn("value_comparison.exact_elements", probe)
         self.assertIn("vision_rotary_oracle_probe.hip.cpp", build)
         self.assertIn("native_vision_rotary.hip.cpp", build)
+
+        result = json.loads(VISION_ROTARY_RESULT_PATH.read_text(encoding="utf-8"))
+        self.assertTrue(result["complete"])
+        self.assertTrue(result["source"]["clean"])
+        self.assertEqual(
+            result["source"]["commit"],
+            "b35d5dbe7ce77856c0e970d0c9060833d91d419e",
+        )
+        for source_name in ("build_script", "header", "rotary", "probe"):
+            source_record = result["source"][source_name]
+            self.assertEqual(
+                hashlib.sha256(
+                    (ROOT / source_record["path"]).read_bytes()
+                ).hexdigest(),
+                source_record["sha256"],
+            )
+        self.assertEqual(len(result["cases"]), 2)
+        for case in result["cases"]:
+            self.assertEqual(
+                set(case["comparisons"]),
+                {"query_rotated", "key_rotated", "value"},
+            )
+            for comparison in case["comparisons"].values():
+                self.assertTrue(comparison["passed"])
+                self.assertEqual(
+                    comparison["exact_elements"], comparison["elements"]
+                )
+                self.assertEqual(
+                    comparison["actual_sha256"], comparison["expected_sha256"]
+                )
+        decision = result["decision"]
+        self.assertEqual(
+            decision["total_exact_elements"], decision["total_elements"]
+        )
+        self.assertTrue(decision["all_sha256_exact"])
+        self.assertTrue(decision["overall_pass"])
+        self.assertFalse(decision["full_vision_block_qualified"])
+        self.assertFalse(decision["g1_passed"])
+        self.assertFalse(decision["g2_passed"])
 
 
 if __name__ == "__main__":

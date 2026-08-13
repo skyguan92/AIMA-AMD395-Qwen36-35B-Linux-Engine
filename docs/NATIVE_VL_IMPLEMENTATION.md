@@ -292,6 +292,15 @@ Attention, the projection/residual and MLP half of each block, blocks 13/26,
 the merger and serving integration remain unqualified, so neither G1 nor G2
 passes.
 
+The following Q/K rotary and QKV-layout boundary is also native and qualified.
+The frozen ROCm reference uses FlashAttention's Triton Neox rotary kernel with
+BF16 inputs, FP32 multiply-add and 36+36 pairing inside each 72-wide head. A
+clean `b35d5db` native build reproduced query, key and value tensors for both
+the image and two-frame video byte-for-byte: 1,327,104 of 1,327,104 BF16
+elements and every SHA-256 matched. The compact record is
+`benchmarks/results/native-vision-rotary-v0.1.0.json`. Segmented attention is
+still the next unqualified block boundary.
+
 `native_media_test` and `native_chat_protocol_test` both compile with strict
 warnings and pass on `amd395`. This is implementation progress, not G1 or G2
 acceptance evidence.

@@ -1,0 +1,144 @@
+{
+  "schema": "aima-amd395-qwen36/native-vision-rotary-qualification/v1",
+  "complete": true,
+  "recorded_at": "2026-08-13T22:23:41+08:00",
+  "host": {
+    "label": "amd395",
+    "hostname": "quings",
+    "gpu_arch": "gfx1151",
+    "device_name": "Radeon 8060S Graphics"
+  },
+  "source": {
+    "commit": "b35d5dbe7ce77856c0e970d0c9060833d91d419e",
+    "clean": true,
+    "incremental_bundle_sha256": "8255a36332b733d10ba6b70f0773a9fba613ca4c7600dc85629dfef4c83832dc",
+    "bundle_prerequisite_commit": "73498285c1538097f2c7ade11a49b6ce3936e481",
+    "build_script": {
+      "path": "scripts/build-native-vision-rotary-probe.sh",
+      "sha256": "60b5384c62da35e03cfe48d233d2021294bd6bda88e51be20ec3fd5ef785b2fe"
+    },
+    "header": {
+      "path": "native/include/aima/native_vision_rotary.h",
+      "sha256": "4c47e2ce8d4483b78aef97fbcf80e9dbe4213ad58eff2a3fa10971019307bf86"
+    },
+    "rotary": {
+      "path": "native/src/native_vision_rotary.hip.cpp",
+      "sha256": "6975ff24396e92ad36f32860874a022f77712aa31499933843c053b6879ed0b9"
+    },
+    "probe": {
+      "path": "native/tools/vision_rotary_oracle_probe.hip.cpp",
+      "sha256": "73a0399a85534071a71ac0ef471636f3ad23450d61c44fa7221199acfd5556ea"
+    }
+  },
+  "binary": {
+    "path": "${AIMA_BUILD_DIR}/native-vision-rotary-probe",
+    "bytes": 52368,
+    "sha256": "d162f1e4de420783d49d25dcac9302b391a605e160b4a83d01aced130457118e",
+    "runtime_python": false,
+    "runtime_torch": false,
+    "runtime_vllm": false,
+    "runtime_triton": false
+  },
+  "reference": {
+    "serving_implementation": "flash_attn.ops.triton.rotary.apply_rotary",
+    "compute_dtype": "float32",
+    "storage_dtype": "bfloat16",
+    "style": "neox",
+    "head_count": 16,
+    "head_dimension": 72,
+    "rotary_half_dimension": 36
+  },
+  "oracle": {
+    "public_record": "benchmarks/results/native-vision-block-oracle-v0.1.0.json",
+    "public_record_sha256": "bfd1a29b4fc1d52c81e574029f772bfef68400b7146fbd4e8a09b7ed3ac7648a",
+    "raw_manifest_sha256": "443cae9b5dc0b426ec04725a7dede893c3c433d6cb910b81cbd48ecd9bfd782a",
+    "canonical_payload_sha256": "5aa66cd7163a8653f40f4ad6cbcfd2bd13afa77897e1c183fb28dfa962c0521e",
+    "boundary": "vision_block_0_rotary_qkv_layout"
+  },
+  "cases": [
+    {
+      "case_id": "image_local_png",
+      "patches": 256,
+      "comparisons": {
+        "query_rotated": {
+          "elements": 294912,
+          "exact_elements": 294912,
+          "finite_elements": 294912,
+          "relative_l2_error": 0.0,
+          "cosine_similarity": 1.0,
+          "expected_sha256": "8fc797a5c8599063a3c167357cc835d1aeaea4976374d2f761e75dca0921b4ba",
+          "actual_sha256": "8fc797a5c8599063a3c167357cc835d1aeaea4976374d2f761e75dca0921b4ba",
+          "passed": true
+        },
+        "key_rotated": {
+          "elements": 294912,
+          "exact_elements": 294912,
+          "finite_elements": 294912,
+          "relative_l2_error": 0.0,
+          "cosine_similarity": 1.0,
+          "expected_sha256": "a8240cb6545772d17c6bf919a05628b3d1ccf5db95b2ac596adb8334074c47f4",
+          "actual_sha256": "a8240cb6545772d17c6bf919a05628b3d1ccf5db95b2ac596adb8334074c47f4",
+          "passed": true
+        },
+        "value": {
+          "elements": 294912,
+          "exact_elements": 294912,
+          "finite_elements": 294912,
+          "relative_l2_error": 0.0,
+          "cosine_similarity": 1.0,
+          "expected_sha256": "b970dea7ca410cc8195ee959fd270296bca76498a5f3ea56383f9f5f38218226",
+          "actual_sha256": "b970dea7ca410cc8195ee959fd270296bca76498a5f3ea56383f9f5f38218226",
+          "passed": true
+        }
+      }
+    },
+    {
+      "case_id": "video_local_mp4",
+      "patches": 128,
+      "comparisons": {
+        "query_rotated": {
+          "elements": 147456,
+          "exact_elements": 147456,
+          "finite_elements": 147456,
+          "relative_l2_error": 0.0,
+          "cosine_similarity": 1.0,
+          "expected_sha256": "ef91b7bea696443f9324b686c640a3f8ae27499be86850e18d69ff27f240860e",
+          "actual_sha256": "ef91b7bea696443f9324b686c640a3f8ae27499be86850e18d69ff27f240860e",
+          "passed": true
+        },
+        "key_rotated": {
+          "elements": 147456,
+          "exact_elements": 147456,
+          "finite_elements": 147456,
+          "relative_l2_error": 0.0,
+          "cosine_similarity": 1.0,
+          "expected_sha256": "ba986f614c95a2d559f11890f4dafbcf8397d0a7455e1c0d8bfc14ae01eb6284",
+          "actual_sha256": "ba986f614c95a2d559f11890f4dafbcf8397d0a7455e1c0d8bfc14ae01eb6284",
+          "passed": true
+        },
+        "value": {
+          "elements": 147456,
+          "exact_elements": 147456,
+          "finite_elements": 147456,
+          "relative_l2_error": 0.0,
+          "cosine_similarity": 1.0,
+          "expected_sha256": "97be8b23597f93ddb32f55da94a9ff8a87254cf93cd89f64357d6b3302d60acd",
+          "actual_sha256": "97be8b23597f93ddb32f55da94a9ff8a87254cf93cd89f64357d6b3302d60acd",
+          "passed": true
+        }
+      }
+    }
+  ],
+  "decision": {
+    "case_count": 2,
+    "passed_cases": 2,
+    "total_elements": 1327104,
+    "total_exact_elements": 1327104,
+    "all_finite": true,
+    "all_sha256_exact": true,
+    "full_vision_block_qualified": false,
+    "g1_passed": false,
+    "g2_passed": false,
+    "overall_pass": true
+  }
+}
