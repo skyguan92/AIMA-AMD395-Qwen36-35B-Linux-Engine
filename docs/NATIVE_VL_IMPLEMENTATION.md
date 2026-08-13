@@ -337,8 +337,16 @@ A second full capture reproduced all 36 binary files and the sealed manifest
 byte-for-byte (manifest SHA-256 `0e4967ca0c0ca0d54be1ab0854736b60e7b0cd57141340c9743f46aec8d69604`).
 The compact record is
 `benchmarks/results/native-vision-depth-oracle-v0.1.0.json`. This qualifies the
-oracle inputs, not native blocks 13/26; those two native executions are the
-next boundary.
+oracle inputs. A clean `3681adb` native build then ran the same parameterized
+block plan at depths 0, 13 and 26 for both media cases. All 1,327,104 outputs
+were finite; the worst relative L2 was `0.001729`, the minimum cosine was
+`0.999998506`, and every repeated output SHA-256 was exact. The block 26 image
+has a maximum absolute delta of 32 only in its large BF16 tail (reference
+maximum magnitude 12,480); its relative L2 is `0.000646`, within the frozen
+metric without changing thresholds. The result is
+`benchmarks/results/native-vision-representative-blocks-v0.1.0.json`.
+Representative blocks now pass, but the sequential 27-block encoder, merger
+and serving integration are still unqualified; G1/G2 therefore remain false.
 
 `native_media_test` and `native_chat_protocol_test` both compile with strict
 warnings and pass on `amd395`. This is implementation progress, not G1 or G2

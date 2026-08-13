@@ -44,6 +44,9 @@ VISION_BLOCK_RESULT_PATH = (
 VISION_DEPTH_ORACLE_RESULT_PATH = (
     ROOT / "benchmarks/results/native-vision-depth-oracle-v0.1.0.json"
 )
+VISION_REPRESENTATIVE_BLOCKS_RESULT_PATH = (
+    ROOT / "benchmarks/results/native-vision-representative-blocks-v0.1.0.json"
+)
 
 
 class NativeVisualLayoutTest(unittest.TestCase):
@@ -805,6 +808,51 @@ class NativeVisualLayoutTest(unittest.TestCase):
         self.assertIn("native-vision-depth-block-oracle/v1", probe)
         self.assertIn("vision_depth_block_oracle_probe.hip.cpp", build)
         self.assertIn("native_vision_block.hip.cpp", build)
+
+        result = json.loads(
+            VISION_REPRESENTATIVE_BLOCKS_RESULT_PATH.read_text(encoding="utf-8")
+        )
+        self.assertTrue(result["complete"])
+        self.assertTrue(result["source"]["clean"])
+        self.assertEqual(
+            result["source"]["commit"],
+            "3681adbdf767f30fb30282d22736becafbdf67a5",
+        )
+        for source_name in (
+            "build_script", "probe", "header", "block", "prefix", "rotary",
+            "attention", "suffix", "gemm",
+        ):
+            source_record = result["source"][source_name]
+            self.assertEqual(
+                hashlib.sha256(
+                    (ROOT / source_record["path"]).read_bytes()
+                ).hexdigest(),
+                source_record["sha256"],
+            )
+        self.assertEqual(len(result["cases"]), 2)
+        for case in result["cases"]:
+            self.assertEqual(
+                [block["block_index"] for block in case["blocks"]], [0, 13, 26]
+            )
+            for block in case["blocks"]:
+                self.assertTrue(block["passed"])
+                self.assertEqual(block["finite_elements"], block["elements"])
+                self.assertLessEqual(block["relative_l2_error"], 0.002)
+                self.assertGreaterEqual(block["cosine_similarity"], 0.999)
+                self.assertEqual(
+                    block["actual_sha256"], block["repeat_actual_sha256"]
+                )
+                self.assertTrue(block["repeat_deterministic"])
+        decision = result["decision"]
+        self.assertEqual(decision["passed_comparisons"], 6)
+        self.assertEqual(decision["qualified_block_indices"], [0, 13, 26])
+        self.assertTrue(decision["all_representative_native_blocks_qualified"])
+        self.assertFalse(decision["full_vision_encoder_qualified"])
+        self.assertFalse(decision["vision_merger_qualified"])
+        self.assertFalse(decision["serving_integration_qualified"])
+        self.assertFalse(decision["g1_passed"])
+        self.assertFalse(decision["g2_passed"])
+        self.assertTrue(decision["overall_pass"])
 
 
 if __name__ == "__main__":
