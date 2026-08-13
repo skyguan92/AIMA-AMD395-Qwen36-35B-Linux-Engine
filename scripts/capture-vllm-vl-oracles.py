@@ -677,6 +677,7 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
                 flush=True,
             )
             llm.reset_mm_cache()
+            llm.llm_engine.reset_encoder_cache()
             messages = _build_messages(spec, args.fixture_root)
             engine_input = llm._preprocess_chat_one(
                 messages, chat_template_content_format="openai"
@@ -747,6 +748,11 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
                     "passed": True,
                     "request": _semantic_case(spec, records),
                     "request_sha256": canonical_json_sha256(_semantic_case(spec, records)),
+                    "cache_state": {
+                        "processor_cache": "reset-before-case",
+                        "encoder_cache": "reset-before-case",
+                        "prefix_cache_enabled": False,
+                    },
                     "processor": processor,
                     "model_modules": installation[0],
                     "boundaries": finalization[0]["boundaries"],
