@@ -20,8 +20,8 @@ mkdir -p "${OUT_DIR}"
   "${ROOT}/native/src/native_vision_aot_block_stack.hip.cpp" \
   "${ROOT}/native/src/native_vision_aot_block.hip.cpp" \
   "${ROOT}/native/src/native_vision_aot_attention.hip.cpp" \
-  "${ROOT}/native/src/native_vision_block_prefix.hip.cpp" \
   "${ROOT}/native/src/native_vision_block_suffix.hip.cpp" \
+  "${ROOT}/native/src/native_vision_exact_layer_norm.hip.cpp" \
   "${ROOT}/native/src/native_vision_rotary.hip.cpp" \
   "${ROOT}/native/src/aot_kernel.hip.cpp" \
   "${ROOT}/native/src/bf16_gemm.hip.cpp" \

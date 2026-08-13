@@ -165,23 +165,24 @@ int main(int argc, char** argv) {
               "hipDeviceSynchronize exact LayerNorm candidates");
     const Result division_result = compare(division_output.get(), expected);
     const Result fast_result = compare(fast_output.get(), expected);
-    const bool exactly_one = division_result.exact != fast_result.exact;
+    const bool complete = fast_result.exact;
     const std::string expected_sha256 =
         aima::sha256_bytes(expected.data(), expected.size());
     std::cout << "{\"schema\":\"aima-amd395-qwen36/"
                  "native-vision-exact-layer-norm-oracle/v1\","
-              << "\"complete\":" << (exactly_one ? "true" : "false")
+              << "\"complete\":" << (complete ? "true" : "false")
               << ",\"block_index\":" << block_index
               << ",\"rows\":" << rows
               << ",\"elements\":" << tensor_bytes / sizeof(std::uint16_t)
               << ",\"weight_payload_bytes\":" << load.payload_bytes
+              << ",\"selected_mode\":\"fast_amd_reciprocal\""
               << ",\"expected_sha256\":\"" << expected_sha256
               << "\",\"candidates\":{";
     print_result("division", division_result);
     std::cout << ',';
     print_result("fast_amd_reciprocal", fast_result);
     std::cout << "}}\n";
-    return exactly_one ? 0 : 3;
+    return complete ? 0 : 3;
   } catch (const std::exception& error) {
     std::cerr << "native vision exact LayerNorm probe: " << error.what()
               << '\n';

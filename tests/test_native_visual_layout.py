@@ -944,6 +944,9 @@ class NativeVisualLayoutTest(unittest.TestCase):
         ).read_text(encoding="utf-8")
         self.assertIn("impl_->attention->launch", block)
         self.assertNotIn("NativeVisionSegmentedAttentionPlan", block)
+        self.assertIn("impl_->norm1.launch", block)
+        self.assertIn("impl_->norm2.launch", block)
+        self.assertIn("NativeVisionLayerNormReciprocal::kFastAmdReciprocal", block)
         self.assertIn("std::make_shared<NativeVisionAotAttentionPlan>", stack)
         self.assertIn("constexpr std::size_t kVisionBlockCount = 27", stack)
         self.assertIn("blocks.emplace_back(weights, block_index, patches, attention)", stack)
@@ -964,7 +967,7 @@ class NativeVisualLayoutTest(unittest.TestCase):
         self.assertIn("__builtin_amdgcn_rcpf", source)
         self.assertIn("welford_combine<FastReciprocal>", source)
         self.assertIn("native-vision-exact-layer-norm-oracle/v1", probe)
-        self.assertIn("division_result.exact != fast_result.exact", probe)
+        self.assertIn("const bool complete = fast_result.exact", probe)
 
 
 if __name__ == "__main__":
