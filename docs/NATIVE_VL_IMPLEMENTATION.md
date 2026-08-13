@@ -15,7 +15,7 @@ blocking condition in the governing goal can move a gate to `passed`.
 | Gate | Current state | Evidence required to pass | Next blocking action |
 |---|---|---|---|
 | G1 full VL functional parity | ordered chat media parts, bounded local/data/HTTP/HTTPS admission, image/video processors and resident visual weights are implemented; vision execution and serving remain incomplete | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | execute processor tensors through the resident vision/model path |
-| G2 VL correctness parity | reference processor/boundary/logits/generation oracles frozen; native comparison and task suites pending | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | implement native boundaries, then compare against the frozen raw tensors before running task quality |
+| G2 VL correctness parity | reference processor/boundary/logits/generation oracles frozen; native patch and position boundaries qualified; remaining native comparison and task suites pending | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | implement vision blocks and merger, then compare the remaining frozen raw tensors before running task quality |
 | G3 text product no regression | frozen baseline identified | paired 19-cell, maximum-window, correctness, MMLU, API, cache, startup and memory requalification | retain `v1.5.1` as an immutable paired binary |
 | G4 native VL performance | not started | paired per-cell stage timings and memory records against the fixed VL-enabled vLLM | generate matrix cells from the capability manifest |
 | G5 native release product | not started | native-only package, security, isolated bundle, second-host, soak and rollback evidence | keep Python tooling qualification-only and outside the product runtime |
@@ -244,8 +244,20 @@ quantization. A clean `9d29d9d` build matched the image, video, multi-image and
 multi-video patch oracles bit-for-bit across 1,548,288 BF16 elements (128, 256,
 320 and 640 patch rows); every actual SHA-256 equals its oracle SHA-256. The
 hash-bound result is `benchmarks/results/native-vision-patch-v0.1.0.json`.
-Position interpolation and the 27 vision blocks are not yet covered by this
-result, so it advances only the patch boundary of G2.
+This result advances only the patch boundary of G2.
+
+The native position plan now interpolates the resident 48x48 BF16 table for a
+parameterized list of image/video grids, preserves Qwen's 2x2 spatial-merge
+order and repeats each spatial table over the temporal dimension. Its float32
+coordinate construction reproduces ATen's endpoint-directed `linspace`
+rounding, including non-square grids, and can fuse the BF16 addition into the
+patch output in place. Two independent frozen-reference captures were
+byte-identical. A clean `70bee9e` build matched four square/non-square
+image/video grids bit-for-bit across 1,105,920 BF16 elements; duplicated-media
+concatenation and zero-input in-place addition each matched another 2,211,840
+elements exactly. The result is
+`benchmarks/results/native-vision-position-v0.1.0.json`. The 27 vision blocks,
+merger and serving integration remain incomplete, so neither G1 nor G2 passes.
 
 `native_media_test` and `native_chat_protocol_test` both compile with strict
 warnings and pass on `amd395`. This is implementation progress, not G1 or G2
