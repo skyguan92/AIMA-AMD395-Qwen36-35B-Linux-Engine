@@ -951,6 +951,21 @@ class NativeVisualLayoutTest(unittest.TestCase):
         self.assertIn("native-vision-aot-block-stack-oracle/v1", probe)
         self.assertIn("native_vision_aot_attention.hip.cpp", build)
 
+    def test_exact_vision_layer_norm_freezes_upstream_reduction_modes(self) -> None:
+        source = (
+            ROOT / "native/src/native_vision_exact_layer_norm.hip.cpp"
+        ).read_text(encoding="utf-8")
+        probe = (
+            ROOT / "native/tools/vision_exact_layer_norm_oracle_probe.hip.cpp"
+        ).read_text(encoding="utf-8")
+        self.assertIn("8514f05131610dab50233027b2fab9c01235081b", source)
+        self.assertIn("constexpr int kVectorSize = 4", source)
+        self.assertIn("constexpr int kWarpsPerBlock = 8", source)
+        self.assertIn("__builtin_amdgcn_rcpf", source)
+        self.assertIn("welford_combine<FastReciprocal>", source)
+        self.assertIn("native-vision-exact-layer-norm-oracle/v1", probe)
+        self.assertIn("division_result.exact != fast_result.exact", probe)
+
 
 if __name__ == "__main__":
     unittest.main()
