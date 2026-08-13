@@ -1,0 +1,2908 @@
+{
+  "bindings": {
+    "fixture_manifest": {
+      "bytes": 2691,
+      "path": "benchmarks/fixtures/vl-capability-v0.1.0/fixtures-manifest.json",
+      "sha256": "07d3e6aa54cd80707d77d2f8f406788dabb219a5b98225cf6a7b63602a009028"
+    },
+    "processor_probe": {
+      "bytes": 39849,
+      "path": "benchmarks/results/vl-processor-capability-v0.1.0.json",
+      "sha256": "a3aa0ce74cd522ffd4d6c9ec2188b5e340c7dfc7fbe4509e146c18cdeb343589"
+    }
+  },
+  "captured_at": "2026-08-13T08:51:38+00:00",
+  "cases": [
+    {
+      "accepted": true,
+      "case_id": "residency_text_before",
+      "expected_accept": true,
+      "passed": true,
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": "Reply with one token.",
+            "role": "user"
+          }
+        ],
+        "model": "qwen36-vl-reference",
+        "stream": false,
+        "temperature": 0
+      },
+      "request_sha256": "6372a95da20410839f4c2808fc2c2f2d4d64773c8088602019667a5aaac584ec",
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+              "annotations": null,
+              "audio": null,
+              "content": "Here",
+              "function_call": null,
+              "reasoning": null,
+              "refusal": null,
+              "role": "assistant",
+              "tool_calls": []
+            },
+            "stop_reason": null,
+            "token_ids": null
+          }
+        ],
+        "kv_transfer_params": null,
+        "model": "qwen36-vl-reference",
+        "object": "chat.completion",
+        "prompt_logprobs": null,
+        "prompt_token_ids": null,
+        "service_tier": null,
+        "usage": {
+          "completion_tokens": 1,
+          "prompt_tokens": 15,
+          "prompt_tokens_details": null,
+          "total_tokens": 16
+        }
+      },
+      "response_bytes": 579,
+      "response_sha256": "c11d9b9f949f39e67b4e073f52b1add00533579faafd2838183920bfffa20fce",
+      "status_code": 200,
+      "surfaces": [
+        "api",
+        "generation",
+        "residency"
+      ],
+      "timings": {
+        "total_seconds": 0.17849454376846552,
+        "ttft_seconds": null
+      }
+    },
+    {
+      "accepted": true,
+      "case_id": "image_local_png",
+      "expected_accept": true,
+      "passed": true,
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "Name one visual property.",
+                "type": "text"
+              },
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 5467,
+                    "fixture": "image-rgb-256.png",
+                    "mime": "image/png",
+                    "sha256": "dc486687ceead3b9a14953b32ff5f7ee3b6125f52de11fb1b76db378d62dd0c8",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "qwen36-vl-reference",
+        "stream": false,
+        "temperature": 0
+      },
+      "request_sha256": "87482f229ee93a95a52ffc174488e78d94134025689592be69fbffa369e9991b",
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+              "annotations": null,
+              "audio": null,
+              "content": "The",
+              "function_call": null,
+              "reasoning": null,
+              "refusal": null,
+              "role": "assistant",
+              "tool_calls": []
+            },
+            "stop_reason": null,
+            "token_ids": null
+          }
+        ],
+        "kv_transfer_params": null,
+        "model": "qwen36-vl-reference",
+        "object": "chat.completion",
+        "prompt_logprobs": null,
+        "prompt_token_ids": null,
+        "service_tier": null,
+        "usage": {
+          "completion_tokens": 1,
+          "prompt_tokens": 82,
+          "prompt_tokens_details": null,
+          "total_tokens": 83
+        }
+      },
+      "response_bytes": 578,
+      "response_sha256": "3764fd1c67313bb31fcf90b06c84ce4dfd41a4cefe45112b4f5beff69e2ef1ba",
+      "status_code": 200,
+      "surfaces": [
+        "image",
+        "transport",
+        "generation"
+      ],
+      "timings": {
+        "total_seconds": 0.2946366025134921,
+        "ttft_seconds": null
+      }
+    },
+    {
+      "accepted": true,
+      "case_id": "image_data_jpeg",
+      "expected_accept": true,
+      "passed": true,
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": [
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 125682,
+                    "fixture": "image-landscape-512x192.jpg",
+                    "mime": "image/jpeg",
+                    "sha256": "f3c0db7e6458b7aa669b600c1b213246585d3924102583c0f0605ab009e895e2",
+                    "transport": "data"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "text": "Describe briefly.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "qwen36-vl-reference",
+        "stream": false,
+        "temperature": 0
+      },
+      "request_sha256": "e9c6e4ba837a5bf3a0a7f17e798a72f1192e6736f3e94091a47bf1e457d1034c",
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+              "annotations": null,
+              "audio": null,
+              "content": "The",
+              "function_call": null,
+              "reasoning": null,
+              "refusal": null,
+              "role": "assistant",
+              "tool_calls": []
+            },
+            "stop_reason": null,
+            "token_ids": null
+          }
+        ],
+        "kv_transfer_params": null,
+        "model": "qwen36-vl-reference",
+        "object": "chat.completion",
+        "prompt_logprobs": null,
+        "prompt_token_ids": null,
+        "service_tier": null,
+        "usage": {
+          "completion_tokens": 1,
+          "prompt_tokens": 112,
+          "prompt_tokens_details": null,
+          "total_tokens": 113
+        }
+      },
+      "response_bytes": 580,
+      "response_sha256": "e55f5b38e53e3c836231a7229f9c02a04349183bc85351d9f5862bd25d1c45ba",
+      "status_code": 200,
+      "surfaces": [
+        "image",
+        "transport"
+      ],
+      "timings": {
+        "total_seconds": 0.3187738871201873,
+        "ttft_seconds": null
+      }
+    },
+    {
+      "accepted": true,
+      "case_id": "image_http_webp",
+      "expected_accept": true,
+      "passed": true,
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "Describe briefly.",
+                "type": "text"
+              },
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 96,
+                    "fixture": "image-portrait-192x512.webp",
+                    "mime": "image/webp",
+                    "sha256": "5cc00157641e02af02f55f03790fd79c370ad581fbf2c7378aa4409fb14d7af8",
+                    "transport": "http"
+                  }
+                },
+                "type": "image_url"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "qwen36-vl-reference",
+        "stream": false,
+        "temperature": 0
+      },
+      "request_sha256": "5af5d4c0ab0ec2638f25a7ea700f634392ad23360f20299ea93eab2800d20a1b",
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+              "annotations": null,
+              "audio": null,
+              "content": "The",
+              "function_call": null,
+              "reasoning": null,
+              "refusal": null,
+              "role": "assistant",
+              "tool_calls": []
+            },
+            "stop_reason": null,
+            "token_ids": null
+          }
+        ],
+        "kv_transfer_params": null,
+        "model": "qwen36-vl-reference",
+        "object": "chat.completion",
+        "prompt_logprobs": null,
+        "prompt_token_ids": null,
+        "service_tier": null,
+        "usage": {
+          "completion_tokens": 1,
+          "prompt_tokens": 112,
+          "prompt_tokens_details": null,
+          "total_tokens": 113
+        }
+      },
+      "response_bytes": 580,
+      "response_sha256": "bfb701c9cb4bc5b2b7d427ab43d411ddc664899b976143f32258a898c94093bd",
+      "status_code": 200,
+      "surfaces": [
+        "image",
+        "transport"
+      ],
+      "timings": {
+        "total_seconds": 0.32342640217393637,
+        "ttft_seconds": null
+      }
+    },
+    {
+      "accepted": true,
+      "case_id": "image_transparent_png",
+      "expected_accept": true,
+      "passed": true,
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": [
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 4993,
+                    "fixture": "image-transparent-160x320.png",
+                    "mime": "image/png",
+                    "sha256": "72e63cabe9a897fac895e9148fdb203867bb7f8ef95311fdfeaf4cd1026580f9",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "text": "Describe briefly.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "qwen36-vl-reference",
+        "stream": false,
+        "temperature": 0
+      },
+      "request_sha256": "0427daa2860d6f4a15ca4d19fb30c269062578fb7b0cbfd1831f362a10e8bfa6",
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+              "annotations": null,
+              "audio": null,
+              "content": "The",
+              "function_call": null,
+              "reasoning": null,
+              "refusal": null,
+              "role": "assistant",
+              "tool_calls": []
+            },
+            "stop_reason": null,
+            "token_ids": null
+          }
+        ],
+        "kv_transfer_params": null,
+        "model": "qwen36-vl-reference",
+        "object": "chat.completion",
+        "prompt_logprobs": null,
+        "prompt_token_ids": null,
+        "service_tier": null,
+        "usage": {
+          "completion_tokens": 1,
+          "prompt_tokens": 88,
+          "prompt_tokens_details": null,
+          "total_tokens": 89
+        }
+      },
+      "response_bytes": 578,
+      "response_sha256": "d464384c5d6149d470ffcb54e5cb7c69333fd4262f42e2742484034331fb3474",
+      "status_code": 200,
+      "surfaces": [
+        "image"
+      ],
+      "timings": {
+        "total_seconds": 0.3046631617471576,
+        "ttft_seconds": null
+      }
+    },
+    {
+      "accepted": true,
+      "case_id": "multi_image_interleaved",
+      "expected_accept": true,
+      "passed": true,
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "First:",
+                "type": "text"
+              },
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 5467,
+                    "fixture": "image-rgb-256.png",
+                    "mime": "image/png",
+                    "sha256": "dc486687ceead3b9a14953b32ff5f7ee3b6125f52de11fb1b76db378d62dd0c8",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "text": "Second:",
+                "type": "text"
+              },
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 125682,
+                    "fixture": "image-landscape-512x192.jpg",
+                    "mime": "image/jpeg",
+                    "sha256": "f3c0db7e6458b7aa669b600c1b213246585d3924102583c0f0605ab009e895e2",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "text": "Compare.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "qwen36-vl-reference",
+        "stream": false,
+        "temperature": 0
+      },
+      "request_sha256": "3bcb04032a033b785755efeffa54e39f6970065c0de2cc03784bf1911273a1ca",
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+              "annotations": null,
+              "audio": null,
+              "content": "The",
+              "function_call": null,
+              "reasoning": null,
+              "refusal": null,
+              "role": "assistant",
+              "tool_calls": []
+            },
+            "stop_reason": null,
+            "token_ids": null
+          }
+        ],
+        "kv_transfer_params": null,
+        "model": "qwen36-vl-reference",
+        "object": "chat.completion",
+        "prompt_logprobs": null,
+        "prompt_token_ids": null,
+        "service_tier": null,
+        "usage": {
+          "completion_tokens": 1,
+          "prompt_tokens": 184,
+          "prompt_tokens_details": null,
+          "total_tokens": 185
+        }
+      },
+      "response_bytes": 580,
+      "response_sha256": "6567f4c5ca53bcd7948db5e0ea0a9ab07022f23f07aa74e5a14e4564f9ef6f1c",
+      "status_code": 200,
+      "surfaces": [
+        "image",
+        "conversation"
+      ],
+      "timings": {
+        "total_seconds": 0.38121238630265,
+        "ttft_seconds": null
+      }
+    },
+    {
+      "accepted": true,
+      "case_id": "video_local_mp4",
+      "expected_accept": true,
+      "passed": true,
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "Describe the motion.",
+                "type": "text"
+              },
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 54027,
+                    "fixture": "video-8f-4fps-128.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+                    "transport": "local"
+                  }
+                }
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "qwen36-vl-reference",
+        "stream": false,
+        "temperature": 0
+      },
+      "request_sha256": "d1be6f46794fd4c2913a7343d67096537a2b47483f2da92a4098d0f7eb43b8dc",
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+              "annotations": null,
+              "audio": null,
+              "content": "The",
+              "function_call": null,
+              "reasoning": null,
+              "refusal": null,
+              "role": "assistant",
+              "tool_calls": []
+            },
+            "stop_reason": null,
+            "token_ids": null
+          }
+        ],
+        "kv_transfer_params": null,
+        "model": "qwen36-vl-reference",
+        "object": "chat.completion",
+        "prompt_logprobs": null,
+        "prompt_token_ids": null,
+        "service_tier": null,
+        "usage": {
+          "completion_tokens": 1,
+          "prompt_tokens": 63,
+          "prompt_tokens_details": null,
+          "total_tokens": 64
+        }
+      },
+      "response_bytes": 578,
+      "response_sha256": "1504ff21f55cb53f6198f808a3d5f800d087f32ec3d03f6379124066ad141be9",
+      "status_code": 200,
+      "surfaces": [
+        "video",
+        "transport",
+        "generation"
+      ],
+      "timings": {
+        "total_seconds": 0.2560176132246852,
+        "ttft_seconds": null
+      }
+    },
+    {
+      "accepted": true,
+      "case_id": "video_data_mp4",
+      "expected_accept": true,
+      "passed": true,
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": [
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 54027,
+                    "fixture": "video-8f-4fps-128.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+                    "transport": "data"
+                  }
+                }
+              },
+              {
+                "text": "Describe briefly.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "qwen36-vl-reference",
+        "stream": false,
+        "temperature": 0
+      },
+      "request_sha256": "38ed2bba96f3824b7d7ea0f51d3960c601a7a9bbeae4084f475e1a69ed0d28e1",
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+              "annotations": null,
+              "audio": null,
+              "content": "The",
+              "function_call": null,
+              "reasoning": null,
+              "refusal": null,
+              "role": "assistant",
+              "tool_calls": []
+            },
+            "stop_reason": null,
+            "token_ids": null
+          }
+        ],
+        "kv_transfer_params": null,
+        "model": "qwen36-vl-reference",
+        "object": "chat.completion",
+        "prompt_logprobs": null,
+        "prompt_token_ids": null,
+        "service_tier": null,
+        "usage": {
+          "completion_tokens": 1,
+          "prompt_tokens": 62,
+          "prompt_tokens_details": null,
+          "total_tokens": 63
+        }
+      },
+      "response_bytes": 578,
+      "response_sha256": "1e93121b4023a67cdc885bb50054e2562b2ed354b2f5e551b49aee0d913d70d5",
+      "status_code": 200,
+      "surfaces": [
+        "video",
+        "transport"
+      ],
+      "timings": {
+        "total_seconds": 0.25120718497782946,
+        "ttft_seconds": null
+      }
+    },
+    {
+      "accepted": true,
+      "case_id": "video_http_avi",
+      "expected_accept": true,
+      "passed": true,
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "Describe briefly.",
+                "type": "text"
+              },
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 169626,
+                    "fixture": "video-12f-6fps-192x128.avi",
+                    "mime": "video/x-msvideo",
+                    "sha256": "91f394f27c25a34fcbd279746aa7b2365c19c192e692df04a36b52edff701076",
+                    "transport": "http"
+                  }
+                }
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "qwen36-vl-reference",
+        "stream": false,
+        "temperature": 0
+      },
+      "request_sha256": "4f3caddbf9b330f90d25ca60a8e604f2f7ae1fa4771108c1295903ca4286b0fa",
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+              "annotations": null,
+              "audio": null,
+              "content": "The",
+              "function_call": null,
+              "reasoning": null,
+              "refusal": null,
+              "role": "assistant",
+              "tool_calls": []
+            },
+            "stop_reason": null,
+            "token_ids": null
+          }
+        ],
+        "kv_transfer_params": null,
+        "model": "qwen36-vl-reference",
+        "object": "chat.completion",
+        "prompt_logprobs": null,
+        "prompt_token_ids": null,
+        "service_tier": null,
+        "usage": {
+          "completion_tokens": 1,
+          "prompt_tokens": 78,
+          "prompt_tokens_details": null,
+          "total_tokens": 79
+        }
+      },
+      "response_bytes": 578,
+      "response_sha256": "08168cd1c67674fbce3535ab1a9d02a3fa5ce9b23e87e7ccb1cbae1f40104c8f",
+      "status_code": 200,
+      "surfaces": [
+        "video",
+        "transport"
+      ],
+      "timings": {
+        "total_seconds": 0.29543225560337305,
+        "ttft_seconds": null
+      }
+    },
+    {
+      "accepted": true,
+      "case_id": "multi_video",
+      "expected_accept": true,
+      "passed": true,
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": [
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 54027,
+                    "fixture": "video-8f-4fps-128.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "text": "and",
+                "type": "text"
+              },
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 169626,
+                    "fixture": "video-12f-6fps-192x128.avi",
+                    "mime": "video/x-msvideo",
+                    "sha256": "91f394f27c25a34fcbd279746aa7b2365c19c192e692df04a36b52edff701076",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "text": "Compare.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "qwen36-vl-reference",
+        "stream": false,
+        "temperature": 0
+      },
+      "request_sha256": "af5d191c98567f89372b2d4ab564000a2aca120d336e9f0b6e0efe8a6111428e",
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+              "annotations": null,
+              "audio": null,
+              "content": "The",
+              "function_call": null,
+              "reasoning": null,
+              "refusal": null,
+              "role": "assistant",
+              "tool_calls": []
+            },
+            "stop_reason": null,
+            "token_ids": null
+          }
+        ],
+        "kv_transfer_params": null,
+        "model": "qwen36-vl-reference",
+        "object": "chat.completion",
+        "prompt_logprobs": null,
+        "prompt_token_ids": null,
+        "service_tier": null,
+        "usage": {
+          "completion_tokens": 1,
+          "prompt_tokens": 128,
+          "prompt_tokens_details": null,
+          "total_tokens": 129
+        }
+      },
+      "response_bytes": 580,
+      "response_sha256": "199560b87eda10cffe69ae7098b378045815bba1fe5e58db756a012d5d9719b2",
+      "status_code": 200,
+      "surfaces": [
+        "video"
+      ],
+      "timings": {
+        "total_seconds": 0.3291774792596698,
+        "ttft_seconds": null
+      }
+    },
+    {
+      "accepted": true,
+      "case_id": "mixed_image_then_video",
+      "expected_accept": true,
+      "passed": true,
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": [
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 5467,
+                    "fixture": "image-rgb-256.png",
+                    "mime": "image/png",
+                    "sha256": "dc486687ceead3b9a14953b32ff5f7ee3b6125f52de11fb1b76db378d62dd0c8",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "text": "then",
+                "type": "text"
+              },
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 54027,
+                    "fixture": "video-8f-4fps-128.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "text": "Compare.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "qwen36-vl-reference",
+        "stream": false,
+        "temperature": 0
+      },
+      "request_sha256": "9eec2ba2ed859ed4728981450cfaf6b60a4af5924195ed80a739c7c508c5dedc",
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+              "annotations": null,
+              "audio": null,
+              "content": "The",
+              "function_call": null,
+              "reasoning": null,
+              "refusal": null,
+              "role": "assistant",
+              "tool_calls": []
+            },
+            "stop_reason": null,
+            "token_ids": null
+          }
+        ],
+        "kv_transfer_params": null,
+        "model": "qwen36-vl-reference",
+        "object": "chat.completion",
+        "prompt_logprobs": null,
+        "prompt_token_ids": null,
+        "service_tier": null,
+        "usage": {
+          "completion_tokens": 1,
+          "prompt_tokens": 130,
+          "prompt_tokens_details": null,
+          "total_tokens": 131
+        }
+      },
+      "response_bytes": 580,
+      "response_sha256": "3bda2ba9ce5e326aee22341f78c1c52f3633a802bd2aa21e7ff7635ba28595d7",
+      "status_code": 200,
+      "surfaces": [
+        "mixed",
+        "conversation"
+      ],
+      "timings": {
+        "total_seconds": 0.34353245235979557,
+        "ttft_seconds": null
+      }
+    },
+    {
+      "accepted": true,
+      "case_id": "mixed_video_then_image",
+      "expected_accept": true,
+      "passed": true,
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": [
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 54027,
+                    "fixture": "video-8f-4fps-128.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "text": "then",
+                "type": "text"
+              },
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 125682,
+                    "fixture": "image-landscape-512x192.jpg",
+                    "mime": "image/jpeg",
+                    "sha256": "f3c0db7e6458b7aa669b600c1b213246585d3924102583c0f0605ab009e895e2",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "text": "Compare.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "qwen36-vl-reference",
+        "stream": false,
+        "temperature": 0
+      },
+      "request_sha256": "6fcc0cd26aa2df4e9cab587bb605f4696a06da8b103cbe142c227407fd1adf61",
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+              "annotations": null,
+              "audio": null,
+              "content": "The",
+              "function_call": null,
+              "reasoning": null,
+              "refusal": null,
+              "role": "assistant",
+              "tool_calls": []
+            },
+            "stop_reason": null,
+            "token_ids": null
+          }
+        ],
+        "kv_transfer_params": null,
+        "model": "qwen36-vl-reference",
+        "object": "chat.completion",
+        "prompt_logprobs": null,
+        "prompt_token_ids": null,
+        "service_tier": null,
+        "usage": {
+          "completion_tokens": 1,
+          "prompt_tokens": 162,
+          "prompt_tokens_details": null,
+          "total_tokens": 163
+        }
+      },
+      "response_bytes": 580,
+      "response_sha256": "e55bdcd9517f394b1d39dcd5a6c0a3ebc745026fec7f8b887a90e07031de3d34",
+      "status_code": 200,
+      "surfaces": [
+        "mixed",
+        "conversation"
+      ],
+      "timings": {
+        "total_seconds": 0.3776041092351079,
+        "ttft_seconds": null
+      }
+    },
+    {
+      "accepted": true,
+      "case_id": "conversation_prior_image",
+      "expected_accept": true,
+      "passed": true,
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": "Answer concisely.",
+            "role": "system"
+          },
+          {
+            "content": [
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 5467,
+                    "fixture": "image-rgb-256.png",
+                    "mime": "image/png",
+                    "sha256": "dc486687ceead3b9a14953b32ff5f7ee3b6125f52de11fb1b76db378d62dd0c8",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "text": "Remember this image.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          },
+          {
+            "content": "Acknowledged.",
+            "role": "assistant"
+          },
+          {
+            "content": "What did you see?",
+            "role": "user"
+          }
+        ],
+        "model": "qwen36-vl-reference",
+        "stream": false,
+        "temperature": 0
+      },
+      "request_sha256": "a3f0f24eb060cf07d6ecd8c305100b0f8b3cef4e409ac1da7fce61f41c6872b9",
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+              "annotations": null,
+              "audio": null,
+              "content": "The",
+              "function_call": null,
+              "reasoning": null,
+              "refusal": null,
+              "role": "assistant",
+              "tool_calls": []
+            },
+            "stop_reason": null,
+            "token_ids": null
+          }
+        ],
+        "kv_transfer_params": null,
+        "model": "qwen36-vl-reference",
+        "object": "chat.completion",
+        "prompt_logprobs": null,
+        "prompt_token_ids": null,
+        "service_tier": null,
+        "usage": {
+          "completion_tokens": 1,
+          "prompt_tokens": 109,
+          "prompt_tokens_details": null,
+          "total_tokens": 110
+        }
+      },
+      "response_bytes": 580,
+      "response_sha256": "dafe40f702cfd12406e317e0c01d433863a820aff100f880c23497c0c8b61065",
+      "status_code": 200,
+      "surfaces": [
+        "conversation",
+        "image"
+      ],
+      "timings": {
+        "total_seconds": 0.32323566544800997,
+        "ttft_seconds": null
+      }
+    },
+    {
+      "accepted": true,
+      "case_id": "conversation_media_replace",
+      "expected_accept": true,
+      "passed": true,
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": [
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 5467,
+                    "fixture": "image-rgb-256.png",
+                    "mime": "image/png",
+                    "sha256": "dc486687ceead3b9a14953b32ff5f7ee3b6125f52de11fb1b76db378d62dd0c8",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "text": "First image.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          },
+          {
+            "content": "Acknowledged.",
+            "role": "assistant"
+          },
+          {
+            "content": [
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 4993,
+                    "fixture": "image-transparent-160x320.png",
+                    "mime": "image/png",
+                    "sha256": "72e63cabe9a897fac895e9148fdb203867bb7f8ef95311fdfeaf4cd1026580f9",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "text": "Now use only this image.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "qwen36-vl-reference",
+        "stream": false,
+        "temperature": 0
+      },
+      "request_sha256": "a22e16371aa4ddc80e38f0137ea3f1c788aa32134047472878cdbfff0c62302f",
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+              "annotations": null,
+              "audio": null,
+              "content": "The",
+              "function_call": null,
+              "reasoning": null,
+              "refusal": null,
+              "role": "assistant",
+              "tool_calls": []
+            },
+            "stop_reason": null,
+            "token_ids": null
+          }
+        ],
+        "kv_transfer_params": null,
+        "model": "qwen36-vl-reference",
+        "object": "chat.completion",
+        "prompt_logprobs": null,
+        "prompt_token_ids": null,
+        "service_tier": null,
+        "usage": {
+          "completion_tokens": 1,
+          "prompt_tokens": 174,
+          "prompt_tokens_details": null,
+          "total_tokens": 175
+        }
+      },
+      "response_bytes": 580,
+      "response_sha256": "d33dba20d6f28876b49d824cd2ebad8d3b7d52511943d0353040520812520d2c",
+      "status_code": 200,
+      "surfaces": [
+        "conversation",
+        "image"
+      ],
+      "timings": {
+        "total_seconds": 0.3901488836854696,
+        "ttft_seconds": null
+      }
+    },
+    {
+      "accepted": true,
+      "case_id": "tool_history_with_image",
+      "expected_accept": true,
+      "passed": true,
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": "Record prior state.",
+            "role": "user"
+          },
+          {
+            "content": null,
+            "role": "assistant",
+            "tool_calls": [
+              {
+                "function": {
+                  "arguments": "{\"label\":\"prior\"}",
+                  "name": "inspect_visual"
+                },
+                "id": "call_fixture_prior",
+                "type": "function"
+              }
+            ]
+          },
+          {
+            "content": "recorded",
+            "role": "tool",
+            "tool_call_id": "call_fixture_prior"
+          },
+          {
+            "content": [
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 5467,
+                    "fixture": "image-rgb-256.png",
+                    "mime": "image/png",
+                    "sha256": "dc486687ceead3b9a14953b32ff5f7ee3b6125f52de11fb1b76db378d62dd0c8",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "text": "Confirm briefly.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "qwen36-vl-reference",
+        "parallel_tool_calls": false,
+        "stream": false,
+        "temperature": 0,
+        "tool_choice": "none",
+        "tools": [
+          {
+            "function": {
+              "description": "Record a short label for visual content.",
+              "name": "inspect_visual",
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "label": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "label"
+                ],
+                "type": "object"
+              }
+            },
+            "type": "function"
+          }
+        ]
+      },
+      "request_sha256": "6d1d755b487b15d66249b304ba6d1b5354e1428def5fd71e48a77481ebda2e0e",
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+              "annotations": null,
+              "audio": null,
+              "content": "The",
+              "function_call": null,
+              "reasoning": null,
+              "refusal": null,
+              "role": "assistant",
+              "tool_calls": []
+            },
+            "stop_reason": null,
+            "token_ids": null
+          }
+        ],
+        "kv_transfer_params": null,
+        "model": "qwen36-vl-reference",
+        "object": "chat.completion",
+        "prompt_logprobs": null,
+        "prompt_token_ids": null,
+        "service_tier": null,
+        "usage": {
+          "completion_tokens": 1,
+          "prompt_tokens": 395,
+          "prompt_tokens_details": null,
+          "total_tokens": 396
+        }
+      },
+      "response_bytes": 580,
+      "response_sha256": "8a69c65e20552e30b34ebaa0b935f3ee8541a4bfbc5a7c5d21f6c321d50aeef3",
+      "status_code": 200,
+      "surfaces": [
+        "tool",
+        "conversation",
+        "image"
+      ],
+      "timings": {
+        "total_seconds": 0.562262344174087,
+        "ttft_seconds": null
+      }
+    },
+    {
+      "accepted": true,
+      "case_id": "tool_forced_image",
+      "expected_accept": true,
+      "passed": true,
+      "request": {
+        "max_tokens": 64,
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "Call inspect_visual for this image.",
+                "type": "text"
+              },
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 5467,
+                    "fixture": "image-rgb-256.png",
+                    "mime": "image/png",
+                    "sha256": "dc486687ceead3b9a14953b32ff5f7ee3b6125f52de11fb1b76db378d62dd0c8",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "qwen36-vl-reference",
+        "parallel_tool_calls": false,
+        "stream": false,
+        "temperature": 0,
+        "tool_choice": {
+          "function": {
+            "name": "inspect_visual"
+          },
+          "type": "function"
+        },
+        "tools": [
+          {
+            "function": {
+              "description": "Record a short label for visual content.",
+              "name": "inspect_visual",
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "label": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "label"
+                ],
+                "type": "object"
+              }
+            },
+            "type": "function"
+          }
+        ]
+      },
+      "request_sha256": "0466d2854d61d9be5294ad192e3c116ee8b4219fdce2bf30a90f1b244f87bf83",
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+              "annotations": null,
+              "audio": null,
+              "content": "",
+              "function_call": null,
+              "reasoning": null,
+              "refusal": null,
+              "role": "assistant",
+              "tool_calls": [
+                {
+                  "function": {
+                    "arguments": "{\"label\": \"A colorful pattern of diagonal stripes in various bright colors like pink, blue, green, yellow, and purple.\"}",
+                    "name": "inspect_visual"
+                  },
+                  "id": "chatcmpl-tool-a804b55b4eb4b36b",
+                  "type": "function"
+                }
+              ]
+            },
+            "stop_reason": null,
+            "token_ids": null
+          }
+        ],
+        "kv_transfer_params": null,
+        "model": "qwen36-vl-reference",
+        "object": "chat.completion",
+        "prompt_logprobs": null,
+        "prompt_token_ids": null,
+        "service_tier": null,
+        "usage": {
+          "completion_tokens": 28,
+          "prompt_tokens": 349,
+          "prompt_tokens_details": null,
+          "total_tokens": 377
+        }
+      },
+      "response_bytes": 809,
+      "response_sha256": "9cb77a520839054fce6dd0ff448c1f328c20837b105e77232403c192f5819542",
+      "status_code": 200,
+      "surfaces": [
+        "tool",
+        "image"
+      ],
+      "timings": {
+        "total_seconds": 1.747626111842692,
+        "ttft_seconds": null
+      }
+    },
+    {
+      "accepted": true,
+      "case_id": "tool_auto_image",
+      "expected_accept": true,
+      "passed": true,
+      "request": {
+        "max_tokens": 192,
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "You must call inspect_visual with a short label.",
+                "type": "text"
+              },
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 5467,
+                    "fixture": "image-rgb-256.png",
+                    "mime": "image/png",
+                    "sha256": "dc486687ceead3b9a14953b32ff5f7ee3b6125f52de11fb1b76db378d62dd0c8",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "qwen36-vl-reference",
+        "parallel_tool_calls": false,
+        "stream": false,
+        "temperature": 0,
+        "tool_choice": "auto",
+        "tools": [
+          {
+            "function": {
+              "description": "Record a short label for visual content.",
+              "name": "inspect_visual",
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "label": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "label"
+                ],
+                "type": "object"
+              }
+            },
+            "type": "function"
+          }
+        ]
+      },
+      "request_sha256": "58b2ccb8b0bb16a8b6208216283ef3586ec3983de3e17a3452896338724de24c",
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "tool_calls",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+              "annotations": null,
+              "audio": null,
+              "content": "The user wants a short label for the provided image.\n1.  **Analyze the image:** The image consists of many diagonal stripes of various colors (pink, blue, green, yellow, etc.) running from the top-left to the bottom-right.\n2.  **Identify the pattern:** It's a repeating pattern of colorful diagonal lines.\n3.  **Formulate a label:** \"Colorful diagonal stripes\" or \"Rainbow diagonal stripes\" seems appropriate. I will choose \"Colorful diagonal stripes\".\n</think>\n\n",
+              "function_call": null,
+              "reasoning": null,
+              "refusal": null,
+              "role": "assistant",
+              "tool_calls": [
+                {
+                  "function": {
+                    "arguments": "{\"label\": \"Colorful diagonal stripes\"}",
+                    "name": "inspect_visual"
+                  },
+                  "id": "chatcmpl-tool-8ebef463dabcf5e2",
+                  "type": "function"
+                }
+              ]
+            },
+            "stop_reason": null,
+            "token_ids": null
+          }
+        ],
+        "kv_transfer_params": null,
+        "model": "qwen36-vl-reference",
+        "object": "chat.completion",
+        "prompt_logprobs": null,
+        "prompt_token_ids": null,
+        "service_tier": null,
+        "usage": {
+          "completion_tokens": 139,
+          "prompt_tokens": 352,
+          "prompt_tokens_details": null,
+          "total_tokens": 491
+        }
+      },
+      "response_bytes": 1209,
+      "response_sha256": "518feadd753db1d62a2896336aaa9dfa52d2960ec27565c8f4f8386abe72bd7a",
+      "status_code": 200,
+      "surfaces": [
+        "tool",
+        "image"
+      ],
+      "timings": {
+        "total_seconds": 6.749213166534901,
+        "ttft_seconds": null
+      }
+    },
+    {
+      "accepted": true,
+      "case_id": "stream_image",
+      "expected_accept": true,
+      "passed": true,
+      "request": {
+        "max_tokens": 4,
+        "messages": [
+          {
+            "content": [
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 5467,
+                    "fixture": "image-rgb-256.png",
+                    "mime": "image/png",
+                    "sha256": "dc486687ceead3b9a14953b32ff5f7ee3b6125f52de11fb1b76db378d62dd0c8",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "text": "Describe briefly.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "qwen36-vl-reference",
+        "stream": true,
+        "temperature": 0
+      },
+      "request_sha256": "08b1aee970e5093b51764aeab56f12326bffbbb73e87e35d1ae8d6b8d5c42bb0",
+      "response": {
+        "aggregate_content": "The user wants a",
+        "done": true,
+        "event_count": 5,
+        "events": [
+          {
+            "choices": [
+              {
+                "delta": {
+                  "content": "",
+                  "role": "assistant"
+                },
+                "finish_reason": null,
+                "index": 0,
+                "logprobs": null
+              }
+            ],
+            "model": "qwen36-vl-reference",
+            "object": "chat.completion.chunk",
+            "prompt_token_ids": null
+          },
+          {
+            "choices": [
+              {
+                "delta": {
+                  "content": "The"
+                },
+                "finish_reason": null,
+                "index": 0,
+                "logprobs": null,
+                "token_ids": null
+              }
+            ],
+            "model": "qwen36-vl-reference",
+            "object": "chat.completion.chunk"
+          },
+          {
+            "choices": [
+              {
+                "delta": {
+                  "content": " user"
+                },
+                "finish_reason": null,
+                "index": 0,
+                "logprobs": null,
+                "token_ids": null
+              }
+            ],
+            "model": "qwen36-vl-reference",
+            "object": "chat.completion.chunk"
+          },
+          {
+            "choices": [
+              {
+                "delta": {
+                  "content": " wants"
+                },
+                "finish_reason": null,
+                "index": 0,
+                "logprobs": null,
+                "token_ids": null
+              }
+            ],
+            "model": "qwen36-vl-reference",
+            "object": "chat.completion.chunk"
+          },
+          {
+            "choices": [
+              {
+                "delta": {
+                  "content": " a"
+                },
+                "finish_reason": "length",
+                "index": 0,
+                "logprobs": null,
+                "stop_reason": null,
+                "token_ids": null
+              }
+            ],
+            "model": "qwen36-vl-reference",
+            "object": "chat.completion.chunk"
+          }
+        ],
+        "tool_call_seen": false
+      },
+      "response_bytes": 1214,
+      "response_sha256": "ffe80e55a92c2768f14c38b5de3edfcc55cea138d5544f6c30939f976b3de809",
+      "status_code": 200,
+      "surfaces": [
+        "stream",
+        "api",
+        "image"
+      ],
+      "timings": {
+        "total_seconds": 0.41980590112507343,
+        "ttft_seconds": 0.2858166815713048
+      }
+    },
+    {
+      "accepted": true,
+      "case_id": "stream_video",
+      "expected_accept": true,
+      "passed": true,
+      "request": {
+        "max_tokens": 4,
+        "messages": [
+          {
+            "content": [
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 54027,
+                    "fixture": "video-8f-4fps-128.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "text": "Describe briefly.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "qwen36-vl-reference",
+        "stream": true,
+        "temperature": 0
+      },
+      "request_sha256": "5b19da02b236699d9facd91b572c4e855fbe4a37a0bf9a8905552abcb604fe51",
+      "response": {
+        "aggregate_content": "The user wants a",
+        "done": true,
+        "event_count": 5,
+        "events": [
+          {
+            "choices": [
+              {
+                "delta": {
+                  "content": "",
+                  "role": "assistant"
+                },
+                "finish_reason": null,
+                "index": 0,
+                "logprobs": null
+              }
+            ],
+            "model": "qwen36-vl-reference",
+            "object": "chat.completion.chunk",
+            "prompt_token_ids": null
+          },
+          {
+            "choices": [
+              {
+                "delta": {
+                  "content": "The"
+                },
+                "finish_reason": null,
+                "index": 0,
+                "logprobs": null,
+                "token_ids": null
+              }
+            ],
+            "model": "qwen36-vl-reference",
+            "object": "chat.completion.chunk"
+          },
+          {
+            "choices": [
+              {
+                "delta": {
+                  "content": " user"
+                },
+                "finish_reason": null,
+                "index": 0,
+                "logprobs": null,
+                "token_ids": null
+              }
+            ],
+            "model": "qwen36-vl-reference",
+            "object": "chat.completion.chunk"
+          },
+          {
+            "choices": [
+              {
+                "delta": {
+                  "content": " wants"
+                },
+                "finish_reason": null,
+                "index": 0,
+                "logprobs": null,
+                "token_ids": null
+              }
+            ],
+            "model": "qwen36-vl-reference",
+            "object": "chat.completion.chunk"
+          },
+          {
+            "choices": [
+              {
+                "delta": {
+                  "content": " a"
+                },
+                "finish_reason": "length",
+                "index": 0,
+                "logprobs": null,
+                "stop_reason": null,
+                "token_ids": null
+              }
+            ],
+            "model": "qwen36-vl-reference",
+            "object": "chat.completion.chunk"
+          }
+        ],
+        "tool_call_seen": false
+      },
+      "response_bytes": 1214,
+      "response_sha256": "3295d412ec096da00ab3456513fd77eef95a569dc824bbd336a10991e24815b2",
+      "status_code": 200,
+      "surfaces": [
+        "stream",
+        "api",
+        "video"
+      ],
+      "timings": {
+        "total_seconds": 0.38488752767443657,
+        "ttft_seconds": 0.25080960988998413
+      }
+    },
+    {
+      "accepted": true,
+      "case_id": "residency_text_after",
+      "expected_accept": true,
+      "passed": true,
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": "Reply with one token after VL requests.",
+            "role": "user"
+          }
+        ],
+        "model": "qwen36-vl-reference",
+        "stream": false,
+        "temperature": 0
+      },
+      "request_sha256": "0b9cc851e9880849a66fae38b9c0c0f8647fc9f53a99b2a3230e9a628567c251",
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+              "annotations": null,
+              "audio": null,
+              "content": "Here",
+              "function_call": null,
+              "reasoning": null,
+              "refusal": null,
+              "role": "assistant",
+              "tool_calls": []
+            },
+            "stop_reason": null,
+            "token_ids": null
+          }
+        ],
+        "kv_transfer_params": null,
+        "model": "qwen36-vl-reference",
+        "object": "chat.completion",
+        "prompt_logprobs": null,
+        "prompt_token_ids": null,
+        "service_tier": null,
+        "usage": {
+          "completion_tokens": 1,
+          "prompt_tokens": 18,
+          "prompt_tokens_details": null,
+          "total_tokens": 19
+        }
+      },
+      "response_bytes": 579,
+      "response_sha256": "54a859369c50c2eb849d85b6cfc2575d4d41b256b881b49d679da86f0ce43c32",
+      "status_code": 200,
+      "surfaces": [
+        "api",
+        "generation",
+        "residency"
+      ],
+      "timings": {
+        "total_seconds": 0.1723551945760846,
+        "ttft_seconds": null
+      }
+    },
+    {
+      "accepted": false,
+      "case_id": "error_corrupt_image",
+      "expected_accept": false,
+      "passed": true,
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": [
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 26,
+                    "fixture": "corrupt-image.png",
+                    "mime": "image/png",
+                    "sha256": "54b2c155b9c26009f7d2084d42e077e78f4632f73936630ee4961037152bd195",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "text": "Describe.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "qwen36-vl-reference",
+        "stream": false,
+        "temperature": 0
+      },
+      "request_sha256": "4b49ee63c03f27795e8a4fde68da2e686484a326af7255947978502203596278",
+      "response": {
+        "error": {
+          "code": 400,
+          "message": "Failed to load image: cannot identify image file <_io.BytesIO object>",
+          "param": null,
+          "type": "BadRequestError"
+        }
+      },
+      "response_bytes": 142,
+      "response_sha256": "d9a52f2474886e3fd1d633bae49c5e237f09b2d6d9248d568357b6224e91c7cf",
+      "status_code": 400,
+      "surfaces": [
+        "error",
+        "image"
+      ],
+      "timings": {
+        "total_seconds": 0.0026431335136294365,
+        "ttft_seconds": null
+      }
+    },
+    {
+      "accepted": false,
+      "case_id": "error_corrupt_video",
+      "expected_accept": false,
+      "passed": true,
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": [
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 27,
+                    "fixture": "corrupt-video.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "e6d3c6ccb0b1e867a7ea3cface34953dbbf8c66f1c8ae9db2e889509af3984e4",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "text": "Describe.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "qwen36-vl-reference",
+        "stream": false,
+        "temperature": 0
+      },
+      "request_sha256": "ab49534d135fe0d2b751c1b694b48604f353b7376020ef01c2f18eeab216c9aa",
+      "response": {
+        "error": {
+          "code": 400,
+          "message": "Could not open video stream",
+          "param": null,
+          "type": "BadRequestError"
+        }
+      },
+      "response_bytes": 100,
+      "response_sha256": "ac89bd9eca15074391366ec7788e4d6590561492934fbeff10cb016e3661d2e2",
+      "status_code": 400,
+      "surfaces": [
+        "error",
+        "video"
+      ],
+      "timings": {
+        "total_seconds": 0.001804947853088379,
+        "ttft_seconds": null
+      }
+    },
+    {
+      "accepted": false,
+      "case_id": "error_aspect_ratio",
+      "expected_accept": false,
+      "passed": true,
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": [
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 77,
+                    "fixture": "image-invalid-aspect-201x1.png",
+                    "mime": "image/png",
+                    "sha256": "fee4af37ab5b5742fe8b3daf1401f1f382e8893385f51380dbc782dfc6b60d00",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "text": "Describe.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "qwen36-vl-reference",
+        "stream": false,
+        "temperature": 0
+      },
+      "request_sha256": "44d5deb5390a6be5d975b347c8d21deaddf605a61c9bcc35c2c8aa4d072a4bd7",
+      "response": {
+        "error": {
+          "code": 400,
+          "message": "Failed to apply Qwen3VLProcessor on data={'text': '<|vision_start|><|image_pad|><|vision_end|>', 'images': [<PIL.PngImagePlugin.PngImageFile image mode=RGB size=201x1 at 0x78C36B1488F0>]} with kwargs={'return_tensors': 'pt'}",
+          "param": null,
+          "type": "BadRequestError"
+        }
+      },
+      "response_bytes": 297,
+      "response_sha256": "fdafc30a62d53428234b4d538ac6031a808f77ce0763ed23dd1ce22d643a353a",
+      "status_code": 400,
+      "surfaces": [
+        "error",
+        "image"
+      ],
+      "timings": {
+        "total_seconds": 0.006794832646846771,
+        "ttft_seconds": null
+      }
+    },
+    {
+      "accepted": false,
+      "case_id": "error_outside_local_root",
+      "expected_accept": false,
+      "passed": true,
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": [
+              {
+                "image_url": {
+                  "url": "file:///etc/hosts"
+                },
+                "type": "image_url"
+              },
+              {
+                "text": "Describe.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "qwen36-vl-reference",
+        "stream": false,
+        "temperature": 0
+      },
+      "request_sha256": "2e02bfccefdb2ed081799c384acc4ec3ed593fd40fcf192b324d396ff320152a",
+      "response": {
+        "error": {
+          "code": 400,
+          "message": "The file path /etc/hosts must be a subpath of `--allowed-local-media-path ${AIMA_ALLOWED_MEDIA_ROOT}`.",
+          "param": null,
+          "type": "BadRequestError"
+        }
+      },
+      "response_bytes": 198,
+      "response_sha256": "71813853d9e8c95954c4618a490a42935a38013ed87e5230585b4978ba6a8635",
+      "status_code": 400,
+      "surfaces": [
+        "error",
+        "transport"
+      ],
+      "timings": {
+        "total_seconds": 0.004421531222760677,
+        "ttft_seconds": null
+      }
+    },
+    {
+      "accepted": false,
+      "case_id": "error_disallowed_domain",
+      "expected_accept": false,
+      "passed": true,
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": [
+              {
+                "image_url": {
+                  "url": "http://vl-disallowed.invalid/image.png"
+                },
+                "type": "image_url"
+              },
+              {
+                "text": "Describe.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "qwen36-vl-reference",
+        "stream": false,
+        "temperature": 0
+      },
+      "request_sha256": "f47ddc0f8bef619bb66bb89b2cf48e630ec837fd165a3e8bb81b2c5feba1c5cf",
+      "response": {
+        "error": {
+          "code": 400,
+          "message": "The URL must be from one of the allowed domains: ['localhost', '127.0.0.1']. Input URL domain: vl-disallowed.invalid",
+          "param": null,
+          "type": "BadRequestError"
+        }
+      },
+      "response_bytes": 189,
+      "response_sha256": "6ef09972e677a0b3899ca8327fd4cc8ffe190865fd4ddee1289a1063dcd5615e",
+      "status_code": 400,
+      "surfaces": [
+        "error",
+        "transport"
+      ],
+      "timings": {
+        "total_seconds": 0.002094578929245472,
+        "ttft_seconds": null
+      }
+    },
+    {
+      "accepted": false,
+      "case_id": "error_image_count_over_limit",
+      "expected_accept": false,
+      "passed": true,
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": [
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 5467,
+                    "fixture": "image-rgb-256.png",
+                    "mime": "image/png",
+                    "sha256": "dc486687ceead3b9a14953b32ff5f7ee3b6125f52de11fb1b76db378d62dd0c8",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 5467,
+                    "fixture": "image-rgb-256.png",
+                    "mime": "image/png",
+                    "sha256": "dc486687ceead3b9a14953b32ff5f7ee3b6125f52de11fb1b76db378d62dd0c8",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 5467,
+                    "fixture": "image-rgb-256.png",
+                    "mime": "image/png",
+                    "sha256": "dc486687ceead3b9a14953b32ff5f7ee3b6125f52de11fb1b76db378d62dd0c8",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 5467,
+                    "fixture": "image-rgb-256.png",
+                    "mime": "image/png",
+                    "sha256": "dc486687ceead3b9a14953b32ff5f7ee3b6125f52de11fb1b76db378d62dd0c8",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 5467,
+                    "fixture": "image-rgb-256.png",
+                    "mime": "image/png",
+                    "sha256": "dc486687ceead3b9a14953b32ff5f7ee3b6125f52de11fb1b76db378d62dd0c8",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 5467,
+                    "fixture": "image-rgb-256.png",
+                    "mime": "image/png",
+                    "sha256": "dc486687ceead3b9a14953b32ff5f7ee3b6125f52de11fb1b76db378d62dd0c8",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 5467,
+                    "fixture": "image-rgb-256.png",
+                    "mime": "image/png",
+                    "sha256": "dc486687ceead3b9a14953b32ff5f7ee3b6125f52de11fb1b76db378d62dd0c8",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 5467,
+                    "fixture": "image-rgb-256.png",
+                    "mime": "image/png",
+                    "sha256": "dc486687ceead3b9a14953b32ff5f7ee3b6125f52de11fb1b76db378d62dd0c8",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 5467,
+                    "fixture": "image-rgb-256.png",
+                    "mime": "image/png",
+                    "sha256": "dc486687ceead3b9a14953b32ff5f7ee3b6125f52de11fb1b76db378d62dd0c8",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 5467,
+                    "fixture": "image-rgb-256.png",
+                    "mime": "image/png",
+                    "sha256": "dc486687ceead3b9a14953b32ff5f7ee3b6125f52de11fb1b76db378d62dd0c8",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 5467,
+                    "fixture": "image-rgb-256.png",
+                    "mime": "image/png",
+                    "sha256": "dc486687ceead3b9a14953b32ff5f7ee3b6125f52de11fb1b76db378d62dd0c8",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 5467,
+                    "fixture": "image-rgb-256.png",
+                    "mime": "image/png",
+                    "sha256": "dc486687ceead3b9a14953b32ff5f7ee3b6125f52de11fb1b76db378d62dd0c8",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 5467,
+                    "fixture": "image-rgb-256.png",
+                    "mime": "image/png",
+                    "sha256": "dc486687ceead3b9a14953b32ff5f7ee3b6125f52de11fb1b76db378d62dd0c8",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 5467,
+                    "fixture": "image-rgb-256.png",
+                    "mime": "image/png",
+                    "sha256": "dc486687ceead3b9a14953b32ff5f7ee3b6125f52de11fb1b76db378d62dd0c8",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 5467,
+                    "fixture": "image-rgb-256.png",
+                    "mime": "image/png",
+                    "sha256": "dc486687ceead3b9a14953b32ff5f7ee3b6125f52de11fb1b76db378d62dd0c8",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 5467,
+                    "fixture": "image-rgb-256.png",
+                    "mime": "image/png",
+                    "sha256": "dc486687ceead3b9a14953b32ff5f7ee3b6125f52de11fb1b76db378d62dd0c8",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 5467,
+                    "fixture": "image-rgb-256.png",
+                    "mime": "image/png",
+                    "sha256": "dc486687ceead3b9a14953b32ff5f7ee3b6125f52de11fb1b76db378d62dd0c8",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "text": "Too many images.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "qwen36-vl-reference",
+        "stream": false,
+        "temperature": 0
+      },
+      "request_sha256": "b16d6271ab22e71debb91354cc6abf38de0a372e70f66df0721d2f98cd9aa64c",
+      "response": {
+        "error": {
+          "code": 400,
+          "message": "At most 16 image(s) may be provided in one prompt.",
+          "param": null,
+          "type": "BadRequestError"
+        }
+      },
+      "response_bytes": 123,
+      "response_sha256": "7fcc643af15318e3ec50456b3910dd65612df54008f1e152eae6974e376fa687",
+      "status_code": 400,
+      "surfaces": [
+        "error",
+        "image"
+      ],
+      "timings": {
+        "total_seconds": 0.0018373960629105568,
+        "ttft_seconds": null
+      }
+    },
+    {
+      "accepted": false,
+      "case_id": "error_video_count_over_limit",
+      "expected_accept": false,
+      "passed": true,
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": [
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 54027,
+                    "fixture": "video-8f-4fps-128.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 54027,
+                    "fixture": "video-8f-4fps-128.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 54027,
+                    "fixture": "video-8f-4fps-128.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 54027,
+                    "fixture": "video-8f-4fps-128.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 54027,
+                    "fixture": "video-8f-4fps-128.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 54027,
+                    "fixture": "video-8f-4fps-128.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 54027,
+                    "fixture": "video-8f-4fps-128.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 54027,
+                    "fixture": "video-8f-4fps-128.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 54027,
+                    "fixture": "video-8f-4fps-128.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 54027,
+                    "fixture": "video-8f-4fps-128.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 54027,
+                    "fixture": "video-8f-4fps-128.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 54027,
+                    "fixture": "video-8f-4fps-128.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 54027,
+                    "fixture": "video-8f-4fps-128.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 54027,
+                    "fixture": "video-8f-4fps-128.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 54027,
+                    "fixture": "video-8f-4fps-128.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 54027,
+                    "fixture": "video-8f-4fps-128.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 54027,
+                    "fixture": "video-8f-4fps-128.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 54027,
+                    "fixture": "video-8f-4fps-128.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 54027,
+                    "fixture": "video-8f-4fps-128.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 54027,
+                    "fixture": "video-8f-4fps-128.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 54027,
+                    "fixture": "video-8f-4fps-128.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 54027,
+                    "fixture": "video-8f-4fps-128.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "text": "Too many videos.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "qwen36-vl-reference",
+        "stream": false,
+        "temperature": 0
+      },
+      "request_sha256": "6eb70d04fb4a540f5e62136c1bd58f7946c52d520bb86e0d67b9600148861b1c",
+      "response": {
+        "error": {
+          "code": 400,
+          "message": "At most 21 video(s) may be provided in one prompt.",
+          "param": null,
+          "type": "BadRequestError"
+        }
+      },
+      "response_bytes": 123,
+      "response_sha256": "b332d14781dcd02fc771e6b47384ef2f7222f0c73a50e81a910d3f59eb74cccc",
+      "status_code": 400,
+      "surfaces": [
+        "error",
+        "video"
+      ],
+      "timings": {
+        "total_seconds": 0.0016047237440943718,
+        "ttft_seconds": null
+      }
+    },
+    {
+      "accepted": false,
+      "case_id": "error_malformed_data_uri",
+      "expected_accept": false,
+      "passed": true,
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": [
+              {
+                "image_url": {
+                  "url": "data:image/png;base64,%%%invalid%%%"
+                },
+                "type": "image_url"
+              },
+              {
+                "text": "Describe.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "qwen36-vl-reference",
+        "stream": false,
+        "temperature": 0
+      },
+      "request_sha256": "695fb00c8094d282446a5cd56a11bb3c7e26899878a90054e19cf2987c3ef964",
+      "response": {
+        "error": {
+          "code": 400,
+          "message": "Non-base64 digit found",
+          "param": null,
+          "type": "BadRequestError"
+        }
+      },
+      "response_bytes": 95,
+      "response_sha256": "e7352c11b54db20f7a16d5b0e69c05440d465cca0142f14b00c630653f6831af",
+      "status_code": 400,
+      "surfaces": [
+        "error",
+        "transport"
+      ],
+      "timings": {
+        "total_seconds": 0.0015911934897303581,
+        "ttft_seconds": null
+      }
+    },
+    {
+      "accepted": false,
+      "case_id": "error_type_mismatch",
+      "expected_accept": false,
+      "passed": true,
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": [
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 54027,
+                    "fixture": "video-8f-4fps-128.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "text": "Describe.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "qwen36-vl-reference",
+        "stream": false,
+        "temperature": 0
+      },
+      "request_sha256": "ce3b2bdb5097f656c954755bd3ccb3b5c472c59a85474f520c6f8c7e17c4c50c",
+      "response": {
+        "error": {
+          "code": 400,
+          "message": "Failed to load image: cannot identify image file <_io.BytesIO object>",
+          "param": null,
+          "type": "BadRequestError"
+        }
+      },
+      "response_bytes": 142,
+      "response_sha256": "d9a52f2474886e3fd1d633bae49c5e237f09b2d6d9248d568357b6224e91c7cf",
+      "status_code": 400,
+      "surfaces": [
+        "error",
+        "transport",
+        "image",
+        "video"
+      ],
+      "timings": {
+        "total_seconds": 0.0022315150126814842,
+        "ttft_seconds": null
+      }
+    },
+    {
+      "accepted": false,
+      "case_id": "error_audio_out_of_scope",
+      "expected_accept": false,
+      "passed": true,
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": [
+              {
+                "input_audio": {
+                  "data": "AA==",
+                  "format": "wav"
+                },
+                "type": "input_audio"
+              },
+              {
+                "text": "Transcribe.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "qwen36-vl-reference",
+        "stream": false,
+        "temperature": 0
+      },
+      "request_sha256": "bae121f4c359e50fe83e9a137091fe789f1ee32dfe695fc446ce9c9cf7ec3f5e",
+      "response": {
+        "error": {
+          "code": 400,
+          "message": "At most 0 audio(s) may be provided in one prompt.",
+          "param": null,
+          "type": "BadRequestError"
+        }
+      },
+      "response_bytes": 122,
+      "response_sha256": "4179079cb6de4afbf452b85e7da6a2a1590fcd24684ff3e0bd3bf10bfff96048",
+      "status_code": 400,
+      "surfaces": [
+        "error",
+        "api"
+      ],
+      "timings": {
+        "total_seconds": 0.0013364003971219063,
+        "ttft_seconds": null
+      }
+    }
+  ],
+  "complete": true,
+  "integrity": {
+    "algorithm": "sha256",
+    "canonical_payload_sha256": "31d123103a2c86c794075818a0f2cb21ae465b4e9932620fdf503fc93093b44c"
+  },
+  "qualified": true,
+  "reference": {
+    "attention_backend": "TRITON_ATTN",
+    "endpoint": "http://127.0.0.1:31002",
+    "max_model_len": 262144,
+    "max_num_batched_tokens": 16384,
+    "max_num_seqs": 1,
+    "media_limits": {
+      "image": 16,
+      "video": 21
+    },
+    "mm_encoder_attention_backend": "TRITON_ATTN",
+    "model": "qwen36-vl-reference",
+    "model_repository": "Qwen/Qwen3.6-35B-A3B",
+    "model_revision": "995ad96eacd98c81ed38be0c5b274b04031597b0",
+    "tool_call_parser": "qwen3_xml"
+  },
+  "schema": "aima-amd395-qwen36/vl-capability-manifest/v1"
+}

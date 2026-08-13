@@ -1,0 +1,95 @@
+{
+  "fixtures": [
+    {
+      "bytes": 26,
+      "expected": "decode-reject",
+      "format": "corrupt",
+      "modality": "image",
+      "path": "corrupt-image.png",
+      "sha256": "54b2c155b9c26009f7d2084d42e077e78f4632f73936630ee4961037152bd195"
+    },
+    {
+      "bytes": 27,
+      "expected": "decode-reject",
+      "format": "corrupt",
+      "modality": "video",
+      "path": "corrupt-video.mp4",
+      "sha256": "e6d3c6ccb0b1e867a7ea3cface34953dbbf8c66f1c8ae9db2e889509af3984e4"
+    },
+    {
+      "bytes": 77,
+      "expected": "processor-reject-aspect-ratio-over-200",
+      "format": "png",
+      "height": 1,
+      "modality": "image",
+      "path": "image-invalid-aspect-201x1.png",
+      "sha256": "fee4af37ab5b5742fe8b3daf1401f1f382e8893385f51380dbc782dfc6b60d00",
+      "width": 201
+    },
+    {
+      "bytes": 125682,
+      "format": "jpeg",
+      "height": 192,
+      "modality": "image",
+      "path": "image-landscape-512x192.jpg",
+      "sha256": "f3c0db7e6458b7aa669b600c1b213246585d3924102583c0f0605ab009e895e2",
+      "width": 512
+    },
+    {
+      "bytes": 96,
+      "format": "webp",
+      "height": 512,
+      "modality": "image",
+      "path": "image-portrait-192x512.webp",
+      "sha256": "5cc00157641e02af02f55f03790fd79c370ad581fbf2c7378aa4409fb14d7af8",
+      "width": 192
+    },
+    {
+      "bytes": 5467,
+      "format": "png",
+      "height": 256,
+      "modality": "image",
+      "path": "image-rgb-256.png",
+      "sha256": "dc486687ceead3b9a14953b32ff5f7ee3b6125f52de11fb1b76db378d62dd0c8",
+      "width": 256
+    },
+    {
+      "bytes": 4993,
+      "format": "png",
+      "height": 320,
+      "modality": "image",
+      "mode": "RGBA",
+      "path": "image-transparent-160x320.png",
+      "sha256": "72e63cabe9a897fac895e9148fdb203867bb7f8ef95311fdfeaf4cd1026580f9",
+      "width": 160
+    },
+    {
+      "bytes": 169626,
+      "duration_seconds": 2.0,
+      "format": "avi",
+      "fps": 6,
+      "frame_count": 12,
+      "generator": "opencv-video-writer",
+      "height": 128,
+      "modality": "video",
+      "path": "video-12f-6fps-192x128.avi",
+      "sha256": "91f394f27c25a34fcbd279746aa7b2365c19c192e692df04a36b52edff701076",
+      "width": 192
+    },
+    {
+      "bytes": 54027,
+      "duration_seconds": 2.0,
+      "format": "mp4",
+      "fps": 4,
+      "frame_count": 8,
+      "generator": "opencv-video-writer",
+      "height": 128,
+      "modality": "video",
+      "path": "video-8f-4fps-128.mp4",
+      "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+      "width": 128
+    }
+  ],
+  "generator": "scripts/generate-vl-capability-fixtures.py",
+  "schema": "aima-amd395-qwen36/vl-capability-fixtures/v1"
+}
