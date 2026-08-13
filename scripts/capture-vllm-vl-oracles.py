@@ -660,6 +660,7 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
     records = _load_fixture_records(args.fixture_root)
     llm_kwargs = _llm_kwargs(args.model_dir, args.fixture_root)
     llm = LLM(**llm_kwargs)
+    print(json.dumps({"event": "engine_ready"}, sort_keys=True), flush=True)
     sampling = SamplingParams(
         temperature=0,
         max_tokens=args.max_tokens,
@@ -671,6 +672,10 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
     try:
         for spec in CASE_SPECS:
             case_id = spec["case_id"]
+            print(
+                json.dumps({"event": "case_start", "case_id": case_id}, sort_keys=True),
+                flush=True,
+            )
             llm.reset_mm_cache()
             messages = _build_messages(spec, args.fixture_root)
             engine_input = llm._preprocess_chat_one(
@@ -747,6 +752,18 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
                     "boundaries": finalization[0]["boundaries"],
                     "generation": generation,
                 }
+            )
+            print(
+                json.dumps(
+                    {
+                        "event": "case_complete",
+                        "case_id": case_id,
+                        "prompt_tokens": len(prompt_token_ids),
+                        "completion_tokens": len(output_token_ids),
+                    },
+                    sort_keys=True,
+                ),
+                flush=True,
             )
     finally:
         del llm
