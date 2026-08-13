@@ -54,6 +54,13 @@ as runtimes in that bundle.
 The native tokenizer statically links ICU. The generated bundle includes the
 ICU copyright and license text. ICU is not relicensed by this project.
 
+Native video decode dynamically links a pinned FFmpeg 6.1.1 minimal build.
+That build is LGPL-2.1-or-later, disables network, GPL and nonfree features,
+and contains only the AVI/MOV demuxers, MJPEG/MPEG-4 decoders and the core
+avformat, avcodec, avutil and swscale libraries needed by the frozen media
+surface. Its source URL, source SHA-256, build contract and LGPL text are
+preserved in the generated bundle. FFmpeg is not relicensed by this project.
+
 The portable native bundle also contains the GNU C Library dynamic loader and
 runtime, libstdc++, libgcc, libelf, libdrm, libnuma, zlib, zstd, liblzma,
 libpng, libjpeg-turbo, libwebp and libsharpyuv copied from

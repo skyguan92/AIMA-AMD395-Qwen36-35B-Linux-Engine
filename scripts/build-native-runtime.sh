@@ -9,6 +9,7 @@ OUT_DIR="${OUT_DIR:-${ROOT}/build/native}"
 OUTPUT="${OUT_DIR}/aima-engine-native"
 LAUNCHER="${OUT_DIR}/aima-engine-launcher"
 ICU_STATIC_DIR="${ICU_STATIC_DIR:-/usr/lib/x86_64-linux-gnu}"
+FFMPEG_ROOT="${FFMPEG_ROOT:?set FFMPEG_ROOT to the pinned minimal FFmpeg distribution root}"
 PREFILL_CONTEXTS="${PREFILL_CONTEXTS:-1024:2048:4096:7168:7680:8191:8192:16384:32768}"
 prefill_closure_dir() {
   local context="$1"
@@ -58,6 +59,19 @@ for archive in libicui18n.a libicuuc.a libicudata.a; do
     exit 1
   fi
 done
+if [[ ! -f "${FFMPEG_ROOT}/SHA256SUMS" ]] ||
+   ! (cd "${FFMPEG_ROOT}" && sha256sum -c SHA256SUMS >/dev/null); then
+  echo "minimal FFmpeg distribution is missing or failed integrity verification" >&2
+  exit 1
+fi
+if ! grep -Fxq 'source_sha256=8684f4b00f94b85461884c3719382f1261f0d9eb3d59640a1f4ac0873616f968' \
+    "${FFMPEG_ROOT}/BUILD-CONTRACT.txt" ||
+   ! grep -Fxq 'license=LGPL-2.1-or-later' \
+    "${FFMPEG_ROOT}/BUILD-CONTRACT.txt" ||
+   ! grep -Fxq 'network=disabled' "${FFMPEG_ROOT}/BUILD-CONTRACT.txt"; then
+  echo "minimal FFmpeg build contract does not match the pinned surface" >&2
+  exit 1
+fi
 
 python3 "${ROOT}/scripts/generate-native-layout.py" --check
 mkdir -p "${OUT_DIR}"
@@ -116,6 +130,7 @@ done < "${AOT_OBJECT_PLAN}"
   -fno-rtlib-add-rpath -ffunction-sections -fdata-sections -pthread \
   -I "${ROOT}/native/include" \
   -I "${ROOT}/native/generated" \
+  -I "${FFMPEG_ROOT}/include" \
   "${ROOT}/native/src/main.cpp" \
   "${ROOT}/native/src/aot_kernel.hip.cpp" \
   "${ROOT}/native/src/aot_registry_probe.hip.cpp" \
@@ -137,6 +152,7 @@ done < "${AOT_OBJECT_PLAN}"
   "${ROOT}/native/src/native_multimodal_cache.cpp" \
   "${ROOT}/native/src/native_vl_processor.cpp" \
   "${ROOT}/native/src/native_image_decoder.cpp" \
+  "${ROOT}/native/src/native_video_decoder.cpp" \
   "${ROOT}/native/src/native_doctor.cpp" \
   "${ROOT}/native/src/native_http_server.cpp" \
   "${ROOT}/native/src/native_pointwise.hip.cpp" \
@@ -161,7 +177,8 @@ done < "${AOT_OBJECT_PLAN}"
   "${ICU_STATIC_DIR}/libicui18n.a" \
   "${ICU_STATIC_DIR}/libicuuc.a" \
   "${ICU_STATIC_DIR}/libicudata.a" \
-  -lhipblaslt -lpng -ljpeg -lwebp -ldl \
+  -L "${FFMPEG_ROOT}/lib" \
+  -lhipblaslt -lpng -ljpeg -lwebp -lavformat -lavcodec -lavutil -lswscale -ldl \
   -Wl,--gc-sections -Wl,--exclude-libs,ALL -Wl,-z,noexecstack \
   -Wl,-z,origin -Wl,--enable-new-dtags -Wl,-rpath,'$ORIGIN/../lib' \
   -o "${OUTPUT}"

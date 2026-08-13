@@ -39,6 +39,12 @@ struct NativeMediaPolicy {
   std::uint64_t maximum_video_bytes = 512ULL * 1024ULL * 1024ULL;
   std::uint64_t maximum_decoded_image_pixels = 8192ULL * 8192ULL;
   std::uint32_t maximum_decoded_image_dimension = 8192;
+  std::uint64_t maximum_decoded_video_pixels = 25165824ULL;
+  std::uint32_t maximum_decoded_video_dimension = 8192;
+  std::uint32_t maximum_video_source_frames = 18432;
+  std::uint32_t maximum_video_sampled_frames = 768;
+  double maximum_video_duration_seconds = 768.0;
+  std::uint32_t maximum_video_decode_milliseconds = 30000;
   bool allow_data_uri = true;
 };
 

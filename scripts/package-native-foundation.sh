@@ -26,6 +26,7 @@ AOTRITON_LIBRARY_SHA256="e0638806efa5d35cef04fd7fb02c62cd038b3a38727ecb5d87a4904
 AOTRITON_IMAGE_RELATIVE="amd-gfx11xx/flash/attn_fwd/FONLY__＊bf16@16_256_F_F_3_0___gfx11xx.aks2"
 AOTRITON_IMAGE="${AOTRITON_ROOT}/lib/aotriton.images/${AOTRITON_IMAGE_RELATIVE}"
 AOTRITON_IMAGE_SHA256="0f3a6a2f9dee6620443ee2145ee1f8257bde65a378589952840d99bf3d485c10"
+FFMPEG_ROOT="${FFMPEG_ROOT:?set FFMPEG_ROOT to the pinned minimal FFmpeg distribution root}"
 RELEASE_VERSION="${AIMA_RELEASE_VERSION:-1.5.1}"
 RELEASE_TAG="${AIMA_RELEASE_TAG:-v${RELEASE_VERSION}}"
 QUALIFICATION_RECORD="${QUALIFICATION_RECORD:-${ROOT}/output/native-portable-product-v${RELEASE_VERSION}.json}"
@@ -106,6 +107,20 @@ if [[ -z "${AOTRITON_LICENSE:-}" || -z "${AOTRITON_NOTICE:-}" ]]; then
   AOTRITON_NOTICE="${AOTRITON_NOTICE:-${aotriton_notice_candidates[0]:-}}"
 fi
 
+if [[ ! -f "${FFMPEG_ROOT}/SHA256SUMS" ]] ||
+   ! (cd "${FFMPEG_ROOT}" && sha256sum -c SHA256SUMS >/dev/null); then
+  echo "minimal FFmpeg distribution is missing or failed integrity verification" >&2
+  exit 1
+fi
+if ! grep -Fxq 'source_sha256=8684f4b00f94b85461884c3719382f1261f0d9eb3d59640a1f4ac0873616f968' \
+    "${FFMPEG_ROOT}/BUILD-CONTRACT.txt" ||
+   ! grep -Fxq 'license=LGPL-2.1-or-later' \
+    "${FFMPEG_ROOT}/BUILD-CONTRACT.txt" ||
+   ! grep -Fxq 'network=disabled' "${FFMPEG_ROOT}/BUILD-CONTRACT.txt"; then
+  echo "minimal FFmpeg build contract does not match the pinned surface" >&2
+  exit 1
+fi
+
 if [[ ! -x "${BINARY}" ]]; then
   echo "native executable is missing; run make build-native-runtime" >&2
   exit 1
@@ -124,6 +139,14 @@ for artifact in "${FMHA_AOTRITON_PROVIDER}" "${FMHA_CK_PROVIDER}" \
                 "${FMHA_HYBRID_PROVIDER}" \
                 "${AOTRITON_LIBRARY}" "${AOTRITON_IMAGE}" \
                 "${AOTRITON_LICENSE}" "${AOTRITON_NOTICE}" \
+                "${FFMPEG_ROOT}/lib/libavformat.so.60" \
+                "${FFMPEG_ROOT}/lib/libavcodec.so.60" \
+                "${FFMPEG_ROOT}/lib/libavutil.so.58" \
+                "${FFMPEG_ROOT}/lib/libswscale.so.7" \
+                "${FFMPEG_ROOT}/BUILD-CONTRACT.txt" \
+                "${FFMPEG_ROOT}/SHA256SUMS" \
+                "${FFMPEG_ROOT}/licenses/FFMPEG-LGPL-2.1-OR-LATER.txt" \
+                "${FFMPEG_ROOT}/licenses/FFMPEG-LICENSE.md" \
                 "${release_metadata[@]}"; do
   if [[ ! -f "${artifact}" ]]; then
     echo "qualified native bundle artifact is missing: ${artifact}" >&2
@@ -157,6 +180,7 @@ BUNDLE_ID="$(sha256sum "${BINARY}" "${LAUNCHER}" \
   "${FMHA_AOTRITON_PROVIDER}" "${FMHA_CK_PROVIDER}" \
   "${FMHA_HYBRID_PROVIDER}" \
   "${AOTRITON_LIBRARY}" "${AOTRITON_IMAGE}" \
+  "${FFMPEG_ROOT}/SHA256SUMS" \
   "${ROOT}/scripts/package-native-foundation.sh" \
   "${ROOT}/scripts/generate-native-bundle-manifest.py" \
   "${ROOT}/scripts/native_bundle_closure.py" \
@@ -198,6 +222,11 @@ install -Dm644 "${AOTRITON_LIBRARY}" \
   "${STAGING}/lib/${AOTRITON_SONAME}"
 install -Dm644 "${AOTRITON_IMAGE}" \
   "${STAGING}/lib/aotriton.images/${AOTRITON_IMAGE_RELATIVE}"
+for soname in libavformat.so.60 libavcodec.so.60 libavutil.so.58 \
+              libswscale.so.7; do
+  install -Dm755 "${FFMPEG_ROOT}/lib/${soname}" \
+    "${STAGING}/lib/${soname}"
+done
 
 libraries=(
   libamdhip64.so.7
@@ -308,6 +337,12 @@ install -Dm644 "${AOTRITON_LICENSE}" \
   "${STAGING}/licenses/AOTRITON-DISTRIBUTION-LICENSE.txt"
 install -Dm644 "${AOTRITON_NOTICE}" \
   "${STAGING}/licenses/AOTRITON-DISTRIBUTION-NOTICE.txt"
+install -Dm644 "${FFMPEG_ROOT}/licenses/FFMPEG-LGPL-2.1-OR-LATER.txt" \
+  "${STAGING}/licenses/FFMPEG-LGPL-2.1-OR-LATER.txt"
+install -Dm644 "${FFMPEG_ROOT}/licenses/FFMPEG-LICENSE.md" \
+  "${STAGING}/licenses/FFMPEG-LICENSE.md"
+install -Dm644 "${FFMPEG_ROOT}/BUILD-CONTRACT.txt" \
+  "${STAGING}/licenses/FFMPEG-BUILD-CONTRACT.txt"
 install -Dm644 "/usr/share/doc/libicu-dev/copyright" "${STAGING}/licenses/ICU-LICENSE.txt"
 install -Dm644 "${ROOT}/NOTICE" "${STAGING}/NOTICE"
 install -Dm644 "${ROOT}/THIRD_PARTY_NOTICES.md" "${STAGING}/THIRD_PARTY_NOTICES.md"

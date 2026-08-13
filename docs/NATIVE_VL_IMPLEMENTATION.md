@@ -14,7 +14,7 @@ blocking condition in the governing goal can move a gate to `passed`.
 
 | Gate | Current state | Evidence required to pass | Next blocking action |
 |---|---|---|---|
-| G1 full VL functional parity | ordered chat media parts, bounded local/data admission and the image processor are implemented; video decode, vision and serving remain incomplete | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | implement bounded video decode, then attach processor outputs to the vision/model path |
+| G1 full VL functional parity | ordered chat media parts plus bounded local/data admission and image/video processors are implemented; remote transport, vision and serving remain incomplete | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | attach ordered processor outputs to the vision/model path |
 | G2 VL correctness parity | reference processor/boundary/logits/generation oracles frozen; native comparison and task suites pending | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | implement native boundaries, then compare against the frozen raw tensors before running task quality |
 | G3 text product no regression | frozen baseline identified | paired 19-cell, maximum-window, correctness, MMLU, API, cache, startup and memory requalification | retain `v1.5.1` as an immutable paired binary |
 | G4 native VL performance | not started | paired per-cell stage timings and memory records against the fixed VL-enabled vLLM | generate matrix cells from the capability manifest |
@@ -165,6 +165,25 @@ quantization and uint8 rounding. A resize-required RGBA fixture and an
 independent mixed up/down-scale tensor match both resized RGB and final BF16
 processor output byte-for-byte. The runtime link and portable-bundle closure
 include the image codec libraries and their distribution license texts.
+
+The native video decoder now demuxes admitted MP4 and AVI bytes through a
+MIME-selected FFmpeg input surface and decodes selected frames directly to
+RGB8. Compressed bytes, source/sample frame counts, duration, dimensions,
+decoded pixels and decode wall time are bounded before tensors are admitted.
+The serving sampler separately reproduces the frozen vLLM OpenCV backend's
+2-fps floor/linspace behavior; it must not be confused with the direct
+Transformers processor's ties-to-even sampling probe. Both frozen videos match
+OpenCV's complete selected-frame RGB SHA-256, and their final `[128,1536]` and
+`[192,1536]` BF16 tensors match the raw reference oracles byte-for-byte. The
+MP4 timestamp regression also fixes the second temporal group at 1.4 seconds.
+The runtime and packaging scripts are wired to a pinned FFmpeg 6.1.1 minimal
+build (source SHA-256 `8684f4b00f94b85461884c3719382f1261f0d9eb3d59640a1f4ac0873616f968`):
+network/GPL/nonfree features are disabled, only the AVI/MOV demuxers and
+MJPEG/MPEG-4 decoder closure are enabled, and the resulting four libraries
+depend only on each other plus bundled glibc/libm. This 4.1 MiB distribution
+reproduces both video oracles and carries a self-verifying manifest and LGPL
+texts. A final portable product archive has not yet been built or qualified,
+so this is implementation evidence rather than G5 release evidence.
 
 `native_media_test` and `native_chat_protocol_test` both compile with strict
 warnings and pass on `amd395`. This is implementation progress, not G1 or G2
