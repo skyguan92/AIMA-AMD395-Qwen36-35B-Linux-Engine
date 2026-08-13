@@ -89,6 +89,27 @@ int main() {
         [&]() { (void)aima::load_native_media_payload(escaped, policy); },
         "symlink escape left the local allowlist");
 
+    aima::NativeMediaPart lexical_escape = local;
+    lexical_escape.source =
+        "file://" + (root / ".." / outside.filename() / "outside.png").string();
+    require_invalid(
+        [&]() { (void)aima::load_native_media_payload(lexical_escape, policy); },
+        "lexical parent traversal left the local allowlist");
+
+    const std::filesystem::path swapped_path = root / "swapped.png";
+    write_bytes(swapped_path,
+                {0x89, 'P', 'N', 'G', 0x0d, 0x0a, 0x1a, 0x0a});
+    aima::NativeMediaPart swapped = local;
+    swapped.source = "file://" + swapped_path.string();
+    require(aima::validate_native_media_source(swapped, policy) ==
+                aima::NativeMediaTransport::kLocalFile,
+            "regular local file failed validation");
+    std::filesystem::remove(swapped_path);
+    std::filesystem::create_symlink(outside_png, swapped_path);
+    require_invalid(
+        [&]() { (void)aima::load_native_media_payload(swapped, policy); },
+        "path replacement after validation escaped the local allowlist");
+
     aima::NativeMediaPart mismatch = data;
     mismatch.kind = aima::NativeMediaKind::kVideo;
     require_invalid(

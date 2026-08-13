@@ -7,14 +7,17 @@
 
 #include <algorithm>
 #include <array>
+#include <cerrno>
 #include <cctype>
 #include <cstdint>
-#include <fstream>
+#include <fcntl.h>
 #include <iterator>
 #include <limits>
 #include <stdexcept>
 #include <string>
+#include <sys/stat.h>
 #include <system_error>
+#include <unistd.h>
 #include <utility>
 
 namespace aima {
@@ -84,8 +87,22 @@ bool path_is_within(const std::filesystem::path& candidate,
   return true;
 }
 
-std::filesystem::path admitted_local_path(
-    const NativeMediaPart& media, const NativeMediaPolicy& policy) {
+std::filesystem::path relative_path_beneath(
+    const std::filesystem::path& candidate,
+    const std::filesystem::path& root) {
+  if (!path_is_within(candidate, root)) return {};
+  auto candidate_part = candidate.begin();
+  for (auto root_part = root.begin(); root_part != root.end(); ++root_part) {
+    ++candidate_part;
+  }
+  std::filesystem::path relative;
+  for (; candidate_part != candidate.end(); ++candidate_part) {
+    relative /= *candidate_part;
+  }
+  return relative;
+}
+
+std::filesystem::path decoded_local_path(const NativeMediaPart& media) {
   constexpr std::string_view prefix = "file://";
   if (media.source.rfind(prefix, 0) != 0) {
     throw std::invalid_argument("local media source must use file://");
@@ -99,16 +116,72 @@ std::filesystem::path admitted_local_path(
   if (encoded.find_first_of("?#") != std::string_view::npos) {
     throw std::invalid_argument("local media URI cannot contain query or fragment");
   }
+  return std::filesystem::path(percent_decode_path(encoded)).lexically_normal();
+}
+
+class FileDescriptor {
+ public:
+  FileDescriptor() = default;
+  explicit FileDescriptor(int value) : value_(value) {}
+  FileDescriptor(const FileDescriptor&) = delete;
+  FileDescriptor& operator=(const FileDescriptor&) = delete;
+  FileDescriptor(FileDescriptor&& other) noexcept : value_(other.release()) {}
+  FileDescriptor& operator=(FileDescriptor&& other) noexcept {
+    if (this != &other) reset(other.release());
+    return *this;
+  }
+  ~FileDescriptor() { reset(); }
+
+  int get() const { return value_; }
+  int release() {
+    const int value = value_;
+    value_ = -1;
+    return value;
+  }
+  void reset(int value = -1) {
+    if (value_ >= 0) (void)::close(value_);
+    value_ = value;
+  }
+
+ private:
+  int value_ = -1;
+};
+
+struct AdmittedLocalFile {
+  FileDescriptor descriptor;
+  struct stat metadata {};
+};
+
+FileDescriptor open_relative_without_symlinks(
+    const std::filesystem::path& root,
+    const std::filesystem::path& relative) {
+  if (relative.empty() || relative.is_absolute()) return {};
+  FileDescriptor current(
+      ::open(root.c_str(), O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW));
+  if (current.get() < 0) return {};
+  auto component = relative.begin();
+  while (component != relative.end()) {
+    if (*component == "." || *component == ".." || component->empty()) {
+      return {};
+    }
+    const auto next = std::next(component);
+    int flags = O_RDONLY | O_CLOEXEC | O_NOFOLLOW;
+    if (next != relative.end()) flags |= O_DIRECTORY;
+    FileDescriptor opened(::openat(current.get(), component->c_str(), flags));
+    if (opened.get() < 0) return {};
+    current = std::move(opened);
+    component = next;
+  }
+  return current;
+}
+
+AdmittedLocalFile open_admitted_local_file(
+    const NativeMediaPart& media, const NativeMediaPolicy& policy) {
   if (policy.allowed_local_roots.empty()) {
     throw std::invalid_argument("local media access has no allowed root");
   }
+  const std::filesystem::path candidate = decoded_local_path(media);
   std::error_code error;
-  const std::filesystem::path candidate = std::filesystem::canonical(
-      std::filesystem::path(percent_decode_path(encoded)), error);
-  if (error || candidate.empty()) {
-    throw std::invalid_argument("local media path is unavailable");
-  }
-  bool admitted = false;
   for (const std::filesystem::path& configured_root :
        policy.allowed_local_roots) {
     const std::filesystem::path root =
@@ -116,18 +189,72 @@ std::filesystem::path admitted_local_path(
     if (error || root.empty() || !std::filesystem::is_directory(root)) {
       throw std::invalid_argument("configured local media root is unavailable");
     }
-    if (path_is_within(candidate, root)) {
-      admitted = true;
-      break;
+    const std::filesystem::path configured_absolute =
+        std::filesystem::absolute(configured_root, error).lexically_normal();
+    if (error || configured_absolute.empty()) {
+      throw std::invalid_argument("configured local media root is unavailable");
     }
+    std::filesystem::path relative =
+        relative_path_beneath(candidate, configured_absolute);
+    if (relative.empty()) {
+      relative = relative_path_beneath(candidate, root);
+    }
+    FileDescriptor descriptor =
+        open_relative_without_symlinks(root, relative);
+    if (descriptor.get() < 0) continue;
+    struct stat metadata {};
+    if (::fstat(descriptor.get(), &metadata) != 0 ||
+        !S_ISREG(metadata.st_mode) || metadata.st_size <= 0 ||
+        static_cast<std::uint64_t>(metadata.st_size) >
+            maximum_bytes(media.kind, policy)) {
+      throw std::invalid_argument("local media file is empty or too large");
+    }
+    return {std::move(descriptor), metadata};
   }
-  if (!admitted) {
-    throw std::invalid_argument("local media path is outside the allowed roots");
+  throw std::invalid_argument("local media path is outside the allowed roots");
+}
+
+bool same_file_metadata(const struct stat& before, const struct stat& after) {
+  if (before.st_dev != after.st_dev || before.st_ino != after.st_ino ||
+      before.st_size != after.st_size || before.st_mtime != after.st_mtime ||
+      before.st_ctime != after.st_ctime) {
+    return false;
   }
-  if (!std::filesystem::is_regular_file(candidate, error) || error) {
-    throw std::invalid_argument("local media path is not a regular file");
+#if defined(__linux__)
+  return before.st_mtim.tv_nsec == after.st_mtim.tv_nsec &&
+         before.st_ctim.tv_nsec == after.st_ctim.tv_nsec;
+#elif defined(__APPLE__)
+  return before.st_mtimespec.tv_nsec == after.st_mtimespec.tv_nsec &&
+         before.st_ctimespec.tv_nsec == after.st_ctimespec.tv_nsec;
+#else
+  return true;
+#endif
+}
+
+std::vector<unsigned char> read_admitted_local_file(AdmittedLocalFile file) {
+  const auto size = static_cast<std::size_t>(file.metadata.st_size);
+  std::vector<unsigned char> bytes(size);
+  std::size_t offset = 0;
+  while (offset < bytes.size()) {
+    const ssize_t count =
+        ::read(file.descriptor.get(), bytes.data() + offset, bytes.size() - offset);
+    if (count < 0 && errno == EINTR) continue;
+    if (count <= 0) {
+      throw std::invalid_argument("local media file changed while being read");
+    }
+    offset += static_cast<std::size_t>(count);
   }
-  return candidate;
+  unsigned char extra = 0;
+  ssize_t trailing = 0;
+  do {
+    trailing = ::read(file.descriptor.get(), &extra, 1);
+  } while (trailing < 0 && errno == EINTR);
+  struct stat after {};
+  if (trailing != 0 || ::fstat(file.descriptor.get(), &after) != 0 ||
+      !same_file_metadata(file.metadata, after)) {
+    throw std::invalid_argument("local media file changed while being read");
+  }
+  return bytes;
 }
 
 int base64_value(unsigned char value) {
@@ -380,7 +507,7 @@ NativeMediaTransport validate_native_media_source(
     return NativeMediaTransport::kDataUri;
   }
   if (media.source.rfind("file://", 0) == 0) {
-    (void)admitted_local_path(media, policy);
+    (void)open_admitted_local_file(media, policy);
     return NativeMediaTransport::kLocalFile;
   }
   if (media.source.rfind("http://", 0) == 0) {
@@ -404,21 +531,8 @@ NativeMediaPayload load_native_media_payload(
                             std::move(parsed.second));
   }
   if (transport == NativeMediaTransport::kLocalFile) {
-    const std::filesystem::path path = admitted_local_path(media, policy);
-    std::error_code error;
-    const std::uintmax_t size = std::filesystem::file_size(path, error);
-    if (error || size == 0 || size > maximum_bytes(media.kind, policy) ||
-        size > std::numeric_limits<std::size_t>::max()) {
-      throw std::invalid_argument("local media file is empty or too large");
-    }
-    std::ifstream input(path, std::ios::binary);
-    if (!input) throw std::invalid_argument("local media file cannot be opened");
-    std::vector<unsigned char> bytes(static_cast<std::size_t>(size));
-    input.read(reinterpret_cast<char*>(bytes.data()),
-               static_cast<std::streamsize>(bytes.size()));
-    if (!input || input.peek() != std::ifstream::traits_type::eof()) {
-      throw std::invalid_argument("local media file changed while being read");
-    }
+    std::vector<unsigned char> bytes =
+        read_admitted_local_file(open_admitted_local_file(media, policy));
     std::string mime = sniff_mime(bytes);
     require_kind_matches(media.kind, mime);
     return finalize_payload(media, transport, std::move(mime), std::move(bytes));

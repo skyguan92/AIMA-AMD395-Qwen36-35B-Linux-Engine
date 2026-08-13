@@ -119,7 +119,8 @@ placeholder-only false success.
 
 The first native media boundary is also present. It:
 
-- accepts bounded base64 data URIs and allowlisted canonical local files;
+- accepts bounded base64 data URIs and allowlisted local files opened beneath
+  a validated root through descriptor-relative, no-symlink traversal;
 - rejects malformed/non-canonical base64, MIME/kind mismatches, empty or
   over-limit payloads, local-root escapes and credential-bearing URLs;
 - validates HTTP/HTTPS authorities and exact domain allowlists while keeping
@@ -127,6 +128,13 @@ The first native media boundary is also present. It:
   implemented;
 - identifies cacheable media by the SHA-256 of the decoded source bytes, so
   equivalent data/local transports have the same content identity.
+
+Local validation and loading no longer trust a canonicalized path followed by
+a second pathname open. The loader walks from an already opened allowlist root
+with `openat`/`O_NOFOLLOW`, verifies the final regular-file descriptor and reads
+that descriptor under a stable metadata check. Parent traversal, intermediate
+or final symlinks, and a file swapped to a symlink after validation all fail
+closed.
 
 The resident prefix cache now uses a composite identity: exact/prefix text
 token comparison plus a versioned digest over the processor configuration and
