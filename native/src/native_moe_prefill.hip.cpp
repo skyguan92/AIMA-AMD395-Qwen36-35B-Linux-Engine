@@ -1060,6 +1060,18 @@ NativeMoePrefillOracleResult probe_native_q8192_moe_prefill_layer0_oracle(
                                tokens * kTopK * sizeof(float));
       compare_stage_if_present("router_indices", "int64", router_indices_i64,
                                tokens * kTopK * sizeof(std::int64_t));
+      const std::filesystem::path router_indices_expected =
+          find_native_oracle_tensor_file_if_present(
+              options.chain_output_oracle_dir,
+              label_prefix + "router_indices");
+      if (!router_indices_expected.empty()) {
+        result.router_expert_set_rows = tokens;
+        result.router_expert_set_rows_exact = count_exact_int64_row_sets(
+            router_indices_i64, router_indices_expected, tokens, kTopK);
+        result.router_expert_sets_exact =
+            result.router_expert_set_rows_exact ==
+            result.router_expert_set_rows;
+      }
       compare_stage_if_present("shared_out", "bfloat16", shared_scaled,
                                hidden_bytes);
       compare_stage_if_present("routed_moe", "bfloat16", routed_moe,

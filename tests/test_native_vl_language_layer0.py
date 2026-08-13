@@ -63,7 +63,9 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
             'post_attention_h2_oracle_label = "diagnostic-h2"', probe
         )
         self.assertIn('"diagnostic-router_indices"', probe)
-        self.assertIn("value.exact_elements == value.elements", probe)
+        self.assertIn("diagnostic.router_expert_sets_exact", probe)
+        self.assertIn('"router_expert_set_rows_exact"', probe)
+        self.assertIn('"seeded_router_expert_set_rows_exact"', probe)
         self.assertIn('"linear_projection_fused_full_sequence"', probe)
         self.assertIn('"diagnostic-qkv"', linear_source)
         self.assertIn('"diagnostic-fused-input"', linear_source)

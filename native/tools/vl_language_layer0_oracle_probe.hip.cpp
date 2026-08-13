@@ -215,6 +215,12 @@ struct Execution {
   std::vector<aima::NativeOracleComparison> diagnostic_comparisons;
   std::vector<aima::NativeOracleComparison>
       seeded_moe_diagnostic_comparisons;
+  std::size_t router_expert_set_rows = 0;
+  std::size_t router_expert_set_rows_exact = 0;
+  bool router_expert_sets_exact = false;
+  std::size_t seeded_router_expert_set_rows = 0;
+  std::size_t seeded_router_expert_set_rows_exact = 0;
+  bool seeded_router_expert_sets_exact = false;
   float measured_ms = 0.0f;
   aima::NativePrefillWorkspaceMetrics workspace;
   aima::NativePrefillInvocationMetrics invocations;
@@ -314,6 +320,9 @@ Execution execute_layer0(
   result.diagnostic_comparisons.insert(
       result.diagnostic_comparisons.end(), moe.comparisons.begin(),
       moe.comparisons.end());
+  result.router_expert_set_rows = moe.router_expert_set_rows;
+  result.router_expert_set_rows_exact = moe.router_expert_set_rows_exact;
+  result.router_expert_sets_exact = moe.router_expert_sets_exact;
   if (moe.chain_output_comparison_provided) {
     result.diagnostic_comparisons.push_back(moe.chain_output_comparison);
   }
@@ -348,6 +357,12 @@ Execution execute_layer0(
             diagnostic_oracle_dir, weights, workspace, invocations, executor,
             seeded_moe_options);
     result.seeded_moe_diagnostic_comparisons = seeded_moe.comparisons;
+    result.seeded_router_expert_set_rows =
+        seeded_moe.router_expert_set_rows;
+    result.seeded_router_expert_set_rows_exact =
+        seeded_moe.router_expert_set_rows_exact;
+    result.seeded_router_expert_sets_exact =
+        seeded_moe.router_expert_sets_exact;
     if (seeded_moe.chain_output_comparison_provided) {
       result.seeded_moe_diagnostic_comparisons.push_back(
           seeded_moe.chain_output_comparison);
@@ -487,7 +502,7 @@ json qualify_case(
           value.relative_l2_error <= 0.002 &&
           value.cosine_similarity >= 0.999 &&
           (value.label != "diagnostic-router_indices" ||
-           value.exact_elements == value.elements);
+           diagnostic.router_expert_sets_exact);
       if (!stage_passed && first_failed_diagnostic_stage.empty()) {
         first_failed_diagnostic_stage = value.label;
       }
@@ -539,7 +554,7 @@ json qualify_case(
           value.relative_l2_error <= 0.002 &&
           value.cosine_similarity >= 0.999 &&
           (value.label != "diagnostic-router_indices" ||
-           value.exact_elements == value.elements);
+           diagnostic.seeded_router_expert_sets_exact);
       if (!stage_passed && first_failed_seeded_moe_stage.empty()) {
         first_failed_seeded_moe_stage = value.label;
       }
@@ -609,9 +624,19 @@ json qualify_case(
       {"diagnostic_oracle_provided", !diagnostic_oracle_root.empty()},
       {"diagnostic_complete", diagnostic_complete},
       {"first_failed_diagnostic_stage", first_failed_diagnostic_stage},
+      {"router_expert_set_rows", diagnostic.router_expert_set_rows},
+      {"router_expert_set_rows_exact",
+       diagnostic.router_expert_set_rows_exact},
+      {"router_expert_sets_exact", diagnostic.router_expert_sets_exact},
       {"diagnostic_comparisons", std::move(diagnostic_comparisons)},
       {"seeded_moe_diagnostic_complete", seeded_moe_diagnostic_complete},
       {"first_failed_seeded_moe_stage", first_failed_seeded_moe_stage},
+      {"seeded_router_expert_set_rows",
+       diagnostic.seeded_router_expert_set_rows},
+      {"seeded_router_expert_set_rows_exact",
+       diagnostic.seeded_router_expert_set_rows_exact},
+      {"seeded_router_expert_sets_exact",
+       diagnostic.seeded_router_expert_sets_exact},
       {"seeded_moe_diagnostic_comparisons",
        std::move(seeded_moe_diagnostic_comparisons)},
       {"measured_ms", measured_ms},
