@@ -854,6 +854,32 @@ class NativeVisualLayoutTest(unittest.TestCase):
         self.assertFalse(decision["g2_passed"])
         self.assertTrue(decision["overall_pass"])
 
+    def test_vision_block_stack_reuses_one_intermediate_and_one_arena(self) -> None:
+        header = (
+            ROOT / "native/include/aima/native_vision_block_stack.h"
+        ).read_text(encoding="utf-8")
+        source = (
+            ROOT / "native/src/native_vision_block_stack.hip.cpp"
+        ).read_text(encoding="utf-8")
+        self.assertIn("class NativeVisionBlockStackPlan", header)
+        self.assertIn("constexpr std::size_t kVisionBlockCount = 27", source)
+        self.assertIn("blocks.reserve(kVisionBlockCount)", source)
+        self.assertIn("blocks.emplace_back(weights, block_index", source)
+        self.assertIn("intermediate + impl_->intermediate_bytes", source)
+        self.assertIn("block_index % 2 == 0 ? output_device : intermediate", source)
+        self.assertIn("impl_->blocks[block_index].launch", source)
+        probe = (
+            ROOT / "native/tools/vision_block_stack_oracle_probe.hip.cpp"
+        ).read_text(encoding="utf-8")
+        build = (
+            ROOT / "scripts/build-native-vision-block-stack-probe.sh"
+        ).read_text(encoding="utf-8")
+        self.assertIn("NativeVisionBlockStackPlan plan", probe)
+        self.assertIn("plan.block_count() != 27", probe)
+        self.assertIn("native-vision-block-stack-oracle/v1", probe)
+        self.assertIn("vision_block_stack_oracle_probe.hip.cpp", build)
+        self.assertIn("native_vision_block_stack.hip.cpp", build)
+
 
 if __name__ == "__main__":
     unittest.main()
