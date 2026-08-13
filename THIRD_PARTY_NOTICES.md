@@ -55,8 +55,8 @@ The native tokenizer statically links ICU. The generated bundle includes the
 ICU copyright and license text. ICU is not relicensed by this project.
 
 The portable native bundle also contains the GNU C Library dynamic loader and
-runtime, libstdc++, libgcc, libelf, libdrm, libnuma, zlib, zstd and liblzma
-copied from
+runtime, libstdc++, libgcc, libelf, libdrm, libnuma, zlib, zstd, liblzma,
+libpng, libjpeg-turbo, libwebp and libsharpyuv copied from
 the qualified builder. These libraries retain their respective upstream
 licenses; the generated bundle includes the corresponding distribution
 copyright and license notices. They are included to remove host userspace

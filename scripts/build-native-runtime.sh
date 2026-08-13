@@ -136,6 +136,7 @@ done < "${AOT_OBJECT_PLAN}"
   "${ROOT}/native/src/native_media.cpp" \
   "${ROOT}/native/src/native_multimodal_cache.cpp" \
   "${ROOT}/native/src/native_vl_processor.cpp" \
+  "${ROOT}/native/src/native_image_decoder.cpp" \
   "${ROOT}/native/src/native_doctor.cpp" \
   "${ROOT}/native/src/native_http_server.cpp" \
   "${ROOT}/native/src/native_pointwise.hip.cpp" \
@@ -160,7 +161,8 @@ done < "${AOT_OBJECT_PLAN}"
   "${ICU_STATIC_DIR}/libicui18n.a" \
   "${ICU_STATIC_DIR}/libicuuc.a" \
   "${ICU_STATIC_DIR}/libicudata.a" \
-  -lhipblaslt -ldl -Wl,--gc-sections -Wl,--exclude-libs,ALL -Wl,-z,noexecstack \
+  -lhipblaslt -lpng -ljpeg -lwebp -ldl \
+  -Wl,--gc-sections -Wl,--exclude-libs,ALL -Wl,-z,noexecstack \
   -Wl,-z,origin -Wl,--enable-new-dtags -Wl,-rpath,'$ORIGIN/../lib' \
   -o "${OUTPUT}"
 

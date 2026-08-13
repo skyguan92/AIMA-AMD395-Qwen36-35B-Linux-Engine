@@ -37,6 +37,8 @@ struct NativeMediaPolicy {
   std::vector<std::string> allowed_media_domains;
   std::uint64_t maximum_image_bytes = 64ULL * 1024ULL * 1024ULL;
   std::uint64_t maximum_video_bytes = 512ULL * 1024ULL * 1024ULL;
+  std::uint64_t maximum_decoded_image_pixels = 8192ULL * 8192ULL;
+  std::uint32_t maximum_decoded_image_dimension = 8192;
   bool allow_data_uri = true;
 };
 

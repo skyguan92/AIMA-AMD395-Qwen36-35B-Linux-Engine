@@ -233,6 +233,10 @@ system_libraries=(
   libz.so.1
   libzstd.so.1
   liblzma.so.5
+  libpng16.so.16
+  libjpeg.so.8
+  libwebp.so.7
+  libsharpyuv.so.0
 )
 for soname in "${system_libraries[@]}"; do
   source_path="$(ldconfig -p | awk -v soname="${soname}" \
@@ -282,6 +286,10 @@ licenses=(
   "/usr/share/doc/zlib1g/copyright:ZLIB-LICENSE.txt"
   "/usr/share/doc/libzstd1/copyright:LIBZSTD-LICENSE.txt"
   "/usr/share/doc/liblzma5/copyright:LIBLZMA-LICENSE.txt"
+  "/usr/share/doc/libpng16-16t64/copyright:LIBPNG-LICENSE.txt"
+  "/usr/share/doc/libjpeg-turbo8/copyright:LIBJPEG-TURBO-LICENSE.txt"
+  "/usr/share/doc/libwebp7/copyright:LIBWEBP-LICENSE.txt"
+  "/usr/share/doc/libsharpyuv0/copyright:LIBSHARPYUV-LICENSE.txt"
 )
 for mapping in "${licenses[@]}"; do
   source_name="${mapping%%:*}"

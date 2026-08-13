@@ -152,8 +152,17 @@ The native processor now also performs the exact fused normalization, odd-frame
 repeat and Qwen temporal/spatial patch permutation into contiguous
 `[patches,1536]` BF16. The frozen 256x256 image oracle matches byte-for-byte,
 and a four-frame deterministic video regression closes channel, temporal,
-patch and merge ordering. Native format decode and antialiased bicubic resize
-remain the next processor boundary.
+patch and merge ordering.
+
+The native image decoder now covers PNG, JPEG and WebP from admitted in-memory
+bytes with compressed-byte and decoded-pixel/dimension bounds. It drops alpha
+without compositing to match `Image.convert("RGB")`, rejects corrupt/truncated
+inputs without decoder stderr, and never reopens the source path. All four
+frozen image fixtures match the reference decoded RGB SHA-256 exactly,
+including RGBA PNG and JPEG; PNG decode through BF16 patchify also matches the
+frozen processor tensor byte-for-byte. The runtime link and portable-bundle
+closure now include the image codec libraries and their distribution license
+texts. Antialiased bicubic resize is still pending for resize-required images.
 
 `native_media_test` and `native_chat_protocol_test` both compile with strict
 warnings and pass on `amd395`. This is implementation progress, not G1 or G2
