@@ -77,6 +77,7 @@ REQUIRED_COMPONENTS = {
     "gdn_ba_projection",
     "gdn_b_projection",
     "gdn_a_projection",
+    "gdn_fused_input_projection",
     "gdn_core",
     "gdn_z",
     "gdn_gated_norm",
@@ -97,6 +98,7 @@ ORACLE_LABELS = {
     "diagnostic-z": "gdn_z_projection",
     "diagnostic-a": "gdn_a_projection",
     "diagnostic-b": "gdn_b_projection",
+    "diagnostic-fused-input": "gdn_fused_input_projection",
     "launch-008-o": "gdn_core",
     "return-linear_attention-gated_out": "gdn_gated_norm",
     "return-linear_attention-output": "linear_attention_output",
@@ -317,6 +319,8 @@ class FinalizeLanguageLayer0DiagnosticHooks:
     """Write diagnostic tensors and a native-oracle compatibility ledger."""
 
     def __call__(self, model: Any) -> dict[str, Any]:
+        import torch
+
         root = _find_model_root(model)
         state = getattr(root, "_aima_vl_language_layer0_diagnostic_state", None)
         if not isinstance(state, dict):
@@ -324,6 +328,22 @@ class FinalizeLanguageLayer0DiagnosticHooks:
         for handle in state.get("handles", []):
             handle.remove()
         captures = state["captures"]
+        if {
+            "gdn_qkvz_projection",
+            "gdn_a_projection",
+            "gdn_b_projection",
+        }.issubset(captures):
+            # The native derived layout is QKVZ/A/B, while vLLM's second
+            # merged projection returns B/A. Reorder only the two 32-wide
+            # views so this diagnostic compares arithmetic, not packing.
+            captures["gdn_fused_input_projection"] = torch.cat(
+                (
+                    captures["gdn_qkvz_projection"],
+                    captures["gdn_a_projection"],
+                    captures["gdn_b_projection"],
+                ),
+                dim=-1,
+            ).contiguous()
         missing = REQUIRED_COMPONENTS - set(captures)
         if missing:
             raise RuntimeError(

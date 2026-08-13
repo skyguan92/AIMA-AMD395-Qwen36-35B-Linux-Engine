@@ -548,13 +548,17 @@ probe_native_q8192_linear_prefill_layer0_oracle(
     compare_optional_sequence(
         "linear_projection_z_full_sequence", z, kLinearValue,
         "diagnostic-z");
+  } else {
     compare_optional_sequence(
-        "linear_projection_a_full_sequence", a, kLinearHeads,
-        "diagnostic-a");
-    compare_optional_sequence(
-        "linear_projection_b_full_sequence", b, kLinearHeads,
-        "diagnostic-b");
+        "linear_projection_fused_full_sequence", qkv, 12352,
+        "diagnostic-fused-input");
   }
+  compare_optional_sequence(
+      "linear_projection_a_full_sequence", a, kLinearHeads,
+      "diagnostic-a");
+  compare_optional_sequence(
+      "linear_projection_b_full_sequence", b, kLinearHeads,
+      "diagnostic-b");
   if (!split_projections) {
     compare_optional_stage_tail(
         "linear_projection_qkv_last_token", "bfloat16", qkv,
