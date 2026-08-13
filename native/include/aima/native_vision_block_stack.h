@@ -33,6 +33,13 @@ class NativeVisionBlockStackPlan {
               const void* sin_device, void* output_device,
               void* temporary_device, std::size_t temporary_bytes,
               void* stream = nullptr) const;
+  // Diagnostic/qualification entry point that executes blocks [0,last]. The
+  // final selected block always lands in output_device regardless of parity.
+  void launch_through(std::size_t last_block_index, const void* input_device,
+                      const void* cos_device, const void* sin_device,
+                      void* output_device, void* temporary_device,
+                      std::size_t temporary_bytes,
+                      void* stream = nullptr) const;
   std::size_t patch_count() const;
   std::size_t block_count() const;
   std::size_t temporary_bytes() const;

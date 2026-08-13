@@ -193,21 +193,25 @@ Comparison compare_bf16(const std::vector<unsigned char>& actual,
 }  // namespace
 
 int main(int argc, char** argv) {
-  if (argc != 9) {
+  if (argc != 10) {
     std::cerr << "usage: native-vision-block-stack-probe MODEL_DIR "
-                 "BLOCK0_INPUT COS SIN BLOCK26_OUTPUT CU_SEQLENS PATCHES "
-                 "LOAD_REPORT\n";
+                 "LAST_BLOCK_INDEX BLOCK0_INPUT COS SIN EXPECTED_OUTPUT "
+                 "CU_SEQLENS PATCHES LOAD_REPORT\n";
     return 2;
   }
   try {
     constexpr std::size_t kVisionHidden = 1152;
     constexpr std::size_t kRotaryHalfDimension = 36;
-    const std::size_t patches = std::stoull(argv[7]);
+    const std::size_t last_block_index = std::stoull(argv[2]);
+    if (last_block_index >= 27) {
+      throw std::invalid_argument("last block index is outside the vision stack");
+    }
+    const std::size_t patches = std::stoull(argv[8]);
     if (patches == 0 || patches > 4 * aima::kNativeVlAggregateTokenLimit) {
       throw std::invalid_argument("patch count is outside the probe domain");
     }
     const std::vector<std::uint32_t> cu_seqlens =
-        parse_cu_seqlens(argv[6], patches);
+        parse_cu_seqlens(argv[7], patches);
     const std::size_t hidden_bytes =
         patches * kVisionHidden * sizeof(std::uint16_t);
     const std::size_t cos_sin_bytes =
@@ -215,7 +219,7 @@ int main(int argc, char** argv) {
 
     aima::NativeWeightLoadOptions options;
     options.model_dir = std::filesystem::absolute(argv[1]);
-    options.native_report = std::filesystem::absolute(argv[8]);
+    options.native_report = std::filesystem::absolute(argv[9]);
     aima::NativeWeightStore weights;
     const aima::NativeWeightLoadMetrics load = weights.load_visual(options);
     aima::NativeVisionBlockStackPlan plan(weights, patches, cu_seqlens);
@@ -227,15 +231,15 @@ int main(int argc, char** argv) {
     DeviceAllocation sine(cos_sin_bytes);
     DeviceAllocation output(hidden_bytes);
     DeviceAllocation temporary(plan.temporary_bytes());
-    upload_file(input.get(), std::filesystem::absolute(argv[2]), hidden_bytes,
+    upload_file(input.get(), std::filesystem::absolute(argv[3]), hidden_bytes,
                 "hipMemcpy block stack input");
-    upload_file(cosine.get(), std::filesystem::absolute(argv[3]),
+    upload_file(cosine.get(), std::filesystem::absolute(argv[4]),
                 cos_sin_bytes, "hipMemcpy block stack cosine");
-    upload_file(sine.get(), std::filesystem::absolute(argv[4]), cos_sin_bytes,
+    upload_file(sine.get(), std::filesystem::absolute(argv[5]), cos_sin_bytes,
                 "hipMemcpy block stack sine");
 
-    plan.launch(input.get(), cosine.get(), sine.get(), output.get(),
-                temporary.get(), plan.temporary_bytes());
+    plan.launch_through(last_block_index, input.get(), cosine.get(), sine.get(),
+                        output.get(), temporary.get(), plan.temporary_bytes());
     check_hip(hipDeviceSynchronize(), "hipDeviceSynchronize block stack warmup");
     std::vector<unsigned char> first_output(hidden_bytes);
     check_hip(hipMemcpy(first_output.data(), output.get(), hidden_bytes,
@@ -250,8 +254,8 @@ int main(int argc, char** argv) {
     measured_ms.reserve(5);
     for (std::size_t repetition = 0; repetition < 5; ++repetition) {
       check_hip(hipEventRecord(start), "hipEventRecord block stack start");
-      plan.launch(input.get(), cosine.get(), sine.get(), output.get(),
-                  temporary.get(), plan.temporary_bytes());
+      plan.launch_through(last_block_index, input.get(), cosine.get(), sine.get(),
+                          output.get(), temporary.get(), plan.temporary_bytes());
       check_hip(hipEventRecord(stop), "hipEventRecord block stack stop");
       check_hip(hipEventSynchronize(stop),
                 "hipEventSynchronize block stack stop");
@@ -265,7 +269,7 @@ int main(int argc, char** argv) {
                         hipMemcpyDeviceToHost),
               "hipMemcpy block stack output");
     const Comparison comparison =
-        compare_bf16(actual, std::filesystem::absolute(argv[5]));
+        compare_bf16(actual, std::filesystem::absolute(argv[6]));
     std::vector<double> sorted_ms = measured_ms;
     std::sort(sorted_ms.begin(), sorted_ms.end());
     const double median_ms = sorted_ms[sorted_ms.size() / 2];
@@ -276,7 +280,9 @@ int main(int argc, char** argv) {
               << "{\"schema\":\"aima-amd395-qwen36/"
                  "native-vision-block-stack-oracle/v1\","
               << "\"complete\":" << (passed ? "true" : "false") << ','
-              << "\"block_count\":" << plan.block_count()
+              << "\"resident_block_count\":" << plan.block_count()
+              << ",\"last_block_index\":" << last_block_index
+              << ",\"executed_block_count\":" << last_block_index + 1
               << ",\"patches\":" << patches << ",\"cu_seqlens\":[";
     for (std::size_t index = 0; index < cu_seqlens.size(); ++index) {
       if (index != 0) std::cout << ',';

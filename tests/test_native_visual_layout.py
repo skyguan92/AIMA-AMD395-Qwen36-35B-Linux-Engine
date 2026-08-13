@@ -866,7 +866,7 @@ class NativeVisualLayoutTest(unittest.TestCase):
         self.assertIn("blocks.reserve(kVisionBlockCount)", source)
         self.assertIn("blocks.emplace_back(weights, block_index", source)
         self.assertIn("intermediate + impl_->intermediate_bytes", source)
-        self.assertIn("block_index % 2 == 0 ? output_device : intermediate", source)
+        self.assertIn("(last_block_index - block_index) % 2 == 0", source)
         self.assertIn("impl_->blocks[block_index].launch", source)
         probe = (
             ROOT / "native/tools/vision_block_stack_oracle_probe.hip.cpp"
@@ -876,6 +876,7 @@ class NativeVisualLayoutTest(unittest.TestCase):
         ).read_text(encoding="utf-8")
         self.assertIn("NativeVisionBlockStackPlan plan", probe)
         self.assertIn("plan.block_count() != 27", probe)
+        self.assertIn("plan.launch_through(last_block_index", probe)
         self.assertIn("native-vision-block-stack-oracle/v1", probe)
         self.assertIn("vision_block_stack_oracle_probe.hip.cpp", build)
         self.assertIn("native_vision_block_stack.hip.cpp", build)

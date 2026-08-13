@@ -81,20 +81,33 @@ void NativeVisionBlockStackPlan::launch(
     const void* input_device, const void* cos_device, const void* sin_device,
     void* output_device, void* temporary_device,
     std::size_t supplied_temporary_bytes, void* stream) const {
+  launch_through(kVisionBlockCount - 1, input_device, cos_device, sin_device,
+                 output_device, temporary_device, supplied_temporary_bytes,
+                 stream);
+}
+
+void NativeVisionBlockStackPlan::launch_through(
+    std::size_t last_block_index, const void* input_device,
+    const void* cos_device, const void* sin_device, void* output_device,
+    void* temporary_device, std::size_t supplied_temporary_bytes,
+    void* stream) const {
   if (!impl_ || input_device == nullptr || cos_device == nullptr ||
       sin_device == nullptr || output_device == nullptr ||
       temporary_device == nullptr || input_device == output_device ||
       input_device == temporary_device || output_device == temporary_device ||
       cos_device == temporary_device || sin_device == temporary_device ||
-      supplied_temporary_bytes < impl_->temporary_bytes_value) {
+      supplied_temporary_bytes < impl_->temporary_bytes_value ||
+      last_block_index >= impl_->blocks.size()) {
     throw std::invalid_argument("native vision block stack launch is invalid");
   }
   auto* intermediate = static_cast<unsigned char*>(temporary_device);
   auto* block_temporary = intermediate + impl_->intermediate_bytes;
   const void* current = input_device;
-  for (std::size_t block_index = 0; block_index < impl_->blocks.size();
+  for (std::size_t block_index = 0; block_index <= last_block_index;
        ++block_index) {
-    void* next = block_index % 2 == 0 ? output_device : intermediate;
+    void* next = (last_block_index - block_index) % 2 == 0
+                     ? output_device
+                     : intermediate;
     impl_->blocks[block_index].launch(
         current, cos_device, sin_device, next, block_temporary,
         impl_->block_temporary_bytes, stream);
