@@ -184,6 +184,36 @@ class NativeVisualLayoutTest(unittest.TestCase):
             all(case["expected_sha256"] == case["actual_sha256"] for case in result["cases"])
         )
 
+    def test_position_interpolation_has_a_frozen_native_boundary(self) -> None:
+        header = (ROOT / "native/include/aima/native_vision_encoder.h").read_text(
+            encoding="utf-8"
+        )
+        source = (ROOT / "native/src/native_vision_encoder.hip.cpp").read_text(
+            encoding="utf-8"
+        )
+        capture = (
+            ROOT / "scripts/capture-vllm-vision-position-oracles.py"
+        ).read_text(encoding="utf-8")
+        probe = (
+            ROOT / "native/tools/vision_position_oracle_probe.hip.cpp"
+        ).read_text(encoding="utf-8")
+        build = (
+            ROOT / "scripts/build-native-vision-position-probe.sh"
+        ).read_text(encoding="utf-8")
+        self.assertIn("class NativeVisionPositionPlan", header)
+        self.assertIn("launch_add", header)
+        self.assertIn("torch_linspace_coordinate", source)
+        self.assertIn("model.visual.pos_embed.weight", source)
+        self.assertIn("kNativeVlMergeSize", source)
+        self.assertIn("pos_embed_interpolate_native", capture)
+        self.assertIn(
+            "8ba3592a0fb481a959d6952af25a721cfaeab966558ac11214304e5cf7524d1a",
+            capture,
+        )
+        self.assertIn("concatenated_exact_elements", probe)
+        self.assertIn("zero_add_exact_elements", probe)
+        self.assertIn("vision_position_oracle_probe.hip.cpp", build)
+
 
 if __name__ == "__main__":
     unittest.main()

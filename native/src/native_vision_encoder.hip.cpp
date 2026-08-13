@@ -6,19 +6,32 @@
 #include "aima/bf16_gemm.h"
 #include "aima/native_weight_store.h"
 
+#include <hip/hip_bf16.h>
+#include <hip/hip_runtime.h>
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 namespace aima {
 namespace {
 
 constexpr std::size_t kPatchFeatures = 3 * 2 * 16 * 16;
 constexpr std::size_t kVisionHidden = 1152;
+constexpr std::size_t kPositionGridSide = 48;
 constexpr std::size_t kWorkspaceLimit = 128ULL * 1024ULL * 1024ULL;
+
+void check_hip(hipError_t status, const char* operation) {
+  if (status != hipSuccess) {
+    throw std::runtime_error(std::string(operation) + ": " +
+                             hipGetErrorString(status));
+  }
+}
 
 const NativeTensorView& require_tensor(const NativeWeightStore& weights,
                                        const char* name, std::uint8_t rank,
@@ -30,6 +43,93 @@ const NativeTensorView& require_tensor(const NativeWeightStore& weights,
                              name);
   }
   return *tensor;
+}
+
+std::size_t checked_product(std::size_t left, std::size_t right,
+                            const char* description) {
+  if (left != 0 && right > std::numeric_limits<std::size_t>::max() / left) {
+    throw std::invalid_argument(std::string(description) + " overflows");
+  }
+  return left * right;
+}
+
+__device__ float torch_linspace_coordinate(std::size_t index,
+                                            std::size_t count) {
+  if (count <= 1) return 0.0f;
+  const float step = static_cast<float>(kPositionGridSide - 1) /
+                     static_cast<float>(count - 1);
+  if (index < count / 2) return static_cast<float>(index) * step;
+  // ATen constructs the upper half from the endpoint. Preserve the rounded
+  // multiplication before subtraction so compiler contraction cannot change
+  // torch.linspace's float32 coordinates by one ULP.
+  const volatile float reverse_distance =
+      static_cast<float>(count - index - 1) * step;
+  return static_cast<float>(kPositionGridSide - 1) - reverse_distance;
+}
+
+__global__ void vision_position_kernel(
+    const __hip_bfloat16* table, const __hip_bfloat16* patch_embeddings,
+    __hip_bfloat16* output, std::size_t output_row_offset,
+    std::size_t height, std::size_t width, std::size_t element_count) {
+  const std::size_t index =
+      static_cast<std::size_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+  if (index >= element_count) return;
+
+  const std::size_t local_row = index / kVisionHidden;
+  const std::size_t hidden = index % kVisionHidden;
+  const std::size_t spatial_row = local_row % (height * width);
+  const std::size_t merged_width = width / kNativeVlMergeSize;
+  const std::size_t merged_cell = spatial_row / 4;
+  const std::size_t inner = spatial_row % 4;
+  const std::size_t source_y =
+      (merged_cell / merged_width) * kNativeVlMergeSize + inner / 2;
+  const std::size_t source_x =
+      (merged_cell % merged_width) * kNativeVlMergeSize + inner % 2;
+
+  const float y_position = torch_linspace_coordinate(source_y, height);
+  const float x_position = torch_linspace_coordinate(source_x, width);
+  const std::size_t y_floor = static_cast<std::size_t>(y_position);
+  const std::size_t x_floor = static_cast<std::size_t>(x_position);
+  const std::size_t y_ceil =
+      y_floor + 1 < kPositionGridSide ? y_floor + 1 : y_floor;
+  const std::size_t x_ceil =
+      x_floor + 1 < kPositionGridSide ? x_floor + 1 : x_floor;
+  const float dy = y_position - static_cast<float>(y_floor);
+  const float dx = x_position - static_cast<float>(x_floor);
+  const float w11 = dy * dx;
+  const float w10 = dy - w11;
+  const float w01 = dx - w11;
+  const float w00 = 1.0f - dy - w01;
+
+  const __hip_bfloat16 weight00 = __float2bfloat16(w00);
+  const __hip_bfloat16 weight01 = __float2bfloat16(w01);
+  const __hip_bfloat16 weight10 = __float2bfloat16(w10);
+  const __hip_bfloat16 weight11 = __float2bfloat16(w11);
+  const std::size_t table00 =
+      (y_floor * kPositionGridSide + x_floor) * kVisionHidden + hidden;
+  const std::size_t table01 =
+      (y_floor * kPositionGridSide + x_ceil) * kVisionHidden + hidden;
+  const std::size_t table10 =
+      (y_ceil * kPositionGridSide + x_floor) * kVisionHidden + hidden;
+  const std::size_t table11 =
+      (y_ceil * kPositionGridSide + x_ceil) * kVisionHidden + hidden;
+  const __hip_bfloat16 product00 = __float2bfloat16(
+      __bfloat162float(table[table00]) * __bfloat162float(weight00));
+  const __hip_bfloat16 product01 = __float2bfloat16(
+      __bfloat162float(table[table01]) * __bfloat162float(weight01));
+  const __hip_bfloat16 product10 = __float2bfloat16(
+      __bfloat162float(table[table10]) * __bfloat162float(weight10));
+  const __hip_bfloat16 product11 = __float2bfloat16(
+      __bfloat162float(table[table11]) * __bfloat162float(weight11));
+  const __hip_bfloat16 position = __float2bfloat16(
+      (__bfloat162float(product00) + __bfloat162float(product01)) +
+      (__bfloat162float(product10) + __bfloat162float(product11)));
+  const std::size_t output_index = output_row_offset * kVisionHidden + index;
+  output[output_index] =
+      patch_embeddings == nullptr
+          ? position
+          : __float2bfloat16(__bfloat162float(patch_embeddings[output_index]) +
+                             __bfloat162float(position));
 }
 
 }  // namespace
@@ -90,6 +190,99 @@ std::size_t NativeVisionPatchEmbedPlan::patch_count() const {
 
 std::size_t NativeVisionPatchEmbedPlan::workspace_bytes() const {
   return impl_->gemm.workspace_bytes();
+}
+
+struct NativeVisionPositionPlan::Impl {
+  Impl(const NativeWeightStore& weights,
+       const std::vector<NativeVlGrid>& requested_grids)
+      : position_table(require_tensor(weights, "model.visual.pos_embed.weight",
+                                      2, kPositionGridSide *
+                                             kPositionGridSide * kVisionHidden *
+                                             sizeof(std::uint16_t))),
+        grids(requested_grids) {
+    if (position_table.shape !=
+        std::array<std::uint32_t, 5>{2304, 1152, 1, 1, 1}) {
+      throw std::runtime_error("native vision position weight shape is invalid");
+    }
+    if (grids.empty()) {
+      throw std::invalid_argument("native vision position grids are empty");
+    }
+    for (const NativeVlGrid& grid : grids) {
+      if (grid.temporal == 0 || grid.height == 0 || grid.width == 0 ||
+          grid.height % kNativeVlMergeSize != 0 ||
+          grid.width % kNativeVlMergeSize != 0) {
+        throw std::invalid_argument("native vision position grid is invalid");
+      }
+      const std::size_t spatial =
+          checked_product(grid.height, grid.width, "vision spatial grid");
+      const std::size_t patches =
+          checked_product(grid.temporal, spatial, "vision patch grid");
+      if (patches > 4 * kNativeVlAggregateTokenLimit ||
+          patch_count_value > 4 * kNativeVlAggregateTokenLimit - patches) {
+        throw std::invalid_argument(
+            "native vision position patches exceed the serving budget");
+      }
+      patch_count_value += patches;
+    }
+  }
+
+  void launch(const void* patch_embeddings_device, void* output_device,
+              void* stream_pointer) const {
+    if (output_device == nullptr) {
+      throw std::invalid_argument("native vision position launch is incomplete");
+    }
+    hipStream_t stream = reinterpret_cast<hipStream_t>(stream_pointer);
+    std::size_t row_offset = 0;
+    for (const NativeVlGrid& grid : grids) {
+      const std::size_t rows = grid.temporal * grid.height * grid.width;
+      const std::size_t elements = rows * kVisionHidden;
+      constexpr std::size_t kThreads = 256;
+      const std::size_t blocks = (elements + kThreads - 1) / kThreads;
+      hipLaunchKernelGGL(vision_position_kernel, dim3(blocks), dim3(kThreads),
+                         0, stream,
+                         static_cast<const __hip_bfloat16*>(
+                             position_table.device_pointer),
+                         static_cast<const __hip_bfloat16*>(
+                             patch_embeddings_device),
+                         static_cast<__hip_bfloat16*>(output_device),
+                         row_offset, grid.height, grid.width, elements);
+      check_hip(hipGetLastError(), "native vision position kernel launch");
+      row_offset += rows;
+    }
+  }
+
+  const NativeTensorView& position_table;
+  std::vector<NativeVlGrid> grids;
+  std::size_t patch_count_value = 0;
+};
+
+NativeVisionPositionPlan::NativeVisionPositionPlan(
+    const NativeWeightStore& weights, const std::vector<NativeVlGrid>& grids)
+    : impl_(std::make_unique<Impl>(weights, grids)) {}
+NativeVisionPositionPlan::~NativeVisionPositionPlan() = default;
+NativeVisionPositionPlan::NativeVisionPositionPlan(
+    NativeVisionPositionPlan&&) noexcept = default;
+NativeVisionPositionPlan& NativeVisionPositionPlan::operator=(
+    NativeVisionPositionPlan&&) noexcept = default;
+
+void NativeVisionPositionPlan::launch(void* output_device, void* stream) const {
+  if (!impl_) {
+    throw std::invalid_argument("native vision position plan is empty");
+  }
+  impl_->launch(nullptr, output_device, stream);
+}
+
+void NativeVisionPositionPlan::launch_add(const void* patch_embeddings_device,
+                                          void* output_device,
+                                          void* stream) const {
+  if (!impl_ || patch_embeddings_device == nullptr) {
+    throw std::invalid_argument("native vision position add is incomplete");
+  }
+  impl_->launch(patch_embeddings_device, output_device, stream);
+}
+
+std::size_t NativeVisionPositionPlan::patch_count() const {
+  return impl_->patch_count_value;
 }
 
 }  // namespace aima
