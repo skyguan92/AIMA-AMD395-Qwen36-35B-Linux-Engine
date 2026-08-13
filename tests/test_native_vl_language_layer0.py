@@ -96,6 +96,12 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         self.assertNotIn("const __hip_bfloat16 normalized", gated_norm)
         self.assertIn("__float2bfloat16(normalized * silu)", gated_norm)
 
+        shared_activation = moe_source.split(
+            "__global__ void shared_silu_multiply_batched_kernel(", 1
+        )[1].split("__global__ void shared_sigmoid_scale_batched_kernel", 1)[0]
+        self.assertIn("const __hip_bfloat16 silu_bf16", shared_activation)
+        self.assertIn("__bfloat162float(silu_bf16) * up_value", shared_activation)
+
         capture = (ROOT / "scripts/capture-vllm-vl-oracles.py").read_text(
             encoding="utf-8"
         )

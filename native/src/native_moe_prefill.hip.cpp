@@ -215,7 +215,13 @@ __global__ void shared_silu_multiply_batched_kernel(
   const float gate_value = __bfloat162float(gate[index]);
   const float up_value = __bfloat162float(up[index]);
   const float silu = gate_value / (1.0f + expf(-gate_value));
-  output[index] = __float2bfloat16(silu * up_value);
+  // vLLM's CUDA-like SiluAndMul materializes the SiLU branch in BF16 before
+  // multiplying it by the BF16 up branch.  This is also the routed-expert
+  // activation boundary below; keeping FP32 SiLU here moves the seeded shared
+  // expert outside the product acceptance threshold.
+  const __hip_bfloat16 silu_bf16 = __float2bfloat16(silu);
+  output[index] =
+      __float2bfloat16(__bfloat162float(silu_bf16) * up_value);
 }
 
 __global__ void shared_sigmoid_scale_batched_kernel(
@@ -393,7 +399,7 @@ __global__ void expert_silu_multiply_kernel(
   const float up =
       __bfloat162float(gate_up[base + kSharedIntermediate + column]);
   const float silu = gate / (1.0f + expf(-gate));
-  // vLLM's BF16 silu_and_mul rounds the SiLU result to BF16 before the
+  // vLLM's BF16 SiluAndMul rounds the SiLU result to BF16 before the
   // multiply.  Preserve that boundary; the shared-expert path intentionally
   // keeps its different FP32-intermediate semantics above.
   const __hip_bfloat16 silu_bf16 = __float2bfloat16(silu);
