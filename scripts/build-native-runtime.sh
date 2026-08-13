@@ -173,6 +173,7 @@ done < "${AOT_OBJECT_PLAN}"
   "${ROOT}/native/src/native_image_decoder.cpp" \
   "${ROOT}/native/src/native_video_decoder.cpp" \
   "${ROOT}/native/src/native_vision_encoder.hip.cpp" \
+  "${ROOT}/native/src/native_vision_block.hip.cpp" \
   "${ROOT}/native/src/native_vision_block_prefix.hip.cpp" \
   "${ROOT}/native/src/native_vision_block_suffix.hip.cpp" \
   "${ROOT}/native/src/native_vision_rotary.hip.cpp" \

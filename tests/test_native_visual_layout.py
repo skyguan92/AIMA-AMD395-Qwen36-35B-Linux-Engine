@@ -609,6 +609,30 @@ class NativeVisualLayoutTest(unittest.TestCase):
         self.assertFalse(decision["g1_passed"])
         self.assertFalse(decision["g2_passed"])
 
+    def test_complete_vision_block_reuses_external_temporary_storage(self) -> None:
+        header = (
+            ROOT / "native/include/aima/native_vision_block.h"
+        ).read_text(encoding="utf-8")
+        source = (
+            ROOT / "native/src/native_vision_block.hip.cpp"
+        ).read_text(encoding="utf-8")
+        probe = (
+            ROOT / "native/tools/vision_block_oracle_probe.hip.cpp"
+        ).read_text(encoding="utf-8")
+        build = (
+            ROOT / "scripts/build-native-vision-block-probe.sh"
+        ).read_text(encoding="utf-8")
+        self.assertIn("class NativeVisionBlockPlan", header)
+        self.assertIn("temporary_device", header)
+        self.assertIn("NativeVisionBlockPrefixPlan prefix", source)
+        self.assertIn("NativeVisionRotaryPlan rotary", source)
+        self.assertIn("NativeVisionSegmentedAttentionPlan attention", source)
+        self.assertIn("NativeVisionBlockSuffixPlan suffix", source)
+        self.assertIn("arena_large_bytes", source)
+        self.assertIn("repeat_deterministic", probe)
+        self.assertIn("native-vision-block-oracle/v1", probe)
+        self.assertIn("vision_block_oracle_probe.hip.cpp", build)
+
         result = json.loads(
             VISION_ATTENTION_RESULT_PATH.read_text(encoding="utf-8")
         )
