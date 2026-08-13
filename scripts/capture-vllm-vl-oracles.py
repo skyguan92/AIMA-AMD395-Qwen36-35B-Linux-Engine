@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 import socket
 import sys
+from types import MethodType
 from typing import Any
 
 
@@ -185,6 +186,7 @@ class InstallOracleHooks:
             "handles": [],
             "mrope_position_delta": None,
             "logits_original_shape": None,
+            "original_visual_forward": None,
         }
 
         def capture(name: str, value: Any, *, multiple: bool = False) -> None:
@@ -219,12 +221,62 @@ class InstallOracleHooks:
             "language_layer_0": language.model.layers[0],
             "language_final_norm": language.model.norm,
         }
-        for name, module in modules.items():
+        for name in sorted(_LANGUAGE_BOUNDARIES - {"mrope_positions", "injected_embeddings"}):
+            module = modules[name]
             state["handles"].append(
-                module.register_forward_hook(
-                    output_hook(name, multiple=name in _VISION_BOUNDARIES)
-                )
+                module.register_forward_hook(output_hook(name))
             )
+
+        state["original_visual_forward"] = visual.forward
+
+        def instrumented_visual_forward(
+            visual_self: Any,
+            x: Any,
+            grid_thw: Any,
+            *,
+            encoder_metadata: dict[str, Any] | None = None,
+        ) -> Any:
+            hidden_states = x.to(
+                device=visual_self.device,
+                dtype=visual_self.dtype,
+                non_blocking=True,
+            )
+            hidden_states = visual_self.patch_embed.forward(hidden_states)
+            capture("vision_patch_embed", hidden_states, multiple=True)
+
+            if encoder_metadata is None:
+                grid_thw_list = (
+                    grid_thw if isinstance(grid_thw, list) else grid_thw.tolist()
+                )
+                encoder_metadata = visual_self.prepare_encoder_metadata(grid_thw_list)
+
+            hidden_states = hidden_states + encoder_metadata["pos_embeds"]
+            hidden_states = hidden_states.unsqueeze(1)
+            deepstack_features = []
+            for layer_num, block in enumerate(visual_self.blocks):
+                hidden_states = block.forward(
+                    hidden_states,
+                    cu_seqlens=encoder_metadata["cu_seqlens"],
+                    rotary_pos_emb_cos=encoder_metadata["rotary_pos_emb_cos"],
+                    rotary_pos_emb_sin=encoder_metadata["rotary_pos_emb_sin"],
+                    max_seqlen=encoder_metadata["max_seqlen"],
+                    sequence_lengths=encoder_metadata.get("sequence_lengths"),
+                )
+                boundary = f"vision_block_{layer_num}"
+                if boundary in _VISION_BOUNDARIES:
+                    capture(boundary, hidden_states, multiple=True)
+                if layer_num in visual_self.deepstack_visual_indexes:
+                    merger_index = visual_self.deepstack_visual_indexes.index(layer_num)
+                    deepstack_features.append(
+                        visual_self.deepstack_merger_list[merger_index].forward(
+                            hidden_states
+                        )
+                    )
+            hidden_states = visual_self.merger.forward(hidden_states)
+            capture("vision_merger", hidden_states, multiple=True)
+            return torch.cat([hidden_states] + deepstack_features, dim=1)
+
+        visual.forward = MethodType(instrumented_visual_forward, visual)
 
         def root_pre_hook(_module: Any, args: Any, kwargs: Any) -> None:
             positions = kwargs.get("positions")
@@ -288,6 +340,9 @@ class FinalizeOracleHooks:
         for handle in state.get("handles", []):
             handle.remove()
         state["handles"] = []
+        original_visual_forward = state.get("original_visual_forward")
+        if original_visual_forward is not None:
+            root.visual.forward = original_visual_forward
 
         missing = REQUIRED_BOUNDARIES - set(state["captures"])
         if missing:
@@ -344,6 +399,9 @@ class RemoveOracleHooks:
             return False
         for handle in state.get("handles", []):
             handle.remove()
+        original_visual_forward = state.get("original_visual_forward")
+        if original_visual_forward is not None:
+            root.visual.forward = original_visual_forward
         delattr(root, "_aima_vl_oracle_state")
         return True
 
