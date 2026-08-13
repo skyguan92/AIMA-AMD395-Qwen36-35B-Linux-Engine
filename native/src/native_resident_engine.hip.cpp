@@ -14,6 +14,7 @@
 #include "aima/native_linear_prefill.h"
 #include "aima/native_lm_head.h"
 #include "aima/native_moe_prefill.h"
+#include "aima/native_multimodal_cache.h"
 #include "aima/native_pointwise.h"
 #include "aima/native_prefill_gemm_plans.h"
 #include "aima/native_prefill_invocation.h"
@@ -182,28 +183,28 @@ class NativeExactPrefixCache {
     return bytes_;
   }
 
-  bool matches(const std::vector<std::uint32_t>& tokens) const {
-    return valid_ && tokens == tokens_;
-  }
-
   bool valid() const { return valid_; }
 
   std::size_t matched_prefix_tokens(
-      const std::vector<std::uint32_t>& tokens) const {
-    if (!valid_ || tokens.size() < tokens_.size() ||
-        !std::equal(tokens_.begin(), tokens_.end(), tokens.begin())) {
-      return 0;
-    }
-    return tokens_.size();
+      const std::vector<std::uint32_t>& tokens,
+      std::string_view multimodal_namespace) const {
+    if (!valid_) return 0;
+    return native_prefix_cache_matched_tokens(
+        tokens_, multimodal_namespace_, tokens, multimodal_namespace);
   }
 
   std::uint64_t capture(const std::vector<std::uint32_t>& tokens,
+                        std::string_view multimodal_namespace,
                         const void* terminal_hidden,
                         void* stream_value = nullptr) {
     if (allocation_ == nullptr || terminal_hidden == nullptr ||
         tokens.empty() || tokens.size() > max_cache_tokens_) {
       throw std::invalid_argument(
           "native exact-prefix capture is incomplete");
+    }
+    if (!valid_native_multimodal_cache_namespace(multimodal_namespace)) {
+      throw std::invalid_argument(
+          "native exact-prefix multimodal namespace is invalid");
     }
     hipStream_t stream = static_cast<hipStream_t>(stream_value);
     auto* destination = static_cast<unsigned char*>(allocation_);
@@ -226,6 +227,7 @@ class NativeExactPrefixCache {
     check_hip(hipStreamSynchronize(stream),
               "hipStreamSynchronize exact-prefix capture");
     tokens_ = tokens;
+    multimodal_namespace_ = multimodal_namespace;
     valid_ = true;
     return transfer_bytes + kHidden * sizeof(std::uint16_t);
   }
@@ -281,6 +283,7 @@ class NativeExactPrefixCache {
   std::size_t max_cache_tokens_ = 0;
   std::vector<Slice> slices_;
   std::vector<std::uint32_t> tokens_;
+  std::string multimodal_namespace_;
   bool valid_ = false;
 };
 
@@ -721,13 +724,19 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
           "native resident stop token is outside the vocabulary");
     }
   }
+  if (!valid_native_multimodal_cache_namespace(
+          request.multimodal_cache_namespace)) {
+    throw std::invalid_argument(
+        "native resident multimodal cache namespace is invalid");
+  }
   std::size_t matched_prefix_tokens = 0;
   std::size_t matched_prefix_cache_index = impl_->prefix_cache_entries;
   if (!request.disable_prefix_cache) {
     for (std::size_t index = 0; index < impl_->prefix_cache_entries; ++index) {
       const std::size_t matched =
           impl_->prefix_caches[index].matched_prefix_tokens(
-              request.input_token_ids);
+              request.input_token_ids,
+              request.multimodal_cache_namespace);
       if (matched > matched_prefix_tokens) {
         matched_prefix_tokens = matched;
         matched_prefix_cache_index = index;
@@ -1173,8 +1182,9 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
       }
     }
     metrics.prefix_cache_transfer_bytes +=
-        impl_->prefix_caches[capture_index].capture(request.input_token_ids,
-                                                    prompt_terminal_hidden);
+        impl_->prefix_caches[capture_index].capture(
+            request.input_token_ids, request.multimodal_cache_namespace,
+            prompt_terminal_hidden);
     impl_->prefix_cache_use[capture_index] = ++impl_->prefix_cache_clock;
   }
   metrics.output_token_ids.push_back(first_token_id);

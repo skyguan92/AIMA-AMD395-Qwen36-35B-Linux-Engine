@@ -75,6 +75,10 @@ struct NativeResidentLoadMetrics {
 
 struct NativeResidentRequestOptions {
   std::vector<std::uint32_t> input_token_ids;
+  // Empty for text-only requests. Native VL supplies a versioned digest of
+  // ordered media content/config/spans; the cache compares this in addition
+  // to input_token_ids so identical placeholder tokens cannot alias media.
+  std::string multimodal_cache_namespace;
   std::size_t max_new_tokens = 1;
   std::vector<std::uint32_t> stop_token_ids;
   // Invoked synchronously as soon as each generated token is available.

@@ -128,6 +128,16 @@ The first native media boundary is also present. It:
 - identifies cacheable media by the SHA-256 of the decoded source bytes, so
   equivalent data/local transports have the same content identity.
 
+The resident prefix cache now uses a composite identity: exact/prefix text
+token comparison plus a versioned digest over the processor configuration and
+every ordered media content digest, kind, placeholder token and expanded token
+span. Different bytes behind the same URL or filename, changed processor
+settings, changed spans and reordered media conservatively miss; equivalent
+decoded data/local inputs share an identity. The pure matching regression
+covers text-only preservation, same-media extension, A/B collision rejection
+and A/B/A identity recovery. The HTTP path will be required to provide this
+namespace before media requests are enabled.
+
 `native_media_test` and `native_chat_protocol_test` both compile with strict
 warnings and pass on `amd395`. This is implementation progress, not G1 or G2
 acceptance evidence.
