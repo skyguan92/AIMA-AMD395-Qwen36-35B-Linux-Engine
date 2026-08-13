@@ -15,6 +15,9 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 ORACLE_MANIFEST = ROOT / "benchmarks/results/vl-oracle-manifest.json"
+QUALIFICATION_RESULT = (
+    ROOT / "benchmarks/results/native-vl-language-layer0-v0.1.0.json"
+)
 
 
 class NativeVlLanguageLayer0Test(unittest.TestCase):
@@ -250,6 +253,86 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
             generated = output.read_text(encoding="utf-8")
         self.assertIn("return native_prefill_schedule(8192, count);", generated)
         self.assertIn("return native_prefill_schedule_sha256(8192);", generated)
+
+    def test_layer0_qualification_is_hash_bound_and_threshold_complete(self) -> None:
+        result = json.loads(QUALIFICATION_RESULT.read_text(encoding="utf-8"))
+        self.assertTrue(result["complete"])
+        self.assertTrue(result["source"]["clean"])
+        self.assertEqual(
+            result["source"]["commit"],
+            "fed57973ce8041bef1dfffee2d40d756b0d75223",
+        )
+        for record in result["source"]["files"]:
+            self.assertEqual(
+                hashlib.sha256((ROOT / record["path"]).read_bytes()).hexdigest(),
+                record["sha256"],
+            )
+        for dependency in result["dependencies"].values():
+            self.assertEqual(
+                hashlib.sha256(
+                    (ROOT / dependency["path"]).read_bytes()
+                ).hexdigest(),
+                dependency["sha256"],
+            )
+
+        thresholds = result["reference_thresholds"]
+        run = result["qualification_run"]
+        cases = run["cases"]
+        self.assertEqual(len(cases), 5)
+        self.assertEqual(sum(case["prompt_tokens"] for case in cases), 585)
+        self.assertEqual(
+            sum(case["elements"] for case in cases),
+            run["aggregate"]["output_elements"],
+        )
+        for case in cases:
+            self.assertEqual(case["diagnostic_comparison_count"], 33)
+            self.assertTrue(case["input_norm_bit_exact"])
+            self.assertTrue(case["repeat_deterministic"])
+            self.assertLessEqual(
+                case["relative_l2_error"],
+                thresholds["maximum_relative_l2_error"],
+            )
+            self.assertGreaterEqual(
+                case["cosine_similarity"],
+                thresholds["minimum_cosine_similarity"],
+            )
+            self.assertEqual(
+                case["main_router_expert_set_rows_exact"],
+                case["prompt_tokens"],
+            )
+            self.assertEqual(
+                case["seeded_router_expert_set_rows_exact"],
+                case["prompt_tokens"],
+            )
+
+        aggregate = run["aggregate"]
+        self.assertEqual(
+            aggregate["main_router_expert_set_rows_exact"],
+            aggregate["main_router_expert_set_rows"],
+        )
+        self.assertEqual(
+            aggregate["seeded_router_expert_set_rows_exact"],
+            aggregate["seeded_router_expert_set_rows"],
+        )
+        self.assertTrue(aggregate["all_required_diagnostics_passed"])
+
+        closure = result["runtime_closure"]
+        self.assertTrue(closure["prefill_schedule_probe"]["complete"])
+        self.assertTrue(closure["decode_schedule_probe"]["complete"])
+        self.assertTrue(closure["aot_closure_probe"]["complete"])
+        self.assertEqual(closure["aot_closure_probe"]["loaded_count"], 59)
+        self.assertFalse(closure["portable_package_qualified"])
+
+        decision = result["decision"]
+        self.assertEqual(decision["language_layer0_boundary"], "passed")
+        for gate in (
+            "g1_full_vl_functional_parity",
+            "g2_vl_correctness_parity",
+            "g3_text_product_no_regression",
+            "g4_native_vl_performance",
+            "g5_native_release_product",
+        ):
+            self.assertFalse(decision[gate])
 
     def test_frozen_layer0_boundaries_cover_all_blocking_cases(self) -> None:
         manifest = json.loads(ORACLE_MANIFEST.read_text(encoding="utf-8"))
