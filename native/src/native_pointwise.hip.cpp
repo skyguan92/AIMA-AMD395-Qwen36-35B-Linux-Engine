@@ -108,76 +108,136 @@ __global__ void bf16_add_pair_kernel(const __hip_bfloat16* left,
 
 __global__ void prefill_rmsnorm_2048_kernel(
     const __hip_bfloat16* input, const __hip_bfloat16* weight,
-    __hip_bfloat16* output) {
-  __shared__ float partial[kThreads];
-  constexpr unsigned kValuesPerThread = kHidden / kThreads;
+    __hip_bfloat16* output, std::size_t token_count) {
+  constexpr unsigned kVectorWidth = 4;
+  constexpr unsigned kRowsPerBlock = 16;
+  constexpr unsigned kRowThreads = 32;
+  constexpr unsigned kIterations =
+      kHidden / (kVectorWidth * kRowThreads);
   const unsigned lane = threadIdx.x;
+  const std::size_t row =
+      static_cast<std::size_t>(blockIdx.x) * kRowsPerBlock + threadIdx.y;
+  if (row >= token_count) return;
   const std::size_t row_offset =
-      static_cast<std::size_t>(blockIdx.x) * kHidden;
-  float values[kValuesPerThread];
-  float sum = 0.0f;
-  for (unsigned item = 0; item < kValuesPerThread; ++item) {
-    const unsigned hidden = lane + item * kThreads;
-    values[item] = __bfloat162float(input[row_offset + hidden]);
-    sum += values[item] * values[item];
+      row * kHidden;
+
+  // Match ATen's contiguous-input MeanOps reduction for [rows, 2048]: a
+  // 32x16 workgroup, four independent vector-component accumulators per x
+  // lane, 16 vector loads separated by 128 values, a left-associated merge
+  // of the four accumulators, then ROCm's ascending-offset shuffle tree.
+  float accumulator[kVectorWidth] = {0.0f, 0.0f, 0.0f, 0.0f};
+#pragma unroll
+  for (unsigned iteration = 0; iteration < kIterations; ++iteration) {
+    const unsigned vector_base =
+        lane * kVectorWidth + iteration * kRowThreads * kVectorWidth;
+#pragma unroll
+    for (unsigned component = 0; component < kVectorWidth; ++component) {
+      const float value =
+          __bfloat162float(input[row_offset + vector_base + component]);
+      // Eager PyTorch materializes pow(2) before mean.  Keep that FP32
+      // boundary so the compiler cannot contract square-plus-accumulate.
+      volatile float squared = value * value;
+      accumulator[component] = accumulator[component] + squared;
+    }
   }
-  partial[lane] = sum;
-  __syncthreads();
-  for (unsigned width = kThreads / 2; width != 0; width >>= 1) {
-    if (lane < width) partial[lane] += partial[lane + width];
-    __syncthreads();
+  float sum = accumulator[0];
+#pragma unroll
+  for (unsigned component = 1; component < kVectorWidth; ++component) {
+    sum = sum + accumulator[component];
   }
+  for (unsigned offset = 1; offset < kRowThreads; offset <<= 1) {
+    sum = sum + __shfl_down(sum, offset, kRowThreads);
+  }
+
+  float inverse_rms = 0.0f;
   if (lane == 0) {
-    partial[0] = pytorch_rounded_rsqrtf(
-        partial[0] / static_cast<float>(kHidden) + 1.0e-6f);
+    volatile float variance = sum * (1.0f / static_cast<float>(kHidden));
+    volatile float variance_with_epsilon = variance + 1.0e-6f;
+    inverse_rms = pytorch_rounded_rsqrtf(variance_with_epsilon);
   }
-  __syncthreads();
-  const float inverse_rms = partial[0];
-  for (unsigned item = 0; item < kValuesPerThread; ++item) {
-    const unsigned hidden = lane + item * kThreads;
-    output[row_offset + hidden] = __float2bfloat16(
-        values[item] * inverse_rms *
-        (__bfloat162float(weight[hidden]) + 1.0f));
+  inverse_rms = __shfl(inverse_rms, 0, kRowThreads);
+
+#pragma unroll
+  for (unsigned iteration = 0; iteration < kIterations; ++iteration) {
+    const unsigned vector_base =
+        lane * kVectorWidth + iteration * kRowThreads * kVectorWidth;
+#pragma unroll
+    for (unsigned component = 0; component < kVectorWidth; ++component) {
+      const unsigned hidden = vector_base + component;
+      const float value = __bfloat162float(input[row_offset + hidden]);
+      volatile float scaled = value * inverse_rms;
+      volatile float weight_plus_one =
+          __bfloat162float(weight[hidden]) + 1.0f;
+      volatile float weighted = scaled * weight_plus_one;
+      output[row_offset + hidden] = __float2bfloat16(weighted);
+    }
   }
 }
 
 __global__ void prefill_add_rmsnorm_2048_kernel(
     const __hip_bfloat16* input, const __hip_bfloat16* residual,
     const __hip_bfloat16* weight, __hip_bfloat16* residual_output,
-    __hip_bfloat16* norm_output) {
-  __shared__ float partial[kThreads];
-  constexpr unsigned kValuesPerThread = kHidden / kThreads;
+    __hip_bfloat16* norm_output, std::size_t token_count) {
+  constexpr unsigned kVectorWidth = 4;
+  constexpr unsigned kRowsPerBlock = 16;
+  constexpr unsigned kRowThreads = 32;
+  constexpr unsigned kIterations =
+      kHidden / (kVectorWidth * kRowThreads);
   const unsigned lane = threadIdx.x;
+  const std::size_t row =
+      static_cast<std::size_t>(blockIdx.x) * kRowsPerBlock + threadIdx.y;
+  if (row >= token_count) return;
   const std::size_t row_offset =
-      static_cast<std::size_t>(blockIdx.x) * kHidden;
-  __hip_bfloat16 rounded[kValuesPerThread];
-  float sum = 0.0f;
-  for (unsigned item = 0; item < kValuesPerThread; ++item) {
-    const unsigned hidden = lane + item * kThreads;
-    rounded[item] = __float2bfloat16(
-        __bfloat162float(input[row_offset + hidden]) +
-        __bfloat162float(residual[row_offset + hidden]));
-    residual_output[row_offset + hidden] = rounded[item];
-    const float value = __bfloat162float(rounded[item]);
-    sum += value * value;
+      row * kHidden;
+  float accumulator[kVectorWidth] = {0.0f, 0.0f, 0.0f, 0.0f};
+#pragma unroll
+  for (unsigned iteration = 0; iteration < kIterations; ++iteration) {
+    const unsigned vector_base =
+        lane * kVectorWidth + iteration * kRowThreads * kVectorWidth;
+#pragma unroll
+    for (unsigned component = 0; component < kVectorWidth; ++component) {
+      const unsigned hidden = vector_base + component;
+      const __hip_bfloat16 rounded = __float2bfloat16(
+          __bfloat162float(input[row_offset + hidden]) +
+          __bfloat162float(residual[row_offset + hidden]));
+      residual_output[row_offset + hidden] = rounded;
+      const float value = __bfloat162float(rounded);
+      volatile float squared = value * value;
+      accumulator[component] = accumulator[component] + squared;
+    }
   }
-  partial[lane] = sum;
-  __syncthreads();
-  for (unsigned width = kThreads / 2; width != 0; width >>= 1) {
-    if (lane < width) partial[lane] += partial[lane + width];
-    __syncthreads();
+  float sum = accumulator[0];
+#pragma unroll
+  for (unsigned component = 1; component < kVectorWidth; ++component) {
+    sum = sum + accumulator[component];
   }
+  for (unsigned offset = 1; offset < kRowThreads; offset <<= 1) {
+    sum = sum + __shfl_down(sum, offset, kRowThreads);
+  }
+
+  float inverse_rms = 0.0f;
   if (lane == 0) {
-    partial[0] = pytorch_rounded_rsqrtf(
-        partial[0] / static_cast<float>(kHidden) + 1.0e-6f);
+    volatile float variance = sum * (1.0f / static_cast<float>(kHidden));
+    volatile float variance_with_epsilon = variance + 1.0e-6f;
+    inverse_rms = pytorch_rounded_rsqrtf(variance_with_epsilon);
   }
-  __syncthreads();
-  const float inverse_rms = partial[0];
-  for (unsigned item = 0; item < kValuesPerThread; ++item) {
-    const unsigned hidden = lane + item * kThreads;
-    norm_output[row_offset + hidden] = __float2bfloat16(
-        __bfloat162float(rounded[item]) * inverse_rms *
-        (__bfloat162float(weight[hidden]) + 1.0f));
+  inverse_rms = __shfl(inverse_rms, 0, kRowThreads);
+
+#pragma unroll
+  for (unsigned iteration = 0; iteration < kIterations; ++iteration) {
+    const unsigned vector_base =
+        lane * kVectorWidth + iteration * kRowThreads * kVectorWidth;
+#pragma unroll
+    for (unsigned component = 0; component < kVectorWidth; ++component) {
+      const unsigned hidden = vector_base + component;
+      const float value =
+          __bfloat162float(residual_output[row_offset + hidden]);
+      volatile float scaled = value * inverse_rms;
+      volatile float weight_plus_one =
+          __bfloat162float(weight[hidden]) + 1.0f;
+      volatile float weighted = scaled * weight_plus_one;
+      norm_output[row_offset + hidden] = __float2bfloat16(weighted);
+    }
   }
 }
 
@@ -547,11 +607,12 @@ void launch_prefill_rmsnorm_2048(const void* input_bf16,
     throw std::invalid_argument("native prefill RMSNorm geometry is invalid");
   }
   hipLaunchKernelGGL(
-      prefill_rmsnorm_2048_kernel, dim3(token_count), dim3(kThreads), 0,
+      prefill_rmsnorm_2048_kernel, dim3((token_count + 15) / 16),
+      dim3(32, 16), 0,
       static_cast<hipStream_t>(stream_value),
       static_cast<const __hip_bfloat16*>(input_bf16),
       static_cast<const __hip_bfloat16*>(weight_bf16),
-      static_cast<__hip_bfloat16*>(output_bf16));
+      static_cast<__hip_bfloat16*>(output_bf16), token_count);
   check_hip(hipGetLastError(), "prefill_rmsnorm_2048_kernel");
 }
 
@@ -570,13 +631,14 @@ void launch_prefill_add_rmsnorm_2048(const void* input_bf16,
         "native prefill residual RMSNorm geometry is invalid");
   }
   hipLaunchKernelGGL(
-      prefill_add_rmsnorm_2048_kernel, dim3(token_count), dim3(kThreads), 0,
+      prefill_add_rmsnorm_2048_kernel, dim3((token_count + 15) / 16),
+      dim3(32, 16), 0,
       static_cast<hipStream_t>(stream_value),
       static_cast<const __hip_bfloat16*>(input_bf16),
       static_cast<const __hip_bfloat16*>(residual_bf16),
       static_cast<const __hip_bfloat16*>(weight_bf16),
       static_cast<__hip_bfloat16*>(residual_output_bf16),
-      static_cast<__hip_bfloat16*>(norm_output_bf16));
+      static_cast<__hip_bfloat16*>(norm_output_bf16), token_count);
   check_hip(hipGetLastError(), "prefill_add_rmsnorm_2048_kernel");
 }
 

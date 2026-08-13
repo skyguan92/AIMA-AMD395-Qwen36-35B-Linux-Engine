@@ -280,7 +280,10 @@ Execution execute_layer0(
 
   aima::NativeLinearPrefillOracleOptions linear_options;
   linear_options.layer_index = 0;
-  linear_options.active_tokens = prompt_tokens;
+  linear_options.active_tokens = 0;
+  linear_options.comparison_tokens = prompt_tokens;
+  linear_options.exact_b_projection_tokens =
+      prompt_tokens <= 64 ? prompt_tokens : 0;
   linear_options.seed_layer_input = false;
   linear_options.run_output_projection_diagnostic = false;
   linear_options.collect_oracle_comparisons = false;
@@ -290,7 +293,8 @@ Execution execute_layer0(
   linear_options.sequence_oracle_dir = diagnostic_oracle_dir;
   aima::NativeMoePrefillOracleOptions moe_options;
   moe_options.layer_index = 0;
-  moe_options.active_tokens = prompt_tokens;
+  moe_options.active_tokens = 0;
+  moe_options.comparison_tokens = prompt_tokens;
   moe_options.seed_post_attention = false;
   moe_options.run_routing_diagnostic = false;
   moe_options.collect_oracle_comparisons = false;
@@ -342,7 +346,8 @@ Execution execute_layer0(
   if (!diagnostic_oracle_dir.empty()) {
     aima::NativeMoePrefillOracleOptions seeded_moe_options;
     seeded_moe_options.layer_index = 0;
-    seeded_moe_options.active_tokens = prompt_tokens;
+    seeded_moe_options.active_tokens = 0;
+    seeded_moe_options.comparison_tokens = prompt_tokens;
     seeded_moe_options.seed_post_attention = true;
     seeded_moe_options.post_attention_h2_oracle_label = "diagnostic-h2";
     seeded_moe_options.post_attention_residual_oracle_label =
@@ -409,7 +414,7 @@ json qualify_case(
     throw std::runtime_error("language layer-0 oracle byte count is invalid");
   }
 
-  aima::NativeQ8192PrefillGemmPlans active_gemm_plans(prompt_tokens);
+  aima::NativeQ8192PrefillGemmPlans active_gemm_plans(kBucketTokens);
   (void)active_gemm_plans.linear_fused_input();
   (void)active_gemm_plans.linear_output();
   (void)active_gemm_plans.moe_shared_gate();
@@ -499,10 +504,10 @@ json qualify_case(
       actual_labels.insert(value.label);
       const bool stage_passed =
           value.finite_elements == value.elements &&
-          value.relative_l2_error <= 0.002 &&
-          value.cosine_similarity >= 0.999 &&
-          (value.label != "diagnostic-router_indices" ||
-           diagnostic.router_expert_sets_exact);
+          (value.label == "diagnostic-router_indices"
+               ? diagnostic.router_expert_sets_exact
+               : value.relative_l2_error <= 0.002 &&
+                     value.cosine_similarity >= 0.999);
       if (!stage_passed && first_failed_diagnostic_stage.empty()) {
         first_failed_diagnostic_stage = value.label;
       }
@@ -512,6 +517,10 @@ json qualify_case(
           {"elements", value.elements},
           {"exact_elements", value.exact_elements},
           {"finite_elements", value.finite_elements},
+          {"first_mismatch_provided", value.first_mismatch_provided},
+          {"first_mismatch_index", value.first_mismatch_index},
+          {"first_mismatch_expected", value.first_mismatch_expected},
+          {"first_mismatch_actual", value.first_mismatch_actual},
           {"maximum_absolute_error", value.maximum_absolute_error},
           {"relative_l2_error", value.relative_l2_error},
           {"cosine_similarity", value.cosine_similarity},
@@ -551,10 +560,10 @@ json qualify_case(
       actual_seeded_moe_labels.insert(value.label);
       const bool stage_passed =
           value.finite_elements == value.elements &&
-          value.relative_l2_error <= 0.002 &&
-          value.cosine_similarity >= 0.999 &&
-          (value.label != "diagnostic-router_indices" ||
-           diagnostic.seeded_router_expert_sets_exact);
+          (value.label == "diagnostic-router_indices"
+               ? diagnostic.seeded_router_expert_sets_exact
+               : value.relative_l2_error <= 0.002 &&
+                     value.cosine_similarity >= 0.999);
       if (!stage_passed && first_failed_seeded_moe_stage.empty()) {
         first_failed_seeded_moe_stage = value.label;
       }
@@ -564,6 +573,10 @@ json qualify_case(
           {"elements", value.elements},
           {"exact_elements", value.exact_elements},
           {"finite_elements", value.finite_elements},
+          {"first_mismatch_provided", value.first_mismatch_provided},
+          {"first_mismatch_index", value.first_mismatch_index},
+          {"first_mismatch_expected", value.first_mismatch_expected},
+          {"first_mismatch_actual", value.first_mismatch_actual},
           {"maximum_absolute_error", value.maximum_absolute_error},
           {"relative_l2_error", value.relative_l2_error},
           {"cosine_similarity", value.cosine_similarity},

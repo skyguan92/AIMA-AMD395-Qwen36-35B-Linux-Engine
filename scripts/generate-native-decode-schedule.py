@@ -70,6 +70,20 @@ PREFILL_LINEAR_SEQUENCE_Q32768 = [
     "fused_moe_kernel",
     "fused_moe_kernel",
 ]
+PREFILL_LINEAR_SEQUENCE_Q1024 = [
+    "triton_rmsnorm_kernel",
+    "triton_prefill_direct_conv_kernel",
+    "_fused_post_conv_kernel",
+    "chunk_local_cumsum_scalar_kernel",
+    "chunk_scaled_dot_kkt_fwd_kernel",
+    "merge_16x16_to_64x64_inverse_kernel",
+    "recompute_w_u_fwd_kernel",
+    "chunk_gated_delta_rule_fwd_kernel_h_blockdim64",
+    "chunk_fwd_kernel_o",
+    "triton_prefill_fused_add_rmsnorm_kernel",
+    "fused_moe_kernel",
+    "fused_moe_kernel",
+]
 PREFILL_LINEAR_SEQUENCE_SPLIT_TAIL = [
     "triton_rmsnorm_kernel",
     "_causal_conv1d_fwd_kernel",
@@ -142,6 +156,8 @@ def binding_kind(name: str) -> str:
 
 
 def prefill_linear_sequence(context_tokens: int) -> list[str]:
+    if context_tokens == 1024:
+        return PREFILL_LINEAR_SEQUENCE_Q1024
     if context_tokens == 8192:
         return PREFILL_LINEAR_SEQUENCE
     if context_tokens in {7168, 7680, 8191}:

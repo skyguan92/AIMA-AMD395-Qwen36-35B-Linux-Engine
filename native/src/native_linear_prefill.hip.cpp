@@ -129,6 +129,41 @@ __global__ void repair_padded_conv_state_kernel(
   }
 }
 
+__global__ void exact_linear_b_projection_kernel(
+    const __hip_bfloat16* input, const __hip_bfloat16* weight,
+    __hip_bfloat16* output, std::size_t token_count) {
+  const std::size_t token = blockIdx.x;
+  const std::size_t column = blockIdx.y;
+  const unsigned lane = threadIdx.x;
+  if (token >= token_count || column >= kLinearHeads) return;
+
+  float sum = 0.0f;
+  for (unsigned hidden = lane; hidden < kHidden; hidden += 32) {
+    sum = fmaf(
+        __bfloat162float(input[token * kHidden + hidden]),
+        __bfloat162float(weight[column * kHidden + hidden]), sum);
+  }
+#pragma unroll
+  for (unsigned offset = 16; offset != 0; offset >>= 1) {
+    sum += __shfl_down(sum, offset, 32);
+  }
+  if (lane == 0) {
+    output[token * kLinearHeads + column] = __float2bfloat16(sum);
+  }
+}
+
+void launch_exact_linear_b_projection(
+    const void* input, const void* weight, void* output,
+    std::size_t token_count) {
+  hipLaunchKernelGGL(
+      exact_linear_b_projection_kernel,
+      dim3(static_cast<unsigned>(token_count), kLinearHeads), dim3(32), 0,
+      nullptr, static_cast<const __hip_bfloat16*>(input),
+      static_cast<const __hip_bfloat16*>(weight),
+      static_cast<__hip_bfloat16*>(output), token_count);
+  check_hip(hipGetLastError(), "exact_linear_b_projection_kernel");
+}
+
 }  // namespace
 
 NativeLinearPrefillOracleResult
@@ -154,8 +189,13 @@ probe_native_q8192_linear_prefill_layer0_oracle(
   const std::size_t bucket_tokens = workspace.context_tokens();
   const std::size_t tokens =
       options.active_tokens == 0 ? bucket_tokens : options.active_tokens;
+  const std::size_t comparison_tokens =
+      options.comparison_tokens == 0 ? tokens : options.comparison_tokens;
+  const std::size_t exact_b_tokens = options.exact_b_projection_tokens;
   if (bucket_tokens == 0 || bucket_tokens > 262144 || tokens == 0 ||
       tokens > bucket_tokens ||
+      comparison_tokens == 0 || comparison_tokens > tokens ||
+      exact_b_tokens > tokens ||
       (tokens != bucket_tokens && options.collect_oracle_comparisons) ||
       (bucket_tokens != 8192 && options.collect_oracle_comparisons)) {
     throw std::invalid_argument(
@@ -163,6 +203,7 @@ probe_native_q8192_linear_prefill_layer0_oracle(
   }
   const auto& launches = invocations.launches();
   const bool q8192_schedule = bucket_tokens == 8192;
+  const bool q1024_official_fla = bucket_tokens == 1024;
   const bool split_projection_tail =
       !q8192_schedule && launches.size() > 1 &&
       launches[1].launch != nullptr &&
@@ -216,6 +257,9 @@ probe_native_q8192_linear_prefill_layer0_oracle(
                              : (split_projection_tail
                                     ? split_tail_symbols[sequence]
                                     : q32768_symbols[sequence]);
+    if (q1024_official_fla && sequence == 5) {
+      symbol = "merge_16x16_to_64x64_inverse_kernel";
+    }
     require_symbol(launches, base + sequence, symbol);
   }
 
@@ -288,6 +332,10 @@ probe_native_q8192_linear_prefill_layer0_oracle(
         fused_weight->dtype != DecodeTensorDtype::kBfloat16) {
       throw std::runtime_error(
           "native direct fused linear input weight is missing");
+    }
+    if (q1024_official_fla && exact_b_tokens != 0) {
+      b_weight = &require_weight(
+          weights, prefix + "linear_attn.in_proj_b.weight", 131072ULL);
     }
   }
   const NativeTensorView& output_weight = require_weight(
@@ -389,7 +437,8 @@ probe_native_q8192_linear_prefill_layer0_oracle(
                                                : sizeof(std::uint16_t);
     result.boundary_comparisons.push_back(compare_native_oracle_tensor(
         options.sequence_oracle_label_prefix + comparison_label,
-        dtype, pointer, tokens * elements_per_token * element_bytes,
+        dtype, pointer,
+        comparison_tokens * elements_per_token * element_bytes,
         expected));
   };
   const auto compare_optional_sequence = [&] (
@@ -406,7 +455,7 @@ probe_native_q8192_linear_prefill_layer0_oracle(
     return compare_native_oracle_tensor(
         options.tail_oracle_label_prefix + comparison_label,
         "bfloat16",
-        bytes + (tokens - 1) * kHidden * sizeof(std::uint16_t),
+        bytes + (comparison_tokens - 1) * kHidden * sizeof(std::uint16_t),
         kHidden * sizeof(std::uint16_t), tail_file(oracle_label));
   };
   const auto compare_optional_stage_tail = [&] (
@@ -422,7 +471,7 @@ probe_native_q8192_linear_prefill_layer0_oracle(
     const auto* bytes = static_cast<const unsigned char*>(pointer);
     result.boundary_comparisons.push_back(compare_native_oracle_tensor(
         options.tail_oracle_label_prefix + comparison_label, dtype,
-        bytes + (tokens - 1) * row_stride_elements * element_bytes,
+        bytes + (comparison_tokens - 1) * row_stride_elements * element_bytes,
         row_elements * element_bytes, expected));
   };
   const std::string residual_launch_prefix =
@@ -513,7 +562,13 @@ probe_native_q8192_linear_prefill_layer0_oracle(
            : fused_plan->workspace_bytes());
 
   const auto started = std::chrono::steady_clock::now();
-  executor.launch(launches[base]);
+  if (q1024_official_fla) {
+    launch_prefill_rmsnorm_2048(
+        x, input_norm_weight.device_pointer, h1, tokens);
+    ++result.layer.native_pointwise_launches;
+  } else {
+    executor.launch(launches[base]);
+  }
   NativeOracleComparison tail_input_comparison;
   NativeOracleComparison tail_input_norm_comparison;
   NativeOracleComparison tail_attention_output_comparison;
@@ -549,6 +604,15 @@ probe_native_q8192_linear_prefill_layer0_oracle(
     launch_extract_linear_ab_fused(qkv, a, b, tokens);
     ++result.layer.dense_gemm_launches;
     ++result.layer.native_pointwise_launches;
+    if (q1024_official_fla && exact_b_tokens != 0) {
+      // vLLM projects B/A as a separate 64-column merged linear.  At this
+      // gfx1151 padded shape, hipBLASLt changes BF16 B roundings at the
+      // blocking video boundary. Preserve the large fused GEMM for QKVZ/A
+      // and overwrite only the logical VL prefix with a stable reduction.
+      launch_exact_linear_b_projection(
+          h1, b_weight->device_pointer, b, exact_b_tokens);
+      ++result.layer.native_pointwise_launches;
+    }
   }
   if (split_projections) {
     compare_optional_sequence(
@@ -915,14 +979,22 @@ probe_native_q8192_linear_prefill_layer0_oracle(
         "attention_output_last_token", attention_output,
         (residual_launch_prefix + "residual").c_str());
   }
-  executor.launch(launches[base + residual_offset]);
+  if (q1024_official_fla) {
+    launch_prefill_add_rmsnorm_2048(
+        attention_output, x, post_attention_norm_weight.device_pointer,
+        after_attention, h2, tokens);
+    ++result.layer.native_pointwise_launches;
+  } else {
+    executor.launch(launches[base + residual_offset]);
+  }
   compare_optional_sequence(
       "post_attention_full_sequence", after_attention, kHidden,
       (residual_launch_prefix + "residual_out").c_str());
   compare_optional_sequence(
       "post_attention_norm_full_sequence", h2, kHidden,
       (residual_launch_prefix + "norm_out").c_str());
-  result.layer.aot_launches = attention_launches;
+  result.layer.aot_launches =
+      attention_launches - (q1024_official_fla ? 2 : 0);
   if (options.collect_oracle_comparisons || !tail_fixture.empty()) {
     check_hip(hipDeviceSynchronize(),
               "hipDeviceSynchronize native linear prefill oracle");

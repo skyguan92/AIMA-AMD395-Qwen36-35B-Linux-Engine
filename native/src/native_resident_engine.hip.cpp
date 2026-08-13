@@ -1034,6 +1034,13 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
           attention_options.seed_layer_input = false;
           attention_options.run_output_projection_diagnostic = false;
           attention_options.collect_oracle_comparisons = false;
+          attention_options.comparison_tokens = segment.input_tokens;
+          if (layer_index == 0 &&
+              !request.multimodal_cache_namespace.empty() &&
+              segment.bucket_tokens == 1024 && segment.input_tokens <= 64) {
+            attention_options.exact_b_projection_tokens =
+                segment.input_tokens;
+          }
           attention_options.decode_state_workspace = &impl_->decode_workspace;
           attention_options.has_initial_state = has_initial_state;
           attention_options.gemm_plans = chunk_gemm_plans;
@@ -1092,6 +1099,7 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
         moe_options.seed_post_attention = false;
         moe_options.run_routing_diagnostic = false;
         moe_options.collect_oracle_comparisons = false;
+        moe_options.comparison_tokens = segment.input_tokens;
         moe_options.gemm_plans = chunk_gemm_plans;
         if (focused_sequence_oracle) {
           std::ostringstream label;

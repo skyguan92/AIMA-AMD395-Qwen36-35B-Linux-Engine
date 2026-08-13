@@ -42,6 +42,15 @@ struct NativeLinearPrefillOracleOptions {
   // Zero preserves the full workspace context.  AOT kernels retain the
   // bucket grid and consume zero padding; GEMM plans use this active shape.
   std::size_t active_tokens = 0;
+  // Qualification may execute the product bucket while comparing only its
+  // logical, unpadded prefix. Zero compares all executed rows.
+  std::size_t comparison_tokens = 0;
+  // Short VL q1024 layer-0 requests may recompute the B projection for only
+  // the logical (unpadded) prefix with a deterministic FP32 reduction. This
+  // avoids the <=64-row hipBLASLt BF16 discriminator at the frozen video
+  // boundary without changing the text-only, wider-VL or later-layer paths.
+  // Zero disables the override.
+  std::size_t exact_b_projection_tokens = 0;
   bool seed_layer_input = true;
   // Keep the production layer output intact when composing multiple layers.
   // Single-layer qualification enables the seeded projection isolation pass.

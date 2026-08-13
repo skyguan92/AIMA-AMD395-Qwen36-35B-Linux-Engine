@@ -571,8 +571,11 @@ NativeMoePrefillOracleResult probe_native_q8192_moe_prefill_layer0_oracle(
   const std::size_t bucket_tokens = workspace.context_tokens();
   const std::size_t tokens =
       options.active_tokens == 0 ? bucket_tokens : options.active_tokens;
+  const std::size_t comparison_tokens =
+      options.comparison_tokens == 0 ? tokens : options.comparison_tokens;
   if (bucket_tokens == 0 || bucket_tokens > 262144 || tokens == 0 ||
-      tokens > bucket_tokens ||
+      tokens > bucket_tokens || comparison_tokens == 0 ||
+      comparison_tokens > tokens ||
       (tokens != bucket_tokens && options.collect_oracle_comparisons) ||
       (bucket_tokens != 8192 && options.collect_oracle_comparisons)) {
     throw std::invalid_argument(
@@ -766,14 +769,22 @@ NativeMoePrefillOracleResult probe_native_q8192_moe_prefill_layer0_oracle(
       throw std::invalid_argument(
           "native MoE post-attention seed labels are required");
     }
+    if (comparison_tokens != tokens) {
+      check_hip(hipMemset(h2, 0, tokens * kHidden * sizeof(std::uint16_t)),
+                "hipMemset padded seeded MoE H2");
+      check_hip(
+          hipMemset(after_attention, 0,
+                    tokens * kHidden * sizeof(std::uint16_t)),
+          "hipMemset padded seeded MoE residual");
+    }
     result.seed_bytes += seed_native_oracle_tensor(
         oracle_file(options.post_attention_h2_oracle_label), h2,
-        tokens * kHidden * sizeof(std::uint16_t));
+        comparison_tokens * kHidden * sizeof(std::uint16_t));
     ++result.seed_tensors;
     result.seed_bytes += seed_native_oracle_tensor(
         oracle_file(options.post_attention_residual_oracle_label),
         after_attention,
-        tokens * kHidden * sizeof(std::uint16_t));
+        comparison_tokens * kHidden * sizeof(std::uint16_t));
     ++result.seed_tensors;
   }
 
@@ -1011,11 +1022,11 @@ NativeMoePrefillOracleResult probe_native_q8192_moe_prefill_layer0_oracle(
     const std::size_t comparison_bytes =
         options.chain_output_last_token_only
             ? kHidden * sizeof(std::uint16_t)
-            : hidden_bytes;
+            : comparison_tokens * kHidden * sizeof(std::uint16_t);
     const auto* comparison_pointer =
         static_cast<const unsigned char*>(layer_output) +
         (options.chain_output_last_token_only
-             ? (tokens - 1) * kHidden * sizeof(std::uint16_t)
+             ? (comparison_tokens - 1) * kHidden * sizeof(std::uint16_t)
              : 0);
     const std::filesystem::path expected =
         find_native_oracle_tensor_file_if_present(
@@ -1051,33 +1062,41 @@ NativeMoePrefillOracleResult probe_native_q8192_moe_prefill_layer0_oracle(
                   label, dtype, pointer, bytes, stage_expected));
             }
           };
-      compare_stage_if_present("h2", "bfloat16", h2, hidden_bytes);
+      compare_stage_if_present(
+          "h2", "bfloat16", h2,
+          comparison_tokens * kHidden * sizeof(std::uint16_t));
       compare_stage_if_present("router_logits", "bfloat16", router_logits,
-                               tokens * kExperts * sizeof(std::uint16_t));
+                               comparison_tokens * kExperts *
+                                   sizeof(std::uint16_t));
       compare_stage_if_present("router_scores", "float32", router_scores,
-                               tokens * kTopK * sizeof(float));
+                               comparison_tokens * kTopK * sizeof(float));
       compare_stage_if_present("router_weights", "float32", topk_weights,
-                               tokens * kTopK * sizeof(float));
+                               comparison_tokens * kTopK * sizeof(float));
       compare_stage_if_present("router_indices", "int64", router_indices_i64,
-                               tokens * kTopK * sizeof(std::int64_t));
+                               comparison_tokens * kTopK *
+                                   sizeof(std::int64_t));
       const std::filesystem::path router_indices_expected =
           find_native_oracle_tensor_file_if_present(
               options.chain_output_oracle_dir,
               label_prefix + "router_indices");
       if (!router_indices_expected.empty()) {
-        result.router_expert_set_rows = tokens;
+        result.router_expert_set_rows = comparison_tokens;
         result.router_expert_set_rows_exact = count_exact_int64_row_sets(
-            router_indices_i64, router_indices_expected, tokens, kTopK);
+            router_indices_i64, router_indices_expected, comparison_tokens,
+            kTopK);
         result.router_expert_sets_exact =
             result.router_expert_set_rows_exact ==
             result.router_expert_set_rows;
       }
       compare_stage_if_present("shared_out", "bfloat16", shared_scaled,
-                               hidden_bytes);
+                               comparison_tokens * kHidden *
+                                   sizeof(std::uint16_t));
       compare_stage_if_present("routed_moe", "bfloat16", routed_moe,
-                               hidden_bytes);
+                               comparison_tokens * kHidden *
+                                   sizeof(std::uint16_t));
       compare_stage_if_present("moe_out", "bfloat16", combined_moe,
-                               hidden_bytes);
+                               comparison_tokens * kHidden *
+                                   sizeof(std::uint16_t));
     }
   }
 
