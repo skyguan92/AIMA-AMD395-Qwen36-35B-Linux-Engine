@@ -48,6 +48,48 @@ std::string index_sha256(const std::vector<std::size_t>& indices) {
   return aima::sha256_bytes(values.data(), values.size() * sizeof(values[0]));
 }
 
+aima::NativeRgbFrame deterministic_image() {
+  aima::NativeRgbFrame frame;
+  frame.height = 256;
+  frame.width = 256;
+  frame.pixels.resize(frame.height * frame.width * 3);
+  for (std::size_t y = 0; y < frame.height; ++y) {
+    for (std::size_t x = 0; x < frame.width; ++x) {
+      const std::size_t offset = (y * frame.width + x) * 3;
+      frame.pixels[offset] =
+          static_cast<unsigned char>((x * 3 + y * 5 + 1) % 256);
+      frame.pixels[offset + 1] =
+          static_cast<unsigned char>((x * 7 + y * 11 + 3) % 256);
+      frame.pixels[offset + 2] =
+          static_cast<unsigned char>((x * 13 + y * 17 + 5) % 256);
+    }
+  }
+  return frame;
+}
+
+std::vector<aima::NativeRgbFrame> deterministic_video() {
+  std::vector<aima::NativeRgbFrame> frames(4);
+  for (std::size_t frame_index = 0; frame_index < frames.size();
+       ++frame_index) {
+    aima::NativeRgbFrame& frame = frames[frame_index];
+    frame.height = 256;
+    frame.width = 256;
+    frame.pixels.resize(frame.height * frame.width * 3);
+    for (std::size_t y = 0; y < frame.height; ++y) {
+      for (std::size_t x = 0; x < frame.width; ++x) {
+        const std::size_t source_x =
+            (x + frame.width - frame_index) % frame.width;
+        for (std::size_t channel = 0; channel < 3; ++channel) {
+          frame.pixels[(y * frame.width + x) * 3 + channel] =
+              static_cast<unsigned char>(
+                  ((y * frame.width + source_x) * 3 + channel) % 256);
+        }
+      }
+    }
+  }
+  return frames;
+}
+
 }  // namespace
 
 int main() {
@@ -155,6 +197,31 @@ int main() {
               "<|vision_start|><|video_pad|><|video_pad|><|video_pad|>"
               "<|video_pad|><|vision_end|>B",
           "video timestamp/prompt expansion drifted");
+
+  const aima::NativeVlResizeGeometry image_geometry =
+      aima::native_qwen36_image_geometry(256, 256);
+  const aima::NativeVlPixelTensor pixels =
+      aima::native_qwen36_patchify_resized_rgb(
+          {deterministic_image()}, image_geometry);
+  require(pixels.rows == 256 && pixels.columns == 1536 &&
+              pixels.values.size() == 256 * 1536 &&
+              aima::sha256_bytes(
+                  pixels.values.data(),
+                  pixels.values.size() * sizeof(pixels.values[0])) ==
+                  "28e3bf47e74e94a78db819016eee9ce02983f93ab86012de846a27d72a1623b8",
+          "image BF16 normalize/patchify oracle drifted");
+  const aima::NativeVlResizeGeometry video_geometry =
+      aima::native_qwen36_video_geometry(4, 256, 256);
+  const aima::NativeVlPixelTensor video_pixels =
+      aima::native_qwen36_patchify_resized_rgb(
+          deterministic_video(), video_geometry);
+  require(video_pixels.rows == 512 && video_pixels.columns == 1536 &&
+              aima::sha256_bytes(
+                  video_pixels.values.data(),
+                  video_pixels.values.size() *
+                      sizeof(video_pixels.values[0])) ==
+                  "9401d88b9e1d084fe8514f5debecfd69f3997f6ec6bcbe529a8da1409a3638d1",
+          "video BF16 temporal/spatial patchify oracle drifted");
 
   require(aima::native_qwen36_processor_config_sha256() ==
               "2d5a1388bfaefa0cae6fd96c097a291bb180f0cb3074f7b51e83e00e4df237ab",

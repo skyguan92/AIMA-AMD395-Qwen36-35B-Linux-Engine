@@ -4,6 +4,7 @@
 #include "aima/native_media.h"
 
 #include <cstddef>
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <vector>
@@ -48,6 +49,21 @@ struct NativeVlPromptMedia {
   double source_fps = 0.0;
 };
 
+struct NativeRgbFrame {
+  std::size_t height = 0;
+  std::size_t width = 0;
+  // Interleaved RGB8, exactly height * width * 3 bytes.
+  std::vector<unsigned char> pixels;
+};
+
+struct NativeVlPixelTensor {
+  NativeVlGrid grid;
+  std::size_t rows = 0;
+  std::size_t columns = 0;
+  // Contiguous BF16 bits in the processor's [patches, 1536] order.
+  std::vector<std::uint16_t> values;
+};
+
 NativeVlResizeGeometry native_qwen36_image_geometry(
     std::size_t source_height, std::size_t source_width);
 NativeVlResizeGeometry native_qwen36_video_geometry(
@@ -60,6 +76,12 @@ std::vector<std::size_t> native_qwen36_sample_video_frames(
 
 std::vector<double> native_qwen36_video_timestamps(
     const std::vector<std::size_t>& frame_indices, double source_fps);
+
+// Materializes the frozen normalize and patch permutation for frames already
+// resized to the supplied geometry. Odd temporal inputs repeat the last frame.
+NativeVlPixelTensor native_qwen36_patchify_resized_rgb(
+    const std::vector<NativeRgbFrame>& frames,
+    const NativeVlResizeGeometry& geometry);
 
 // Expands already-rendered canonical image/video markers exactly as the
 // frozen Qwen3VL processor does before tokenization.

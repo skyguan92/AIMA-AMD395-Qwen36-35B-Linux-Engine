@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <cstring>
 #include <iomanip>
 #include <limits>
 #include <locale>
@@ -157,6 +158,15 @@ std::string repeated(std::string_view value, std::size_t count) {
   return result;
 }
 
+std::uint16_t float_to_bfloat16(float value) {
+  std::uint32_t bits = 0;
+  static_assert(sizeof(bits) == sizeof(value));
+  std::memcpy(&bits, &value, sizeof(bits));
+  const std::uint32_t bias = 0x7fffU + ((bits >> 16U) & 1U);
+  bits += bias;
+  return static_cast<std::uint16_t>(bits >> 16U);
+}
+
 }  // namespace
 
 std::size_t NativeVlGrid::patch_count() const {
@@ -268,6 +278,112 @@ std::vector<double> native_qwen36_video_timestamps(
         2.0);
   }
   return timestamps;
+}
+
+NativeVlPixelTensor native_qwen36_patchify_resized_rgb(
+    const std::vector<NativeRgbFrame>& frames,
+    const NativeVlResizeGeometry& geometry) {
+  if (frames.empty()) {
+    throw std::invalid_argument("VL patchify requires at least one frame");
+  }
+  if (geometry.resized_height == 0 || geometry.resized_width == 0 ||
+      geometry.resized_height % kNativeVlPatchSize != 0 ||
+      geometry.resized_width % kNativeVlPatchSize != 0) {
+    throw std::invalid_argument("VL patchify geometry is not patch aligned");
+  }
+  const std::size_t frame_pixels = checked_product(
+      checked_product(geometry.resized_height, geometry.resized_width,
+                      "VL RGB frame"),
+      3, "VL RGB frame");
+  for (const NativeRgbFrame& frame : frames) {
+    if (frame.height != geometry.resized_height ||
+        frame.width != geometry.resized_width ||
+        frame.pixels.size() != frame_pixels) {
+      throw std::invalid_argument(
+          "VL patchify frame does not match resized geometry");
+    }
+  }
+  const std::size_t padded_frames =
+      frames.size() + static_cast<std::size_t>(
+                          frames.size() % kNativeVlTemporalPatchSize != 0);
+  NativeVlGrid expected_grid{
+      padded_frames / kNativeVlTemporalPatchSize,
+      geometry.resized_height / kNativeVlPatchSize,
+      geometry.resized_width / kNativeVlPatchSize,
+  };
+  if (geometry.grid.temporal != expected_grid.temporal ||
+      geometry.grid.height != expected_grid.height ||
+      geometry.grid.width != expected_grid.width) {
+    throw std::invalid_argument(
+        "VL patchify frames do not match the declared grid");
+  }
+  constexpr std::size_t channels = 3;
+  constexpr std::size_t columns =
+      channels * kNativeVlTemporalPatchSize * kNativeVlPatchSize *
+      kNativeVlPatchSize;
+  NativeVlPixelTensor output;
+  output.grid = geometry.grid;
+  output.rows = output.grid.patch_count();
+  output.columns = columns;
+  output.values.resize(
+      checked_product(output.rows, output.columns, "VL pixel tensor"));
+
+  std::size_t destination = 0;
+  const std::size_t height_groups =
+      output.grid.height / kNativeVlMergeSize;
+  const std::size_t width_groups =
+      output.grid.width / kNativeVlMergeSize;
+  for (std::size_t temporal = 0; temporal < output.grid.temporal;
+       ++temporal) {
+    for (std::size_t height_group = 0; height_group < height_groups;
+         ++height_group) {
+      for (std::size_t width_group = 0; width_group < width_groups;
+           ++width_group) {
+        for (std::size_t merge_height = 0;
+             merge_height < kNativeVlMergeSize; ++merge_height) {
+          for (std::size_t merge_width = 0;
+               merge_width < kNativeVlMergeSize; ++merge_width) {
+            for (std::size_t channel = 0; channel < channels; ++channel) {
+              for (std::size_t temporal_patch = 0;
+                   temporal_patch < kNativeVlTemporalPatchSize;
+                   ++temporal_patch) {
+                const std::size_t logical_frame =
+                    temporal * kNativeVlTemporalPatchSize + temporal_patch;
+                const NativeRgbFrame& frame =
+                    frames[std::min(logical_frame, frames.size() - 1)];
+                for (std::size_t patch_height = 0;
+                     patch_height < kNativeVlPatchSize; ++patch_height) {
+                  const std::size_t source_y =
+                      (height_group * kNativeVlMergeSize + merge_height) *
+                          kNativeVlPatchSize +
+                      patch_height;
+                  for (std::size_t patch_width = 0;
+                       patch_width < kNativeVlPatchSize; ++patch_width) {
+                    const std::size_t source_x =
+                        (width_group * kNativeVlMergeSize + merge_width) *
+                            kNativeVlPatchSize +
+                        patch_width;
+                    const std::size_t source =
+                        (source_y * frame.width + source_x) * channels +
+                        channel;
+                    const float normalized =
+                        (static_cast<float>(frame.pixels[source]) - 127.5F) /
+                        127.5F;
+                    output.values[destination++] =
+                        float_to_bfloat16(normalized);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  if (destination != output.values.size()) {
+    throw std::runtime_error("VL patchify tensor accounting failed");
+  }
+  return output;
 }
 
 std::string native_qwen36_expand_media_prompt(
