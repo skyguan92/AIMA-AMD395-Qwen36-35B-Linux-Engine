@@ -109,19 +109,20 @@ __device__ WelfordData compute_stats(const __hip_bfloat16* input,
 
   float* mean_sigma = shared;
   float* counts = shared + kWarpsPerBlock;
+  const int warp_index = static_cast<int>(threadIdx.y);
   for (int offset = kWarpsPerBlock / 2; offset > 0; offset /= 2) {
-    if (threadIdx.x == 0 && threadIdx.y >= offset &&
-        threadIdx.y < 2 * offset) {
-      const int write_warp = static_cast<int>(threadIdx.y) - offset;
+    if (threadIdx.x == 0 && warp_index >= offset &&
+        warp_index < 2 * offset) {
+      const int write_warp = warp_index - offset;
       mean_sigma[2 * write_warp] = value.mean;
       mean_sigma[2 * write_warp + 1] = value.sigma2;
       counts[write_warp] = value.count;
     }
     __syncthreads();
-    if (threadIdx.x == 0 && threadIdx.y < offset) {
+    if (threadIdx.x == 0 && warp_index < offset) {
       const WelfordData other{
-          mean_sigma[2 * threadIdx.y], mean_sigma[2 * threadIdx.y + 1],
-          counts[threadIdx.y]};
+          mean_sigma[2 * warp_index], mean_sigma[2 * warp_index + 1],
+          counts[warp_index]};
       value = welford_combine<FastReciprocal>(value, other);
     }
     __syncthreads();
