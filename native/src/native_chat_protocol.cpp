@@ -25,6 +25,12 @@ constexpr std::string_view kFunctionStart = "<function=";
 constexpr std::string_view kFunctionEnd = "</function>";
 constexpr std::string_view kParameterStart = "<parameter=";
 constexpr std::string_view kParameterEnd = "</parameter>";
+constexpr std::string_view kImagePlaceholder =
+    "<|vision_start|><|image_pad|><|vision_end|>";
+constexpr std::string_view kVideoPlaceholder =
+    "<|vision_start|><|video_pad|><|vision_end|>";
+constexpr std::size_t kMaximumImagesPerPrompt = 16;
+constexpr std::size_t kMaximumVideosPerPrompt = 21;
 
 std::string trim_ascii_copy(std::string_view input) {
   std::size_t begin = 0;
@@ -52,7 +58,30 @@ bool valid_function_name(std::string_view name) {
   });
 }
 
-std::string content_text(const NativeOrderedJson& message) {
+std::string media_source(const NativeOrderedJson& part,
+                         std::string_view field) {
+  const std::string key(field);
+  if (!part.contains(key)) {
+    throw std::invalid_argument(std::string(field) +
+                                " content part requires a source");
+  }
+  const NativeOrderedJson& value = part[key];
+  if (value.is_string() && !value.get_ref<const std::string&>().empty()) {
+    return value.get<std::string>();
+  }
+  if (value.is_object() && value.contains("url") &&
+      value["url"].is_string() &&
+      !value["url"].get_ref<const std::string&>().empty()) {
+    return value["url"].get<std::string>();
+  }
+  throw std::invalid_argument(std::string(field) +
+                              " content part requires a non-empty URL");
+}
+
+std::string content_text(const NativeOrderedJson& message,
+                         std::string_view role,
+                         std::size_t message_index,
+                         NativePreparedChat* prepared) {
   if (!message.contains("content") || message["content"].is_null()) return {};
   const NativeOrderedJson& content = message["content"];
   if (content.is_string()) return content.get<std::string>();
@@ -61,13 +90,47 @@ std::string content_text(const NativeOrderedJson& message) {
         "message content must be a string, null, or a text-part array");
   }
   std::string result;
-  for (const NativeOrderedJson& part : content) {
-    if (!part.is_object() || part.value("type", "") != "text" ||
-        !part.contains("text") || !part["text"].is_string()) {
+  for (std::size_t part_index = 0; part_index < content.size(); ++part_index) {
+    const NativeOrderedJson& part = content[part_index];
+    if (!part.is_object() || !part.contains("type") ||
+        !part["type"].is_string()) {
       throw std::invalid_argument(
-          "the native engine supports text message parts only");
+          "message content parts require a string type");
     }
-    result += part["text"].get<std::string>();
+    const std::string type = part["type"].get<std::string>();
+    if (type == "text") {
+      if (!part.contains("text") || !part["text"].is_string()) {
+        throw std::invalid_argument("text content part requires string text");
+      }
+      result += part["text"].get<std::string>();
+      continue;
+    }
+    NativeMediaKind kind;
+    std::string_view field;
+    std::string_view placeholder;
+    if (type == "image_url") {
+      kind = NativeMediaKind::kImage;
+      field = "image_url";
+      placeholder = kImagePlaceholder;
+    } else if (type == "video_url") {
+      kind = NativeMediaKind::kVideo;
+      field = "video_url";
+      placeholder = kVideoPlaceholder;
+    } else {
+      throw std::invalid_argument("unsupported message content part type");
+    }
+    if (role != "user") {
+      throw std::invalid_argument(
+          "image and video content parts are supported in user messages only");
+    }
+    NativeMediaPart media;
+    media.kind = kind;
+    media.source = media_source(part, field);
+    media.message_index = message_index;
+    media.content_part_index = part_index;
+    media.media_index = prepared->media.size();
+    prepared->media.push_back(std::move(media));
+    result += placeholder;
   }
   return result;
 }
@@ -358,7 +421,9 @@ NativePreparedChat prepare_native_chat(const NativeOrderedJson& request) {
   bool left_leading_system = false;
   bool saw_user = false;
   std::unordered_set<std::string> known_call_ids;
-  for (const NativeOrderedJson& source : request["messages"]) {
+  for (std::size_t message_index = 0;
+       message_index < request["messages"].size(); ++message_index) {
+    const NativeOrderedJson& source = request["messages"][message_index];
     if (!source.is_object() || !source.contains("role") ||
         !source["role"].is_string()) {
       throw std::invalid_argument("each message requires a string role");
@@ -369,7 +434,8 @@ NativePreparedChat prepare_native_chat(const NativeOrderedJson& request) {
         throw std::invalid_argument(
             "system and developer messages must precede conversation messages");
       }
-      const std::string content = content_text(source);
+      const std::string content = content_text(
+          source, role, message_index, &prepared);
       if (!leading_system.empty() && !content.empty()) leading_system += '\n';
       leading_system += content;
       continue;
@@ -381,7 +447,7 @@ NativePreparedChat prepare_native_chat(const NativeOrderedJson& request) {
 
     NativeChatMessage message;
     message.role = role;
-    message.content = content_text(source);
+    message.content = content_text(source, role, message_index, &prepared);
     if (role == "user") {
       saw_user = true;
     } else if (role == "assistant") {
@@ -479,6 +545,18 @@ NativePreparedChat prepare_native_chat(const NativeOrderedJson& request) {
   }
   if (!saw_user) {
     throw std::invalid_argument("at least one user message is required");
+  }
+  const std::size_t image_count = static_cast<std::size_t>(std::count_if(
+      prepared.media.begin(), prepared.media.end(),
+      [](const NativeMediaPart& media) {
+        return media.kind == NativeMediaKind::kImage;
+      }));
+  const std::size_t video_count = prepared.media.size() - image_count;
+  if (image_count > kMaximumImagesPerPrompt) {
+    throw std::invalid_argument("image count exceeds the fixed limit of 16");
+  }
+  if (video_count > kMaximumVideosPerPrompt) {
+    throw std::invalid_argument("video count exceeds the fixed limit of 21");
   }
 
   std::string directive;

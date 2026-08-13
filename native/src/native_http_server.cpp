@@ -661,6 +661,16 @@ ParsedCompletionRequest parse_completion_request(
     }
   }
   parsed.chat = prepare_native_chat(request);
+  if (!parsed.chat.media.empty()) {
+    if (request.contains("prompt_token_ids")) {
+      throw std::invalid_argument(
+          "prompt_token_ids cannot be combined with image or video content");
+    }
+    // Keep serving fail-closed until the decoded tensors and ordered media
+    // embeddings are attached to NativeResidentRequestOptions.
+    throw std::invalid_argument(
+        "image and video content requires the native VL media pipeline");
+  }
   if (request.contains("prompt_token_ids")) {
     if (!request["prompt_token_ids"].is_array() ||
         request["prompt_token_ids"].empty()) {

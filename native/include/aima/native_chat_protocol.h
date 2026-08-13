@@ -27,10 +27,26 @@ enum class NativeToolChoiceMode {
   kSpecific,
 };
 
+enum class NativeMediaKind {
+  kImage,
+  kVideo,
+};
+
+// An ordered OpenAI content part. The source is retained only for the native
+// media loader; prompts receive the model's canonical special-token marker.
+struct NativeMediaPart {
+  NativeMediaKind kind = NativeMediaKind::kImage;
+  std::string source;
+  std::size_t message_index = 0;
+  std::size_t content_part_index = 0;
+  std::size_t media_index = 0;
+};
+
 struct NativePreparedChat {
   std::vector<NativeChatMessage> messages;
   std::vector<NativeChatTool> prompt_tools;
   std::vector<NativeFunctionTool> function_tools;
+  std::vector<NativeMediaPart> media;
   NativeToolChoiceMode tool_choice = NativeToolChoiceMode::kAuto;
   std::string required_function_name;
   bool parallel_tool_calls = true;

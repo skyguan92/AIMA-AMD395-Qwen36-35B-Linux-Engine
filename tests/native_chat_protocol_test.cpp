@@ -194,6 +194,64 @@ int main() {
               "2",
           "history numeric argument rendering failed");
 
+  const NativeOrderedJson media_request = {
+      {"messages",
+       NativeOrderedJson::array(
+           {{{"role", "user"},
+             {"content",
+              NativeOrderedJson::array(
+                  {{{"type", "text"}, {"text", "First:"}},
+                   {{"type", "image_url"},
+                    {"image_url", {{"url", "file:///media/a.png"}}}},
+                   {{"type", "text"}, {"text", " then "}},
+                   {{"type", "video_url"},
+                    {"video_url", "data:video/mp4;base64,AAAA"}},
+                   {{"type", "text"}, {"text", " done"}}})}}})}};
+  const auto media = aima::prepare_native_chat(media_request);
+  require(
+      media.messages[0].content ==
+          "First:<|vision_start|><|image_pad|><|vision_end|> then "
+          "<|vision_start|><|video_pad|><|vision_end|> done",
+      "ordered media placeholders changed");
+  require(media.media.size() == 2,
+          "image/video parts were not retained");
+  require(media.media[0].kind == aima::NativeMediaKind::kImage &&
+              media.media[0].message_index == 0 &&
+              media.media[0].content_part_index == 1 &&
+              media.media[0].media_index == 0 &&
+              media.media[0].source == "file:///media/a.png",
+          "image part metadata changed");
+  require(media.media[1].kind == aima::NativeMediaKind::kVideo &&
+              media.media[1].content_part_index == 3 &&
+              media.media[1].media_index == 1,
+          "video part metadata changed");
+
+  NativeOrderedJson assistant_media = media_request;
+  assistant_media["messages"][0]["role"] = "assistant";
+  require_invalid(
+      [&]() { (void)aima::prepare_native_chat(assistant_media); },
+      "assistant media part was admitted");
+
+  NativeOrderedJson malformed_media = media_request;
+  malformed_media["messages"][0]["content"][1]["image_url"] =
+      NativeOrderedJson::object();
+  require_invalid(
+      [&]() { (void)aima::prepare_native_chat(malformed_media); },
+      "media part without a URL was admitted");
+
+  NativeOrderedJson too_many_images = {
+      {"messages", NativeOrderedJson::array(
+                       {{{"role", "user"},
+                         {"content", NativeOrderedJson::array()}}})}};
+  for (std::size_t index = 0; index < 17; ++index) {
+    too_many_images["messages"][0]["content"].push_back(
+        {{"type", "image_url"},
+         {"image_url", {{"url", "file:///media/a.png"}}}});
+  }
+  require_invalid(
+      [&]() { (void)aima::prepare_native_chat(too_many_images); },
+      "image count above the frozen limit was admitted");
+
   std::cout << "native_chat_protocol_test: PASS\n";
   return 0;
 }
