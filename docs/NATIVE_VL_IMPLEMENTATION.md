@@ -328,6 +328,18 @@ record are diagnostic probe timings, not G4 serving evidence. Blocks 13 and
 26, the complete 27-block encoder, merger and serving integration remain
 unqualified, so neither G1 nor G2 passes.
 
+The representative-depth inputs are now frozen from the same serving path. A
+clean `41d6f6b` capture hooked blocks 0, 13 and 26 during one image and one
+two-frame video request, retaining only block input/output, rotary tables and
+segmented-attention metadata. All six captured outputs were byte-identical in
+shape, dtype and payload to the independently frozen full-model boundaries.
+A second full capture reproduced all 36 binary files and the sealed manifest
+byte-for-byte (manifest SHA-256 `0e4967ca0c0ca0d54be1ab0854736b60e7b0cd57141340c9743f46aec8d69604`).
+The compact record is
+`benchmarks/results/native-vision-depth-oracle-v0.1.0.json`. This qualifies the
+oracle inputs, not native blocks 13/26; those two native executions are the
+next boundary.
+
 `native_media_test` and `native_chat_protocol_test` both compile with strict
 warnings and pass on `amd395`. This is implementation progress, not G1 or G2
 acceptance evidence.

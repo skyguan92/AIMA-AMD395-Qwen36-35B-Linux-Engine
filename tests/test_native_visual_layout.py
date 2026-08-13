@@ -41,6 +41,9 @@ VISION_BLOCK_SUFFIX_RESULT_PATH = (
 VISION_BLOCK_RESULT_PATH = (
     ROOT / "benchmarks/results/native-vision-block-v0.1.0.json"
 )
+VISION_DEPTH_ORACLE_RESULT_PATH = (
+    ROOT / "benchmarks/results/native-vision-depth-oracle-v0.1.0.json"
+)
 
 
 class NativeVisualLayoutTest(unittest.TestCase):
@@ -319,6 +322,49 @@ class NativeVisualLayoutTest(unittest.TestCase):
         self.assertIn("independent block capture is not byte-identical", capture)
         self.assertIn("VLLM_ALLOW_INSECURE_SERIALIZATION", capture)
         self.assertIn('llm_kwargs["skip_mm_profiling"] = True', capture)
+
+        result = json.loads(
+            VISION_DEPTH_ORACLE_RESULT_PATH.read_text(encoding="utf-8")
+        )
+        self.assertTrue(result["complete"])
+        self.assertTrue(result["source"]["clean"])
+        self.assertEqual(
+            result["source"]["commit"],
+            "41d6f6ba79b5c916d072af7bd9311b0fc87abb26",
+        )
+        capture_record = result["source"]["capture_script"]
+        self.assertEqual(
+            hashlib.sha256((ROOT / capture_record["path"]).read_bytes()).hexdigest(),
+            capture_record["sha256"],
+        )
+        oracle = result["oracle"]
+        self.assertEqual(oracle["block_indices"], [0, 13, 26])
+        self.assertEqual(oracle["independent_identical_captures"], 2)
+        self.assertEqual(oracle["binary_file_count"], 36)
+        self.assertTrue(oracle["qualified_for_native_boundary_comparison"])
+        self.assertEqual(len(result["cases"]), 2)
+        for case in result["cases"]:
+            self.assertEqual(
+                [block["block_index"] for block in case["blocks"]], [0, 13, 26]
+            )
+            self.assertTrue(
+                all(block["full_model_output_exact"] for block in case["blocks"])
+            )
+            self.assertTrue(
+                all(
+                    len(block["input_sha256"]) == 64
+                    and len(block["output_sha256"]) == 64
+                    for block in case["blocks"]
+                )
+            )
+        decision = result["decision"]
+        self.assertTrue(decision["representative_block_inputs_frozen"])
+        self.assertEqual(decision["qualified_block_indices"], [0])
+        self.assertFalse(decision["all_representative_native_blocks_qualified"])
+        self.assertFalse(decision["full_vision_encoder_qualified"])
+        self.assertFalse(decision["g1_passed"])
+        self.assertFalse(decision["g2_passed"])
+        self.assertTrue(decision["overall_pass"])
         self.assertIn(
             "87dcdf76b7251f78da01a2a5f4312a9fb5c7d07a1ca2b2420566e77930f23d44",
             capture,
