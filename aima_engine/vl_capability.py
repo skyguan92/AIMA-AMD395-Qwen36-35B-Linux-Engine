@@ -3,16 +3,20 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+import re
 from typing import Any
 
 from aima_engine.vl_reference import (
     CAPABILITY_SCHEMA,
     MODEL_REVISION,
     PINNED_PACKAGES,
+    canonical_json_sha256,
+    verify_manifest_integrity,
 )
 
 
 PROCESSOR_PROBE_SCHEMA = "aima-amd395-qwen36/vl-processor-capability-probe/v1"
+API_RENDER_SCHEMA = "aima-amd395-qwen36/vl-api-render-manifest/v1"
 
 EXPECTED_MAX_MODEL_LEN = 262_144
 EXPECTED_MAX_TOKENS_PER_ITEM = {"image": 16_384, "video": 12_288}
@@ -96,6 +100,76 @@ REQUIRED_API_SURFACES = {
     "transport",
     "video",
 }
+REQUIRED_API_RENDER_CASES = tuple(
+    case_id for case_id, expected in REQUIRED_API_CASES.items() if expected
+)
+API_RENDER_TOOL_CASES = frozenset(
+    {"tool_history_with_image", "tool_forced_image", "tool_auto_image"}
+)
+API_RENDER_MEDIA_COUNTS = {
+    "residency_text_before": {},
+    "image_local_png": {"image": 1},
+    "image_data_jpeg": {"image": 1},
+    "image_http_webp": {"image": 1},
+    "image_transparent_png": {"image": 1},
+    "multi_image_interleaved": {"image": 2},
+    "video_local_mp4": {"video": 1},
+    "video_data_mp4": {"video": 1},
+    "video_http_avi": {"video": 1},
+    "multi_video": {"video": 2},
+    "mixed_image_then_video": {"image": 1, "video": 1},
+    "mixed_video_then_image": {"image": 1, "video": 1},
+    "conversation_prior_image": {"image": 1},
+    "conversation_media_replace": {"image": 2},
+    "tool_history_with_image": {"image": 1},
+    "tool_forced_image": {"image": 1},
+    "tool_auto_image": {"image": 1},
+    "stream_image": {"image": 1},
+    "stream_video": {"video": 1},
+    "residency_text_after": {},
+}
+API_RENDER_MAX_TOKENS = {
+    case_id: (
+        64
+        if case_id == "tool_forced_image"
+        else 192
+        if case_id == "tool_auto_image"
+        else 4
+        if case_id in {"stream_image", "stream_video"}
+        else 1
+    )
+    for case_id in REQUIRED_API_RENDER_CASES
+}
+EXPECTED_TOOL_JSON_SCHEMA = {
+    "type": "object",
+    "properties": {"label": {"type": "string"}},
+    "required": ["label"],
+    "additionalProperties": False,
+}
+
+_API_RENDER_BINDING_PATHS = {
+    "capability_manifest": "benchmarks/results/vl-capability-manifest.json",
+    "fixture_manifest": (
+        "benchmarks/fixtures/vl-capability-v0.1.0/fixtures-manifest.json"
+    ),
+    "reference_launch": "benchmarks/results/vl-reference-launch.json",
+    "reference_manifest": "benchmarks/results/vl-reference-manifest.json",
+}
+_API_RENDER_SOURCE_PATHS = (
+    "aima_engine/vl_capability.py",
+    "aima_engine/vl_reference.py",
+    "scripts/probe-vllm-vl-api-capabilities.py",
+    "scripts/capture-vllm-vl-api-render.py",
+)
+_API_RENDER_TRUE_DECISIONS = (
+    "success_render_cases_20_of_20",
+    "non_tool_render_matches_full_usage",
+    "tool_full_server_usage_offset_one",
+    "named_tool_json_schema_bound",
+)
+
+_SHA256 = re.compile(r"^[0-9a-f]{64}$")
+_GIT_COMMIT = re.compile(r"^[0-9a-f]{40}$")
 
 
 def _case_ids(value: Any) -> set[str]:
@@ -257,4 +331,293 @@ def validate_capability_manifest(payload: Mapping[str, Any]) -> list[str]:
         errors.append(
             "missing API capability surfaces: " + ", ".join(sorted(missing_surfaces))
         )
+    return errors
+
+
+def validate_api_render_manifest(payload: Mapping[str, Any]) -> list[str]:
+    """Validate exact prompts emitted by the frozen vLLM render boundary."""
+
+    errors = verify_manifest_integrity(payload)
+    if payload.get("schema") != API_RENDER_SCHEMA:
+        errors.append(f"API render schema must be {API_RENDER_SCHEMA}")
+    if payload.get("complete") is not True:
+        errors.append("API render manifest is not complete")
+    if payload.get("qualified") is not True:
+        errors.append("API render manifest is not qualified")
+    if payload.get("scope") != "fixed-vllm-openai-gpu-less-render-token-boundary":
+        errors.append("API render scope changed")
+
+    host = payload.get("host")
+    if not isinstance(host, dict) or host.get("label") != "amd395":
+        errors.append("API render host is not the frozen amd395 target")
+    if not isinstance(host, dict) or not isinstance(host.get("hostname"), str):
+        errors.append("API render hostname is missing")
+
+    source = payload.get("source")
+    if not isinstance(source, dict):
+        errors.append("API render source identity is missing")
+    else:
+        if not isinstance(source.get("commit"), str) or not _GIT_COMMIT.fullmatch(
+            source.get("commit", "")
+        ):
+            errors.append("API render source commit is invalid")
+        if source.get("dirty") is not False:
+            errors.append("API render source must be clean")
+        if not isinstance(source.get("status_sha256"), str) or not _SHA256.fullmatch(
+            source.get("status_sha256", "")
+        ):
+            errors.append("API render source status hash is invalid")
+        source_files = source.get("files")
+        paths = (
+            tuple(
+                item.get("path") if isinstance(item, dict) else None
+                for item in source_files
+            )
+            if isinstance(source_files, list)
+            else ()
+        )
+        if paths != _API_RENDER_SOURCE_PATHS:
+            errors.append("API render source file set changed")
+        if isinstance(source_files, list):
+            for item in source_files:
+                if not isinstance(item, dict):
+                    continue
+                if (
+                    not isinstance(item.get("bytes"), int)
+                    or isinstance(item.get("bytes"), bool)
+                    or item["bytes"] <= 0
+                    or not isinstance(item.get("sha256"), str)
+                    or not _SHA256.fullmatch(item.get("sha256", ""))
+                ):
+                    errors.append(
+                        f"API render source component is invalid: {item.get('path')}"
+                    )
+
+    bindings = payload.get("bindings")
+    if not isinstance(bindings, dict):
+        errors.append("API render manifest has no bindings")
+    else:
+        if set(bindings) != set(_API_RENDER_BINDING_PATHS):
+            errors.append("API render binding set changed")
+        for name, expected_path in _API_RENDER_BINDING_PATHS.items():
+            binding = bindings.get(name)
+            digest = binding.get("sha256") if isinstance(binding, dict) else None
+            if not isinstance(digest, str) or not _SHA256.fullmatch(digest):
+                errors.append(f"API render binding SHA-256 is invalid: {name}")
+            if not isinstance(binding, dict) or binding.get("path") != expected_path:
+                errors.append(f"API render binding path changed: {name}")
+            if (
+                not isinstance(binding, dict)
+                or not isinstance(binding.get("bytes"), int)
+                or isinstance(binding.get("bytes"), bool)
+                or binding["bytes"] <= 0
+            ):
+                errors.append(f"API render binding size is invalid: {name}")
+
+    runtime = payload.get("runtime")
+    version = runtime.get("vllm") if isinstance(runtime, dict) else None
+    expected_version = PINNED_PACKAGES["vllm"]
+    if not isinstance(version, str) or not (
+        version == expected_version or version.startswith(expected_version + ".")
+    ):
+        errors.append(f"API render vLLM pin mismatch: {version!r}")
+    endpoint = runtime.get("endpoint") if isinstance(runtime, dict) else None
+    if (
+        not isinstance(endpoint, dict)
+        or endpoint.get("scheme") != "http"
+        or endpoint.get("host") != "127.0.0.1"
+        or not isinstance(endpoint.get("port"), int)
+        or isinstance(endpoint.get("port"), bool)
+        or not 1 <= endpoint["port"] <= 65_535
+    ):
+        errors.append("API render endpoint is not an explicit loopback HTTP port")
+
+    contract = payload.get("contract")
+    if contract != {
+        "content_format": "auto-resolved-string",
+        "request_identity": "fixture-normalized-reference-request",
+        "tool_normalization": "ChatCompletionRequest-Pydantic-model_dump",
+        "render_runtime_uses_gpu": False,
+    }:
+        errors.append("API render contract changed")
+
+    cases = payload.get("cases")
+    if not isinstance(cases, list):
+        return errors + ["API render cases must be an array"]
+    case_ids = [
+        case.get("case_id") if isinstance(case, dict) else None for case in cases
+    ]
+    if tuple(case_ids) != REQUIRED_API_RENDER_CASES:
+        errors.append("API render case order or membership changed")
+
+    for case in cases:
+        if not isinstance(case, dict):
+            errors.append("API render case must be an object")
+            continue
+        case_id = case.get("case_id")
+        surfaces = case.get("surfaces")
+        if (
+            not isinstance(surfaces, list)
+            or not surfaces
+            or not all(isinstance(value, str) and value for value in surfaces)
+            or ((case_id in API_RENDER_TOOL_CASES) != ("tool" in surfaces))
+        ):
+            errors.append(f"API render surfaces are invalid: {case_id}")
+        token_ids = case.get("prompt_token_ids")
+        if not isinstance(token_ids, list) or not token_ids or not all(
+            isinstance(value, int) and not isinstance(value, bool) and value >= 0
+            for value in token_ids
+        ):
+            errors.append(f"API render prompt token IDs are invalid: {case_id}")
+            continue
+        if case.get("prompt_tokens") != len(token_ids):
+            errors.append(f"API render prompt length changed: {case_id}")
+        if case.get("prompt_token_ids_sha256") != canonical_json_sha256(
+            token_ids
+        ):
+            errors.append(f"API render prompt hash changed: {case_id}")
+        request = case.get("request")
+        request_digest = case.get("request_sha256")
+        if not isinstance(request, dict):
+            errors.append(f"API render normalized request is invalid: {case_id}")
+        elif request_digest != canonical_json_sha256(request):
+            errors.append(f"API render normalized request hash changed: {case_id}")
+        if isinstance(request, dict):
+            if (
+                request.get("model") != "qwen36-vl-reference"
+                or not isinstance(request.get("messages"), list)
+                or not request["messages"]
+                or request.get("temperature") != 0
+                or request.get("max_tokens") != API_RENDER_MAX_TOKENS.get(case_id)
+                or request.get("stream")
+                != (case_id in {"stream_image", "stream_video"})
+            ):
+                errors.append(f"API render normalized request changed: {case_id}")
+        for field in (
+            "reference_transport_request_sha256",
+            "render_transport_request_sha256",
+        ):
+            transport_digest = case.get(field)
+            if not isinstance(transport_digest, str) or not _SHA256.fullmatch(
+                transport_digest
+            ):
+                errors.append(f"API render {field} is invalid: {case_id}")
+        reference_prompt_tokens = case.get("reference_usage_prompt_tokens")
+        usage_delta = case.get("reference_usage_delta")
+        if (
+            not isinstance(reference_prompt_tokens, int)
+            or isinstance(reference_prompt_tokens, bool)
+            or reference_prompt_tokens <= 0
+        ):
+            errors.append(f"API render reference usage is invalid: {case_id}")
+        elif (
+            not isinstance(usage_delta, int)
+            or isinstance(usage_delta, bool)
+            or usage_delta != reference_prompt_tokens - len(token_ids)
+        ):
+            errors.append(f"API render reference usage delta is invalid: {case_id}")
+        expected_delta = 1 if case_id in API_RENDER_TOOL_CASES else 0
+        if usage_delta != expected_delta:
+            errors.append(f"API render full-server usage offset changed: {case_id}")
+        if case.get("max_tokens") != API_RENDER_MAX_TOKENS.get(case_id):
+            errors.append(f"API render max_tokens changed: {case_id}")
+
+        placeholders = case.get("mm_placeholders")
+        if not isinstance(placeholders, dict):
+            errors.append(f"API render placeholders are invalid: {case_id}")
+            continue
+        occupied: list[tuple[int, int]] = []
+        for modality, ranges in placeholders.items():
+            if modality not in {"image", "video"} or not isinstance(ranges, list):
+                errors.append(f"API render placeholder modality is invalid: {case_id}")
+                continue
+            pad_token = 248056 if modality == "image" else 248057
+            for value in ranges:
+                if not isinstance(value, dict):
+                    errors.append(f"API render placeholder is invalid: {case_id}")
+                    continue
+                offset = value.get("offset")
+                length = value.get("length")
+                if (
+                    not isinstance(offset, int)
+                    or isinstance(offset, bool)
+                    or not isinstance(length, int)
+                    or isinstance(length, bool)
+                    or offset < 0
+                    or length <= 0
+                    or offset + length > len(token_ids)
+                    or token_ids[offset : offset + length] != [pad_token] * length
+                ):
+                    errors.append(
+                        f"API render placeholder span is invalid: {case_id}"
+                    )
+                    continue
+                occupied.append((offset, offset + length))
+        occupied.sort()
+        if any(left[1] > right[0] for left, right in zip(occupied, occupied[1:])):
+            errors.append(f"API render placeholder spans overlap: {case_id}")
+        observed_counts = {
+            modality: len(ranges)
+            for modality, ranges in placeholders.items()
+            if isinstance(ranges, list)
+        }
+        if observed_counts != API_RENDER_MEDIA_COUNTS.get(case_id):
+            errors.append(f"API render media placeholder counts changed: {case_id}")
+
+        structured_outputs = case.get("structured_outputs")
+        expected_structured = (
+            {"json": EXPECTED_TOOL_JSON_SCHEMA}
+            if case_id == "tool_forced_image"
+            else None
+        )
+        if structured_outputs != expected_structured:
+            errors.append(f"API render structured output changed: {case_id}")
+
+    forced = next(
+        (
+            case
+            for case in cases
+            if isinstance(case, dict)
+            and case.get("case_id") == "tool_forced_image"
+        ),
+        None,
+    )
+    structured = forced.get("structured_outputs") if isinstance(forced, dict) else None
+    schema = structured.get("json") if isinstance(structured, dict) else None
+    if schema != EXPECTED_TOOL_JSON_SCHEMA:
+        errors.append("named tool render is not bound to a JSON schema")
+
+    decision = payload.get("decision")
+    by_id = {
+        case.get("case_id"): case
+        for case in cases
+        if isinstance(case, dict) and isinstance(case.get("case_id"), str)
+    }
+    recomputed = {
+        "success_render_cases_20_of_20": tuple(case_ids)
+        == REQUIRED_API_RENDER_CASES,
+        "non_tool_render_matches_full_usage": all(
+            by_id.get(case_id, {}).get("reference_usage_delta") == 0
+            for case_id in REQUIRED_API_RENDER_CASES
+            if case_id not in API_RENDER_TOOL_CASES
+        ),
+        "tool_full_server_usage_offset_one": all(
+            by_id.get(case_id, {}).get("reference_usage_delta") == 1
+            for case_id in API_RENDER_TOOL_CASES
+        ),
+        "named_tool_json_schema_bound": schema == EXPECTED_TOOL_JSON_SCHEMA,
+    }
+    if not isinstance(decision, dict):
+        errors.append("API render decision is missing")
+    else:
+        if set(decision) != {*_API_RENDER_TRUE_DECISIONS, "g1_passed", "g2_passed"}:
+            errors.append("API render decision set changed")
+        for name, expected in recomputed.items():
+            if decision.get(name) is not expected:
+                errors.append(f"API render decision is inconsistent: {name}")
+        for name in ("g1_passed", "g2_passed"):
+            if decision.get(name) is not False:
+                errors.append(f"API render evidence must not claim {name[:2].upper()}")
+    if payload.get("qualified") is not all(recomputed.values()):
+        errors.append("API render qualification is inconsistent with its decisions")
     return errors
