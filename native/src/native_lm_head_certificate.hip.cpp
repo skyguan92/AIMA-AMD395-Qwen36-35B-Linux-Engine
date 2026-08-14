@@ -72,12 +72,16 @@ __global__ void conservative_hidden_l2_kernel(
 
 __global__ void bound_logits_kernel(const float* logits,
                                     const float* residual_l2,
+                                    const std::uint8_t* allowed_token_mask,
                                     NativeLmHeadCertificateWire* wire,
                                     float* partial_lower_max) {
   __shared__ float reduction[kThreads];
   float local_max = -std::numeric_limits<float>::infinity();
   for (std::size_t row = blockIdx.x * blockDim.x + threadIdx.x;
        row < kVocabulary; row += gridDim.x * blockDim.x) {
+    if (allowed_token_mask != nullptr && allowed_token_mask[row] == 0) {
+      continue;
+    }
     float error = residual_l2[row] * wire->hidden_l2;
     error = nextafterf(error, INFINITY);
     const float approximate = logits[row];
@@ -117,10 +121,14 @@ __global__ void reduce_lower_bound_kernel(
 
 __global__ void collect_candidates_kernel(
     const float* approximate_logits, const float* residual_l2,
+    const std::uint8_t* allowed_token_mask,
     NativeLmHeadCertificateWire* wire,
     std::uint32_t* candidate_ids) {
   const std::size_t row = blockIdx.x * blockDim.x + threadIdx.x;
   if (row >= kVocabulary) {
+    return;
+  }
+  if (allowed_token_mask != nullptr && allowed_token_mask[row] == 0) {
     return;
   }
   float error = residual_l2[row] * wire->hidden_l2;
@@ -210,7 +218,7 @@ NativeLmHeadCertificateLaunchMetrics launch_native_lm_head_certificate(
     void* candidate_weights_bf16, std::size_t candidate_weight_bytes,
     void* candidate_logits_bf16, std::size_t candidate_logit_bytes,
     void* scratch, std::size_t scratch_bytes, int cu_count,
-    void* stream_value) {
+    const std::uint8_t* allowed_token_mask, void* stream_value) {
   if (raw_weight_bf16 == nullptr || residual_l2_fp32 == nullptr ||
       hidden_bf16 == nullptr || approximate_logits_fp32 == nullptr ||
       candidate_weights_bf16 == nullptr || candidate_logits_bf16 == nullptr ||
@@ -235,7 +243,8 @@ NativeLmHeadCertificateLaunchMetrics launch_native_lm_head_certificate(
   hipLaunchKernelGGL(
       bound_logits_kernel, dim3(kBoundBlocks), dim3(kThreads), 0, stream,
       static_cast<float*>(approximate_logits_fp32),
-      static_cast<const float*>(residual_l2_fp32), wire, partial_lower);
+      static_cast<const float*>(residual_l2_fp32), allowed_token_mask, wire,
+      partial_lower);
   check_hip(hipGetLastError(), "bound_logits_kernel");
   hipLaunchKernelGGL(reduce_lower_bound_kernel, dim3(1), dim3(kThreads), 0,
                      stream, partial_lower, wire);
@@ -245,7 +254,8 @@ NativeLmHeadCertificateLaunchMetrics launch_native_lm_head_certificate(
   hipLaunchKernelGGL(
       collect_candidates_kernel, dim3(kCandidateBlocks), dim3(kThreads), 0,
       stream, static_cast<const float*>(approximate_logits_fp32),
-      static_cast<const float*>(residual_l2_fp32), wire, candidate_ids);
+      static_cast<const float*>(residual_l2_fp32), allowed_token_mask, wire,
+      candidate_ids);
   check_hip(hipGetLastError(), "collect_candidates_kernel");
   constexpr std::size_t kCandidateWeightElements =
       kNativeLmHeadCandidateCapacity * kHidden;

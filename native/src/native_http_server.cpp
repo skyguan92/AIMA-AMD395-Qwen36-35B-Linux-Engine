@@ -32,6 +32,7 @@
 #include <iostream>
 #include <iomanip>
 #include <limits>
+#include <memory>
 #include <optional>
 #include <sstream>
 #include <stdexcept>
@@ -591,6 +592,7 @@ void require_number(const Json& request, const char* field, double expected) {
 Json request_metrics_json(const NativeResidentRequestMetrics& metrics) {
   Json result = {{"runtime", "native-resident-q" +
                           std::to_string(metrics.prompt_tokens)},
+          {"prompt_tokens", metrics.prompt_tokens},
           {"oracle_tensor_reads", metrics.oracle_tensor_reads},
           {"request_index", metrics.request_index},
           {"model_loads", metrics.model_loads},
@@ -606,6 +608,11 @@ Json request_metrics_json(const NativeResidentRequestMetrics& metrics) {
            metrics.aot_prefill_bucket_tokens},
           {"aot_prefill_segments", metrics.aot_prefill_segments},
           {"padded_prefill_tokens", metrics.padded_prefill_tokens},
+          {"structured_decoding",
+           {{"enabled", metrics.constrained_decoding},
+            {"token_selections", metrics.constrained_token_selections},
+            {"token_mask_upload_bytes",
+             metrics.constrained_token_mask_upload_bytes}}},
           {"mrope", {{"enabled", metrics.mrope_enabled},
                      {"position_delta", metrics.mrope_position_delta},
                      {"position_upload_bytes",
@@ -682,6 +689,8 @@ struct ParsedCompletionRequest {
   std::string multimodal_cache_namespace;
   std::optional<NativeMropePlan> mrope_plan;
   std::optional<NativeResidentVlInput> vl_input;
+  std::shared_ptr<NativeNamedToolJsonConstraint>
+      named_tool_json_constraint;
   std::size_t max_tokens = 16;
   bool stream = false;
   bool include_usage = false;
@@ -755,6 +764,21 @@ ParsedCompletionRequest parse_completion_request(
   }
   parsed.chat = prepare_native_chat(request);
   if (!parsed.chat.media.empty()) {
+    if (parsed.chat.tool_choice == NativeToolChoiceMode::kSpecific) {
+      const auto selected = std::find_if(
+          parsed.chat.function_tools.begin(),
+          parsed.chat.function_tools.end(),
+          [&](const NativeFunctionTool& tool) {
+            return tool.name == parsed.chat.required_function_name;
+          });
+      if (selected == parsed.chat.function_tools.end()) {
+        throw std::runtime_error(
+            "named VL tool choice lost its selected function");
+      }
+      parsed.named_tool_json_constraint =
+          std::make_shared<NativeNamedToolJsonConstraint>(tokenizer,
+                                                          *selected);
+    }
     if (request.contains("prompt_token_ids")) {
       throw std::invalid_argument(
           "prompt_token_ids cannot be combined with image or video content");
@@ -844,6 +868,7 @@ std::int64_t unix_time_seconds() {
 NativeAssistantOutput visible_assistant_output(
     const NativeResidentRequestMetrics& metrics,
     const NativeTokenizer& tokenizer, const NativePreparedChat& chat,
+    const NativeNamedToolJsonConstraint* named_tool_json_constraint,
     std::string_view call_id_prefix) {
   std::vector<std::uint32_t> visible = metrics.output_token_ids;
   if (metrics.stopped && !visible.empty() &&
@@ -851,6 +876,9 @@ NativeAssistantOutput visible_assistant_output(
     visible.pop_back();
   }
   const std::string text = tokenizer.decode(visible);
+  if (named_tool_json_constraint != nullptr) {
+    return named_tool_json_constraint->parse_output(text, call_id_prefix);
+  }
   if (chat.tool_choice == NativeToolChoiceMode::kNone ||
       chat.prompt_tools.empty()) {
     return {text, {}};
@@ -894,11 +922,20 @@ Json chat_completion(NativeResidentEngine& engine, NativeTokenizer& tokenizer,
   native_request.vl_input = std::move(parsed.vl_input);
   native_request.max_new_tokens = parsed.max_tokens;
   native_request.stop_token_ids = {tokenizer.eos_token_id()};
+  if (parsed.named_tool_json_constraint != nullptr) {
+    const auto constraint = parsed.named_tool_json_constraint;
+    native_request.next_token_mask =
+        [constraint](const std::vector<std::uint32_t>& generated,
+                     std::vector<std::uint8_t>* mask) {
+          constraint->allowed_token_mask(generated, mask);
+        };
+  }
   const NativeResidentRequestMetrics metrics = engine.run(native_request);
   const std::string id =
       "chatcmpl-native-" + std::to_string(metrics.request_index);
   NativeAssistantOutput output = visible_assistant_output(
-      metrics, tokenizer, parsed.chat, id + "-call-");
+      metrics, tokenizer, parsed.chat,
+      parsed.named_tool_json_constraint.get(), id + "-call-");
   if (!required_tool_choice_satisfied(parsed.chat, output)) {
     throw std::runtime_error(
         "model output did not satisfy the required tool_choice");
@@ -984,6 +1021,14 @@ bool stream_chat_completion(
   native_request.vl_input = std::move(parsed.vl_input);
   native_request.max_new_tokens = parsed.max_tokens;
   native_request.stop_token_ids = {tokenizer.eos_token_id()};
+  if (parsed.named_tool_json_constraint != nullptr) {
+    const auto constraint = parsed.named_tool_json_constraint;
+    native_request.next_token_mask =
+        [constraint](const std::vector<std::uint32_t>& generated,
+                     std::vector<std::uint8_t>* mask) {
+          constraint->allowed_token_mask(generated, mask);
+        };
+  }
   native_request.token_callback =
       [&](std::uint32_t token_id, std::size_t) -> bool {
     if (!connected) return false;
@@ -1022,7 +1067,10 @@ bool stream_chat_completion(
     terminal_streamable = gate.push(terminal_utf8);
   }
   NativeAssistantOutput output;
-  if (parsed.chat.tool_choice != NativeToolChoiceMode::kNone &&
+  if (parsed.named_tool_json_constraint != nullptr) {
+    output = parsed.named_tool_json_constraint->parse_output(
+        gate.complete_text(), id + "-call-");
+  } else if (parsed.chat.tool_choice != NativeToolChoiceMode::kNone &&
       !parsed.chat.prompt_tools.empty()) {
     output = parse_qwen_tool_output(
         gate.complete_text(), parsed.chat.function_tools, id + "-call-");
@@ -1202,6 +1250,8 @@ int run_native_http_server(int argc, char** argv) {
                      {"static_prefill_tokens", load.prompt_tokens},
                      {"mrope_position_state_bytes",
                       load.mrope_position_state_bytes},
+                     {"structured_token_mask_bytes",
+                      load.structured_token_mask_bytes},
                      {"resident_prefill_buckets",
                       load.resident_prefill_buckets},
                      {"prefix_cache_entries", load.prefix_cache_entries},
@@ -1269,6 +1319,8 @@ int run_native_http_server(int argc, char** argv) {
                    {"admitted_prompt_tokens", load.cache_capacity},
                    {"context_capacity", load.cache_capacity},
                    {"static_prefill_tokens", load.prompt_tokens},
+                   {"structured_token_mask_bytes",
+                    load.structured_token_mask_bytes},
                    {"resident_prefill_buckets",
                     load.resident_prefill_buckets},
                    {"prefix_cache_entries", load.prefix_cache_entries},

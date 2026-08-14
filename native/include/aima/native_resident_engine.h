@@ -71,6 +71,7 @@ struct NativeResidentLoadMetrics {
   std::uint64_t vl_logical_projection_output_scratch_bytes = 0;
   bool vl_logical_projection_weights_loaded = false;
   std::uint64_t vl_prompt_index_state_bytes = 0;
+  std::uint64_t structured_token_mask_bytes = 0;
   std::size_t vision_plan_cache_capacity = 0;
   std::uint64_t decode_workspace_bytes = 0;
   std::uint64_t attention_state_bytes = 0;
@@ -133,6 +134,13 @@ struct NativeResidentRequestOptions {
   std::optional<NativeResidentVlInput> vl_input;
   std::size_t max_new_tokens = 1;
   std::vector<std::uint32_t> stop_token_ids;
+  // Optional fail-closed token grammar. The callback must replace `mask`
+  // with exactly kNativeModelVocabularySize bytes for the next token, where
+  // nonzero entries are admitted. The engine uploads this into resident
+  // device storage before its certified LM-head selection.
+  std::function<void(const std::vector<std::uint32_t>&,
+                     std::vector<std::uint8_t>*)>
+      next_token_mask;
   // Invoked synchronously as soon as each generated token is available.
   // Returning false cancels the remaining decode work without invalidating
   // resident model or prefix-cache state.
@@ -200,6 +208,9 @@ struct NativeResidentRequestMetrics {
   double vl_vision_encode_wall_ms = 0.0;
   double vl_embedding_injection_wall_ms = 0.0;
   std::size_t decode_tokens_executed = 0;
+  bool constrained_decoding = false;
+  std::size_t constrained_token_selections = 0;
+  std::uint64_t constrained_token_mask_upload_bytes = 0;
   std::size_t decode_aot_launches = 0;
   std::size_t decode_native_launches = 0;
   std::size_t state_orientation_resets = 0;

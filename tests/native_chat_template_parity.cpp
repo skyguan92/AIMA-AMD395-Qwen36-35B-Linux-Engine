@@ -94,6 +94,46 @@ int main(int argc, char** argv) {
       "e763e00178be9cbb2df3de13e9b393d815e976ecdd4e8e9ddea01260b165566c",
       333);
 
+  const Json named_tool_request = {
+      {"messages",
+       Json::array({{{"role", "user"}, {"content", "Inspect it"}}})},
+      {"tools",
+       Json::array(
+           {{{"type", "function"},
+             {"function",
+              {{"name", "inspect_visual"},
+               {"description", "Record a label."},
+               {"parameters",
+                {{"type", "object"},
+                 {"properties", {{"label", {{"type", "string"}}}}},
+                 {"required", Json::array({"label"})},
+                 {"additionalProperties", false}}}}}}})},
+      {"tool_choice",
+       {{"type", "function"},
+        {"function", {{"name", "inspect_visual"}}}}}};
+  const aima::NativePreparedChat named =
+      aima::prepare_native_chat(named_tool_request);
+  aima::NativeNamedToolJsonConstraint constraint(
+      tokenizer, named.function_tools[0]);
+  const std::vector<std::uint32_t> expected_arguments = tokenizer.encode(
+      R"({"label": "Colorful diagonal stripes"})");
+  std::vector<std::uint32_t> generated;
+  std::vector<std::uint8_t> mask;
+  for (const std::uint32_t token_id : expected_arguments) {
+    constraint.allowed_token_mask(generated, &mask);
+    if (mask.size() != aima::kNativeModelVocabularySize ||
+        mask[token_id] == 0 || mask[tokenizer.eos_token_id()] != 0) {
+      std::cerr << "named-tool JSON token grammar rejected a valid prefix\n";
+      return 1;
+    }
+    generated.push_back(token_id);
+  }
+  constraint.allowed_token_mask(generated, &mask);
+  if (mask[tokenizer.eos_token_id()] == 0) {
+    std::cerr << "named-tool JSON token grammar did not admit terminal EOS\n";
+    return 1;
+  }
+
   std::cout << "native_chat_template_parity: PASS\n";
   return 0;
 }

@@ -42,6 +42,7 @@ NativeLmHeadCertificateLaunchMetrics launch_native_lm_head_certificate(
     void* candidate_weights_bf16, std::size_t candidate_weight_bytes,
     void* candidate_logits_bf16, std::size_t candidate_logit_bytes,
     void* scratch, std::size_t scratch_bytes, int cu_count,
+    const std::uint8_t* allowed_token_mask = nullptr,
     void* stream = nullptr);
 
 }  // namespace aima

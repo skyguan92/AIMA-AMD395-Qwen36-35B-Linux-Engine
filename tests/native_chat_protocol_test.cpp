@@ -93,6 +93,51 @@ int main() {
           aima::render_qwen_json(canonical_wire_request["tools"][0]),
       "VL normalization changed the baseline text prompt tool");
 
+  bool json_complete = false;
+  require(aima::native_single_string_json_prefix_viable(
+              "label", "", &json_complete) &&
+              !json_complete,
+          "empty named-tool JSON prefix was rejected");
+  require(aima::native_single_string_json_prefix_viable(
+              "label", " { \"label\" : \"café \\\"ok\\\"\" } ",
+              &json_complete) &&
+              json_complete,
+          "complete named-tool JSON prefix was rejected");
+  require(aima::native_single_string_json_prefix_viable(
+              "label", "{\"label\":\"\\u4e2", &json_complete) &&
+              !json_complete,
+          "partial Unicode escape was rejected");
+  require(!aima::native_single_string_json_prefix_viable(
+              "label", "{\"wrong\":\"value\"}", &json_complete),
+          "wrong named-tool JSON property was admitted");
+  require(!aima::native_single_string_json_prefix_viable(
+              "label", "{\"label\":\"value\",\"extra\":1}",
+              &json_complete),
+          "additional named-tool JSON property was admitted");
+
+  const aima::NativeAssistantOutput constrained =
+      aima::parse_native_named_tool_json_output(
+          R"({"label": "Colorful diagonal stripes"})",
+          canonical_wire.function_tools[0], "call_json_");
+  require(constrained.content.empty() &&
+              constrained.tool_calls.size() == 1 &&
+              constrained.tool_calls[0].id == "call_json_0" &&
+              constrained.tool_calls[0].name == "inspect_visual" &&
+              constrained.tool_calls[0].serialized_arguments ==
+                  R"({"label": "Colorful diagonal stripes"})",
+          "named-tool constrained JSON was not wrapped exactly");
+
+  aima::NativeFunctionTool unsupported_schema =
+      canonical_wire.function_tools[0];
+  unsupported_schema.parameters["properties"]["label"]["type"] =
+      "integer";
+  require_invalid(
+      [&]() {
+        (void)aima::parse_native_named_tool_json_output(
+            R"({"label": 1})", unsupported_schema, "call_json_");
+      },
+      "unsupported named-tool JSON Schema was not rejected");
+
   NativeOrderedJson none_request = request;
   none_request["tool_choice"] = "none";
   const auto none = aima::prepare_native_chat(none_request);

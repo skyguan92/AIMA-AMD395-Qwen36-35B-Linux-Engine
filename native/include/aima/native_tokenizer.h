@@ -11,6 +11,8 @@
 
 namespace aima {
 
+inline constexpr std::size_t kNativeModelVocabularySize = 248320;
+
 struct NativeChatTool {
   // Exact JSON representation consumed by the qualified Qwen chat template.
   std::string serialized_json;

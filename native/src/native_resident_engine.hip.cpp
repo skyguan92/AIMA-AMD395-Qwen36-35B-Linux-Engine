@@ -384,6 +384,9 @@ struct NativeResidentEngine::Impl {
   std::uint64_t vl_prompt_index_state_bytes = 0;
   void* vl_prompt_token_ids = nullptr;
   void* vl_scatter_indices = nullptr;
+  void* structured_token_mask = nullptr;
+  std::uint64_t structured_token_mask_bytes = 0;
+  std::vector<std::uint8_t> host_structured_token_mask;
   void* vision_pixel_values = nullptr;
   std::uint64_t vision_pixel_capacity_bytes = 0;
   void* vision_embeddings = nullptr;
@@ -503,6 +506,10 @@ struct NativeResidentEngine::Impl {
       (void)hipSetDevice(device);
       (void)hipFree(vl_prompt_index_state);
     }
+    if (structured_token_mask != nullptr) {
+      (void)hipSetDevice(device);
+      (void)hipFree(structured_token_mask);
+    }
     if (vision_pixel_values != nullptr) {
       (void)hipSetDevice(device);
       (void)hipFree(vision_pixel_values);
@@ -617,6 +624,8 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
       2ULL * kNativeVlAggregateTokenLimit * sizeof(std::uint32_t);
   impl_->vl_prompt_index_state_bytes =
       vl_prompt_token_id_bytes + vl_scatter_index_bytes;
+  impl_->structured_token_mask_bytes =
+      kVocabulary * sizeof(std::uint8_t);
   check_hip(hipSetDevice(impl_->device),
             "hipSetDevice composed prefill state");
   check_hip(hipMalloc(&impl_->chunked_hidden,
@@ -631,6 +640,10 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
   check_hip(hipMalloc(&impl_->vl_prompt_index_state,
                       impl_->vl_prompt_index_state_bytes),
             "hipMalloc resident VL prompt/index state");
+  check_hip(hipMalloc(&impl_->structured_token_mask,
+                      impl_->structured_token_mask_bytes),
+            "hipMalloc resident structured token mask");
+  impl_->host_structured_token_mask.resize(kVocabulary);
   impl_->vl_prompt_token_ids = impl_->vl_prompt_index_state;
   impl_->vl_scatter_indices =
       static_cast<unsigned char*>(impl_->vl_prompt_index_state) +
@@ -861,6 +874,8 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
       vl_logical_load_metrics.loaded;
   impl_->metrics.vl_prompt_index_state_bytes =
       impl_->vl_prompt_index_state_bytes;
+  impl_->metrics.structured_token_mask_bytes =
+      impl_->structured_token_mask_bytes;
   impl_->metrics.vision_plan_cache_capacity =
       kVisionPlanCacheEntries;
   impl_->metrics.decode_workspace_bytes =
@@ -1077,6 +1092,36 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
   }
   metrics.model_loads = 1;
   metrics.oracle_tensor_reads = 0;
+  auto prepare_next_token_mask = [&]() -> const std::uint8_t* {
+    if (!request.next_token_mask) return nullptr;
+    if (impl_->structured_token_mask == nullptr ||
+        impl_->structured_token_mask_bytes != kVocabulary ||
+        impl_->host_structured_token_mask.size() != kVocabulary) {
+      throw std::runtime_error(
+          "native resident structured token-mask owner is incomplete");
+    }
+    request.next_token_mask(metrics.output_token_ids,
+                            &impl_->host_structured_token_mask);
+    if (impl_->host_structured_token_mask.size() != kVocabulary ||
+        std::none_of(impl_->host_structured_token_mask.begin(),
+                     impl_->host_structured_token_mask.end(),
+                     [](std::uint8_t value) { return value != 0; })) {
+      throw std::runtime_error(
+          "native resident token grammar produced an invalid mask");
+    }
+    check_hip(
+        hipMemcpyAsync(impl_->structured_token_mask,
+                       impl_->host_structured_token_mask.data(),
+                       impl_->structured_token_mask_bytes,
+                       hipMemcpyHostToDevice, nullptr),
+        "hipMemcpyAsync resident structured token mask");
+    metrics.constrained_decoding = true;
+    ++metrics.constrained_token_selections;
+    metrics.constrained_token_mask_upload_bytes +=
+        impl_->structured_token_mask_bytes;
+    return static_cast<const std::uint8_t*>(
+        impl_->structured_token_mask);
+  };
   metrics.state_orientation_resets =
       impl_->decode_invocations.reset_linear_decode_state_buffers();
   metrics.request_state_reset_bytes =
@@ -1649,9 +1694,12 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
   std::uint32_t first_token_id = 0;
   const void* prompt_terminal_hidden = last_hidden;
   const auto first_token_started = std::chrono::steady_clock::now();
+  const std::uint8_t* first_allowed_token_mask =
+      prepare_next_token_mask();
   const NativeLmHeadTop1Metrics first = run_native_lm_head_top1(
       last_hidden, impl_->weights, impl_->lm_head, impl_->decode_workspace,
-      impl_->decode_invocations, impl_->executor, impl_->cu_count);
+      impl_->decode_invocations, impl_->executor, impl_->cu_count,
+      first_allowed_token_mask);
   metrics.first_token_certified = first.certified;
   first_token_id = first.top1_token_id;
   if (timeline_enabled) {
@@ -1757,10 +1805,11 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
     (void)prepare_native_decode_step(
         position, rotary_position, metrics.output_token_ids.back(),
         impl_->weights, impl_->decode_invocations);
+    const std::uint8_t* allowed_token_mask = prepare_next_token_mask();
     const NativeDecodeRunMetrics token = run_native_decode_token(
         position, position + 1, impl_->weights, impl_->lm_head,
         impl_->decode_workspace, impl_->decode_invocations, impl_->executor,
-        impl_->attention_state, impl_->cu_count);
+        impl_->attention_state, impl_->cu_count, allowed_token_mask);
     ++metrics.decode_tokens_executed;
     metrics.decode_aot_launches += token.aot_launches;
     metrics.decode_native_launches +=

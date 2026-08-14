@@ -397,6 +397,192 @@ std::size_t longest_marker_prefix_suffix(std::string_view value) {
   return 0;
 }
 
+bool json_whitespace(unsigned char value) {
+  return value == ' ' || value == '\t' || value == '\n' || value == '\r';
+}
+
+bool hex_digit(unsigned char value) {
+  return (value >= '0' && value <= '9') ||
+         (value >= 'a' && value <= 'f') ||
+         (value >= 'A' && value <= 'F');
+}
+
+std::string single_required_string_property(
+    const NativeFunctionTool& tool) {
+  const NativeOrderedJson& schema = tool.parameters;
+  if (!schema.is_object() || schema.size() != 4 ||
+      schema.value("type", "") != "object" ||
+      !schema.contains("properties") ||
+      !schema["properties"].is_object() ||
+      schema["properties"].size() != 1 ||
+      !schema.contains("required") || !schema["required"].is_array() ||
+      schema["required"].size() != 1 ||
+      !schema["required"][0].is_string() ||
+      !schema.contains("additionalProperties") ||
+      !schema["additionalProperties"].is_boolean() ||
+      schema["additionalProperties"].get<bool>()) {
+    throw std::invalid_argument(
+        "named VL tool JSON Schema must be a closed object with one "
+        "required string property");
+  }
+  const std::string property = schema["required"][0].get<std::string>();
+  const auto found = schema["properties"].find(property);
+  if (property.empty() || found == schema["properties"].end() ||
+      !found->is_object() || found->size() != 1 ||
+      found->value("type", "") != "string") {
+    throw std::invalid_argument(
+        "named VL tool JSON Schema property must be exactly type string");
+  }
+  return property;
+}
+
+class SingleStringJsonPrefixState {
+ public:
+  explicit SingleStringJsonPrefixState(std::string rendered_property)
+      : rendered_property_(std::move(rendered_property)) {}
+
+  bool feed(std::string_view bytes) {
+    for (const unsigned char value : bytes) {
+      if (!feed_byte(value)) return false;
+    }
+    return true;
+  }
+
+  bool viable() const { return phase_ != Phase::kInvalid; }
+  bool complete() const { return phase_ == Phase::kComplete; }
+
+ private:
+  enum class Phase {
+    kLeading,
+    kProperty,
+    kAfterProperty,
+    kAfterColon,
+    kString,
+    kAfterString,
+    kComplete,
+    kInvalid,
+  };
+
+  bool reject() {
+    phase_ = Phase::kInvalid;
+    return false;
+  }
+
+  bool feed_string_byte(unsigned char value) {
+    if (unicode_digits_ != 0) {
+      if (!hex_digit(value)) return reject();
+      --unicode_digits_;
+      return true;
+    }
+    if (escaped_) {
+      escaped_ = false;
+      if (value == 'u') {
+        unicode_digits_ = 4;
+        return true;
+      }
+      return value == '"' || value == '\\' || value == '/' ||
+             value == 'b' || value == 'f' || value == 'n' ||
+             value == 'r' || value == 't' || reject();
+    }
+    if (utf8_remaining_ != 0) {
+      if (value < utf8_minimum_ || value > utf8_maximum_) return reject();
+      --utf8_remaining_;
+      utf8_minimum_ = 0x80;
+      utf8_maximum_ = 0xbf;
+      return true;
+    }
+    if (value < 0x20) return reject();
+    if (value == '"') {
+      phase_ = Phase::kAfterString;
+      return true;
+    }
+    if (value == '\\') {
+      escaped_ = true;
+      return true;
+    }
+    if (value < 0x80) return true;
+    if (value >= 0xc2 && value <= 0xdf) {
+      utf8_remaining_ = 1;
+    } else if (value == 0xe0) {
+      utf8_remaining_ = 2;
+      utf8_minimum_ = 0xa0;
+    } else if (value >= 0xe1 && value <= 0xec) {
+      utf8_remaining_ = 2;
+    } else if (value == 0xed) {
+      utf8_remaining_ = 2;
+      utf8_maximum_ = 0x9f;
+    } else if (value >= 0xee && value <= 0xef) {
+      utf8_remaining_ = 2;
+    } else if (value == 0xf0) {
+      utf8_remaining_ = 3;
+      utf8_minimum_ = 0x90;
+    } else if (value >= 0xf1 && value <= 0xf3) {
+      utf8_remaining_ = 3;
+    } else if (value == 0xf4) {
+      utf8_remaining_ = 3;
+      utf8_maximum_ = 0x8f;
+    } else {
+      return reject();
+    }
+    return true;
+  }
+
+  bool feed_byte(unsigned char value) {
+    if (phase_ == Phase::kInvalid) return false;
+    if (phase_ == Phase::kLeading) {
+      if (json_whitespace(value)) return true;
+      if (value != '{') return reject();
+      phase_ = Phase::kProperty;
+      return true;
+    }
+    if (phase_ == Phase::kProperty) {
+      if (property_offset_ == 0 && json_whitespace(value)) return true;
+      if (property_offset_ >= rendered_property_.size() ||
+          value != static_cast<unsigned char>(
+                       rendered_property_[property_offset_])) {
+        return reject();
+      }
+      ++property_offset_;
+      if (property_offset_ == rendered_property_.size()) {
+        phase_ = Phase::kAfterProperty;
+      }
+      return true;
+    }
+    if (phase_ == Phase::kAfterProperty) {
+      if (json_whitespace(value)) return true;
+      if (value != ':') return reject();
+      phase_ = Phase::kAfterColon;
+      return true;
+    }
+    if (phase_ == Phase::kAfterColon) {
+      if (json_whitespace(value)) return true;
+      if (value != '"') return reject();
+      phase_ = Phase::kString;
+      return true;
+    }
+    if (phase_ == Phase::kString) return feed_string_byte(value);
+    if (phase_ == Phase::kAfterString) {
+      if (json_whitespace(value)) return true;
+      if (value != '}') return reject();
+      phase_ = Phase::kComplete;
+      return true;
+    }
+    if (phase_ == Phase::kComplete) {
+      return json_whitespace(value) || reject();
+    }
+    return reject();
+  }
+
+  Phase phase_ = Phase::kLeading;
+  std::string rendered_property_;
+  std::size_t property_offset_ = 0;
+  bool escaped_ = false;
+  unsigned unicode_digits_ = 0;
+  unsigned utf8_remaining_ = 0;
+  unsigned char utf8_minimum_ = 0x80;
+  unsigned char utf8_maximum_ = 0xbf;
+};
+
 NativeOrderedJson normalize_vllm_prompt_tool(
     const NativeFunctionTool& tool) {
   // vLLM validates tools through its Pydantic request model before applying
@@ -421,6 +607,111 @@ NativeOrderedJson normalize_vllm_prompt_tool(
 }
 
 }  // namespace
+
+bool native_single_string_json_prefix_viable(
+    std::string_view property_name, std::string_view prefix,
+    bool* complete) {
+  if (property_name.empty() || complete == nullptr) {
+    throw std::invalid_argument("JSON prefix oracle input is invalid");
+  }
+  const std::string rendered_property =
+      NativeOrderedJson(std::string(property_name)).dump();
+  SingleStringJsonPrefixState state(rendered_property);
+  const bool viable = state.feed(prefix) && state.viable();
+  *complete = viable && state.complete();
+  return viable;
+}
+
+NativeAssistantOutput parse_native_named_tool_json_output(
+    std::string_view model_output, const NativeFunctionTool& tool,
+    std::string_view call_id_prefix) {
+  const std::string property = single_required_string_property(tool);
+  NativeOrderedJson arguments;
+  try {
+    arguments = NativeOrderedJson::parse(model_output);
+  } catch (const NativeOrderedJson::exception&) {
+    throw std::runtime_error(
+        "named VL tool constrained output is not valid JSON");
+  }
+  if (!arguments.is_object() || arguments.size() != 1 ||
+      !arguments.contains(property) || !arguments[property].is_string()) {
+    throw std::runtime_error(
+        "named VL tool constrained output violated its JSON Schema");
+  }
+  NativeParsedToolCall call;
+  call.id = std::string(call_id_prefix) + "0";
+  call.name = tool.name;
+  call.arguments = std::move(arguments);
+  call.serialized_arguments = std::string(model_output);
+  return {std::string(), {std::move(call)}};
+}
+
+NativeNamedToolJsonConstraint::NativeNamedToolJsonConstraint(
+    const NativeTokenizer& tokenizer, const NativeFunctionTool& tool)
+    : tokenizer_(&tokenizer),
+      function_name_(tool.name),
+      property_name_(single_required_string_property(tool)),
+      rendered_property_(NativeOrderedJson(property_name_).dump()) {
+  if (tokenizer.pad_token_id() != 248044 ||
+      tokenizer.eos_token_id() >= kNativeModelVocabularySize) {
+    throw std::runtime_error(
+        "named VL tool tokenizer boundary is not qualified");
+  }
+  token_bytes_.reserve(tokenizer.pad_token_id());
+  for (std::uint32_t token_id = 0;
+       token_id < tokenizer.pad_token_id(); ++token_id) {
+    token_bytes_.push_back(tokenizer.decode_token_bytes(token_id));
+  }
+}
+
+void NativeNamedToolJsonConstraint::allowed_token_mask(
+    const std::vector<std::uint32_t>& generated_token_ids,
+    std::vector<std::uint8_t>* mask) const {
+  if (tokenizer_ == nullptr || mask == nullptr) {
+    throw std::invalid_argument("named VL tool token mask is invalid");
+  }
+  SingleStringJsonPrefixState prefix(rendered_property_);
+  for (const std::uint32_t token_id : generated_token_ids) {
+    if (token_id >= token_bytes_.size() ||
+        !prefix.feed(token_bytes_[token_id])) {
+      throw std::runtime_error(
+          "named VL tool generated prefix escaped its JSON grammar");
+    }
+  }
+  mask->assign(kNativeModelVocabularySize, 0);
+  std::size_t admitted = 0;
+  for (std::size_t token_id = 0; token_id < token_bytes_.size(); ++token_id) {
+    SingleStringJsonPrefixState candidate = prefix;
+    if (!token_bytes_[token_id].empty() &&
+        candidate.feed(token_bytes_[token_id]) && candidate.viable()) {
+      (*mask)[token_id] = 1;
+      ++admitted;
+    }
+  }
+  if (prefix.complete()) {
+    (*mask)[tokenizer_->eos_token_id()] = 1;
+    ++admitted;
+  }
+  if (admitted == 0) {
+    throw std::runtime_error(
+        "named VL tool JSON grammar admitted no next token");
+  }
+}
+
+NativeAssistantOutput NativeNamedToolJsonConstraint::parse_output(
+    std::string_view model_output,
+    std::string_view call_id_prefix) const {
+  NativeFunctionTool tool;
+  tool.name = function_name_;
+  tool.parameters = {
+      {"type", "object"},
+      {"properties", {{property_name_, {{"type", "string"}}}}},
+      {"required", NativeOrderedJson::array({property_name_})},
+      {"additionalProperties", false},
+  };
+  return parse_native_named_tool_json_output(model_output, tool,
+                                              call_id_prefix);
+}
 
 std::string render_qwen_json(const NativeOrderedJson& value) {
   if (value.is_object()) {

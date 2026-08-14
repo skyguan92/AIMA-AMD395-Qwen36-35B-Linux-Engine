@@ -73,7 +73,9 @@ NativeLmHeadTop1Metrics run_native_lm_head_top1(
     const NativeLmHeadStore& lm_head,
     const NativeDecodeWorkspace& workspace,
     const NativeDecodeInvocations& invocations,
-    NativeDecodeExecutor& executor, int cu_count, void* stream = nullptr);
+    NativeDecodeExecutor& executor, int cu_count,
+    const std::uint8_t* allowed_token_mask = nullptr,
+    void* stream = nullptr);
 
 // Executes one q8192 decode token from already-resident state.  All forty
 // parameterized layers are submitted to one stream without per-layer host
@@ -85,6 +87,7 @@ NativeDecodeRunMetrics run_native_decode_token(
     const NativeDecodeWorkspace& workspace,
     NativeDecodeInvocations& invocations,
     NativeDecodeExecutor& executor, NativeFullAttentionState& attention_state,
-    int cu_count, void* stream = nullptr);
+    int cu_count, const std::uint8_t* allowed_token_mask = nullptr,
+    void* stream = nullptr);
 
 }  // namespace aima

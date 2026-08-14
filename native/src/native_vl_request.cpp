@@ -369,15 +369,12 @@ NativeVlPreparedRequest prepare_native_vl_request(
         "native VL request exceeds the aggregate visual budget");
   }
 
-  // The frozen VL reference leaves Qwen thinking enabled; this produces the
-  // terminal `<think>\n` sequence captured by all five processor oracles.
-  // Forced tool choices must reach the function-call body within the caller's
-  // completion budget.  The text serving path already disables Qwen thinking
-  // for this contract; do the same for multimodal forced calls while retaining
-  // thinking for ordinary and automatic-tool VL requests.
+  // The fixed vLLM VL server leaves Qwen thinking enabled for named tool
+  // choice and constrains the generated function arguments at the decoder.
+  // `required` retains the existing native XML-tool contract until its
+  // multi-tool JSON-array grammar is implemented and qualified separately.
   const bool disable_thinking =
-      chat.tool_choice == NativeToolChoiceMode::kRequired ||
-      chat.tool_choice == NativeToolChoiceMode::kSpecific;
+      chat.tool_choice == NativeToolChoiceMode::kRequired;
   const std::string prompt = tokenizer.render_chat_prompt(
       chat.vl_prompt_messages, chat.vl_prompt_tools, disable_thinking);
   // vLLM tokenizes each chat/content segment before replacing multimodal

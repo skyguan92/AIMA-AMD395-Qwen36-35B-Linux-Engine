@@ -7,6 +7,7 @@
 #include <nlohmann/json.hpp>
 
 #include <cstddef>
+#include <cstdint>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -73,6 +74,42 @@ NativePreparedChat prepare_native_chat(const NativeOrderedJson& request);
 NativeAssistantOutput parse_qwen_tool_output(
     std::string_view model_output,
     const std::vector<NativeFunctionTool>& tools,
+    std::string_view call_id_prefix);
+
+// Fixed-vLLM named tool_choice constrains generation to the selected
+// function's parameters JSON Schema, then wraps the resulting JSON as that
+// function's arguments. The current frozen capability schema is a closed
+// object with exactly one required string property; unsupported schemas fail
+// closed instead of silently becoming unconstrained generation.
+class NativeNamedToolJsonConstraint {
+ public:
+  NativeNamedToolJsonConstraint(const NativeTokenizer& tokenizer,
+                                const NativeFunctionTool& tool);
+
+  void allowed_token_mask(
+      const std::vector<std::uint32_t>& generated_token_ids,
+      std::vector<std::uint8_t>* mask) const;
+  NativeAssistantOutput parse_output(
+      std::string_view model_output,
+      std::string_view call_id_prefix) const;
+
+ private:
+  const NativeTokenizer* tokenizer_ = nullptr;
+  std::string function_name_;
+  std::string property_name_;
+  std::string rendered_property_;
+  std::vector<std::string> token_bytes_;
+};
+
+// Pure prefix oracle used by CPU tests and the token-mask implementation.
+// `complete` is true only when the prefix is already a complete JSON object
+// (possibly followed by JSON whitespace).
+bool native_single_string_json_prefix_viable(
+    std::string_view property_name, std::string_view prefix,
+    bool* complete);
+
+NativeAssistantOutput parse_native_named_tool_json_output(
+    std::string_view model_output, const NativeFunctionTool& tool,
     std::string_view call_id_prefix);
 
 // Converts raw byte-level tokenizer fragments to valid UTF-8 without emitting

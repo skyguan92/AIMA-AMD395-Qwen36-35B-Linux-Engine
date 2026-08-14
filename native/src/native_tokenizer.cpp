@@ -577,9 +577,11 @@ std::string NativeTokenizer::render_chat_prompt(
   }
   std::vector<NativeChatMessage> messages;
   if (!trim_unicode(system_prompt).empty()) {
-    messages.push_back({"system", std::string(system_prompt)});
+    messages.push_back(
+        {"system", std::string(system_prompt), false, std::string(), {}});
   }
-  messages.push_back({"user", std::string(user_prompt)});
+  messages.push_back(
+      {"user", std::string(user_prompt), false, std::string(), {}});
   return render_chat_prompt(messages, {}, disable_thinking);
 }
 

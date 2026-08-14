@@ -102,7 +102,8 @@ NativeLmHeadTop1Metrics run_native_lm_head_top1(
     const NativeLmHeadStore& lm_head,
     const NativeDecodeWorkspace& workspace,
     const NativeDecodeInvocations& invocations,
-    NativeDecodeExecutor& executor, int cu_count, void* stream_value) {
+    NativeDecodeExecutor& executor, int cu_count,
+    const std::uint8_t* allowed_token_mask, void* stream_value) {
   const auto& launches = invocations.launches();
   if (final_hidden_row == nullptr || launches.size() != 402 ||
       !executor.loaded() || !lm_head.built() || cu_count <= 0) {
@@ -147,7 +148,8 @@ NativeLmHeadTop1Metrics run_native_lm_head_top1(
           candidate_weights->device_pointer, candidate_weights->payload_bytes,
           candidate_logits->device_pointer, candidate_logits->payload_bytes,
           certificate_scratch->device_pointer,
-          certificate_scratch->payload_bytes, cu_count, stream);
+          certificate_scratch->payload_bytes, cu_count, allowed_token_mask,
+          stream);
   check_hip(hipStreamSynchronize(stream),
             "hipStreamSynchronize native LM-head");
   NativeLmHeadCertificateWire host_certificate{};
@@ -182,7 +184,8 @@ NativeDecodeRunMetrics run_native_decode_token(
     const NativeDecodeWorkspace& workspace,
     NativeDecodeInvocations& invocations,
     NativeDecodeExecutor& executor, NativeFullAttentionState& attention_state,
-    int cu_count, void* stream_value) {
+    int cu_count, const std::uint8_t* allowed_token_mask,
+    void* stream_value) {
   const auto& launches = invocations.launches();
   if (launches.size() != 402 || !executor.loaded() || !lm_head.built() ||
       cu_count <= 0 ||
@@ -223,7 +226,7 @@ NativeDecodeRunMetrics run_native_decode_token(
       invocations.swap_linear_decode_state_buffers();
   const NativeLmHeadTop1Metrics lm_head_result = run_native_lm_head_top1(
       invocations.tensor_pointer(400, "x"), weights, lm_head, workspace,
-      invocations, executor, cu_count, stream);
+      invocations, executor, cu_count, allowed_token_mask, stream);
   metrics.aot_launches += lm_head_result.aot_launches;
   metrics.native_lm_head_certificate_launches =
       lm_head_result.native_lm_head_certificate_launches;
