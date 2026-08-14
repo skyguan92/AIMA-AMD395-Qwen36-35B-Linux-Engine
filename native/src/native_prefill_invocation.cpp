@@ -162,8 +162,21 @@ void* NativePrefillInvocations::tensor_pointer(
       return invocation.slots[index].device_pointer;
     }
   }
-  throw std::runtime_error("native prefill tensor argument is missing: " +
-                           std::string(argument_name));
+  std::string available;
+  for (std::size_t index = 0; index < invocation.launch->argument_count;
+       ++index) {
+    const DecodeArgument& argument = invocation.launch->arguments[index];
+    if (argument.kind != DecodeArgumentKind::kTensor) continue;
+    if (!available.empty()) available += ',';
+    available += argument.name;
+  }
+  throw std::runtime_error(
+      "native prefill tensor argument is missing: " +
+      std::string(argument_name) + "; launch=" +
+      std::to_string(launch_index) + "; symbol=" +
+      invocation.launch->symbol + "; layer=" +
+      std::to_string(invocation.launch->layer_index) +
+      "; available=" + available);
 }
 
 void NativePrefillInvocations::rebind_tensor(
