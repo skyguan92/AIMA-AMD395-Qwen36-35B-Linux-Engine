@@ -40,6 +40,9 @@ ATTENTION_DIAGNOSTIC_COMPONENTS = {
         "attention_output",
         "attention_residual",
         "post_attention_norm",
+        "fused_input_projection",
+        "gdn_core",
+        "gdn_gated",
     )
 }
 DETAILED_ROUTER_COMPONENTS = {
@@ -87,6 +90,15 @@ def oracle_labels() -> dict[str, str]:
     labels[attention_prefix + "launch-009-norm_out"] = component_name(
         ATTENTION_DIAGNOSTIC_LAYER, "post_attention_norm"
     )
+    labels[attention_prefix + "diagnostic-fused-input"] = component_name(
+        ATTENTION_DIAGNOSTIC_LAYER, "fused_input_projection"
+    )
+    labels[attention_prefix + "launch-008-o"] = component_name(
+        ATTENTION_DIAGNOSTIC_LAYER, "gdn_core"
+    )
+    labels[
+        attention_prefix + "return-linear_attention-gated_out"
+    ] = component_name(ATTENTION_DIAGNOSTIC_LAYER, "gdn_gated")
     for layer in DETAILED_ROUTER_LAYERS:
         router_prefix = f"layer-{layer:03d}-return-layer_body-"
         for suffix in ("router_logits", "router_scores", "router_weights"):
@@ -162,6 +174,31 @@ class InstallLanguageLayerOutputHooks:
                 output = args[1]
             capture(component_name(1, "attention_output"), output)
 
+        def qkvz_projection_hook(
+            _module: Any, _args: Any, output: Any
+        ) -> None:
+            tensor = prefix._first_tensor(output)
+            if tensor is None or tensor.ndim != 2 or tensor.shape[1] != 12288:
+                raise RuntimeError("language layer 1 QKVZ geometry differs")
+            capture("layer_001_qkvz_projection", tensor)
+
+        def ba_projection_hook(_module: Any, _args: Any, output: Any) -> None:
+            tensor = prefix._first_tensor(output)
+            if tensor is None or tensor.ndim != 2 or tensor.shape[1] != 64:
+                raise RuntimeError("language layer 1 BA geometry differs")
+            projected_b, projected_a = tensor.chunk(2, dim=-1)
+            capture("layer_001_a_projection", projected_a)
+            capture("layer_001_b_projection", projected_b)
+
+        def gated_norm_pre_hook(
+            _module: Any, args: Any, kwargs: dict[str, Any]
+        ) -> None:
+            core = args[0] if args else kwargs.get("x")
+            capture(component_name(1, "gdn_core"), core)
+
+        def gated_norm_hook(_module: Any, _args: Any, output: Any) -> None:
+            capture(component_name(1, "gdn_gated"), output)
+
         def post_attention_hook(_module: Any, _args: Any, output: Any) -> None:
             if not isinstance(output, (tuple, list)) or len(output) != 2:
                 raise RuntimeError("language layer 1 post-attention norm differs")
@@ -224,6 +261,26 @@ class InstallLanguageLayerOutputHooks:
             )
         )
         handles.append(
+            diagnostic_layer.linear_attn.in_proj_qkvz.register_forward_hook(
+                qkvz_projection_hook
+            )
+        )
+        handles.append(
+            diagnostic_layer.linear_attn.in_proj_ba.register_forward_hook(
+                ba_projection_hook
+            )
+        )
+        handles.append(
+            diagnostic_layer.linear_attn.norm.register_forward_pre_hook(
+                gated_norm_pre_hook, with_kwargs=True
+            )
+        )
+        handles.append(
+            diagnostic_layer.linear_attn.norm.register_forward_hook(
+                gated_norm_hook
+            )
+        )
+        handles.append(
             diagnostic_layer.post_attention_layernorm.register_forward_hook(
                 post_attention_hook
             )
@@ -249,11 +306,22 @@ class FinalizeLanguageLayerOutputHooks:
     """Write the sparse attribution tensors and native-compatible ledger."""
 
     def __call__(self, model: Any) -> dict[str, Any]:
+        import torch
+
         root = prefix._find_model_root(model)
         state = getattr(root, STATE_ATTRIBUTE, None)
         if not isinstance(state, dict):
             raise RuntimeError("HTTP language attribution hooks were not installed")
         captures = state["captures"]
+        projection_parts = (
+            "layer_001_qkvz_projection",
+            "layer_001_a_projection",
+            "layer_001_b_projection",
+        )
+        if all(name in captures for name in projection_parts):
+            captures[component_name(1, "fused_input_projection")] = torch.cat(
+                tuple(captures[name] for name in projection_parts), dim=-1
+            ).contiguous()
         missing = REQUIRED_COMPONENTS - set(captures)
         if missing:
             remove_hooks(root, state)

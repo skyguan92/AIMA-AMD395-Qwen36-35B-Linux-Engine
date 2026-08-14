@@ -35,6 +35,9 @@ class VlHttpLanguageLayerCaptureTest(unittest.TestCase):
         self.assertIn("ATTENTION_DIAGNOSTIC_LAYER = 1", hooks)
         self.assertIn("DETAILED_ROUTER_LAYERS = (21, 30, 31)", hooks)
         self.assertIn('"router_logits", "router_scores", "router_weights"', hooks)
+        self.assertIn('"fused_input_projection"', hooks)
+        self.assertIn('"gdn_core"', hooks)
+        self.assertIn('"gdn_gated"', hooks)
         self.assertIn("diagnostic_layer.linear_attn.register_forward_hook", hooks)
         self.assertIn(
             "diagnostic_layer.post_attention_layernorm.register_forward_hook",
@@ -45,6 +48,8 @@ class VlHttpLanguageLayerCaptureTest(unittest.TestCase):
         self.assertIn("http_language_diagnostic_case_dir", native)
         self.assertIn("diagnostic_options.sequence_oracle_dir", native)
         self.assertIn("pending_attention_comparisons", native)
+        self.assertIn("router_logits.bf16.bin", native)
+        self.assertIn("router_indices.i64.bin", native)
         self.assertIn(
             '#include "vl_language_layer3_composed_oracle_probe.hip.cpp"',
             native,
