@@ -11,7 +11,7 @@ from aima_engine.vl_capability import (
     EXPECTED_MAX_ITEMS_PER_PROMPT,
     EXPECTED_MAX_MODEL_LEN,
     EXPECTED_MAX_TOKENS_PER_ITEM,
-    EXPECTED_TOOL_JSON_SCHEMA,
+    EXPECTED_FORCED_TOOL_STRUCTURED_OUTPUTS,
     PROCESSOR_PROBE_SCHEMA,
     REQUIRED_API_CASES,
     REQUIRED_API_RENDER_CASES,
@@ -97,14 +97,21 @@ def valid_api_render_manifest() -> dict:
     cases = []
     for case_id in REQUIRED_API_RENDER_CASES:
         token_ids = [248045]
-        placeholders: dict[str, list[dict[str, int]]] = {}
+        placeholders: dict[str, list[dict[str, int | str]]] = {}
         for modality, count in API_RENDER_MEDIA_COUNTS[case_id].items():
             placeholders[modality] = []
             pad_token = 248056 if modality == "image" else 248057
             for _ in range(count):
                 offset = len(token_ids)
                 token_ids.extend([pad_token, 248044])
-                placeholders[modality].append({"offset": offset, "length": 1})
+                placeholders[modality].append(
+                    {
+                        "offset": offset,
+                        "length": 1,
+                        "pad_token_count": 1,
+                        "token_ids_sha256": canonical_json_sha256([pad_token]),
+                    }
+                )
         token_ids.append(248046)
         usage_delta = (
             None
@@ -142,7 +149,7 @@ def valid_api_render_manifest() -> dict:
                 "reference_usage_delta": usage_delta,
                 "max_tokens": API_RENDER_MAX_TOKENS[case_id],
                 "structured_outputs": (
-                    {"json": EXPECTED_TOOL_JSON_SCHEMA}
+                    EXPECTED_FORCED_TOOL_STRUCTURED_OUTPUTS
                     if case_id == "tool_forced_image"
                     else None
                 ),
@@ -320,6 +327,28 @@ class VlCapabilityTest(unittest.TestCase):
         stream["reference_usage_delta"] = 0
         errors = validate_api_render_manifest(seal_manifest(manifest))
         self.assertIn("API render stream usage must be absent: stream_image", errors)
+
+    def test_api_render_video_placeholder_may_include_wrapper_tokens(self) -> None:
+        manifest = valid_api_render_manifest()
+        manifest.pop("integrity")
+        video = next(
+            case
+            for case in manifest["cases"]
+            if case["case_id"] == "video_local_mp4"
+        )
+        placeholder = video["mm_placeholders"]["video"][0]
+        offset = placeholder["offset"]
+        video["prompt_token_ids"][offset : offset + 1] = [27, 248057, 29]
+        placeholder["length"] = 3
+        placeholder["token_ids_sha256"] = canonical_json_sha256(
+            [27, 248057, 29]
+        )
+        video["prompt_tokens"] = len(video["prompt_token_ids"])
+        video["prompt_token_ids_sha256"] = canonical_json_sha256(
+            video["prompt_token_ids"]
+        )
+        video["reference_usage_prompt_tokens"] = video["prompt_tokens"]
+        self.assertEqual(validate_api_render_manifest(seal_manifest(manifest)), [])
 
 
 if __name__ == "__main__":

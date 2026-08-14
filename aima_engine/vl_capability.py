@@ -147,6 +147,19 @@ EXPECTED_TOOL_JSON_SCHEMA = {
     "required": ["label"],
     "additionalProperties": False,
 }
+EXPECTED_FORCED_TOOL_STRUCTURED_OUTPUTS = {
+    "_backend": None,
+    "_backend_was_auto": False,
+    "choice": None,
+    "disable_additional_properties": False,
+    "disable_any_whitespace": False,
+    "grammar": None,
+    "json": EXPECTED_TOOL_JSON_SCHEMA,
+    "json_object": None,
+    "regex": None,
+    "structural_tag": None,
+    "whitespace_pattern": None,
+}
 
 _API_RENDER_BINDING_PATHS = {
     "capability_manifest": "benchmarks/results/vl-capability-manifest.json",
@@ -555,12 +568,22 @@ def validate_api_render_manifest(payload: Mapping[str, Any]) -> list[str]:
                     or offset < 0
                     or length <= 0
                     or offset + length > len(token_ids)
-                    or token_ids[offset : offset + length] != [pad_token] * length
                 ):
                     errors.append(
                         f"API render placeholder span is invalid: {case_id}"
                     )
                     continue
+                span_token_ids = token_ids[offset : offset + length]
+                if (
+                    pad_token not in span_token_ids
+                    or value.get("pad_token_count")
+                    != span_token_ids.count(pad_token)
+                    or value.get("token_ids_sha256")
+                    != canonical_json_sha256(span_token_ids)
+                ):
+                    errors.append(
+                        f"API render placeholder token binding is invalid: {case_id}"
+                    )
                 occupied.append((offset, offset + length))
         occupied.sort()
         if any(left[1] > right[0] for left, right in zip(occupied, occupied[1:])):
@@ -575,7 +598,7 @@ def validate_api_render_manifest(payload: Mapping[str, Any]) -> list[str]:
 
         structured_outputs = case.get("structured_outputs")
         expected_structured = (
-            {"json": EXPECTED_TOOL_JSON_SCHEMA}
+            EXPECTED_FORCED_TOOL_STRUCTURED_OUTPUTS
             if case_id == "tool_forced_image"
             else None
         )
@@ -592,8 +615,7 @@ def validate_api_render_manifest(payload: Mapping[str, Any]) -> list[str]:
         None,
     )
     structured = forced.get("structured_outputs") if isinstance(forced, dict) else None
-    schema = structured.get("json") if isinstance(structured, dict) else None
-    if schema != EXPECTED_TOOL_JSON_SCHEMA:
+    if structured != EXPECTED_FORCED_TOOL_STRUCTURED_OUTPUTS:
         errors.append("named tool render is not bound to a JSON schema")
 
     decision = payload.get("decision")
@@ -615,7 +637,8 @@ def validate_api_render_manifest(payload: Mapping[str, Any]) -> list[str]:
             by_id.get(case_id, {}).get("reference_usage_delta") == 1
             for case_id in API_RENDER_TOOL_CASES
         ),
-        "named_tool_json_schema_bound": schema == EXPECTED_TOOL_JSON_SCHEMA,
+        "named_tool_json_schema_bound": structured
+        == EXPECTED_FORCED_TOOL_STRUCTURED_OUTPUTS,
     }
     if not isinstance(decision, dict):
         errors.append("API render decision is missing")

@@ -31,7 +31,7 @@ from aima_engine.vl_capability import (  # noqa: E402
     API_RENDER_SCHEMA,
     API_RENDER_TOOL_CASES,
     API_RENDER_USAGELESS_CASES,
-    EXPECTED_TOOL_JSON_SCHEMA,
+    EXPECTED_FORCED_TOOL_STRUCTURED_OUTPUTS,
     REQUIRED_API_RENDER_CASES,
     validate_api_render_manifest,
     validate_capability_manifest,
@@ -132,12 +132,14 @@ def loopback_endpoint(value: str) -> str:
     return value.rstrip("/")
 
 
-def normalized_placeholders(value: Any) -> dict[str, list[dict[str, int]]]:
+def normalized_placeholders(
+    value: Any, token_ids: list[int]
+) -> dict[str, list[dict[str, int | str]]]:
     if value is None:
         return {}
     if not isinstance(value, dict):
         raise RuntimeError("render features.mm_placeholders must be an object")
-    result: dict[str, list[dict[str, int]]] = {}
+    result: dict[str, list[dict[str, int | str]]] = {}
     for modality, ranges in value.items():
         if not isinstance(modality, str) or not isinstance(ranges, list):
             raise RuntimeError("render placeholder collection is malformed")
@@ -152,10 +154,20 @@ def normalized_placeholders(value: Any) -> dict[str, list[dict[str, int]]]:
                 or isinstance(offset, bool)
                 or not isinstance(length, int)
                 or isinstance(length, bool)
+                or offset < 0
+                or length <= 0
+                or offset + length > len(token_ids)
             ):
                 raise RuntimeError("render placeholder offset or length is malformed")
+            span_token_ids = token_ids[offset : offset + length]
+            pad_token = 248056 if modality == "image" else 248057
             result[modality].append(
-                {"offset": offset, "length": length}
+                {
+                    "offset": offset,
+                    "length": length,
+                    "pad_token_count": span_token_ids.count(pad_token),
+                    "token_ids_sha256": canonical_json_sha256(span_token_ids),
+                }
             )
     return result
 
@@ -327,7 +339,8 @@ def main() -> int:
             placeholders = normalized_placeholders(
                 features.get("mm_placeholders")
                 if isinstance(features, dict)
-                else None
+                else None,
+                token_ids,
             )
             sampling = rendered.get("sampling_params")
             if not isinstance(sampling, dict):
@@ -429,7 +442,7 @@ def main() -> int:
             case["reference_usage_delta"] == 1 for case in tool_comparable
         ),
         "named_tool_json_schema_bound": forced_structured
-        == {"json": EXPECTED_TOOL_JSON_SCHEMA},
+        == EXPECTED_FORCED_TOOL_STRUCTURED_OUTPUTS,
     }
     qualified = all(decisions.values())
     payload = seal_manifest(
