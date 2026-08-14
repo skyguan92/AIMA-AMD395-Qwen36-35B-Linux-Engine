@@ -11,9 +11,9 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts/qualify-native-vl-capabilities.py"
 RESULT = ROOT / "benchmarks/results/native-vl-capability-v0.1.0.json"
 RESULT_SIDECAR = RESULT.with_name(RESULT.name + ".sha256")
-QUALIFIED_COMMIT = "7f402a21934876ec9a43ff62758c33988532e651"
+QUALIFIED_COMMIT = "2b268d4e5dca359fb49b0d6f60a0f9a059a8e568"
 QUALIFIED_BINARY_SHA256 = (
-    "c1c90b10e4bb78a07ec7b87bc43271f9bd93021e6ac70d05920ab8329248669e"
+    "f62c4a2e95e749623b7db0ad37f3305189897c07eaeb768527a58a83d3574652"
 )
 
 
@@ -83,6 +83,7 @@ class NativeVlCapabilityQualificationTest(unittest.TestCase):
             )
         for name in (
             "reference_capability_manifest",
+            "api_render_manifest",
             "fixture_manifest",
         ):
             component = result["dependencies"][name]
@@ -103,6 +104,8 @@ class NativeVlCapabilityQualificationTest(unittest.TestCase):
         self.assertEqual(matrix["error_cases"], 10)
         self.assertEqual(matrix["reference_status_exact"], "30/30")
         self.assertEqual(matrix["reference_finish_reason_exact"], "20/20")
+        self.assertEqual(matrix["render_prompt_tokens_exact"], "18/18")
+        self.assertEqual(matrix["render_prompt_token_ids_exact"], "18/18")
         self.assertTrue(all(case["qualified"] for case in cases))
         self.assertTrue(
             all(all(case["qualification_checks"].values()) for case in cases)
@@ -118,6 +121,7 @@ class NativeVlCapabilityQualificationTest(unittest.TestCase):
         self.assertTrue(all(self.result["launch"]["checks"].values()))
         ready = self.result["launch"]["ready"]
         self.assertTrue(ready["native_vl"])
+        self.assertEqual(ready["structured_token_mask_bytes"], 248_320)
         self.assertEqual(ready["visual_model_tensor_count"], 333)
         self.assertEqual(ready["visual_model_payload_bytes"], 893_142_496)
         for runtime in ("python", "torch", "triton", "vllm"):
@@ -142,6 +146,28 @@ class NativeVlCapabilityQualificationTest(unittest.TestCase):
                     "structured_tool_call"
                 ]
             )
+        forced = cases["tool_forced_image"]["response"]["aima_amd395"]
+        self.assertEqual(forced["prompt_tokens"], 349)
+        self.assertEqual(
+            forced["prompt_token_ids_sha256"],
+            "c00ccaf4063b7a0eb5f30ca053d3484cd2658aac57d1ef7ee79d38287d940566",
+        )
+        structured = forced["structured_decoding"]
+        self.assertTrue(structured["enabled"])
+        self.assertGreater(structured["token_selections"], 0)
+        self.assertEqual(
+            structured["token_mask_upload_bytes"],
+            structured["token_selections"] * 248_320,
+        )
+        self.assertTrue(
+            all(
+                case["qualification_checks"].get(
+                    "structured_decoding_boundary_exact", False
+                )
+                for case in cases.values()
+                if case["accepted"]
+            )
+        )
         for case_id in ("stream_image", "stream_video"):
             self.assertTrue(
                 cases[case_id]["qualification_checks"]["complete_sse"]
@@ -157,10 +183,13 @@ class NativeVlCapabilityQualificationTest(unittest.TestCase):
             "structured_vl_tool_calls_2_of_2",
             "complete_vl_sse_2_of_2",
             "single_resident_model_load",
+            "render_prompt_vectors_exact_18_of_18",
+            "structured_decoding_boundary_20_of_20",
+            "named_tool_mask_accounting_exact",
         ):
             self.assertTrue(decision[gate])
         self.assertEqual(
-            self.result["matrix"]["reference_usage_exact"], "0/18"
+            self.result["matrix"]["reference_usage_exact"], "14/18"
         )
         self.assertFalse(decision["deterministic_reference_usage_exact"])
         for gate in (
