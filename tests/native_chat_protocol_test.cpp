@@ -301,20 +301,21 @@ int main() {
           alternating.media[2].media_index == 2,
       "VL media objects did not follow grouped placeholder association");
 
-  const NativeOrderedJson array_text_request = {
-      {"messages",
-       NativeOrderedJson::array(
-           {{{"role", "system"},
-             {"content",
-              NativeOrderedJson::array(
-                  {{{"type", "text"}, {"text", "System A"}},
-                   {{"type", "text"}, {"text", "System B"}}})}},
-            {{"role", "user"},
-             {"content",
-              NativeOrderedJson::array(
-                  {{{"type", "text"}, {"text", "Question"}},
-                   {{"type", "image_url"},
-                    {"image_url", {{"url", "file:///media/a.png"}}}})}}})}};
+  NativeOrderedJson array_text_request = {
+      {"messages", NativeOrderedJson::array()}};
+  array_text_request["messages"].push_back(
+      {{"role", "system"},
+       {"content",
+        NativeOrderedJson::array(
+            {{{"type", "text"}, {"text", "System A"}},
+             {{"type", "text"}, {"text", "System B"}}})}});
+  array_text_request["messages"].push_back(
+      {{"role", "user"},
+       {"content",
+        NativeOrderedJson::array(
+            {{{"type", "text"}, {"text", "Question"}},
+             {{"type", "image_url"},
+              {"image_url", {{"url", "file:///media/a.png"}}}}})}});
   const auto array_text = aima::prepare_native_chat(array_text_request);
   require(array_text.messages[0].content == "System ASystem B" &&
               array_text.vl_prompt_messages[0].content ==
