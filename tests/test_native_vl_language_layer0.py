@@ -52,13 +52,11 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         self.assertIn("maximum_tokens * kMergedColumns", source)
         self.assertIn('prefix + "a.weight"', source)
         self.assertIn('prefix + "b.weight"', source)
-        self.assertIn("vLLM's physical B/A merged-linear column order", source)
         self.assertIn("tokens, kMergedColumns, kHidden", source)
         self.assertIn("router_gemm_plans->moe_router()", source)
 
         self.assertIn("logical_ab_gemm_plan->launch", linear)
         self.assertIn("launch_extract_compact_linear_ab", linear)
-        self.assertIn("vLLM's physical B/A column order", linear)
         self.assertIn("logical_router_gemm_plans->moe_router()", moe)
         self.assertIn("hipMemsetAsync native MoE padded router logits", moe)
 

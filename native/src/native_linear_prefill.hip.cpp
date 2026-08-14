@@ -172,11 +172,10 @@ __global__ void extract_compact_linear_ab_kernel(
   if (index >= elements) return;
   const std::size_t token = index / (2 * kLinearHeads);
   const std::size_t column = index % (2 * kLinearHeads);
-  // The compact logical-M GEMM retains vLLM's physical B/A column order.
   if (column < kLinearHeads) {
-    b[token * kLinearHeads + column] = compact[index];
+    a[token * kLinearHeads + column] = compact[index];
   } else {
-    a[token * kLinearHeads + column - kLinearHeads] = compact[index];
+    b[token * kLinearHeads + column - kLinearHeads] = compact[index];
   }
 }
 

@@ -126,17 +126,13 @@ NativeVlLogicalProjectionLoadMetrics NativeVlLogicalProjectionState::build(
       }
       auto* destination = static_cast<unsigned char*>(impl_->weights) +
                           linear_slot(layer_index) * kLayerBytes;
-      // Preserve vLLM's physical B/A merged-linear column order.  Although
-      // swapping the two 32-column halves is mathematically equivalent, the
-      // hipBLASLt BF16 reduction can round boundary values differently when
-      // a column moves to the other half of the tile.
-      check_hip(hipMemcpy(destination, b_weight->device_pointer,
+      check_hip(hipMemcpy(destination, a_weight->device_pointer,
                           kProjectionBytes, hipMemcpyDeviceToDevice),
-                "hipMemcpy VL logical B weight");
-      check_hip(hipMemcpy(destination + kProjectionBytes,
-                          a_weight->device_pointer, kProjectionBytes,
-                          hipMemcpyDeviceToDevice),
                 "hipMemcpy VL logical A weight");
+      check_hip(hipMemcpy(destination + kProjectionBytes,
+                          b_weight->device_pointer, kProjectionBytes,
+                          hipMemcpyDeviceToDevice),
+                "hipMemcpy VL logical B weight");
     }
     check_hip(hipMemset(impl_->output, 0, output_bytes),
               "hipMemset VL logical A/B output");
