@@ -318,7 +318,10 @@ struct NativeVisionPipelinePlan::Impl {
                         blocks.library_workspace_bytes(),
                         "vision library workspace"),
             merger.library_workspace_bytes(), "vision library workspace")) {
-    if (position.patch_count() != metadata.patch_count() ||
+    if (metadata.patch_count() % kSpatialMergeArea != 0 ||
+        merger.merged_token_count() !=
+            metadata.patch_count() / kSpatialMergeArea ||
+        position.patch_count() != metadata.patch_count() ||
         blocks.patch_count() != metadata.patch_count() ||
         merger.patch_count() != metadata.patch_count()) {
       throw std::runtime_error("native vision pipeline subplans disagree");
