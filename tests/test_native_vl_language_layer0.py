@@ -157,8 +157,22 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
             "__global__ void router_topk8_softmax_256_kernel(", 1
         )[1].split("__global__ void moe_align_block32_256_kernel", 1)[0]
         self.assertIn("std::int32_t* indices_i32, float* weights", router)
-        self.assertIn("weights[base + rank] = probability", router)
-        self.assertNotIn("__float2bfloat16(probability)", router)
+        self.assertIn("constexpr int kRouterWave = 32", router)
+        self.assertIn(
+            "constexpr int kValuesPerLane = kExperts / kRouterWave", router
+        )
+        self.assertIn("__shfl_xor(row_sum, mask, kRouterWave)", router)
+        self.assertIn("row_chunk[value] *= reciprocal_row_sum", router)
+        self.assertIn("selected_sum += max_probability", router)
+        self.assertIn(
+            "weights[base + rank] = selected_probabilities[rank] / denominator",
+            router,
+        )
+        self.assertNotIn("__float2bfloat16", router)
+        self.assertIn(
+            "router_topk8_softmax_256_kernel, dim3(tokens), dim3(32)",
+            moe_source,
+        )
 
         routing_weights = shape_lab.split(
             "    def routing_weights(scores: Any) -> Any:", 1

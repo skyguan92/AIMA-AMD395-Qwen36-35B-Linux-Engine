@@ -17,7 +17,6 @@
 #include <cmath>
 #include <cstdint>
 #include <fstream>
-#include <limits>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -240,95 +239,99 @@ __global__ void shared_sigmoid_scale_batched_kernel(
 __global__ void router_topk8_softmax_256_kernel(
     const __hip_bfloat16* logits, float* scores, std::int64_t* indices_i64,
     std::int32_t* indices_i32, float* weights) {
-  if (threadIdx.x != 0) return;
+  constexpr int kRouterWave = 32;
+  constexpr int kValuesPerLane = kExperts / kRouterWave;
   const std::size_t token = blockIdx.x;
+  const int lane = threadIdx.x;
   const __hip_bfloat16* row = logits + token * kExperts;
-  float ranked_scores[kTopK];
-  int ranked_indices[kTopK];
-  for (std::size_t rank = 0; rank < kTopK; ++rank) {
-    float best = -std::numeric_limits<float>::infinity();
-    int best_index = -1;
-    for (int expert = 0; expert < static_cast<int>(kExperts); ++expert) {
-      bool used = false;
+  float row_chunk[kValuesPerLane];
 #pragma unroll
-      for (std::size_t prior = 0; prior < rank; ++prior) {
-        used = used || ranked_indices[prior] == expert;
-      }
-      if (used) continue;
-      const float value = __bfloat162float(row[expert]);
-      if (value > best) {
-        best = value;
-        best_index = expert;
-      }
-    }
-    ranked_scores[rank] = best;
-    ranked_indices[rank] = best_index;
+  for (int value = 0; value < kValuesPerLane; ++value) {
+    row_chunk[value] =
+        __bfloat162float(row[lane * kValuesPerLane + value]);
   }
 
-  // PyTorch's ROCm topk first gathers every value strictly above the kth
-  // threshold in source-index order, then fills the remaining slots with
-  // threshold ties in source-index order.  Its in-kernel bitonic sort swaps
-  // equal keys on descending comparators, yielding a deterministic (but not
-  // stable) tie order.  Reproduce both stages so selected experts remain
-  // bit-exact with the frozen engine instead of merely matching topk values.
-  const float threshold = ranked_scores[kTopK - 1];
-  float selected_scores[kTopK];
+  // Match vLLM's gfx1151 topkGating<8, 256, ..., BF16, Softmax>
+  // arithmetic.  Each 32-lane wave owns one row and each lane consumes eight
+  // contiguous experts before the XOR reductions.  Computing only the chosen
+  // eight logits is mathematically equivalent, but does not preserve the two
+  // visible FP32 rounding boundaries below.
+  float thread_max = row_chunk[0];
+#pragma unroll
+  for (int value = 1; value < kValuesPerLane; ++value) {
+    thread_max = fmaxf(thread_max, row_chunk[value]);
+  }
+#pragma unroll
+  for (int mask = kRouterWave / 2; mask > 0; mask /= 2) {
+    thread_max = fmaxf(
+        thread_max, __shfl_xor(thread_max, mask, kRouterWave));
+  }
+
+  float row_sum = 0.0f;
+#pragma unroll
+  for (int value = 0; value < kValuesPerLane; ++value) {
+    row_chunk[value] = expf(row_chunk[value] - thread_max);
+    row_sum += row_chunk[value];
+  }
+#pragma unroll
+  for (int mask = kRouterWave / 2; mask > 0; mask /= 2) {
+    row_sum += __shfl_xor(row_sum, mask, kRouterWave);
+  }
+  const float reciprocal_row_sum = 1.0f / row_sum;
+#pragma unroll
+  for (int value = 0; value < kValuesPerLane; ++value) {
+    row_chunk[value] *= reciprocal_row_sum;
+  }
+
+  float selected_probabilities[kTopK];
   int selected_indices[kTopK];
-  std::size_t selected = 0;
-  for (int expert = 0; expert < static_cast<int>(kExperts); ++expert) {
-    const float value = __bfloat162float(row[expert]);
-    if (value > threshold) {
-      selected_scores[selected] = value;
-      selected_indices[selected] = expert;
-      ++selected;
-    }
-  }
-  for (int expert = 0;
-       expert < static_cast<int>(kExperts) && selected < kTopK; ++expert) {
-    const float value = __bfloat162float(row[expert]);
-    if (value == threshold) {
-      selected_scores[selected] = value;
-      selected_indices[selected] = expert;
-      ++selected;
-    }
-  }
-  for (int width = 2; width <= static_cast<int>(kTopK); width *= 2) {
-    for (int stride = width / 2; stride > 0; stride /= 2) {
-      for (int left = 0; left < static_cast<int>(kTopK); ++left) {
-        const int right = left ^ stride;
-        if (right <= left) continue;
-        const bool ascending = (left & width) != 0;
-        const bool swap =
-            (selected_scores[left] > selected_scores[right]) == ascending;
-        if (swap) {
-          const float score = selected_scores[left];
-          selected_scores[left] = selected_scores[right];
-          selected_scores[right] = score;
-          const int index = selected_indices[left];
-          selected_indices[left] = selected_indices[right];
-          selected_indices[right] = index;
-        }
+  float selected_sum = 0.0f;
+  for (int rank = 0; rank < static_cast<int>(kTopK); ++rank) {
+    float max_probability = row_chunk[0];
+    int expert = lane * kValuesPerLane;
+#pragma unroll
+    for (int value = 0; value < kValuesPerLane; ++value) {
+      const float candidate = row_chunk[value];
+      if (candidate > max_probability) {
+        max_probability = candidate;
+        expert = lane * kValuesPerLane + value;
       }
     }
-  }
-  float denominator = 0.0f;
 #pragma unroll
-  for (std::size_t rank = 0; rank < kTopK; ++rank) {
-    denominator += expf(selected_scores[rank] - selected_scores[0]);
+    for (int mask = kRouterWave / 2; mask > 0; mask /= 2) {
+      const float other_probability =
+          __shfl_xor(max_probability, mask, kRouterWave);
+      const int other_expert = __shfl_xor(expert, mask, kRouterWave);
+      if (other_probability > max_probability ||
+          (other_probability == max_probability && other_expert < expert)) {
+        max_probability = other_probability;
+        expert = other_expert;
+      }
+    }
+    if (lane == 0) {
+      selected_probabilities[rank] = max_probability;
+      selected_indices[rank] = expert;
+      selected_sum += max_probability;
+    }
+    if (expert / kValuesPerLane == lane) {
+      row_chunk[expert % kValuesPerLane] = -10000.0f;
+    }
   }
-  const std::size_t base = token * kTopK;
+
+  if (lane == 0) {
+    const float denominator = selected_sum > 0.0f ? selected_sum : 1.0f;
+    const std::size_t base = token * kTopK;
 #pragma unroll
-  for (std::size_t rank = 0; rank < kTopK; ++rank) {
-    scores[base + rank] = selected_scores[rank];
-    indices_i64[base + rank] = selected_indices[rank];
-    indices_i32[base + rank] = selected_indices[rank];
-    const float probability =
-        expf(selected_scores[rank] - selected_scores[0]) / denominator;
-    // vLLM's FusedTopKRouter passes FP32 probabilities to fused_experts.
-    // The AOT expert kernels consume this buffer directly, so an intermediate
-    // BF16 store is a visible model-arithmetic change rather than scratch
-    // precision that can be chosen independently.
-    weights[base + rank] = probability;
+    for (std::size_t rank = 0; rank < kTopK; ++rank) {
+      const int expert = selected_indices[rank];
+      scores[base + rank] = __bfloat162float(row[expert]);
+      indices_i64[base + rank] = expert;
+      indices_i32[base + rank] = expert;
+      // vLLM first rounds the full 256-way softmax probability, then divides
+      // the chosen eight probabilities by their FP32 sum when renormalize is
+      // enabled.  This second division is observable by the expert kernels.
+      weights[base + rank] = selected_probabilities[rank] / denominator;
+    }
   }
 }
 
@@ -468,7 +471,7 @@ void launch_shared_gate(const void* gate, const void* down, void* output,
 void launch_router(const void* logits, void* scores, void* indices_i64,
                    void* indices_i32, void* weights, std::size_t tokens) {
   hipLaunchKernelGGL(
-      router_topk8_softmax_256_kernel, dim3(tokens), dim3(64), 0, nullptr,
+      router_topk8_softmax_256_kernel, dim3(tokens), dim3(32), 0, nullptr,
       static_cast<const __hip_bfloat16*>(logits), static_cast<float*>(scores),
       static_cast<std::int64_t*>(indices_i64),
       static_cast<std::int32_t*>(indices_i32),
