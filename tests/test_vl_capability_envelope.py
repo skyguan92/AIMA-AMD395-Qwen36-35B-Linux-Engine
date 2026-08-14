@@ -112,6 +112,13 @@ class VlCapabilityEnvelopeTest(unittest.TestCase):
         )
         self.assertIn("batch.visual_token_offset * kHidden", resident)
         self.assertIn("batch.patch_offset * kVisionPixelColumns", resident)
+        self.assertIn("kVisionPlanCachePatchBudget", resident)
+        self.assertIn("kNativeVlVisionBatchPatchLimit", resident)
+        eviction = resident.index("vision_plans.erase(oldest);")
+        construction = resident.index(
+            "std::make_unique<NativeVisionPipelinePlan>"
+        )
+        self.assertLess(eviction, construction)
         self.assertIn('"vision_batch_count"', http)
         self.assertIn('"vision_max_batch_tokens"', http)
         self.assertIn('"vision_max_batch_patches"', http)

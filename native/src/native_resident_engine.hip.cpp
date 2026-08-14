@@ -51,6 +51,8 @@ constexpr std::size_t kVocabulary = 248320;
 constexpr std::size_t kLongContextChunkTokens = 8192;
 constexpr std::size_t kPrefixCacheEntries = 4;
 constexpr std::size_t kVisionPlanCacheEntries = 4;
+constexpr std::size_t kVisionPlanCachePatchBudget =
+    kNativeVlVisionBatchPatchLimit;
 constexpr std::size_t kVisionPixelColumns = 1536;
 constexpr char kVisionAttentionImageFilename[] =
     "aima-vision-attention.hsaco";
@@ -469,6 +471,33 @@ struct NativeResidentEngine::Impl {
       *build_wall_ms = 0.0;
       return *entry.pipeline;
     }
+    std::size_t incoming_patches = 0;
+    for (const NativeVlGrid& grid : grids) {
+      const std::size_t grid_patches = grid.patch_count();
+      if (grid_patches >
+          kVisionPlanCachePatchBudget - incoming_patches) {
+        throw std::invalid_argument(
+            "native resident vision plan exceeds the cache patch budget");
+      }
+      incoming_patches += grid_patches;
+    }
+    std::size_t cached_patches = 0;
+    for (const NativeResidentVisionPlanEntry& entry : vision_plans) {
+      cached_patches += entry.pipeline->patch_count();
+    }
+    while (!vision_plans.empty() &&
+           (vision_plans.size() >= kVisionPlanCacheEntries ||
+            cached_patches >
+                kVisionPlanCachePatchBudget - incoming_patches)) {
+      const auto oldest = std::min_element(
+          vision_plans.begin(), vision_plans.end(),
+          [](const NativeResidentVisionPlanEntry& left,
+             const NativeResidentVisionPlanEntry& right) {
+            return left.use < right.use;
+          });
+      cached_patches -= oldest->pipeline->patch_count();
+      vision_plans.erase(oldest);
+    }
     const auto started = std::chrono::steady_clock::now();
     auto pipeline = std::make_unique<NativeVisionPipelinePlan>(
         weights, vision_attention_image, grids);
@@ -476,18 +505,8 @@ struct NativeResidentEngine::Impl {
     *cache_hit = false;
     NativeResidentVisionPlanEntry candidate{
         grids, std::move(pipeline), ++vision_plan_clock};
-    if (vision_plans.size() < kVisionPlanCacheEntries) {
-      vision_plans.push_back(std::move(candidate));
-      return *vision_plans.back().pipeline;
-    }
-    auto oldest = std::min_element(
-        vision_plans.begin(), vision_plans.end(),
-        [](const NativeResidentVisionPlanEntry& left,
-           const NativeResidentVisionPlanEntry& right) {
-          return left.use < right.use;
-        });
-    *oldest = std::move(candidate);
-    return *oldest->pipeline;
+    vision_plans.push_back(std::move(candidate));
+    return *vision_plans.back().pipeline;
   }
 
   ~Impl() {
