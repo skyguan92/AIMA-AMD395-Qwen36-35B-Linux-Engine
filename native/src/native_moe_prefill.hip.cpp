@@ -238,7 +238,8 @@ __global__ void shared_sigmoid_scale_batched_kernel(
 
 __global__ void router_topk8_softmax_256_kernel(
     const __hip_bfloat16* logits, float* scores, std::int64_t* indices_i64,
-    std::int32_t* indices_i32, float* weights) {
+    std::int32_t* indices_i32, void* weights,
+    bool weights_are_bfloat16) {
   constexpr int kRouterWave = 32;
   constexpr int kValuesPerLane = kExperts / kRouterWave;
   const std::size_t token = blockIdx.x;
@@ -330,7 +331,13 @@ __global__ void router_topk8_softmax_256_kernel(
       // vLLM first rounds the full 256-way softmax probability, then divides
       // the chosen eight probabilities by their FP32 sum when renormalize is
       // enabled.  This second division is observable by the expert kernels.
-      weights[base + rank] = selected_probabilities[rank] / denominator;
+      const float weight = selected_probabilities[rank] / denominator;
+      if (weights_are_bfloat16) {
+        static_cast<__hip_bfloat16*>(weights)[base + rank] =
+            __float2bfloat16(weight);
+      } else {
+        static_cast<float*>(weights)[base + rank] = weight;
+      }
     }
   }
 }
@@ -469,13 +476,14 @@ void launch_shared_gate(const void* gate, const void* down, void* output,
 }
 
 void launch_router(const void* logits, void* scores, void* indices_i64,
-                   void* indices_i32, void* weights, std::size_t tokens) {
+                   void* indices_i32, void* weights,
+                   bool weights_are_bfloat16, std::size_t tokens) {
   hipLaunchKernelGGL(
       router_topk8_softmax_256_kernel, dim3(tokens), dim3(32), 0, nullptr,
       static_cast<const __hip_bfloat16*>(logits), static_cast<float*>(scores),
       static_cast<std::int64_t*>(indices_i64),
-      static_cast<std::int32_t*>(indices_i32),
-      static_cast<float*>(weights));
+      static_cast<std::int32_t*>(indices_i32), weights,
+      weights_are_bfloat16);
   check_hip(hipGetLastError(), "router_topk8_softmax_256_kernel");
 }
 
@@ -599,10 +607,35 @@ NativeMoePrefillOracleResult probe_native_q8192_moe_prefill_layer0_oracle(
   const std::size_t expert_block_capacity =
       invocations.tensor_storage_bytes(
           moe_first, "expert_ids_ptr") / sizeof(std::int32_t);
+  const std::uint64_t gate_up_router_weight_storage_bytes =
+      invocations.tensor_storage_bytes(moe_first, "topk_weights_ptr");
+  const std::uint64_t down_router_weight_storage_bytes =
+      invocations.tensor_storage_bytes(moe_first + 1, "topk_weights_ptr");
+  const std::uint64_t router_weight_elements = bucket_tokens * kTopK;
+  // The recaptured q1024 closure consumes FP32 routed weights, while the
+  // frozen larger closures consume BF16. The AOT tensor storage contract is
+  // authoritative here: writing every bucket as FP32 both changes the load
+  // bit pattern and overruns the larger closures' buffers.
+  const bool router_weights_are_bfloat16 =
+      down_router_weight_storage_bytes ==
+      router_weight_elements * sizeof(std::uint16_t);
+  const bool router_weights_are_float32 =
+      down_router_weight_storage_bytes ==
+      router_weight_elements * sizeof(float);
   if (sorted_capacity < routed_rows || expert_block_capacity < kExperts) {
     throw std::runtime_error(
         "native MoE captured dispatch capacity is insufficient");
   }
+  if (gate_up_router_weight_storage_bytes !=
+          down_router_weight_storage_bytes ||
+      (!router_weights_are_bfloat16 && !router_weights_are_float32)) {
+    throw std::runtime_error(
+        "native MoE captured router-weight ABI is unsupported");
+  }
+  const char* router_weight_dtype =
+      router_weights_are_bfloat16 ? "bfloat16" : "float32";
+  const std::size_t router_weight_element_bytes =
+      router_weights_are_bfloat16 ? sizeof(std::uint16_t) : sizeof(float);
 
   const std::string prefix = "model.language_model.layers." +
                              std::to_string(options.layer_index) + ".mlp.";
@@ -620,6 +653,11 @@ NativeMoePrefillOracleResult probe_native_q8192_moe_prefill_layer0_oracle(
   void* h2 = invocations.tensor_pointer(moe_first, "a_ptr");
   void* topk_weights =
       invocations.tensor_pointer(moe_first, "topk_weights_ptr");
+  if (topk_weights !=
+      invocations.tensor_pointer(moe_first + 1, "topk_weights_ptr")) {
+    throw std::runtime_error(
+        "native MoE captured router-weight bindings disagree");
+  }
   void* sorted_token_ids =
       invocations.tensor_pointer(moe_first, "sorted_token_ids_ptr");
   void* expert_ids =
@@ -883,7 +921,8 @@ NativeMoePrefillOracleResult probe_native_q8192_moe_prefill_layer0_oracle(
   ++result.layer.dense_gemm_launches;
   launch_router(router_logits, router_scores,
                 router_indices_i64,
-                router_indices_i32, topk_weights, tokens);
+                router_indices_i32, topk_weights,
+                router_weights_are_bfloat16, tokens);
   ++result.layer.native_router_launches;
   if (options.synchronize_substages) {
     check_hip(hipDeviceSynchronize(),
@@ -999,8 +1038,8 @@ NativeMoePrefillOracleResult probe_native_q8192_moe_prefill_layer0_oracle(
           tokens * kTopK * sizeof(std::int64_t),
           oracle_file("return-layer_body-indices")),
       compare_native_oracle_tensor(
-          "router_weights", "float32", topk_weights,
-          tokens * kTopK * sizeof(float),
+          "router_weights", router_weight_dtype, topk_weights,
+          tokens * kTopK * router_weight_element_bytes,
           oracle_file(launch_label(layer_schedule.moe_offset,
                                    "topk_weights_ptr"))),
       compare_native_oracle_tensor(
@@ -1088,8 +1127,9 @@ NativeMoePrefillOracleResult probe_native_q8192_moe_prefill_layer0_oracle(
                                    sizeof(std::uint16_t));
       compare_stage_if_present("router_scores", "float32", router_scores,
                                comparison_tokens * kTopK * sizeof(float));
-      compare_stage_if_present("router_weights", "float32", topk_weights,
-                               comparison_tokens * kTopK * sizeof(float));
+      compare_stage_if_present(
+          "router_weights", router_weight_dtype, topk_weights,
+          comparison_tokens * kTopK * router_weight_element_bytes);
       compare_stage_if_present("router_indices", "int64", router_indices_i64,
                                comparison_tokens * kTopK *
                                    sizeof(std::int64_t));
@@ -1145,7 +1185,7 @@ NativeMoePrefillOracleResult probe_native_q8192_moe_prefill_layer0_oracle(
         oracle_file(launch_label(layer_schedule.moe_offset,
                                  "topk_weights_ptr")),
         topk_weights,
-        tokens * kTopK * sizeof(float));
+        tokens * kTopK * router_weight_element_bytes);
     result.seed_bytes += seed_native_oracle_tensor(
         oracle_file(launch_label(layer_schedule.moe_offset,
                                  "sorted_token_ids_ptr")),

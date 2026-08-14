@@ -244,7 +244,7 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         router = moe_source.split(
             "__global__ void router_topk8_softmax_256_kernel(", 1
         )[1].split("__global__ void moe_align_block32_256_kernel", 1)[0]
-        self.assertIn("std::int32_t* indices_i32, float* weights", router)
+        self.assertIn("std::int32_t* indices_i32, void* weights", router)
         self.assertIn("constexpr int kRouterWave = 32", router)
         self.assertIn(
             "constexpr int kValuesPerLane = kExperts / kRouterWave", router
@@ -253,10 +253,12 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         self.assertIn("row_chunk[value] *= reciprocal_row_sum", router)
         self.assertIn("selected_sum += max_probability", router)
         self.assertIn(
-            "weights[base + rank] = selected_probabilities[rank] / denominator",
+            "const float weight = selected_probabilities[rank] / denominator",
             router,
         )
-        self.assertNotIn("__float2bfloat16", router)
+        self.assertIn("if (weights_are_bfloat16)", router)
+        self.assertIn("__float2bfloat16(weight)", router)
+        self.assertIn("static_cast<float*>(weights)[base + rank] = weight", router)
         self.assertIn(
             "router_topk8_softmax_256_kernel, dim3(tokens), dim3(32)",
             moe_source,
@@ -269,9 +271,45 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         self.assertIn("return normalized", routing_weights)
         self.assertIn("FusedTopKRouter", routing_weights)
         self.assertIn(
-            'compare_stage_if_present("router_weights", "float32"',
+            '"router_weights", router_weight_dtype, topk_weights',
             moe_source,
         )
+
+        for bucket in (1024, 2048, 4096, 7168, 7680, 8191, 8192, 16384, 32768):
+            suffix = "output2" if bucket == 8192 else "output1"
+            manifest = json.loads(
+                (
+                    ROOT
+                    / "native"
+                    / "aot"
+                    / "gfx1151"
+                    / f"q{bucket}-{suffix}"
+                    / "manifest.json"
+                ).read_text(encoding="utf-8")
+            )
+            moe_kernels = [
+                kernel
+                for kernel in manifest["kernels"]
+                if kernel.get("symbol") == "fused_moe_kernel"
+            ]
+            self.assertEqual(len(moe_kernels), 2)
+            expected_abi = "*fp32" if bucket == 1024 else "*bf16"
+            self.assertEqual(
+                {
+                    next(
+                        argument
+                        for argument in kernel["launch_variants"][0]["arguments"]
+                        if argument["name"] == "topk_weights_ptr"
+                    )["abi_type"]
+                    for kernel in moe_kernels
+                },
+                {expected_abi},
+            )
+
+        self.assertIn(
+            'tensor_storage_bytes(moe_first, "topk_weights_ptr")', moe_source
+        )
+        self.assertIn("router_weights_are_bfloat16", moe_source)
 
         capture = (ROOT / "scripts/capture-vllm-vl-oracles.py").read_text(
             encoding="utf-8"
