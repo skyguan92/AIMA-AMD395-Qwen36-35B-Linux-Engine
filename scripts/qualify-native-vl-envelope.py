@@ -255,7 +255,7 @@ def main() -> int:
     parser.add_argument("--port", type=int, default=18150)
     parser.add_argument("--ready-timeout-seconds", type=float, default=180.0)
     parser.add_argument("--request-timeout-seconds", type=float, default=600.0)
-    parser.add_argument("--client-timeout-seconds", type=float, default=3600.0)
+    parser.add_argument("--client-timeout-seconds", type=float, default=7200.0)
     parser.add_argument("--vision-timeout-seconds", type=float, default=3600.0)
     args = parser.parse_args()
 

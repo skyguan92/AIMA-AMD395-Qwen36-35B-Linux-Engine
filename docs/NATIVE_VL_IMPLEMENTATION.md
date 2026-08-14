@@ -214,8 +214,11 @@ full encoder-budget cell with a dedicated 16-batch visual-tower probe. It also
 requires one resident model load, contiguous accepted-request indices, exact
 media/token/patch/batch metrics, native-only runtime markers and no oracle
 reads. The server retains its frozen 600-second request-read/write timeout;
-the qualification client has a separate 3,600-second response wait so a legal
-multi-batch compute cell is not mistaken for a socket-policy failure. Resident
+the qualification client has a separate 7,200-second response wait so a legal
+full-window multi-batch compute cell is not mistaken for a socket-policy
+failure. The original 3,600-second client bound expired while the target was
+still actively computing the 245,760-token image cell, with empty server
+stderr, so it is not used as a native execution limit. Resident
 vision plans retain a four-entry LRU surface but are also bounded to one
 65,536-patch execution batch in aggregate. Plans at or above one fourth of
 that budget are exclusive because each shape also owns fixed HIPBLASLt plan

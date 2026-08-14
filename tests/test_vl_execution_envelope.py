@@ -79,6 +79,10 @@ class VlExecutionEnvelopeTest(unittest.TestCase):
         self.assertIn('"262143"', qualifier)
         self.assertIn('"262144"', qualifier)
         self.assertIn("--client-timeout-seconds", qualifier)
+        self.assertIn(
+            '"--client-timeout-seconds", type=float, default=7200.0',
+            qualifier,
+        )
         self.assertIn("timeout=args.client_timeout_seconds", qualifier)
         self.assertIn("native_execution_qualification_complete", qualifier)
 
