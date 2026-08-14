@@ -29,6 +29,7 @@ sys.path.insert(0, str(ROOT))
 
 from aima_engine.vl_capability import (  # noqa: E402
     REQUIRED_API_CASES,
+    validate_api_render_manifest,
     validate_capability_manifest,
 )
 from aima_engine.vl_reference import (  # noqa: E402
@@ -46,7 +47,11 @@ VISION_ATTENTION_SHA256 = (
     "b709a058a77d61e14db73c1ff7d7f4c20859d997bec811cad7339d3e59223d00"
 )
 REFERENCE_MANIFEST = ROOT / "benchmarks/results/vl-capability-manifest.json"
+API_RENDER_MANIFEST = (
+    ROOT / "benchmarks/results/vl-api-render-manifest-v0.1.0.json"
+)
 PROBE_SCRIPT = ROOT / "scripts/probe-vllm-vl-api-capabilities.py"
+STRUCTURED_TOKEN_MASK_BYTES = 248_320
 
 
 def utc_now() -> str:
@@ -243,7 +248,7 @@ def reference_case_map(manifest: dict[str, Any]) -> dict[str, dict[str, Any]]:
 
 
 def case_checks(
-    case: dict[str, Any], reference: dict[str, Any]
+    case: dict[str, Any], reference: dict[str, Any], render: dict[str, Any] | None
 ) -> dict[str, bool]:
     accepted = bool(case.get("accepted"))
     metrics = native_metrics(case)
@@ -270,6 +275,24 @@ def case_checks(
                 "mrope_boundary_exact": mrope.get("enabled") is has_media,
             }
         )
+        structured = (
+            metrics.get("structured_decoding")
+            if isinstance(metrics.get("structured_decoding"), dict)
+            else {}
+        )
+        named_tool = case.get("case_id") == "tool_forced_image"
+        checks["structured_decoding_boundary_exact"] = (
+            structured.get("enabled") is named_tool
+        )
+        if named_tool:
+            selections = structured.get("token_selections")
+            checks["structured_token_mask_accounting_exact"] = (
+                isinstance(selections, int)
+                and not isinstance(selections, bool)
+                and selections > 0
+                and structured.get("token_mask_upload_bytes")
+                == selections * STRUCTURED_TOKEN_MASK_BYTES
+            )
         if has_media:
             checks["media_executed"] = (
                 isinstance(vl.get("media_count"), int)
@@ -278,6 +301,15 @@ def case_checks(
                 and vl["vision_patches"] > 0
                 and isinstance(vl.get("visual_tokens"), int)
                 and vl["visual_tokens"] > 0
+            )
+            checks["render_prompt_tokens_exact"] = (
+                isinstance(render, dict)
+                and metrics.get("prompt_tokens") == render.get("prompt_tokens")
+            )
+            checks["render_prompt_token_ids_exact"] = (
+                isinstance(render, dict)
+                and metrics.get("prompt_token_ids_sha256")
+                == render.get("prompt_token_ids_sha256")
             )
         if case.get("case_id") in {"tool_forced_image", "tool_auto_image"}:
             checks["structured_tool_call"] = valid_inspect_visual_call(response)
@@ -314,6 +346,9 @@ def main() -> int:
     parser.add_argument(
         "--reference-manifest", type=Path, default=REFERENCE_MANIFEST
     )
+    parser.add_argument(
+        "--render-manifest", type=Path, default=API_RENDER_MANIFEST
+    )
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=18096)
@@ -328,6 +363,7 @@ def main() -> int:
     fmha_provider = args.fmha_provider.resolve()
     vision_attention_image = args.vision_attention_image.resolve()
     reference_path = args.reference_manifest.resolve()
+    render_path = args.render_manifest.resolve()
     output = args.output.resolve()
     raw_root = output.parent / f"{output.stem}-raw"
     required_paths = (
@@ -336,6 +372,7 @@ def main() -> int:
         vision_attention_image,
         fixture_root / "fixtures-manifest.json",
         reference_path,
+        render_path,
         PROBE_SCRIPT,
     )
     missing = [str(path) for path in required_paths if not path.exists()]
@@ -373,6 +410,24 @@ def main() -> int:
     expected_order = tuple(REQUIRED_API_CASES)
     if tuple(item["case_id"] for item in reference["cases"]) != expected_order:
         raise SystemExit("frozen capability reference case order changed")
+
+    render_manifest = load_json_object(render_path)
+    render_errors = validate_api_render_manifest(render_manifest)
+    if render_errors:
+        raise SystemExit(
+            "invalid frozen API render reference:\n- "
+            + "\n- ".join(render_errors)
+        )
+    render_references = reference_case_map(render_manifest)
+    expected_render_order = tuple(
+        case_id
+        for case_id, expected_accept in REQUIRED_API_CASES.items()
+        if expected_accept
+    )
+    if tuple(item["case_id"] for item in render_manifest["cases"]) != (
+        expected_render_order
+    ):
+        raise SystemExit("frozen API render reference case order changed")
 
     raw_root.mkdir(parents=True)
     isolated_home = raw_root / "home"
@@ -458,7 +513,11 @@ def main() -> int:
                     },
                     **spec,
                 )
-                checks = case_checks(result, references[result["case_id"]])
+                checks = case_checks(
+                    result,
+                    references[result["case_id"]],
+                    render_references.get(result["case_id"]),
+                )
                 result["qualification_checks"] = checks
                 result["qualified"] = all(checks.values())
                 cases.append(result)
@@ -514,9 +573,20 @@ def main() -> int:
         "visual_weights_resident": ready.get("visual_model_tensor_count") == 333
         and ready.get("visual_model_payload_bytes") == 893_142_496,
         "vl_ready": ready.get("native_vl") is True,
+        "structured_token_mask_resident": health.get(
+            "structured_token_mask_bytes"
+        )
+        == STRUCTURED_TOKEN_MASK_BYTES
+        and ready.get("structured_token_mask_bytes")
+        == STRUCTURED_TOKEN_MASK_BYTES,
     }
     success_cases = [case for case in cases if case["accepted"]]
     error_cases = [case for case in cases if not case["accepted"]]
+    media_success_cases = [
+        case
+        for case in success_cases
+        if bool(set(case.get("surfaces", [])) & {"image", "video", "mixed"})
+    ]
     status_exact = sum(
         case["qualification_checks"]["reference_status_exact"] for case in cases
     )
@@ -536,6 +606,16 @@ def main() -> int:
         usage_signature(case["response"])
         == usage_signature(references[case["case_id"]].get("response"))
         for case in usage_comparable
+    )
+    render_prompt_tokens_exact = sum(
+        case["qualification_checks"].get("render_prompt_tokens_exact", False)
+        for case in media_success_cases
+    )
+    render_prompt_token_ids_exact = sum(
+        case["qualification_checks"].get(
+            "render_prompt_token_ids_exact", False
+        )
+        for case in media_success_cases
     )
     matrix_complete = (
         len(cases) == len(REQUIRED_API_CASES)
@@ -558,9 +638,18 @@ def main() -> int:
         ROOT / relative
         for relative in (
             "native/include/aima/native_chat_protocol.h",
+            "native/include/aima/native_decode_runner.h",
+            "native/include/aima/native_lm_head_certificate.h",
+            "native/include/aima/native_resident_engine.h",
+            "native/include/aima/native_tokenizer.h",
             "native/src/native_chat_protocol.cpp",
+            "native/src/native_decode_runner.hip.cpp",
+            "native/src/native_lm_head_certificate.hip.cpp",
+            "native/src/native_resident_engine.hip.cpp",
+            "native/src/native_tokenizer.cpp",
             "native/src/native_vl_request.cpp",
             "native/src/native_http_server.cpp",
+            "aima_engine/vl_capability.py",
             "scripts/probe-vllm-vl-api-capabilities.py",
             "scripts/qualify-native-vl-capabilities.py",
         )
@@ -585,6 +674,10 @@ def main() -> int:
             "reference_capability_manifest": file_component(
                 reference_path,
                 "benchmarks/results/vl-capability-manifest.json",
+            ),
+            "api_render_manifest": file_component(
+                render_path,
+                "benchmarks/results/vl-api-render-manifest-v0.1.0.json",
             ),
             "fixture_manifest": file_component(
                 fixture_root / "fixtures-manifest.json",
@@ -620,6 +713,12 @@ def main() -> int:
                 f"{finish_exact}/{len(success_cases)}"
             ),
             "reference_usage_exact": f"{usage_exact}/{len(usage_comparable)}",
+            "render_prompt_tokens_exact": (
+                f"{render_prompt_tokens_exact}/{len(media_success_cases)}"
+            ),
+            "render_prompt_token_ids_exact": (
+                f"{render_prompt_token_ids_exact}/{len(media_success_cases)}"
+            ),
             "cases": cases,
         },
         "raw": {
@@ -662,6 +761,24 @@ def main() -> int:
                 for case_id in ("stream_image", "stream_video")
             ),
             "single_resident_model_load": server_checks["one_model_load"],
+            "render_prompt_vectors_exact_18_of_18": (
+                len(media_success_cases) == 18
+                and render_prompt_tokens_exact == len(media_success_cases)
+                and render_prompt_token_ids_exact == len(media_success_cases)
+            ),
+            "structured_decoding_boundary_20_of_20": all(
+                case["qualification_checks"].get(
+                    "structured_decoding_boundary_exact", False
+                )
+                for case in success_cases
+            ),
+            "named_tool_mask_accounting_exact": next(
+                case["qualification_checks"].get(
+                    "structured_token_mask_accounting_exact", False
+                )
+                for case in success_cases
+                if case["case_id"] == "tool_forced_image"
+            ),
             "runtime_python": False,
             "runtime_torch": False,
             "runtime_vllm": False,
