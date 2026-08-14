@@ -53,6 +53,8 @@ constexpr std::size_t kPrefixCacheEntries = 4;
 constexpr std::size_t kVisionPlanCacheEntries = 4;
 constexpr std::size_t kVisionPlanCachePatchBudget =
     kNativeVlVisionBatchPatchLimit;
+constexpr std::size_t kVisionPlanCacheSharedPatchLimit =
+    kVisionPlanCachePatchBudget / kVisionPlanCacheEntries;
 constexpr std::size_t kVisionPixelColumns = 1536;
 constexpr char kVisionAttentionImageFilename[] =
     "aima-vision-attention.hsaco";
@@ -484,6 +486,18 @@ struct NativeResidentEngine::Impl {
     std::size_t cached_patches = 0;
     for (const NativeResidentVisionPlanEntry& entry : vision_plans) {
       cached_patches += entry.pipeline->patch_count();
+    }
+    const bool exclusive_cache_required =
+        incoming_patches >= kVisionPlanCacheSharedPatchLimit ||
+        std::any_of(
+            vision_plans.begin(), vision_plans.end(),
+            [](const NativeResidentVisionPlanEntry& entry) {
+              return entry.pipeline->patch_count() >=
+                     kVisionPlanCacheSharedPatchLimit;
+            });
+    if (exclusive_cache_required) {
+      vision_plans.clear();
+      cached_patches = 0;
     }
     while (!vision_plans.empty() &&
            (vision_plans.size() >= kVisionPlanCacheEntries ||
