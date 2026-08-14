@@ -178,7 +178,7 @@ _API_RENDER_SOURCE_PATHS = (
 _API_RENDER_TRUE_DECISIONS = (
     "success_render_cases_20_of_20",
     "non_tool_non_stream_render_matches_full_usage",
-    "tool_full_server_usage_offset_one",
+    "tool_render_matches_full_usage",
     "named_tool_json_schema_bound",
 )
 
@@ -450,6 +450,7 @@ def validate_api_render_manifest(payload: Mapping[str, Any]) -> list[str]:
     if contract != {
         "content_format": "auto-resolved-string",
         "request_identity": "fixture-normalized-reference-request",
+        "request_serialization": "probe-canonical-bytes-sort-keys",
         "tool_normalization": "ChatCompletionRequest-Pydantic-model_dump",
         "render_runtime_uses_gpu": False,
     }:
@@ -536,10 +537,9 @@ def validate_api_render_manifest(payload: Mapping[str, Any]) -> list[str]:
                 errors.append(
                     f"API render reference usage delta is invalid: {case_id}"
                 )
-            expected_delta = 1 if case_id in API_RENDER_TOOL_CASES else 0
-            if usage_delta != expected_delta:
+            if usage_delta != 0:
                 errors.append(
-                    f"API render full-server usage offset changed: {case_id}"
+                    f"API render full-server usage mismatch: {case_id}"
                 )
         if case.get("max_tokens") != API_RENDER_MAX_TOKENS.get(case_id):
             errors.append(f"API render max_tokens changed: {case_id}")
@@ -633,8 +633,8 @@ def validate_api_render_manifest(payload: Mapping[str, Any]) -> list[str]:
             if case_id not in API_RENDER_TOOL_CASES
             and case_id not in API_RENDER_USAGELESS_CASES
         ),
-        "tool_full_server_usage_offset_one": all(
-            by_id.get(case_id, {}).get("reference_usage_delta") == 1
+        "tool_render_matches_full_usage": all(
+            by_id.get(case_id, {}).get("reference_usage_delta") == 0
             for case_id in API_RENDER_TOOL_CASES
         ),
         "named_tool_json_schema_bound": structured

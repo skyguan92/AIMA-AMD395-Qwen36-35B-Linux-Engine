@@ -45,6 +45,7 @@ from aima_engine.vl_reference import (  # noqa: E402
     git_identity,
     load_json_object,
     seal_manifest,
+    sha256_bytes,
     sha256_file,
     validate_launch_config,
     verify_manifest_integrity,
@@ -84,12 +85,19 @@ def request_json(
     url: str,
     *,
     payload: dict[str, Any] | None = None,
+    payload_bytes: bytes | None = None,
     timeout: float = 120.0,
 ) -> dict[str, Any]:
+    if payload is not None and payload_bytes is not None:
+        raise ValueError("request JSON accepts either payload or payload_bytes")
     data = None
     method = "GET"
     headers: dict[str, str] = {}
-    if payload is not None:
+    if payload_bytes is not None:
+        data = payload_bytes
+        method = "POST"
+        headers["Content-Type"] = "application/json"
+    elif payload is not None:
         data = json.dumps(payload, separators=(",", ":")).encode("utf-8")
         method = "POST"
         headers["Content-Type"] = "application/json"
@@ -325,10 +333,15 @@ def main() -> int:
             raise RuntimeError("frozen success-case order changed")
         for spec in accepted:
             case_id = spec["case_id"]
+            # The full-server capability probe serializes requests with
+            # canonical_bytes(). Reuse those exact bytes here: Qwen's tool
+            # template preserves nested JSON-Schema field order, so merely
+            # equivalent Python mappings are not a token-level identity.
+            transport_body = probe.canonical_bytes(spec["payload"])
             rendered = request_json(
                 opener,
                 endpoint + "/v1/chat/completions/render",
-                payload=spec["payload"],
+                payload_bytes=transport_body,
             )
             token_ids = rendered.get("token_ids")
             if not isinstance(token_ids, list) or not token_ids:
@@ -381,8 +394,8 @@ def main() -> int:
                     "reference_transport_request_sha256": references[case_id][
                         "request_sha256"
                     ],
-                    "render_transport_request_sha256": canonical_json_sha256(
-                        spec["payload"]
+                    "render_transport_request_sha256": sha256_bytes(
+                        transport_body
                     ),
                     "prompt_tokens": len(token_ids),
                     "prompt_token_ids": token_ids,
@@ -438,8 +451,8 @@ def main() -> int:
         "non_tool_non_stream_render_matches_full_usage": all(
             case["reference_usage_delta"] == 0 for case in non_tool_comparable
         ),
-        "tool_full_server_usage_offset_one": all(
-            case["reference_usage_delta"] == 1 for case in tool_comparable
+        "tool_render_matches_full_usage": all(
+            case["reference_usage_delta"] == 0 for case in tool_comparable
         ),
         "named_tool_json_schema_bound": forced_structured
         == EXPECTED_FORCED_TOOL_STRUCTURED_OUTPUTS,
@@ -497,6 +510,7 @@ def main() -> int:
             "contract": {
                 "content_format": "auto-resolved-string",
                 "request_identity": "fixture-normalized-reference-request",
+                "request_serialization": "probe-canonical-bytes-sort-keys",
                 "tool_normalization": "ChatCompletionRequest-Pydantic-model_dump",
                 "render_runtime_uses_gpu": False,
             },

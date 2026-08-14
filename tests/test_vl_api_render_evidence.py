@@ -35,9 +35,9 @@ EXPECTED_PROMPT_TOKENS = {
     "mixed_video_then_image": 162,
     "conversation_prior_image": 109,
     "conversation_media_replace": 174,
-    "tool_history_with_image": 394,
-    "tool_forced_image": 348,
-    "tool_auto_image": 351,
+    "tool_history_with_image": 395,
+    "tool_forced_image": 349,
+    "tool_auto_image": 352,
     "stream_image": 80,
     "stream_video": 62,
     "residency_text_after": 18,
@@ -107,8 +107,7 @@ class VlApiRenderEvidenceTest(unittest.TestCase):
                 self.assertIsNone(case["reference_usage_prompt_tokens"])
                 self.assertIsNone(case["reference_usage_delta"])
             else:
-                expected_delta = 1 if case_id in API_RENDER_TOOL_CASES else 0
-                self.assertEqual(case["reference_usage_delta"], expected_delta)
+                self.assertEqual(case["reference_usage_delta"], 0)
 
     def test_multimodal_spans_and_forced_tool_decoder_are_exact(self) -> None:
         cases = {case["case_id"]: case for case in self.result["cases"]}
@@ -131,7 +130,7 @@ class VlApiRenderEvidenceTest(unittest.TestCase):
         for name in (
             "success_render_cases_20_of_20",
             "non_tool_non_stream_render_matches_full_usage",
-            "tool_full_server_usage_offset_one",
+            "tool_render_matches_full_usage",
             "named_tool_json_schema_bound",
         ):
             self.assertTrue(decision[name])

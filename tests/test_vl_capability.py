@@ -116,8 +116,6 @@ def valid_api_render_manifest() -> dict:
         usage_delta = (
             None
             if case_id in API_RENDER_USAGELESS_CASES
-            else 1
-            if case_id in API_RENDER_TOOL_CASES
             else 0
         )
         request = {
@@ -212,6 +210,7 @@ def valid_api_render_manifest() -> dict:
             "contract": {
                 "content_format": "auto-resolved-string",
                 "request_identity": "fixture-normalized-reference-request",
+                "request_serialization": "probe-canonical-bytes-sort-keys",
                 "tool_normalization": "ChatCompletionRequest-Pydantic-model_dump",
                 "render_runtime_uses_gpu": False,
             },
@@ -219,7 +218,7 @@ def valid_api_render_manifest() -> dict:
             "decision": {
                 "success_render_cases_20_of_20": True,
                 "non_tool_non_stream_render_matches_full_usage": True,
-                "tool_full_server_usage_offset_one": True,
+                "tool_render_matches_full_usage": True,
                 "named_tool_json_schema_bound": True,
                 "g1_passed": False,
                 "g2_passed": False,
@@ -290,7 +289,7 @@ class VlCapabilityTest(unittest.TestCase):
         case["reference_usage_delta"] += 1
         errors = validate_api_render_manifest(seal_manifest(manifest))
         self.assertTrue(
-            any("full-server usage offset changed" in error for error in errors)
+            any("full-server usage mismatch" in error for error in errors)
         )
         self.assertIn(
             "API render decision is inconsistent: "
