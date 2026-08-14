@@ -22,6 +22,12 @@ RECOMPUTE_AOT_ROOT = (
 RECOMPUTE_AOT_RESULT = (
     ROOT / "benchmarks/results/vl-recompute-w-u-aot-v0.1.0.json"
 )
+RECOMPUTE_AOT_PROBE = (
+    ROOT / "native/tools/vl_recompute_w_u_aot_probe.hip.cpp"
+)
+RECOMPUTE_AOT_PROBE_BUILD = (
+    ROOT / "scripts/build-native-vl-recompute-w-u-aot-probe.sh"
+)
 
 
 class VlHttpLanguageLayerCaptureTest(unittest.TestCase):
@@ -136,6 +142,13 @@ class VlHttpLanguageLayerCaptureTest(unittest.TestCase):
                 "vl-recompute-w-u-q131-v0.1.0",
                 build_path.read_text(encoding="utf-8"),
             )
+        probe = RECOMPUTE_AOT_PROBE.read_text(encoding="utf-8")
+        probe_build = RECOMPUTE_AOT_PROBE_BUILD.read_text(encoding="utf-8")
+        self.assertIn("recompute_w_u_fwd_kernel", probe)
+        self.assertIn("AotLaunchConfig{16, 32, 1, 4, 32, 8192}", probe)
+        self.assertIn("kPromptTokens = 131", probe)
+        self.assertIn("kBucketTokens = 1024", probe)
+        self.assertIn("vl_recompute_w_u_aot_probe.hip.cpp", probe_build)
 
 
 if __name__ == "__main__":
