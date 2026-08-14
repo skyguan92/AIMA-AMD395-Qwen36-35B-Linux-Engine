@@ -197,6 +197,9 @@ struct NativeResidentRequestMetrics {
   std::size_t vl_media_cache_misses = 0;
   std::size_t vl_media_cache_entries = 0;
   std::uint64_t vl_media_cache_resident_bytes = 0;
+  std::size_t vl_vision_batch_count = 0;
+  std::size_t vl_vision_max_batch_patches = 0;
+  std::size_t vl_vision_max_batch_tokens = 0;
   bool vl_vision_plan_cache_hit = false;
   std::size_t vl_vision_plan_cache_entries = 0;
   std::uint64_t vl_host_to_device_bytes = 0;

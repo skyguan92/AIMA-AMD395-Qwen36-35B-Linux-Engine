@@ -1157,6 +1157,14 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
     metrics.vl_source_bytes = vl_input->source_bytes;
     metrics.vl_vision_patches = vl_vision_patches;
     metrics.vl_visual_tokens = vl_visual_tokens;
+    metrics.vl_vision_batch_count = vl_vision_batches.size();
+    for (const NativeVlVisionBatch& batch : vl_vision_batches) {
+      metrics.vl_vision_max_batch_patches = std::max(
+          metrics.vl_vision_max_batch_patches, batch.patch_count);
+      metrics.vl_vision_max_batch_tokens = std::max(
+          metrics.vl_vision_max_batch_tokens,
+          batch.visual_token_count);
+    }
     metrics.vl_media_cache_hits = vl_input->media_cache_hits;
     metrics.vl_media_cache_misses = vl_input->media_cache_misses;
     metrics.vl_media_cache_entries = vl_input->media_cache_entries;

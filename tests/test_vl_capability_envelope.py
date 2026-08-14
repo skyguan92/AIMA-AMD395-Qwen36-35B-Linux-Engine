@@ -89,6 +89,9 @@ class VlCapabilityEnvelopeTest(unittest.TestCase):
         resident = (
             ROOT / "native/src/native_resident_engine.hip.cpp"
         ).read_text(encoding="utf-8")
+        http = (ROOT / "native/src/native_http_server.cpp").read_text(
+            encoding="utf-8"
+        )
         self.assertIn("kNativeVlAggregateTokenLimit = 262144", header)
         self.assertIn("kNativeVlVisionBatchTokenLimit = 16384", header)
         self.assertIn("native_qwen36_vision_batches", processor)
@@ -98,6 +101,9 @@ class VlCapabilityEnvelopeTest(unittest.TestCase):
         )
         self.assertIn("batch.visual_token_offset * kHidden", resident)
         self.assertIn("batch.patch_offset * kVisionPixelColumns", resident)
+        self.assertIn('"vision_batch_count"', http)
+        self.assertIn('"vision_max_batch_tokens"', http)
+        self.assertIn('"vision_max_batch_patches"', http)
 
     def test_manifest_records_progress_without_overclaiming_gates(self) -> None:
         decision = self.result["decision"]

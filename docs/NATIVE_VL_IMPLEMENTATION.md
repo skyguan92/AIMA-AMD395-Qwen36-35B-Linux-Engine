@@ -184,10 +184,12 @@ It exposes a previously conflated contract: ordered media may consume the full
 bounded to 16,384 merged tokens and 65,536 patches. The native request path now
 admits that aggregate budget and partitions consecutive whole media items into
 bounded batches with exact patch and embedding offsets; requests at or below
-16,384 tokens retain the original single-batch path. The full 262,144-image
-cell is explicitly processor/vision-only because an HTTP request also needs
-text and wrapper headroom. These source and CPU boundary checks are not target
-execution evidence; all 22 cells still must run before G1 or G2 can pass.
+16,384 tokens retain the original single-batch path. HTTP metrics expose the
+batch count and maximum batch token/patch counts so qualification can prove
+the bound directly. The full 262,144-image cell is explicitly
+processor/vision-only because an HTTP request also needs text and wrapper
+headroom. These source and CPU boundary checks are not target execution
+evidence; all 22 cells still must run before G1 or G2 can pass.
 
 The native processor now also performs the exact fused normalization, odd-frame
 repeat and Qwen temporal/spatial patch permutation into contiguous
