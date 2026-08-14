@@ -1525,6 +1525,7 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
           attention_options.seed_layer_input = false;
           attention_options.prepare_rotary_table = true;
           attention_options.collect_oracle_comparisons = false;
+          attention_options.synchronize_substages = timeline_enabled;
           attention_options.decode_attention_state = &impl_->attention_state;
           attention_options.gemm_plans = chunk_gemm_plans;
           attention_options.bindings = &impl_->bindings;
