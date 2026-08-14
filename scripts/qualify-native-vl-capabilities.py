@@ -402,7 +402,6 @@ def main() -> int:
         args.host,
         "--port",
         str(args.port),
-        "--http-shutdown",
         "--request-timeout-ms",
         str(int(args.request_timeout_seconds * 1000)),
         "--report",
