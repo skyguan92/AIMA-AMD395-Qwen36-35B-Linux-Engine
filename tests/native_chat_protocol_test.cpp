@@ -63,13 +63,21 @@ int main() {
           "parallel-tool directive missing");
   require(prepared.prompt_tools.size() == 1,
           "tool was not admitted to the prompt");
+  require(prepared.vl_prompt_tools.size() == 1,
+          "VL prompt lost the supplied tool");
+  require(prepared.vl_prompt_messages.size() == 2 &&
+              prepared.vl_prompt_messages[0].content == "Be concise.",
+          "VL prompt retained a synthetic tool directive");
   require(prepared.function_tools[0].name == "weather",
           "function name preparation failed");
 
   NativeOrderedJson none_request = request;
   none_request["tool_choice"] = "none";
-  require(aima::prepare_native_chat(none_request).prompt_tools.empty(),
+  const auto none = aima::prepare_native_chat(none_request);
+  require(none.prompt_tools.empty(),
           "tool_choice none still exposed tools to the model");
+  require(none.vl_prompt_tools.size() == 1,
+          "VL tool_choice none diverged from the frozen vLLM prompt");
 
   NativeOrderedJson forced_request = request;
   forced_request["tool_choice"] = {
@@ -78,6 +86,9 @@ int main() {
   require(forced.prompt_tools.size() == 1 &&
               forced.required_function_name == "weather",
           "specific tool_choice was not prepared");
+  require(forced.vl_prompt_tools.size() == 1 &&
+              forced.vl_prompt_messages[0].content == "Be concise.",
+          "specific VL tool_choice changed the reference prompt");
 
   NativeOrderedJson invalid_request = request;
   invalid_request["tools"][0]["function"]["name"] = "bad>name";

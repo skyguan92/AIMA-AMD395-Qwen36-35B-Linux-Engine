@@ -883,6 +883,9 @@ bool required_tool_choice_satisfied(
 Json chat_completion(NativeResidentEngine& engine, NativeTokenizer& tokenizer,
                      ParsedCompletionRequest parsed) {
   const bool raw_prompt_tokens = parsed.raw_prompt_tokens;
+  const bool named_vl_tool_choice =
+      parsed.vl_input.has_value() &&
+      parsed.chat.tool_choice == NativeToolChoiceMode::kSpecific;
   NativeResidentRequestOptions native_request;
   native_request.input_token_ids = std::move(parsed.prompt);
   native_request.multimodal_cache_namespace =
@@ -901,7 +904,12 @@ Json chat_completion(NativeResidentEngine& engine, NativeTokenizer& tokenizer,
         "model output did not satisfy the required tool_choice");
   }
   Json message = {{"role", "assistant"}};
-  if (output.tool_calls.empty() || !output.content.empty()) {
+  if (named_vl_tool_choice) {
+    // vLLM exposes named forced-tool generations as an empty content string
+    // and keeps the model stop/length reason even though a tool call is
+    // present.  Automatic tool selection retains the normal tool_calls reason.
+    message["content"] = "";
+  } else if (output.tool_calls.empty() || !output.content.empty()) {
     message["content"] = output.content;
   } else {
     message["content"] = nullptr;
@@ -916,7 +924,11 @@ Json chat_completion(NativeResidentEngine& engine, NativeTokenizer& tokenizer,
                    {"choices", Json::array({{{"index", 0},
                                               {"message", std::move(message)},
                                               {"finish_reason",
-                                               !output.tool_calls.empty()
+                                               named_vl_tool_choice
+                                                   ? (metrics.stopped
+                                                          ? "stop"
+                                                          : "length")
+                                                   : !output.tool_calls.empty()
                                                    ? "tool_calls"
                                                    : (metrics.stopped
                                                           ? "stop"
@@ -940,6 +952,9 @@ bool stream_chat_completion(
     ParsedCompletionRequest parsed,
     std::chrono::steady_clock::time_point http_started) {
   const bool raw_prompt_tokens = parsed.raw_prompt_tokens;
+  const bool named_vl_tool_choice =
+      parsed.vl_input.has_value() &&
+      parsed.chat.tool_choice == NativeToolChoiceMode::kSpecific;
   const std::string id = "chatcmpl-native-" +
                          std::to_string(engine.request_count() + 1);
   const std::int64_t created = unix_time_seconds();
@@ -1083,7 +1098,9 @@ bool stream_chat_completion(
       {{{"index", 0},
         {"delta", Json::object()},
         {"finish_reason",
-         !output.tool_calls.empty()
+         named_vl_tool_choice
+             ? (metrics.stopped ? "stop" : "length")
+             : !output.tool_calls.empty()
              ? "tool_calls"
              : (metrics.stopped ? "stop" : "length")}}});
   terminal["aima_amd395"] = request_metrics_json(metrics);

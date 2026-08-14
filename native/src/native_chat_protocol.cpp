@@ -561,6 +561,13 @@ NativePreparedChat prepare_native_chat(const NativeOrderedJson& request) {
     throw std::invalid_argument("video count exceeds the fixed limit of 21");
   }
 
+  prepared.vl_prompt_messages = prepared.messages;
+  prepared.vl_prompt_tools.reserve(prepared.function_tools.size());
+  for (const NativeFunctionTool& tool : prepared.function_tools) {
+    prepared.vl_prompt_tools.push_back(
+        {render_qwen_json(tool.definition)});
+  }
+
   std::string directive;
   if (prepared.tool_choice == NativeToolChoiceMode::kRequired) {
     directive =

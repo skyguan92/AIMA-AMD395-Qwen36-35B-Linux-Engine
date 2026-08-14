@@ -371,8 +371,15 @@ NativeVlPreparedRequest prepare_native_vl_request(
 
   // The frozen VL reference leaves Qwen thinking enabled; this produces the
   // terminal `<think>\n` sequence captured by all five processor oracles.
+  // Forced tool choices must reach the function-call body within the caller's
+  // completion budget.  The text serving path already disables Qwen thinking
+  // for this contract; do the same for multimodal forced calls while retaining
+  // thinking for ordinary and automatic-tool VL requests.
+  const bool disable_thinking =
+      chat.tool_choice == NativeToolChoiceMode::kRequired ||
+      chat.tool_choice == NativeToolChoiceMode::kSpecific;
   const std::string prompt = tokenizer.render_chat_prompt(
-      chat.messages, chat.prompt_tools, false);
+      chat.vl_prompt_messages, chat.vl_prompt_tools, disable_thinking);
   // vLLM tokenizes each chat/content segment before replacing multimodal
   // markers. Preserve that boundary here: encoding one fully concatenated
   // string can merge a preceding text token with a video's leading timestamp
