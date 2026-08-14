@@ -38,6 +38,9 @@ class VlHttpLanguageLayerCaptureTest(unittest.TestCase):
         self.assertIn('"fused_input_projection"', hooks)
         self.assertIn('"gdn_core"', hooks)
         self.assertIn('"gdn_gated"', hooks)
+        self.assertIn("instrumented_causal_conv1d_fn", hooks)
+        self.assertIn("instrumented_fused_post_conv_prep", hooks)
+        self.assertIn('("diagnostic-beta", "gdn_beta")', hooks)
         self.assertIn("diagnostic_layer.linear_attn.register_forward_hook", hooks)
         self.assertIn(
             "diagnostic_layer.post_attention_layernorm.register_forward_hook",

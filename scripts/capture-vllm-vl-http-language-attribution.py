@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import importlib
 import importlib.util
 import json
 from pathlib import Path
@@ -41,6 +42,14 @@ ATTENTION_DIAGNOSTIC_COMPONENTS = {
         "attention_residual",
         "post_attention_norm",
         "fused_input_projection",
+        "a_projection",
+        "b_projection",
+        "convolution",
+        "gdn_q",
+        "gdn_k",
+        "gdn_v",
+        "gdn_g",
+        "gdn_beta",
         "gdn_core",
         "gdn_gated",
     )
@@ -93,6 +102,19 @@ def oracle_labels() -> dict[str, str]:
     labels[attention_prefix + "diagnostic-fused-input"] = component_name(
         ATTENTION_DIAGNOSTIC_LAYER, "fused_input_projection"
     )
+    for label_suffix, component_suffix in (
+        ("diagnostic-a", "a_projection"),
+        ("diagnostic-b", "b_projection"),
+        ("diagnostic-conv", "convolution"),
+        ("diagnostic-q", "gdn_q"),
+        ("diagnostic-k", "gdn_k"),
+        ("diagnostic-v", "gdn_v"),
+        ("diagnostic-g", "gdn_g"),
+        ("diagnostic-beta", "gdn_beta"),
+    ):
+        labels[attention_prefix + label_suffix] = component_name(
+            ATTENTION_DIAGNOSTIC_LAYER, component_suffix
+        )
     labels[attention_prefix + "launch-008-o"] = component_name(
         ATTENTION_DIAGNOSTIC_LAYER, "gdn_core"
     )
@@ -107,6 +129,12 @@ def oracle_labels() -> dict[str, str]:
 
 
 def remove_hooks(root: Any, state: dict[str, Any]) -> None:
+    gdn_module = state.get("gdn_module")
+    if gdn_module is not None:
+        gdn_module.causal_conv1d_fn = state["original_causal_conv1d_fn"]
+        gdn_module.fused_post_conv_prep = state[
+            "original_fused_post_conv_prep"
+        ]
     prefix._remove_hooks(root, state)
     if hasattr(root, STATE_ATTRIBUTE):
         delattr(root, STATE_ATTRIBUTE)
@@ -132,6 +160,9 @@ class InstallLanguageLayerOutputHooks:
         diagnostic_layer = language.model.layers[ATTENTION_DIAGNOSTIC_LAYER]
         if getattr(diagnostic_layer, "layer_type", None) != "linear_attention":
             raise RuntimeError("language layer 1 is not linear attention")
+        gdn_module = importlib.import_module(
+            "vllm.model_executor.layers.mamba.gdn_linear_attn"
+        )
         state: dict[str, Any] = {
             "output_root": self.output_root,
             "case_id": self.case_id,
@@ -139,6 +170,10 @@ class InstallLanguageLayerOutputHooks:
             "handles": [],
             "router_bindings": [],
             "attention_bindings": [],
+            "gdn_module": gdn_module,
+            "original_causal_conv1d_fn": gdn_module.causal_conv1d_fn,
+            "original_fused_post_conv_prep": gdn_module.fused_post_conv_prep,
+            "active_linear_diagnostic": False,
         }
 
         def capture(name: str, value: Any) -> None:
@@ -173,6 +208,12 @@ class InstallLanguageLayerOutputHooks:
             if output is None and len(args) > 1:
                 output = args[1]
             capture(component_name(1, "attention_output"), output)
+            state["active_linear_diagnostic"] = False
+
+        def attention_pre_hook(
+            _module: Any, _args: Any, _kwargs: dict[str, Any]
+        ) -> None:
+            state["active_linear_diagnostic"] = True
 
         def qkvz_projection_hook(
             _module: Any, _args: Any, output: Any
@@ -189,6 +230,31 @@ class InstallLanguageLayerOutputHooks:
             projected_b, projected_a = tensor.chunk(2, dim=-1)
             capture("layer_001_a_projection", projected_a)
             capture("layer_001_b_projection", projected_b)
+
+        def instrumented_causal_conv1d_fn(*args: Any, **kwargs: Any) -> Any:
+            output = state["original_causal_conv1d_fn"](*args, **kwargs)
+            if (
+                state["active_linear_diagnostic"]
+                and isinstance(output, torch.Tensor)
+                and output.ndim == 2
+            ):
+                capture(component_name(1, "convolution"), output.transpose(0, 1))
+            return output
+
+        def instrumented_fused_post_conv_prep(
+            *args: Any, **kwargs: Any
+        ) -> Any:
+            output = state["original_fused_post_conv_prep"](*args, **kwargs)
+            if state["active_linear_diagnostic"]:
+                if not isinstance(output, (tuple, list)) or len(output) != 5:
+                    raise RuntimeError("language layer 1 post-conv geometry differs")
+                for suffix, tensor in zip(
+                    ("gdn_q", "gdn_k", "gdn_v", "gdn_g", "gdn_beta"),
+                    output,
+                    strict=True,
+                ):
+                    capture(component_name(1, suffix), tensor)
+            return output
 
         def gated_norm_pre_hook(
             _module: Any, args: Any, kwargs: dict[str, Any]
@@ -256,6 +322,11 @@ class InstallLanguageLayerOutputHooks:
             language.model.layers[0].mlp.register_forward_hook(layer0_moe_hook)
         )
         handles.append(
+            diagnostic_layer.linear_attn.register_forward_pre_hook(
+                attention_pre_hook, with_kwargs=True
+            )
+        )
+        handles.append(
             diagnostic_layer.linear_attn.register_forward_hook(
                 attention_hook, with_kwargs=True
             )
@@ -294,6 +365,8 @@ class InstallLanguageLayerOutputHooks:
         handles.append(language.model.norm.register_forward_hook(final_norm_hook))
         for layer_index, layer in enumerate(language.model.layers):
             instrument_router(layer_index, layer.mlp.experts.router)
+        gdn_module.causal_conv1d_fn = instrumented_causal_conv1d_fn
+        gdn_module.fused_post_conv_prep = instrumented_fused_post_conv_prep
         setattr(root, STATE_ATTRIBUTE, state)
         return {
             "layer_count": len(language.model.layers),
@@ -322,6 +395,12 @@ class FinalizeLanguageLayerOutputHooks:
             captures[component_name(1, "fused_input_projection")] = torch.cat(
                 tuple(captures[name] for name in projection_parts), dim=-1
             ).contiguous()
+            captures[component_name(1, "a_projection")] = captures[
+                "layer_001_a_projection"
+            ]
+            captures[component_name(1, "b_projection")] = captures[
+                "layer_001_b_projection"
+            ]
         missing = REQUIRED_COMPONENTS - set(captures)
         if missing:
             remove_hooks(root, state)
