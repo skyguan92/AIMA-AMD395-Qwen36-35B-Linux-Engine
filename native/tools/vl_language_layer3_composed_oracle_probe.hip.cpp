@@ -671,11 +671,11 @@ json qualify_case(
   const std::filesystem::path output = output_dir / (case_id + ".bin");
   write_file(output, measured.front().output);
   const bool production_shape =
-      warmup.aot_launches == 34 &&
+      warmup.aot_launches == 33 &&
       warmup.dense_gemm_launches == 28 &&
       warmup.native_ck_fmha_launches == 1 &&
-      (warmup.native_pointwise_launches == 35 ||
-       warmup.native_pointwise_launches == 36);
+      (warmup.native_pointwise_launches == 36 ||
+       warmup.native_pointwise_launches == 37);
   const bool complete = boundaries_passed && deterministic && production_shape;
   const double wall_ms =
       std::chrono::duration<double, std::milli>(

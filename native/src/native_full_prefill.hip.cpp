@@ -592,8 +592,14 @@ NativeFullPrefillOracleResult probe_native_q8192_full_prefill_oracle(
 
   const auto started = std::chrono::steady_clock::now();
   diagnostic_stage("before_input_norm");
-  executor.launch(launches[base]);
-  ++result.layer.aot_launches;
+  // Match the frozen eager/vLLM RMSNorm reduction and FP32 rounding used by
+  // the linear-attention layers.  The embedded Triton launch can differ by a
+  // BF16 value on accumulated multimodal residuals, which is enough to flip
+  // a downstream routed-expert set.
+  launch_prefill_rmsnorm_2048(
+      layer_input, input_norm_weight.device_pointer, normalized_input,
+      tokens);
+  ++result.layer.native_pointwise_launches;
   compare_optional_tail(
       "input_last_token", layer_input, kHidden, kHidden, 0,
       "launch-000-x");

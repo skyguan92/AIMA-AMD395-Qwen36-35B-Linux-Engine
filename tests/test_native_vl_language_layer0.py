@@ -37,6 +37,9 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         linear_source = (
             ROOT / "native/src/native_linear_prefill.hip.cpp"
         ).read_text(encoding="utf-8")
+        full_source = (
+            ROOT / "native/src/native_full_prefill.hip.cpp"
+        ).read_text(encoding="utf-8")
         resident_source = (
             ROOT / "native/src/native_resident_engine.hip.cpp"
         ).read_text(encoding="utf-8")
@@ -99,6 +102,8 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         self.assertIn("merge_16x16_to_64x64_inverse_kernel", linear_source)
         self.assertIn("launch_prefill_rmsnorm_2048(", linear_source)
         self.assertIn("launch_prefill_add_rmsnorm_2048(", linear_source)
+        self.assertIn("launch_prefill_rmsnorm_2048(", full_source)
+        self.assertNotIn("executor.launch(launches[base]);", full_source)
         self.assertIn("exact_linear_b_projection_kernel", linear_source)
         self.assertIn("exact_b_tokens != 0", linear_source)
         self.assertIn("fmaf(", linear_source)
