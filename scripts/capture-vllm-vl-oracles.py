@@ -634,6 +634,22 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
     from vllm.outputs import RequestOutput
 
     output_root = args.output_root.resolve()
+    chat_template_content_format = getattr(
+        args, "_chat_template_content_format", "openai"
+    )
+    if chat_template_content_format not in {"openai", "string"}:
+        raise ValueError("unsupported chat-template content format")
+    oracle_root_label = getattr(
+        args, "_oracle_root_label", "benchmarks/oracles/vl-v0.1.0"
+    )
+    oracle_root_path = Path(oracle_root_label)
+    if oracle_root_path.is_absolute() or ".." in oracle_root_path.parts:
+        raise ValueError("oracle root label must be a safe relative path")
+    expected_prompt_vectors = getattr(args, "_expected_prompt_vectors", None)
+    if expected_prompt_vectors is not None and not isinstance(
+        expected_prompt_vectors, Mapping
+    ):
+        raise ValueError("expected prompt vectors must be a mapping")
     if output_root.exists() and any(output_root.iterdir()):
         raise ValueError(f"oracle output root must be empty: {output_root}")
     output_root.mkdir(parents=True, exist_ok=True)
@@ -680,12 +696,19 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
             llm.llm_engine.reset_encoder_cache()
             messages = _build_messages(spec, args.fixture_root)
             engine_input = llm._preprocess_chat_one(
-                messages, chat_template_content_format="openai"
+                messages,
+                chat_template_content_format=chat_template_content_format,
             )
             if engine_input.get("type") != "multimodal":
                 raise RuntimeError(f"case did not produce multimodal input: {case_id}")
             processor = _processor_record(engine_input, output_root, case_id)
             prompt_token_ids = processor["prompt_token_ids"]
+            if expected_prompt_vectors is not None and prompt_token_ids != list(
+                expected_prompt_vectors.get(case_id, ())
+            ):
+                raise RuntimeError(
+                    f"preprocessed prompt differs from the bound render: {case_id}"
+                )
             rows = _selected_teacher_rows(
                 prompt_token_ids, engine_input["mm_placeholders"]
             )
@@ -830,7 +853,7 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
                     for key, value in llm_kwargs.items()
                 },
             },
-            "oracle_root": "benchmarks/oracles/vl-v0.1.0",
+            "oracle_root": oracle_root_label,
             "required_boundaries": sorted(REQUIRED_BOUNDARIES),
             "cases": cases,
         }
