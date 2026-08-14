@@ -233,7 +233,8 @@ void NativeVlUnifiedAttentionPlan::launch(
       &zero_stride,
   };
   AotLaunchConfig config;
-  config.grid_x = static_cast<std::uint32_t>(query_tokens / kBlockQ + 1);
+  config.grid_x = static_cast<std::uint32_t>(
+      (query_tokens + kBlockQ - 1) / kBlockQ);
   config.grid_y = kKvHeads;
   config.grid_z = 1;
   config.num_warps = 4;

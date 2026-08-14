@@ -152,6 +152,8 @@ class NativeVlLanguageLayer3MropeTest(unittest.TestCase):
         ).read_text(encoding="utf-8")
         self.assertIn(kernel["kernel_hash"], source)
         self.assertIn('"kernel_unified_attention_2d"', source)
+        self.assertIn("(query_tokens + kBlockQ - 1) / kBlockQ", source)
+        self.assertNotIn("query_tokens / kBlockQ + 1", source)
         self.assertIn("vl-unified-attention-v0.1.0/manifest.json", runtime_build)
         self.assertIn("native_vl_unified_attention.hip.cpp", runtime_build)
         self.assertIn("std::make_unique<NativeVlUnifiedAttentionPlan>", resident)

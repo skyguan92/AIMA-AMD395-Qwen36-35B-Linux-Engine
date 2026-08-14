@@ -230,6 +230,16 @@ sequences. Smaller shapes retain the four-entry LRU behavior. This paragraph
 describes the qualification mechanism only; no `amd395` execution artifact
 has yet been accepted.
 
+The first full-window HTTP attempt also exposed a launch-geometry bug that the
+original 81-token unified-attention capture could not reveal. Timeline-mode
+synchronization localized the failure to full-attention layer 7, segment 29;
+a minimum-image plus 245,000-token diagnostic then isolated the failing
+substage to the unified-attention core in 427 seconds. Its two-query block
+grid used `query_tokens / 2 + 1`, which is only ceil-division for odd lengths
+and launched one extra block for every even 8,192-token segment. The runtime
+now uses exact ceil-division. This diagnosis is not a passing full-window or
+envelope artifact; both must be rerun against the corrected binary.
+
 The native processor now also performs the exact fused normalization, odd-frame
 repeat and Qwen temporal/spatial patch permutation into contiguous
 `[patches,1536]` BF16. The frozen 256x256 image oracle matches byte-for-byte,
