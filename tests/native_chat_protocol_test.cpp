@@ -71,6 +71,28 @@ int main() {
   require(prepared.function_tools[0].name == "weather",
           "function name preparation failed");
 
+  NativeOrderedJson canonical_wire_request = request;
+  canonical_wire_request["tools"][0] = {
+      {"function",
+       {{"description", "Inspect the supplied visual."},
+        {"name", "inspect_visual"},
+        {"parameters",
+         {{"additionalProperties", false},
+          {"properties", {{"label", {{"type", "string"}}}}},
+          {"required", NativeOrderedJson::array({"label"})},
+          {"type", "object"}}}}},
+      {"type", "function"}};
+  const auto canonical_wire =
+      aima::prepare_native_chat(canonical_wire_request);
+  require(
+      canonical_wire.vl_prompt_tools[0].serialized_json ==
+          R"({"type": "function", "function": {"name": "inspect_visual", "description": "Inspect the supplied visual.", "parameters": {"additionalProperties": false, "properties": {"label": {"type": "string"}}, "required": ["label"], "type": "object"}}})",
+      "VL tool schema did not match vLLM Pydantic field ordering");
+  require(
+      canonical_wire.prompt_tools[0].serialized_json ==
+          aima::render_qwen_json(canonical_wire_request["tools"][0]),
+      "VL normalization changed the baseline text prompt tool");
+
   NativeOrderedJson none_request = request;
   none_request["tool_choice"] = "none";
   const auto none = aima::prepare_native_chat(none_request);

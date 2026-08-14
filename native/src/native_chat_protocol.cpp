@@ -298,6 +298,29 @@ std::size_t longest_marker_prefix_suffix(std::string_view value) {
   return 0;
 }
 
+NativeOrderedJson normalize_vllm_prompt_tool(
+    const NativeFunctionTool& tool) {
+  // vLLM validates tools through its Pydantic request model before applying
+  // the Qwen chat template.  model_dump() fixes these model-field positions
+  // while retaining the insertion order inside the caller's JSON Schema.
+  // Reproduce that boundary for VL prompts so canonical wire JSON and direct
+  // Python clients render identically to the frozen reference server.
+  const NativeOrderedJson& source = tool.definition["function"];
+  NativeOrderedJson function = NativeOrderedJson::object();
+  function["name"] = tool.name;
+  function["description"] =
+      source.contains("description") ? source["description"]
+                                     : NativeOrderedJson(nullptr);
+  function["parameters"] =
+      source.contains("parameters") ? source["parameters"]
+                                    : NativeOrderedJson(nullptr);
+
+  NativeOrderedJson normalized = NativeOrderedJson::object();
+  normalized["type"] = "function";
+  normalized["function"] = std::move(function);
+  return normalized;
+}
+
 }  // namespace
 
 std::string render_qwen_json(const NativeOrderedJson& value) {
@@ -565,7 +588,7 @@ NativePreparedChat prepare_native_chat(const NativeOrderedJson& request) {
   prepared.vl_prompt_tools.reserve(prepared.function_tools.size());
   for (const NativeFunctionTool& tool : prepared.function_tools) {
     prepared.vl_prompt_tools.push_back(
-        {render_qwen_json(tool.definition)});
+        {render_qwen_json(normalize_vllm_prompt_tool(tool))});
   }
 
   std::string directive;
