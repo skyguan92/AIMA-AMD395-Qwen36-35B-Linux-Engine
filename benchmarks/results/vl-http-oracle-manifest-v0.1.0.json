@@ -1,0 +1,2588 @@
+{
+  "bindings": {
+    "fixture_manifest": {
+      "bytes": 2691,
+      "path": "benchmarks/fixtures/vl-capability-v0.1.0/fixtures-manifest.json",
+      "sha256": "07d3e6aa54cd80707d77d2f8f406788dabb219a5b98225cf6a7b63602a009028"
+    },
+    "launch_config": {
+      "bytes": 3061,
+      "path": "benchmarks/results/vl-reference-launch.json",
+      "sha256": "37eb1ea904b010a06c48095e5dc6acf0561aa129ede1f14251b1b82d2d2ebe8b"
+    },
+    "processor_probe": {
+      "bytes": 39849,
+      "path": "benchmarks/results/vl-processor-capability-v0.1.0.json",
+      "sha256": "a3aa0ce74cd522ffd4d6c9ec2188b5e340c7dfc7fbe4509e146c18cdeb343589"
+    },
+    "serving_render_manifest": {
+      "bytes": 16807,
+      "path": "benchmarks/results/vl-serving-render-manifest-v0.1.0.json",
+      "sha256": "6649347f8e9c606b4098a4b3d4fbe8e857f4acbd2518ee37f16744f6ce277336"
+    }
+  },
+  "capture_control_plane": {
+    "product_runtime_dependency": false,
+    "scope": "isolated-offline-oracle-hook-rpc-only",
+    "vllm_allow_insecure_serialization": true
+  },
+  "capture_scripts": {
+    "base_oracle": {
+      "bytes": 34310,
+      "path": "scripts/capture-vllm-vl-oracles.py",
+      "sha256": "b4077b032d81c2bccc91a2501024491b440aec5f451062a4d5e7862f4745dc01"
+    },
+    "http_wrapper": {
+      "bytes": 6427,
+      "path": "scripts/capture-vllm-vl-http-oracles.py",
+      "sha256": "db8dddea1c3475ef1c680d386d0493144048c7d2ac0f19a6215b551b85647cd1"
+    }
+  },
+  "capture_source": {
+    "commit": "d0c0097504f22e46e1738a5e94166bf23673a671",
+    "dirty": false,
+    "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "captured_at": "2026-08-14T09:03:29+00:00",
+  "cases": [
+    {
+      "boundaries": {
+        "full_vocabulary_logits": {
+          "bytes": 2979840,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "original_shape": [
+            81,
+            248320
+          ],
+          "path": "image_local_png/boundaries/full_vocabulary_logits.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "selected_rows": [
+            0,
+            3,
+            4,
+            66,
+            67,
+            80
+          ],
+          "sha256": "8cf49240fc04448bb7fc4abc29b9331527016f91e56fd2bfba70a1ec37264b8f",
+          "shape": [
+            6,
+            248320
+          ],
+          "teacher_forced_target_token_ids": [
+            846,
+            248056,
+            248056,
+            248056,
+            248054,
+            198
+          ]
+        },
+        "injected_embeddings": {
+          "bytes": 335872,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "image_local_png/boundaries/injected_embeddings.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "a6a7a8b13dc588b5d79a450b91276e9c3304a93bd74798dec3910d7df23df255",
+          "shape": [
+            82,
+            2048
+          ]
+        },
+        "language_final_norm": {
+          "bytes": 335872,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "image_local_png/boundaries/language_final_norm.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "2cb14fc035a34bec6b3c40f1d066acad97d892ef0fcaeea779f277e26be752e1",
+          "shape": [
+            82,
+            2048
+          ]
+        },
+        "language_layer_0": {
+          "bytes": 335872,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "image_local_png/boundaries/language_layer_0.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "5572293d89cabeed0ff6b1221b6a59acd26a1f51b48c3454e3a2bca777fccc41",
+          "shape": [
+            82,
+            2048
+          ]
+        },
+        "mrope_positions": {
+          "bytes": 1968,
+          "dtype": "torch.int64",
+          "element_size": 8,
+          "path": "image_local_png/boundaries/mrope_positions.bin",
+          "position_delta": -56,
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "80ca6403c212818538111d286307f91ee89ff4cacd515f91e0d9f7b7b0efe96e",
+          "shape": [
+            3,
+            82
+          ]
+        },
+        "vision_block_0": {
+          "bytes": 589824,
+          "call_shapes": [
+            [
+              256,
+              1,
+              1152
+            ]
+          ],
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "image_local_png/boundaries/vision_block_0.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "dbeff2fe17c9dfaf8f5022d6f73a33c55ac9e6a05c52c0bb51ef595a08063561",
+          "shape": [
+            256,
+            1,
+            1152
+          ]
+        },
+        "vision_block_13": {
+          "bytes": 589824,
+          "call_shapes": [
+            [
+              256,
+              1,
+              1152
+            ]
+          ],
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "image_local_png/boundaries/vision_block_13.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "84c4524ccaf11888315f39c609a5b358fd3217b34cead7ed818d4c3eafba0bf2",
+          "shape": [
+            256,
+            1,
+            1152
+          ]
+        },
+        "vision_block_26": {
+          "bytes": 589824,
+          "call_shapes": [
+            [
+              256,
+              1,
+              1152
+            ]
+          ],
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "image_local_png/boundaries/vision_block_26.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "57cdb01ae726fb15154b0bce11bc50cdc648ab7012143246169abab880b2632d",
+          "shape": [
+            256,
+            1,
+            1152
+          ]
+        },
+        "vision_merger": {
+          "bytes": 262144,
+          "call_shapes": [
+            [
+              64,
+              2048
+            ]
+          ],
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "image_local_png/boundaries/vision_merger.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "6f16cb0635a0a0dc079c4b99906e9e0fc16b8426746ab571ec24a8e43147b71b",
+          "shape": [
+            64,
+            2048
+          ]
+        },
+        "vision_patch_embed": {
+          "bytes": 589824,
+          "call_shapes": [
+            [
+              256,
+              1152
+            ]
+          ],
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "image_local_png/boundaries/vision_patch_embed.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "3be053ed1fced81aa615ed0a1af63c663373ed725307fb13348ee8bb066c837b",
+          "shape": [
+            256,
+            1152
+          ]
+        }
+      },
+      "cache_state": {
+        "encoder_cache": "reset-before-case",
+        "prefix_cache_enabled": false,
+        "processor_cache": "reset-before-case"
+      },
+      "case_id": "image_local_png",
+      "generation": {
+        "completion_tokens": 8,
+        "finish_reason": "length",
+        "num_cached_tokens": 0,
+        "output_text_sha256": "dc7453793f0f31508c87f54847110140277f3d0e719d3ea89e7e60bce77fdf27",
+        "output_token_ids": [
+          760,
+          1156,
+          6587,
+          728,
+          310,
+          10229,
+          264,
+          8851
+        ],
+        "output_token_ids_sha256": "119fed6e82a744d60e564ed932340c6275b6e285298618ba3330487f62f9a18c",
+        "prompt_token_ids_sha256": "6462d85f92fb077999f1b028006631937910dc5cadf4ea6fdda8805982863701",
+        "prompt_tokens": 82,
+        "sampling": {
+          "max_tokens": 8,
+          "prompt_logprobs": 1,
+          "seed": 0,
+          "temperature": 0
+        },
+        "stop_reason": null
+      },
+      "http_render": {
+        "private_prompt_matches_real_http": false,
+        "private_prompt_token_ids_sha256": "c7199ac29d428fd67f57507b5e18c1f432d77f199a040e1f9fef46764dc66975",
+        "prompt_token_ids_sha256": "6462d85f92fb077999f1b028006631937910dc5cadf4ea6fdda8805982863701",
+        "prompt_tokens": 82,
+        "render_transport_request_sha256": "1c135fe59669cbf71f24a9636c4b078aeca0c060d01d4868ab71c51b2e6b53a3"
+      },
+      "model_modules": {
+        "modules": {
+          "full_vocabulary_logits": "vllm.model_executor.layers.logits_processor.LogitsProcessor",
+          "language_final_norm": "vllm.model_executor.layers.layernorm.GemmaRMSNorm",
+          "language_layer_0": "vllm.model_executor.models.qwen3_5.Qwen3_5DecoderLayer",
+          "vision_block_0": "vllm.model_executor.models.qwen3_vl.Qwen3_VisionBlock",
+          "vision_block_13": "vllm.model_executor.models.qwen3_vl.Qwen3_VisionBlock",
+          "vision_block_26": "vllm.model_executor.models.qwen3_vl.Qwen3_VisionBlock",
+          "vision_merger": "vllm.model_executor.models.qwen3_vl.Qwen3_VisionPatchMerger",
+          "vision_patch_embed": "vllm.model_executor.models.qwen3_vl.Qwen3_VisionPatchEmbed"
+        },
+        "root": "vllm.model_executor.models.qwen3_5.Qwen3_5MoeForConditionalGeneration"
+      },
+      "passed": true,
+      "processor": {
+        "mm_hashes": {
+          "image": [
+            "5f4f7c730d33113542069c9de0e288f9960b4211a6de5c4665f9516d4495604f"
+          ]
+        },
+        "placeholders": {
+          "image": [
+            {
+              "length": 64,
+              "num_embeds": 64,
+              "offset": 4
+            }
+          ]
+        },
+        "prompt_text_sha256": "b711636ccd6555529c6b9e5d2ecfea41905507eed84dfe761ad254dc3e65f8d9",
+        "prompt_token_ids": [
+          248045,
+          846,
+          198,
+          248053,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248054,
+          198,
+          657,
+          799,
+          8851,
+          3234,
+          13,
+          248046,
+          198,
+          248045,
+          74455,
+          198,
+          248068,
+          198
+        ],
+        "prompt_token_ids_sha256": "6462d85f92fb077999f1b028006631937910dc5cadf4ea6fdda8805982863701",
+        "tensors": {
+          "image_grid_thw": {
+            "bytes": 24,
+            "dtype": "torch.int64",
+            "element_size": 8,
+            "path": "image_local_png/processor/image_grid_thw.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "53389fa912f56f81bbbe0669ab378c489b4cfaf9501876dcaec451ae86db735b",
+            "shape": [
+              1,
+              3
+            ]
+          },
+          "pixel_values": {
+            "bytes": 786432,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "image_local_png/processor/pixel_values.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "28e3bf47e74e94a78db819016eee9ce02983f93ab86012de846a27d72a1623b8",
+            "shape": [
+              256,
+              1536
+            ]
+          }
+        }
+      },
+      "request": {
+        "content": [
+          {
+            "text": "Name one visual property.",
+            "type": "text"
+          },
+          {
+            "bytes": 5467,
+            "fixture": "image-rgb-256.png",
+            "mime": "image/png",
+            "sha256": "dc486687ceead3b9a14953b32ff5f7ee3b6125f52de11fb1b76db378d62dd0c8",
+            "transport": "local-file",
+            "type": "image"
+          }
+        ],
+        "role": "user"
+      },
+      "request_sha256": "47307b0449d44afaf80f5c58b9258b07fbafb2463c95df8ccbbec4f38888a5a9"
+    },
+    {
+      "boundaries": {
+        "full_vocabulary_logits": {
+          "bytes": 2979840,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "original_shape": [
+            63,
+            248320
+          ],
+          "path": "video_local_mp4/boundaries/full_vocabulary_logits.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "selected_rows": [
+            0,
+            2,
+            3,
+            49,
+            50,
+            62
+          ],
+          "sha256": "8d3105ea03a9bd616b67d5e5278afed223801dfa2328058d635aeb09c01bfe71",
+          "shape": [
+            6,
+            248320
+          ],
+          "teacher_forced_target_token_ids": [
+            846,
+            27,
+            15,
+            248054,
+            198,
+            198
+          ]
+        },
+        "injected_embeddings": {
+          "bytes": 262144,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "video_local_mp4/boundaries/injected_embeddings.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "3b645d935896e4d221b9fbc3cdc225a3eeb83b4d1f303e74790597e4cea49f79",
+          "shape": [
+            64,
+            2048
+          ]
+        },
+        "language_final_norm": {
+          "bytes": 262144,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "video_local_mp4/boundaries/language_final_norm.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "6096d59ba9240388937b2000b83c6b454b52737d23617899d287babb15c6e310",
+          "shape": [
+            64,
+            2048
+          ]
+        },
+        "language_layer_0": {
+          "bytes": 262144,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "video_local_mp4/boundaries/language_layer_0.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "04a0bd4d04d3d2cfe9dd73f7953d442af313a18e430a52ba62a5b82701bf8e16",
+          "shape": [
+            64,
+            2048
+          ]
+        },
+        "mrope_positions": {
+          "bytes": 1536,
+          "dtype": "torch.int64",
+          "element_size": 8,
+          "path": "video_local_mp4/boundaries/mrope_positions.bin",
+          "position_delta": -24,
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "1164691b3c7c28587de19133dfd16178239c2d4fafda71db3d84e86c616a1acc",
+          "shape": [
+            3,
+            64
+          ]
+        },
+        "vision_block_0": {
+          "bytes": 294912,
+          "call_shapes": [
+            [
+              128,
+              1,
+              1152
+            ]
+          ],
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "video_local_mp4/boundaries/vision_block_0.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "98199a56bd10c6c94aafb43beb5ed0f9a9ac1ea09fe432923cd631202b305246",
+          "shape": [
+            128,
+            1,
+            1152
+          ]
+        },
+        "vision_block_13": {
+          "bytes": 294912,
+          "call_shapes": [
+            [
+              128,
+              1,
+              1152
+            ]
+          ],
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "video_local_mp4/boundaries/vision_block_13.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "aa408f83cb4a88a311f063c0e3a4ee6df505181d2b0707eb228985198d2a36aa",
+          "shape": [
+            128,
+            1,
+            1152
+          ]
+        },
+        "vision_block_26": {
+          "bytes": 294912,
+          "call_shapes": [
+            [
+              128,
+              1,
+              1152
+            ]
+          ],
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "video_local_mp4/boundaries/vision_block_26.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "764178cd51383c638860aa18affb7ce5f890ae390a7191b666e264accd8ded88",
+          "shape": [
+            128,
+            1,
+            1152
+          ]
+        },
+        "vision_merger": {
+          "bytes": 131072,
+          "call_shapes": [
+            [
+              32,
+              2048
+            ]
+          ],
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "video_local_mp4/boundaries/vision_merger.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "af932a97af69adea968c8c36d90ad2effe83f1f4bb3d89e431120b83079d02f6",
+          "shape": [
+            32,
+            2048
+          ]
+        },
+        "vision_patch_embed": {
+          "bytes": 294912,
+          "call_shapes": [
+            [
+              128,
+              1152
+            ]
+          ],
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "video_local_mp4/boundaries/vision_patch_embed.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "18c7dcc66c5214daa4fb04b9153815d2b1747c5cdafcd8199f0d0e7797642012",
+          "shape": [
+            128,
+            1152
+          ]
+        }
+      },
+      "cache_state": {
+        "encoder_cache": "reset-before-case",
+        "prefix_cache_enabled": false,
+        "processor_cache": "reset-before-case"
+      },
+      "case_id": "video_local_mp4",
+      "generation": {
+        "completion_tokens": 8,
+        "finish_reason": "length",
+        "num_cached_tokens": 0,
+        "output_text_sha256": "407365139781fbf205decb42e2872ee6800822cf88e1f8af0d133ba35069be02",
+        "output_token_ids": [
+          760,
+          1156,
+          6587,
+          264,
+          9522,
+          3874,
+          314,
+          279
+        ],
+        "output_token_ids_sha256": "35a736dd4c55ef8789a794613a019188873ebf3e5fd25a1fa3c05c26c4572582",
+        "prompt_token_ids_sha256": "6e632c4f208a83c4c0fdb66fe16a8104e4578b2c89e6542247f720084e78c446",
+        "prompt_tokens": 64,
+        "sampling": {
+          "max_tokens": 8,
+          "prompt_logprobs": 1,
+          "seed": 0,
+          "temperature": 0
+        },
+        "stop_reason": null
+      },
+      "http_render": {
+        "private_prompt_matches_real_http": false,
+        "private_prompt_token_ids_sha256": "c08ffcf2b28c290530e2d2a171527a418fd80e14424b4ad88a1a3703cb27f136",
+        "prompt_token_ids_sha256": "6e632c4f208a83c4c0fdb66fe16a8104e4578b2c89e6542247f720084e78c446",
+        "prompt_tokens": 64,
+        "render_transport_request_sha256": "8ae23e5428055299fb48a7b233ee7a26f15f6275b644770f82b9812a2799f825"
+      },
+      "model_modules": {
+        "modules": {
+          "full_vocabulary_logits": "vllm.model_executor.layers.logits_processor.LogitsProcessor",
+          "language_final_norm": "vllm.model_executor.layers.layernorm.GemmaRMSNorm",
+          "language_layer_0": "vllm.model_executor.models.qwen3_5.Qwen3_5DecoderLayer",
+          "vision_block_0": "vllm.model_executor.models.qwen3_vl.Qwen3_VisionBlock",
+          "vision_block_13": "vllm.model_executor.models.qwen3_vl.Qwen3_VisionBlock",
+          "vision_block_26": "vllm.model_executor.models.qwen3_vl.Qwen3_VisionBlock",
+          "vision_merger": "vllm.model_executor.models.qwen3_vl.Qwen3_VisionPatchMerger",
+          "vision_patch_embed": "vllm.model_executor.models.qwen3_vl.Qwen3_VisionPatchEmbed"
+        },
+        "root": "vllm.model_executor.models.qwen3_5.Qwen3_5MoeForConditionalGeneration"
+      },
+      "passed": true,
+      "processor": {
+        "mm_hashes": {
+          "video": [
+            "ce9a067cfae09dfabc7b5ab3c04c429d8dad50d5189c48965343a9585cf33874"
+          ]
+        },
+        "placeholders": {
+          "video": [
+            {
+              "is_embed": [
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                false
+              ],
+              "is_embed_sha256": "6db97a3ba4c2105a438064086c1a19786205a5eb486cf1b7c416515b6dc2f9eb",
+              "length": 48,
+              "num_embeds": 32,
+              "offset": 3
+            }
+          ]
+        },
+        "prompt_text_sha256": "42093faff16e5253c656421c2144dcc7b0c724da9d32908cbedfdb17484bf599",
+        "prompt_token_ids": [
+          248045,
+          846,
+          198,
+          27,
+          15,
+          13,
+          17,
+          6283,
+          29,
+          248053,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248054,
+          27,
+          16,
+          13,
+          19,
+          6283,
+          29,
+          248053,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248054,
+          198,
+          72240,
+          279,
+          11051,
+          25899,
+          13,
+          248046,
+          198,
+          248045,
+          74455,
+          198,
+          248068,
+          198
+        ],
+        "prompt_token_ids_sha256": "6e632c4f208a83c4c0fdb66fe16a8104e4578b2c89e6542247f720084e78c446",
+        "tensors": {
+          "pixel_values_videos": {
+            "bytes": 393216,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "video_local_mp4/processor/pixel_values_videos.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "0f0806b68060aefe416b704fec0b2f8d2cb6129bbc9b5998e956b38a775cdca0",
+            "shape": [
+              128,
+              1536
+            ]
+          },
+          "video_grid_thw": {
+            "bytes": 24,
+            "dtype": "torch.int64",
+            "element_size": 8,
+            "path": "video_local_mp4/processor/video_grid_thw.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "fdc6b03a3e510dd842cd5bcc122fce80466960eea283883cd10fbd0f2d2bebdf",
+            "shape": [
+              1,
+              3
+            ]
+          }
+        }
+      },
+      "request": {
+        "content": [
+          {
+            "text": "Describe the motion briefly.",
+            "type": "text"
+          },
+          {
+            "bytes": 54027,
+            "fixture": "video-8f-4fps-128.mp4",
+            "mime": "video/mp4",
+            "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+            "transport": "local-file",
+            "type": "video"
+          }
+        ],
+        "role": "user"
+      },
+      "request_sha256": "cbf0976ad47735f3fea67f34f9c36f492e3335bb0c51bf6bf35b5b958a1eb072"
+    },
+    {
+      "boundaries": {
+        "full_vocabulary_logits": {
+          "bytes": 4966400,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "original_shape": [
+            185,
+            248320
+          ],
+          "path": "multi_image/boundaries/full_vocabulary_logits.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "selected_rows": [
+            0,
+            3,
+            4,
+            66,
+            67,
+            70,
+            71,
+            165,
+            166,
+            184
+          ],
+          "sha256": "17fa3e4d7ab526c973500ec14191ccec4f2cc3ce46235cdbac6f0b852159995a",
+          "shape": [
+            10,
+            248320
+          ],
+          "teacher_forced_target_token_ids": [
+            846,
+            248056,
+            248056,
+            248056,
+            248054,
+            248056,
+            248056,
+            248056,
+            248054,
+            198
+          ]
+        },
+        "injected_embeddings": {
+          "bytes": 761856,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "multi_image/boundaries/injected_embeddings.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "1a52e22e523209788273169bfbaed1a9694f8c8a688f711ecdf4f5ad82beebb8",
+          "shape": [
+            186,
+            2048
+          ]
+        },
+        "language_final_norm": {
+          "bytes": 761856,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "multi_image/boundaries/language_final_norm.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "ba9e49f09cf587598d3aeaf7fd17d7dd2f4e2a57220b4a4babaa6055816cc50b",
+          "shape": [
+            186,
+            2048
+          ]
+        },
+        "language_layer_0": {
+          "bytes": 761856,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "multi_image/boundaries/language_layer_0.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "325b650bfc555ff928a3ed7dec9b16978e6bd6b9f78cef947d9d18c18ad23a68",
+          "shape": [
+            186,
+            2048
+          ]
+        },
+        "mrope_positions": {
+          "bytes": 4464,
+          "dtype": "torch.int64",
+          "element_size": 8,
+          "path": "multi_image/boundaries/mrope_positions.bin",
+          "position_delta": -136,
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "b2ac877dcc00feb413458e8431d6512d132c21b25f099bfd34e2f2915a2b55d1",
+          "shape": [
+            3,
+            186
+          ]
+        },
+        "vision_block_0": {
+          "bytes": 1474560,
+          "call_shapes": [
+            [
+              640,
+              1,
+              1152
+            ]
+          ],
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "multi_image/boundaries/vision_block_0.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "811ad6059ec8d9613e300d0612bd96d722218a00697eff7e3d02227eba7d1566",
+          "shape": [
+            640,
+            1,
+            1152
+          ]
+        },
+        "vision_block_13": {
+          "bytes": 1474560,
+          "call_shapes": [
+            [
+              640,
+              1,
+              1152
+            ]
+          ],
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "multi_image/boundaries/vision_block_13.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "4d6af3c0407d0119d838424ec66bf4e340a65f99d1e23df74ad38a6eef8b3744",
+          "shape": [
+            640,
+            1,
+            1152
+          ]
+        },
+        "vision_block_26": {
+          "bytes": 1474560,
+          "call_shapes": [
+            [
+              640,
+              1,
+              1152
+            ]
+          ],
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "multi_image/boundaries/vision_block_26.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "9670cf14d41899bb8dbeb0e3279d39853e1beb2cd8ae10aed4beb6c449f6ef38",
+          "shape": [
+            640,
+            1,
+            1152
+          ]
+        },
+        "vision_merger": {
+          "bytes": 655360,
+          "call_shapes": [
+            [
+              160,
+              2048
+            ]
+          ],
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "multi_image/boundaries/vision_merger.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "e41018daf2034608da0a472a0136518967998bb06908467655af1c5e72be74a1",
+          "shape": [
+            160,
+            2048
+          ]
+        },
+        "vision_patch_embed": {
+          "bytes": 1474560,
+          "call_shapes": [
+            [
+              640,
+              1152
+            ]
+          ],
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "multi_image/boundaries/vision_patch_embed.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "37d150a35a8257025e1ca1a7f16e018637f27aa021c867e70b2425c1939d8349",
+          "shape": [
+            640,
+            1152
+          ]
+        }
+      },
+      "cache_state": {
+        "encoder_cache": "reset-before-case",
+        "prefix_cache_enabled": false,
+        "processor_cache": "reset-before-case"
+      },
+      "case_id": "multi_image",
+      "generation": {
+        "completion_tokens": 8,
+        "finish_reason": "length",
+        "num_cached_tokens": 0,
+        "output_text_sha256": "ae7bda17f8ca9f1db1cfa0d5009890026af960af0753867207e181de496cc937",
+        "output_token_ids": [
+          760,
+          1156,
+          6587,
+          264,
+          9522,
+          11960,
+          314,
+          279
+        ],
+        "output_token_ids_sha256": "6f43fb74aa12ec8877c036d5a3dfc266172cfda42126bf5405463607046da4db",
+        "prompt_token_ids_sha256": "3859b4d1942df0d6fa9d4e67c42a833bae351096c0cbc107c636cdcb434124cd",
+        "prompt_tokens": 186,
+        "sampling": {
+          "max_tokens": 8,
+          "prompt_logprobs": 1,
+          "seed": 0,
+          "temperature": 0
+        },
+        "stop_reason": null
+      },
+      "http_render": {
+        "private_prompt_matches_real_http": false,
+        "private_prompt_token_ids_sha256": "8bdc604e45640d1972c76f29a85aeb8ad257aae40de6f5fa0ac13efd6a5f69aa",
+        "prompt_token_ids_sha256": "3859b4d1942df0d6fa9d4e67c42a833bae351096c0cbc107c636cdcb434124cd",
+        "prompt_tokens": 186,
+        "render_transport_request_sha256": "6b560a34857dccdb524af8d4c448c22d0124e3bfa04002bbb68477e6b189a624"
+      },
+      "model_modules": {
+        "modules": {
+          "full_vocabulary_logits": "vllm.model_executor.layers.logits_processor.LogitsProcessor",
+          "language_final_norm": "vllm.model_executor.layers.layernorm.GemmaRMSNorm",
+          "language_layer_0": "vllm.model_executor.models.qwen3_5.Qwen3_5DecoderLayer",
+          "vision_block_0": "vllm.model_executor.models.qwen3_vl.Qwen3_VisionBlock",
+          "vision_block_13": "vllm.model_executor.models.qwen3_vl.Qwen3_VisionBlock",
+          "vision_block_26": "vllm.model_executor.models.qwen3_vl.Qwen3_VisionBlock",
+          "vision_merger": "vllm.model_executor.models.qwen3_vl.Qwen3_VisionPatchMerger",
+          "vision_patch_embed": "vllm.model_executor.models.qwen3_vl.Qwen3_VisionPatchEmbed"
+        },
+        "root": "vllm.model_executor.models.qwen3_5.Qwen3_5MoeForConditionalGeneration"
+      },
+      "passed": true,
+      "processor": {
+        "mm_hashes": {
+          "image": [
+            "5f4f7c730d33113542069c9de0e288f9960b4211a6de5c4665f9516d4495604f",
+            "0a5390d5369c2fa37d7cda9074e0856e3dcbd9678a298bccf8113f268588595d"
+          ]
+        },
+        "placeholders": {
+          "image": [
+            {
+              "length": 64,
+              "num_embeds": 64,
+              "offset": 4
+            },
+            {
+              "length": 96,
+              "num_embeds": 96,
+              "offset": 71
+            }
+          ]
+        },
+        "prompt_text_sha256": "e211a9120e5bc4a5066b0c325bb0018c3818d56e2c15e5b3713882d5381d8dc5",
+        "prompt_token_ids": [
+          248045,
+          846,
+          198,
+          248053,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248054,
+          198,
+          248053,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248054,
+          198,
+          5170,
+          25,
+          198,
+          15207,
+          25,
+          198,
+          26487,
+          1070,
+          25899,
+          13,
+          248046,
+          198,
+          248045,
+          74455,
+          198,
+          248068,
+          198
+        ],
+        "prompt_token_ids_sha256": "3859b4d1942df0d6fa9d4e67c42a833bae351096c0cbc107c636cdcb434124cd",
+        "tensors": {
+          "image_grid_thw": {
+            "bytes": 48,
+            "dtype": "torch.int64",
+            "element_size": 8,
+            "path": "multi_image/processor/image_grid_thw.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "ad18fc631e1523e8459ae405d6c21c333db1c093f2c70070416c9743b4af0b79",
+            "shape": [
+              2,
+              3
+            ]
+          },
+          "pixel_values": {
+            "bytes": 1966080,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "multi_image/processor/pixel_values.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "8bab192428489cd7cc81cbb184aa15951a5c1527742653fc8db34a96ae96052b",
+            "shape": [
+              640,
+              1536
+            ]
+          }
+        }
+      },
+      "request": {
+        "content": [
+          {
+            "text": "First:",
+            "type": "text"
+          },
+          {
+            "bytes": 5467,
+            "fixture": "image-rgb-256.png",
+            "mime": "image/png",
+            "sha256": "dc486687ceead3b9a14953b32ff5f7ee3b6125f52de11fb1b76db378d62dd0c8",
+            "transport": "local-file",
+            "type": "image"
+          },
+          {
+            "text": "Second:",
+            "type": "text"
+          },
+          {
+            "bytes": 125682,
+            "fixture": "image-landscape-512x192.jpg",
+            "mime": "image/jpeg",
+            "sha256": "f3c0db7e6458b7aa669b600c1b213246585d3924102583c0f0605ab009e895e2",
+            "transport": "local-file",
+            "type": "image"
+          },
+          {
+            "text": "Compare them briefly.",
+            "type": "text"
+          }
+        ],
+        "role": "user"
+      },
+      "request_sha256": "492bd0d35b8652262e0b94d756b1d399304756395127925ac84f4186f90c8a16"
+    },
+    {
+      "boundaries": {
+        "full_vocabulary_logits": {
+          "bytes": 4966400,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "original_shape": [
+            130,
+            248320
+          ],
+          "path": "multi_video/boundaries/full_vocabulary_logits.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "selected_rows": [
+            0,
+            2,
+            3,
+            49,
+            50,
+            51,
+            52,
+            114,
+            115,
+            129
+          ],
+          "sha256": "23fc2f8f07d54a88fce9c34489569c335c685779df407075294761767bda35c0",
+          "shape": [
+            10,
+            248320
+          ],
+          "teacher_forced_target_token_ids": [
+            846,
+            27,
+            15,
+            248054,
+            198,
+            27,
+            15,
+            248054,
+            198,
+            198
+          ]
+        },
+        "injected_embeddings": {
+          "bytes": 536576,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "multi_video/boundaries/injected_embeddings.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "f0498c038546872668ddf8ffbea074a9f3b44e6e9bd10902df5afc196da4fc6f",
+          "shape": [
+            131,
+            2048
+          ]
+        },
+        "language_final_norm": {
+          "bytes": 536576,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "multi_video/boundaries/language_final_norm.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "77ef207901ae8da1e7fc3a0cf63c6609dc028383cf8f8fa4838a059372efe256",
+          "shape": [
+            131,
+            2048
+          ]
+        },
+        "language_layer_0": {
+          "bytes": 536576,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "multi_video/boundaries/language_layer_0.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "56be7622e633621fa5a87a5648cdae137f3c86730c3f9d2eeb46b133bd1297d8",
+          "shape": [
+            131,
+            2048
+          ]
+        },
+        "mrope_positions": {
+          "bytes": 3144,
+          "dtype": "torch.int64",
+          "element_size": 8,
+          "path": "multi_video/boundaries/mrope_positions.bin",
+          "position_delta": -60,
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "f048416b893f2d3dbd30e7237153224e2c5000c08f81cfe276517a55ddca7b4b",
+          "shape": [
+            3,
+            131
+          ]
+        },
+        "vision_block_0": {
+          "bytes": 737280,
+          "call_shapes": [
+            [
+              320,
+              1,
+              1152
+            ]
+          ],
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "multi_video/boundaries/vision_block_0.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "c65425e53d0f386eed99465fe387aa43a331ab9aa713d328869f81e93772f4b2",
+          "shape": [
+            320,
+            1,
+            1152
+          ]
+        },
+        "vision_block_13": {
+          "bytes": 737280,
+          "call_shapes": [
+            [
+              320,
+              1,
+              1152
+            ]
+          ],
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "multi_video/boundaries/vision_block_13.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "67999d59517f1ab5c6f3b67d1445b396d10f11431542e88848abc090108f8d71",
+          "shape": [
+            320,
+            1,
+            1152
+          ]
+        },
+        "vision_block_26": {
+          "bytes": 737280,
+          "call_shapes": [
+            [
+              320,
+              1,
+              1152
+            ]
+          ],
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "multi_video/boundaries/vision_block_26.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "422f6427fd546df4ca0ad0b93dc423f5de7d80ea4f53dbddabc9d05254ed905c",
+          "shape": [
+            320,
+            1,
+            1152
+          ]
+        },
+        "vision_merger": {
+          "bytes": 327680,
+          "call_shapes": [
+            [
+              80,
+              2048
+            ]
+          ],
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "multi_video/boundaries/vision_merger.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "d2bad3cd0b0c7de5731104a72702c9e9ccab7e23db551b9296b39d2ccbc70dec",
+          "shape": [
+            80,
+            2048
+          ]
+        },
+        "vision_patch_embed": {
+          "bytes": 737280,
+          "call_shapes": [
+            [
+              320,
+              1152
+            ]
+          ],
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "multi_video/boundaries/vision_patch_embed.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "24ac922c46cd2cf9e696084297037417a451e7e9c0806236128f0db67586f3c2",
+          "shape": [
+            320,
+            1152
+          ]
+        }
+      },
+      "cache_state": {
+        "encoder_cache": "reset-before-case",
+        "prefix_cache_enabled": false,
+        "processor_cache": "reset-before-case"
+      },
+      "case_id": "multi_video",
+      "generation": {
+        "completion_tokens": 8,
+        "finish_reason": "length",
+        "num_cached_tokens": 0,
+        "output_text_sha256": "877e917c26a88a0c910a6747867817b670dfea507e4cba2231b957408f5c33cd",
+        "output_token_ids": [
+          760,
+          1156,
+          6587,
+          264,
+          11960,
+          314,
+          279,
+          11051
+        ],
+        "output_token_ids_sha256": "ec2180afb59664da9781946b9e0fec0b317c09620b1ac52dd33b1a8484a500fc",
+        "prompt_token_ids_sha256": "f11eb4c121339971b871b52c1d535803627336e201f6fc759062b5635dbe19b6",
+        "prompt_tokens": 131,
+        "sampling": {
+          "max_tokens": 8,
+          "prompt_logprobs": 1,
+          "seed": 0,
+          "temperature": 0
+        },
+        "stop_reason": null
+      },
+      "http_render": {
+        "private_prompt_matches_real_http": false,
+        "private_prompt_token_ids_sha256": "03390688d4bfb7ed7650588ea2850788d5971d851f7c286c80bf8c33c5c9ad5b",
+        "prompt_token_ids_sha256": "f11eb4c121339971b871b52c1d535803627336e201f6fc759062b5635dbe19b6",
+        "prompt_tokens": 131,
+        "render_transport_request_sha256": "63ee3755a615fcaa3b287438b1cea188e8f8bc706926dc15cd9eb052654aa952"
+      },
+      "model_modules": {
+        "modules": {
+          "full_vocabulary_logits": "vllm.model_executor.layers.logits_processor.LogitsProcessor",
+          "language_final_norm": "vllm.model_executor.layers.layernorm.GemmaRMSNorm",
+          "language_layer_0": "vllm.model_executor.models.qwen3_5.Qwen3_5DecoderLayer",
+          "vision_block_0": "vllm.model_executor.models.qwen3_vl.Qwen3_VisionBlock",
+          "vision_block_13": "vllm.model_executor.models.qwen3_vl.Qwen3_VisionBlock",
+          "vision_block_26": "vllm.model_executor.models.qwen3_vl.Qwen3_VisionBlock",
+          "vision_merger": "vllm.model_executor.models.qwen3_vl.Qwen3_VisionPatchMerger",
+          "vision_patch_embed": "vllm.model_executor.models.qwen3_vl.Qwen3_VisionPatchEmbed"
+        },
+        "root": "vllm.model_executor.models.qwen3_5.Qwen3_5MoeForConditionalGeneration"
+      },
+      "passed": true,
+      "processor": {
+        "mm_hashes": {
+          "video": [
+            "ce9a067cfae09dfabc7b5ab3c04c429d8dad50d5189c48965343a9585cf33874",
+            "db930ca84577a9b5d1fa57731f4c63e51b73d474a86b5cf030a97787a6729cc1"
+          ]
+        },
+        "placeholders": {
+          "video": [
+            {
+              "is_embed": [
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                false
+              ],
+              "is_embed_sha256": "6db97a3ba4c2105a438064086c1a19786205a5eb486cf1b7c416515b6dc2f9eb",
+              "length": 48,
+              "num_embeds": 32,
+              "offset": 3
+            },
+            {
+              "is_embed": [
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                false
+              ],
+              "is_embed_sha256": "7f6582ec1e507b3f695010fdee435479d73689e23c3784e3e6f99c00b209239d",
+              "length": 64,
+              "num_embeds": 48,
+              "offset": 52
+            }
+          ]
+        },
+        "prompt_text_sha256": "5ed4b476534ab7411252a409f58b06f1fd2f82d940113f699b99c0450b9a7b58",
+        "prompt_token_ids": [
+          248045,
+          846,
+          198,
+          27,
+          15,
+          13,
+          17,
+          6283,
+          29,
+          248053,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248054,
+          27,
+          16,
+          13,
+          19,
+          6283,
+          29,
+          248053,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248054,
+          198,
+          27,
+          15,
+          13,
+          17,
+          6283,
+          29,
+          248053,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248054,
+          27,
+          16,
+          13,
+          20,
+          6283,
+          29,
+          248053,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248054,
+          198,
+          429,
+          198,
+          26487,
+          836,
+          11051,
+          25899,
+          13,
+          248046,
+          198,
+          248045,
+          74455,
+          198,
+          248068,
+          198
+        ],
+        "prompt_token_ids_sha256": "f11eb4c121339971b871b52c1d535803627336e201f6fc759062b5635dbe19b6",
+        "tensors": {
+          "pixel_values_videos": {
+            "bytes": 983040,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "multi_video/processor/pixel_values_videos.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "f3f6358d8c792d72f386675122a21fcbd408affb8b5532d05eacae7f9fe8a5a1",
+            "shape": [
+              320,
+              1536
+            ]
+          },
+          "video_grid_thw": {
+            "bytes": 48,
+            "dtype": "torch.int64",
+            "element_size": 8,
+            "path": "multi_video/processor/video_grid_thw.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "5e3fcee9f5006dd490b397268d2d04785271797889911a2a7380506f09f0734e",
+            "shape": [
+              2,
+              3
+            ]
+          }
+        }
+      },
+      "request": {
+        "content": [
+          {
+            "bytes": 54027,
+            "fixture": "video-8f-4fps-128.mp4",
+            "mime": "video/mp4",
+            "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+            "transport": "local-file",
+            "type": "video"
+          },
+          {
+            "text": "and",
+            "type": "text"
+          },
+          {
+            "bytes": 169626,
+            "fixture": "video-12f-6fps-192x128.avi",
+            "mime": "video/x-msvideo",
+            "sha256": "91f394f27c25a34fcbd279746aa7b2365c19c192e692df04a36b52edff701076",
+            "transport": "local-file",
+            "type": "video"
+          },
+          {
+            "text": "Compare their motion briefly.",
+            "type": "text"
+          }
+        ],
+        "role": "user"
+      },
+      "request_sha256": "181c0af284ad4ef84edfef42fd0db6ecec29014c4ba88d4cb78ac9ca5621094f"
+    },
+    {
+      "boundaries": {
+        "full_vocabulary_logits": {
+          "bytes": 4966400,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "original_shape": [
+            133,
+            248320
+          ],
+          "path": "mixed_image_video/boundaries/full_vocabulary_logits.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "selected_rows": [
+            0,
+            3,
+            4,
+            66,
+            67,
+            69,
+            70,
+            116,
+            117,
+            132
+          ],
+          "sha256": "393d52c365427dec578fc66006cde53106a0419c9bc341589fc183820c74d2f0",
+          "shape": [
+            10,
+            248320
+          ],
+          "teacher_forced_target_token_ids": [
+            846,
+            248056,
+            248056,
+            248056,
+            248054,
+            27,
+            15,
+            248054,
+            198,
+            198
+          ]
+        },
+        "injected_embeddings": {
+          "bytes": 548864,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "mixed_image_video/boundaries/injected_embeddings.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "b107422082770540cf81e2414cad55d6c9f2fb518fe23cdfdbe70683e5c4bad6",
+          "shape": [
+            134,
+            2048
+          ]
+        },
+        "language_final_norm": {
+          "bytes": 548864,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "mixed_image_video/boundaries/language_final_norm.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "4530ef18de5c59d8f89038e8e7caa4a435429875af5db2589ffc2b106835b242",
+          "shape": [
+            134,
+            2048
+          ]
+        },
+        "language_layer_0": {
+          "bytes": 548864,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "mixed_image_video/boundaries/language_layer_0.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "ff71e8e807a5862691664fbe9298fffe732c82a85d210358d4ec38b3f3e148c0",
+          "shape": [
+            134,
+            2048
+          ]
+        },
+        "mrope_positions": {
+          "bytes": 3216,
+          "dtype": "torch.int64",
+          "element_size": 8,
+          "path": "mixed_image_video/boundaries/mrope_positions.bin",
+          "position_delta": -80,
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "035fa71b52a1c69233e653c61f1aea0091753be0ed9843e79fc7570b0802808a",
+          "shape": [
+            3,
+            134
+          ]
+        },
+        "vision_block_0": {
+          "bytes": 884736,
+          "call_shapes": [
+            [
+              256,
+              1,
+              1152
+            ],
+            [
+              128,
+              1,
+              1152
+            ]
+          ],
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "mixed_image_video/boundaries/vision_block_0.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "f00c6acd112b9bd9a0717033a23a0e4e76dbb359a372201340dde2ae2f705da6",
+          "shape": [
+            384,
+            1,
+            1152
+          ]
+        },
+        "vision_block_13": {
+          "bytes": 884736,
+          "call_shapes": [
+            [
+              256,
+              1,
+              1152
+            ],
+            [
+              128,
+              1,
+              1152
+            ]
+          ],
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "mixed_image_video/boundaries/vision_block_13.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "c0ede0af22744b6454d2ff9c70ce0b27686d892890c52f6988d058d2274297ba",
+          "shape": [
+            384,
+            1,
+            1152
+          ]
+        },
+        "vision_block_26": {
+          "bytes": 884736,
+          "call_shapes": [
+            [
+              256,
+              1,
+              1152
+            ],
+            [
+              128,
+              1,
+              1152
+            ]
+          ],
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "mixed_image_video/boundaries/vision_block_26.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "0a9f39e36ffd147a363a58a9fe50cc090e56bcf89a9b968a5080f3db4ec8534e",
+          "shape": [
+            384,
+            1,
+            1152
+          ]
+        },
+        "vision_merger": {
+          "bytes": 393216,
+          "call_shapes": [
+            [
+              64,
+              2048
+            ],
+            [
+              32,
+              2048
+            ]
+          ],
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "mixed_image_video/boundaries/vision_merger.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "93e337efdf73d9ac8b63a7c67275f4ca31c65155a2477ca5684601e8a63b2779",
+          "shape": [
+            96,
+            2048
+          ]
+        },
+        "vision_patch_embed": {
+          "bytes": 884736,
+          "call_shapes": [
+            [
+              256,
+              1152
+            ],
+            [
+              128,
+              1152
+            ]
+          ],
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "mixed_image_video/boundaries/vision_patch_embed.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "f49f538fce3685635875256124a2d4ca7f87112fec92abb0d654b79155495fa7",
+          "shape": [
+            384,
+            1152
+          ]
+        }
+      },
+      "cache_state": {
+        "encoder_cache": "reset-before-case",
+        "prefix_cache_enabled": false,
+        "processor_cache": "reset-before-case"
+      },
+      "case_id": "mixed_image_video",
+      "generation": {
+        "completion_tokens": 8,
+        "finish_reason": "length",
+        "num_cached_tokens": 0,
+        "output_text_sha256": "7b245b9d82e1a7e4f08bd5542fff0a45e33a9ec4b39866c387ecfe8110c6394d",
+        "output_token_ids": [
+          760,
+          1156,
+          6587,
+          264,
+          11960,
+          314,
+          279,
+          8851
+        ],
+        "output_token_ids_sha256": "3d1272216997047bc14ecb7430b1074eaec89a380e08ef2feb090b718d343130",
+        "prompt_token_ids_sha256": "d2d4f5cace39ca45fa3f57dd73745e351a629240e91a5a58fe6ff79f2094e76f",
+        "prompt_tokens": 134,
+        "sampling": {
+          "max_tokens": 8,
+          "prompt_logprobs": 1,
+          "seed": 0,
+          "temperature": 0
+        },
+        "stop_reason": null
+      },
+      "http_render": {
+        "private_prompt_matches_real_http": false,
+        "private_prompt_token_ids_sha256": "e6e1f2c3b1869313524b88f81a77f78829fa8c66a66ce76e9b6599155f5cb58e",
+        "prompt_token_ids_sha256": "d2d4f5cace39ca45fa3f57dd73745e351a629240e91a5a58fe6ff79f2094e76f",
+        "prompt_tokens": 134,
+        "render_transport_request_sha256": "672ada6175b51f5879598caaaff00dec91b873c0aa7dde88a44677518c043b1e"
+      },
+      "model_modules": {
+        "modules": {
+          "full_vocabulary_logits": "vllm.model_executor.layers.logits_processor.LogitsProcessor",
+          "language_final_norm": "vllm.model_executor.layers.layernorm.GemmaRMSNorm",
+          "language_layer_0": "vllm.model_executor.models.qwen3_5.Qwen3_5DecoderLayer",
+          "vision_block_0": "vllm.model_executor.models.qwen3_vl.Qwen3_VisionBlock",
+          "vision_block_13": "vllm.model_executor.models.qwen3_vl.Qwen3_VisionBlock",
+          "vision_block_26": "vllm.model_executor.models.qwen3_vl.Qwen3_VisionBlock",
+          "vision_merger": "vllm.model_executor.models.qwen3_vl.Qwen3_VisionPatchMerger",
+          "vision_patch_embed": "vllm.model_executor.models.qwen3_vl.Qwen3_VisionPatchEmbed"
+        },
+        "root": "vllm.model_executor.models.qwen3_5.Qwen3_5MoeForConditionalGeneration"
+      },
+      "passed": true,
+      "processor": {
+        "mm_hashes": {
+          "image": [
+            "5f4f7c730d33113542069c9de0e288f9960b4211a6de5c4665f9516d4495604f"
+          ],
+          "video": [
+            "ce9a067cfae09dfabc7b5ab3c04c429d8dad50d5189c48965343a9585cf33874"
+          ]
+        },
+        "placeholders": {
+          "image": [
+            {
+              "length": 64,
+              "num_embeds": 64,
+              "offset": 4
+            }
+          ],
+          "video": [
+            {
+              "is_embed": [
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                false
+              ],
+              "is_embed_sha256": "6db97a3ba4c2105a438064086c1a19786205a5eb486cf1b7c416515b6dc2f9eb",
+              "length": 48,
+              "num_embeds": 32,
+              "offset": 70
+            }
+          ]
+        },
+        "prompt_text_sha256": "dc5c2daae0e26db88ac969c6d24eb70b4090e37bf5945fd68d28334f93abbbdc",
+        "prompt_token_ids": [
+          248045,
+          846,
+          198,
+          248053,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248054,
+          198,
+          27,
+          15,
+          13,
+          17,
+          6283,
+          29,
+          248053,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248054,
+          27,
+          16,
+          13,
+          19,
+          6283,
+          29,
+          248053,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248054,
+          198,
+          3282,
+          198,
+          26487,
+          279,
+          8851,
+          12261,
+          25899,
+          13,
+          248046,
+          198,
+          248045,
+          74455,
+          198,
+          248068,
+          198
+        ],
+        "prompt_token_ids_sha256": "d2d4f5cace39ca45fa3f57dd73745e351a629240e91a5a58fe6ff79f2094e76f",
+        "tensors": {
+          "image_grid_thw": {
+            "bytes": 24,
+            "dtype": "torch.int64",
+            "element_size": 8,
+            "path": "mixed_image_video/processor/image_grid_thw.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "53389fa912f56f81bbbe0669ab378c489b4cfaf9501876dcaec451ae86db735b",
+            "shape": [
+              1,
+              3
+            ]
+          },
+          "pixel_values": {
+            "bytes": 786432,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "mixed_image_video/processor/pixel_values.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "28e3bf47e74e94a78db819016eee9ce02983f93ab86012de846a27d72a1623b8",
+            "shape": [
+              256,
+              1536
+            ]
+          },
+          "pixel_values_videos": {
+            "bytes": 393216,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "mixed_image_video/processor/pixel_values_videos.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "0f0806b68060aefe416b704fec0b2f8d2cb6129bbc9b5998e956b38a775cdca0",
+            "shape": [
+              128,
+              1536
+            ]
+          },
+          "video_grid_thw": {
+            "bytes": 24,
+            "dtype": "torch.int64",
+            "element_size": 8,
+            "path": "mixed_image_video/processor/video_grid_thw.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "fdc6b03a3e510dd842cd5bcc122fce80466960eea283883cd10fbd0f2d2bebdf",
+            "shape": [
+              1,
+              3
+            ]
+          }
+        }
+      },
+      "request": {
+        "content": [
+          {
+            "bytes": 5467,
+            "fixture": "image-rgb-256.png",
+            "mime": "image/png",
+            "sha256": "dc486687ceead3b9a14953b32ff5f7ee3b6125f52de11fb1b76db378d62dd0c8",
+            "transport": "local-file",
+            "type": "image"
+          },
+          {
+            "text": "then",
+            "type": "text"
+          },
+          {
+            "bytes": 54027,
+            "fixture": "video-8f-4fps-128.mp4",
+            "mime": "video/mp4",
+            "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+            "transport": "local-file",
+            "type": "video"
+          },
+          {
+            "text": "Compare the visual patterns briefly.",
+            "type": "text"
+          }
+        ],
+        "role": "user"
+      },
+      "request_sha256": "7bce4fbf52cee1413e8809376425ca2eb2c91005e5a12582e2d782cc8c86a51d"
+    }
+  ],
+  "complete": true,
+  "decision": {
+    "five_real_http_numerical_oracles_exact": true,
+    "g1_passed": false,
+    "g2_passed": false
+  },
+  "host": {
+    "hostname": "quings",
+    "label": "amd395"
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "canonical_payload_sha256": "d90a8916942615d114a700ec7c55f95b1be37817eec10d9f0d3f64470f5a02ff"
+  },
+  "launch": {
+    "kind": "vllm-offline-single-resident-process",
+    "kwargs": {
+      "allowed_local_media_path": "${AIMA_ALLOWED_MEDIA_ROOT}",
+      "allowed_media_domains": [
+        "localhost",
+        "127.0.0.1"
+      ],
+      "async_scheduling": false,
+      "attention_backend": "TRITON_ATTN",
+      "disable_log_stats": true,
+      "dtype": "bfloat16",
+      "enable_chunked_prefill": true,
+      "enable_prefix_caching": false,
+      "enforce_eager": true,
+      "gdn_prefill_backend": "triton",
+      "gpu_memory_utilization": 0.95,
+      "language_model_only": false,
+      "limit_mm_per_prompt": {
+        "image": 16,
+        "video": 21
+      },
+      "load_format": "safetensors",
+      "max_model_len": 262144,
+      "max_num_batched_tokens": 16384,
+      "max_num_seqs": 1,
+      "media_io_kwargs": {
+        "video": {
+          "fps": 2.0,
+          "video_backend": "opencv"
+        }
+      },
+      "mm_encoder_attn_backend": "TRITON_ATTN",
+      "mm_processor_cache_gb": 4,
+      "mm_processor_kwargs": {},
+      "model": "${AIMA_MODEL_DIR}",
+      "seed": 0,
+      "skip_mm_profiling": false,
+      "tensor_parallel_size": 1,
+      "trust_remote_code": true,
+      "video_pruning_rate": 0
+    }
+  },
+  "model": {
+    "dtype": "bfloat16",
+    "repository": "Qwen/Qwen3.6-35B-A3B",
+    "revision": "995ad96eacd98c81ed38be0c5b274b04031597b0"
+  },
+  "oracle_root": "benchmarks/oracles/vl-http-v0.1.0",
+  "oracle_variant": {
+    "content_format": "auto-resolved-string",
+    "private_processor_prompt_reused": false,
+    "prompt_identity": "fixed-vllm-openai-http-render"
+  },
+  "qualified_for_native_boundary_comparison": true,
+  "reference_manifest": {
+    "bytes": 22516,
+    "path": "benchmarks/results/vl-reference-manifest.json",
+    "sha256": "8f03e939a9b15f58c2e623541d48be88c328ff19adac9eb52210e171766e9a00"
+  },
+  "required_boundaries": [
+    "full_vocabulary_logits",
+    "injected_embeddings",
+    "language_final_norm",
+    "language_layer_0",
+    "mrope_positions",
+    "vision_block_0",
+    "vision_block_13",
+    "vision_block_26",
+    "vision_merger",
+    "vision_patch_embed"
+  ],
+  "runtime": {
+    "packages": {
+      "numpy": "2.1.3",
+      "opencv-python-headless": "4.13.0.92",
+      "pillow": "12.2.0",
+      "torch": "2.10.0+git8514f05",
+      "transformers": "4.57.6",
+      "vllm": "0.19.1rc1.dev300+g29e5d1020.rocm721"
+    },
+    "python_version": "3.12.3"
+  },
+  "schema": "aima-amd395-qwen36/vl-oracle-manifest/v1",
+  "scope": "fixed-vllm-real-http-rendered-five-case-numerical-oracle"
+}
