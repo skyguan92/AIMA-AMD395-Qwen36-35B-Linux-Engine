@@ -449,6 +449,7 @@ json qualify_case(
       "layer-003-normalized_rotary_q_full_sequence",
       "layer-003-normalized_rotary_k_full_sequence",
       "layer-003-raw_v_full_sequence",
+      "layer-003-attention_pre_gate_full_sequence",
       "layer-003-projected_attention_full_sequence",
       "layer-003-post_attention_residual_full_sequence",
       "layer-003-post_attention_norm_full_sequence",
@@ -770,7 +771,7 @@ int main(int argc, char** argv) {
             "aima-amd395-qwen36/vl-oracle-manifest/v1" ||
         !vl_manifest.value("complete", false) ||
         prefix_manifest.value("schema", "") !=
-            "aima-amd395-qwen36/vl-language-prefix-diagnostic-oracle/v2" ||
+            "aima-amd395-qwen36/vl-language-prefix-diagnostic-oracle/v3" ||
         !prefix_manifest.value("complete", false) ||
         !prefix_manifest.value("qualified_for_attribution_only", false) ||
         layer3_manifest.value("schema", "") !=

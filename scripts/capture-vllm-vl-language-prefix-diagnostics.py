@@ -41,7 +41,7 @@ from aima_engine.vl_reference import (  # noqa: E402
 )
 
 
-SCHEMA = "aima-amd395-qwen36/vl-language-prefix-diagnostic-oracle/v2"
+SCHEMA = "aima-amd395-qwen36/vl-language-prefix-diagnostic-oracle/v3"
 VL_ORACLE_SHA256 = (
     "87dcdf76b7251f78da01a2a5f4312a9fb5c7d07a1ca2b2420566e77930f23d44"
 )
@@ -98,6 +98,7 @@ REQUIRED_COMPONENTS = {
     f"layer_{FULL_ATTENTION_LAYER:03d}_{suffix}"
     for suffix in (
         "attention_input",
+        "attention_core_output",
         "attention_residual",
         "post_attention_norm",
         "combined_moe_output",
@@ -171,6 +172,9 @@ def _remove_hooks(root: Any, state: dict[str, Any]) -> None:
     for binding in state.get("router_bindings", []):
         binding["router"].select_experts = binding["original"]
     state["router_bindings"] = []
+    for binding in state.get("attention_bindings", []):
+        binding["attention"].forward = binding["original"]
+    state["attention_bindings"] = []
     if hasattr(root, STATE_ATTRIBUTE):
         delattr(root, STATE_ATTRIBUTE)
 
@@ -228,6 +232,9 @@ def _oracle_labels() -> dict[str, str]:
     full_prefix = f"layer-{FULL_ATTENTION_LAYER:03d}-"
     labels[full_prefix + "return-full_attention-inp"] = (
         f"layer_{FULL_ATTENTION_LAYER:03d}_attention_input"
+    )
+    labels[full_prefix + "intermediate-full_attention-attn_pre_gate"] = (
+        f"layer_{FULL_ATTENTION_LAYER:03d}_attention_core_output"
     )
     labels[full_prefix + "return-layer_body-h2"] = _component_name(
         FULL_ATTENTION_LAYER, "post_attention_norm"
@@ -294,6 +301,7 @@ class InstallLanguagePrefixDiagnosticHooks:
             "captures": {},
             "handles": [],
             "router_bindings": [],
+            "attention_bindings": [],
         }
 
         def capture(name: str, value: Any) -> None:
@@ -426,6 +434,24 @@ class InstallLanguagePrefixDiagnosticHooks:
             )
             router.select_experts = wrapped
 
+        def instrument_attention(attention: Any) -> None:
+            original = attention.forward
+
+            def wrapped(*args: Any, **kwargs: Any) -> Any:
+                output = original(*args, **kwargs)
+                capture(
+                    _component_name(
+                        FULL_ATTENTION_LAYER, "attention_core_output"
+                    ),
+                    output,
+                )
+                return output
+
+            state["attention_bindings"].append(
+                {"attention": attention, "original": original}
+            )
+            attention.forward = wrapped
+
         handles = state["handles"]
         for layer_index in LINEAR_LAYERS:
             layer = language.model.layers[layer_index]
@@ -457,6 +483,7 @@ class InstallLanguagePrefixDiagnosticHooks:
             handles.append(layer.mlp.register_forward_hook(moe_hook(layer_index)))
             instrument_router(layer_index, layer.mlp.experts.router)
         full_layer = language.model.layers[FULL_ATTENTION_LAYER]
+        instrument_attention(full_layer.self_attn.attn)
         handles.append(
             full_layer.input_layernorm.register_forward_hook(
                 input_norm_hook(FULL_ATTENTION_LAYER)
@@ -504,6 +531,9 @@ class InstallLanguagePrefixDiagnosticHooks:
             },
             "layer3_moe": _module_identity(full_layer.mlp),
             "layer3_router": _module_identity(full_layer.mlp.experts.router),
+            "layer3_attention_core": _module_identity(
+                full_layer.self_attn.attn
+            ),
         }
 
 
