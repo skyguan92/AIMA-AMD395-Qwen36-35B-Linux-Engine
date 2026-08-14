@@ -62,6 +62,8 @@ class VlHttpOracleTest(unittest.TestCase):
             ROOT / "scripts/capture-vllm-vl-http-oracles.py"
         ).read_text()
         self.assertIn('getattr(\n        args, "_chat_template_content_format"', base)
+        self.assertIn("fixture_root = args.fixture_root.resolve()", base)
+        self.assertIn("_llm_kwargs(model_dir, fixture_root)", base)
         self.assertIn("preprocessed prompt differs from the bound render", base)
         self.assertIn('args._chat_template_content_format = "string"', wrapper)
         self.assertIn("VLLM_ALLOW_INSECURE_SERIALIZATION", wrapper)

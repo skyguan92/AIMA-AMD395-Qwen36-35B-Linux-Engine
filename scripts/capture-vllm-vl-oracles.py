@@ -634,6 +634,8 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
     from vllm.outputs import RequestOutput
 
     output_root = args.output_root.resolve()
+    fixture_root = args.fixture_root.resolve()
+    model_dir = args.model_dir.resolve()
     chat_template_content_format = getattr(
         args, "_chat_template_content_format", "openai"
     )
@@ -658,7 +660,7 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
         reference_path=args.reference_manifest,
         launch_path=args.launch_config,
         processor_path=args.processor_probe,
-        fixture_root=args.fixture_root,
+        fixture_root=fixture_root,
     )
     source = git_identity(ROOT)
     if source["dirty"]:
@@ -673,8 +675,8 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
         ):
             raise ValueError(f"runtime pin mismatch for {name}: {actual!r}")
 
-    records = _load_fixture_records(args.fixture_root)
-    llm_kwargs = _llm_kwargs(args.model_dir, args.fixture_root)
+    records = _load_fixture_records(fixture_root)
+    llm_kwargs = _llm_kwargs(model_dir, fixture_root)
     llm = LLM(**llm_kwargs)
     print(json.dumps({"event": "engine_ready"}, sort_keys=True), flush=True)
     sampling = SamplingParams(
@@ -694,7 +696,7 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
             )
             llm.reset_mm_cache()
             llm.llm_engine.reset_encoder_cache()
-            messages = _build_messages(spec, args.fixture_root)
+            messages = _build_messages(spec, fixture_root)
             engine_input = llm._preprocess_chat_one(
                 messages,
                 chat_template_content_format=chat_template_content_format,
@@ -817,7 +819,7 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
                     "benchmarks/results/vl-processor-capability-v0.1.0.json",
                 ),
                 "fixture_manifest": file_component(
-                    args.fixture_root / "fixtures-manifest.json",
+                    fixture_root / "fixtures-manifest.json",
                     "benchmarks/fixtures/vl-capability-v0.1.0/fixtures-manifest.json",
                 ),
             },
