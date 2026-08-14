@@ -7,6 +7,7 @@ from aima_engine.vl_capability import (
     API_RENDER_MEDIA_COUNTS,
     API_RENDER_SCHEMA,
     API_RENDER_TOOL_CASES,
+    API_RENDER_USAGELESS_CASES,
     EXPECTED_MAX_ITEMS_PER_PROMPT,
     EXPECTED_MAX_MODEL_LEN,
     EXPECTED_MAX_TOKENS_PER_ITEM,
@@ -105,7 +106,13 @@ def valid_api_render_manifest() -> dict:
                 token_ids.extend([pad_token, 248044])
                 placeholders[modality].append({"offset": offset, "length": 1})
         token_ids.append(248046)
-        usage_delta = 1 if case_id in API_RENDER_TOOL_CASES else 0
+        usage_delta = (
+            None
+            if case_id in API_RENDER_USAGELESS_CASES
+            else 1
+            if case_id in API_RENDER_TOOL_CASES
+            else 0
+        )
         request = {
             "model": "qwen36-vl-reference",
             "messages": [{"role": "user", "content": "test"}],
@@ -129,7 +136,9 @@ def valid_api_render_manifest() -> dict:
                 "prompt_token_ids": token_ids,
                 "prompt_token_ids_sha256": canonical_json_sha256(token_ids),
                 "mm_placeholders": placeholders,
-                "reference_usage_prompt_tokens": len(token_ids) + usage_delta,
+                "reference_usage_prompt_tokens": (
+                    None if usage_delta is None else len(token_ids) + usage_delta
+                ),
                 "reference_usage_delta": usage_delta,
                 "max_tokens": API_RENDER_MAX_TOKENS[case_id],
                 "structured_outputs": (
@@ -202,7 +211,7 @@ def valid_api_render_manifest() -> dict:
             "cases": cases,
             "decision": {
                 "success_render_cases_20_of_20": True,
-                "non_tool_render_matches_full_usage": True,
+                "non_tool_non_stream_render_matches_full_usage": True,
                 "tool_full_server_usage_offset_one": True,
                 "named_tool_json_schema_bound": True,
                 "g1_passed": False,
@@ -278,7 +287,7 @@ class VlCapabilityTest(unittest.TestCase):
         )
         self.assertIn(
             "API render decision is inconsistent: "
-            "non_tool_render_matches_full_usage",
+            "non_tool_non_stream_render_matches_full_usage",
             errors,
         )
         self.assertIn(
@@ -298,6 +307,19 @@ class VlCapabilityTest(unittest.TestCase):
         errors = validate_api_render_manifest(seal_manifest(manifest))
         self.assertTrue(any("structured output changed" in error for error in errors))
         self.assertIn("named tool render is not bound to a JSON schema", errors)
+
+    def test_api_render_stream_usage_absence_is_frozen(self) -> None:
+        manifest = valid_api_render_manifest()
+        manifest.pop("integrity")
+        stream = next(
+            case
+            for case in manifest["cases"]
+            if case["case_id"] == "stream_image"
+        )
+        stream["reference_usage_prompt_tokens"] = stream["prompt_tokens"]
+        stream["reference_usage_delta"] = 0
+        errors = validate_api_render_manifest(seal_manifest(manifest))
+        self.assertIn("API render stream usage must be absent: stream_image", errors)
 
 
 if __name__ == "__main__":

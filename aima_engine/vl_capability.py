@@ -106,6 +106,7 @@ REQUIRED_API_RENDER_CASES = tuple(
 API_RENDER_TOOL_CASES = frozenset(
     {"tool_history_with_image", "tool_forced_image", "tool_auto_image"}
 )
+API_RENDER_USAGELESS_CASES = frozenset({"stream_image", "stream_video"})
 API_RENDER_MEDIA_COUNTS = {
     "residency_text_before": {},
     "image_local_png": {"image": 1},
@@ -163,7 +164,7 @@ _API_RENDER_SOURCE_PATHS = (
 )
 _API_RENDER_TRUE_DECISIONS = (
     "success_render_cases_20_of_20",
-    "non_tool_render_matches_full_usage",
+    "non_tool_non_stream_render_matches_full_usage",
     "tool_full_server_usage_offset_one",
     "named_tool_json_schema_bound",
 )
@@ -504,21 +505,29 @@ def validate_api_render_manifest(payload: Mapping[str, Any]) -> list[str]:
                 errors.append(f"API render {field} is invalid: {case_id}")
         reference_prompt_tokens = case.get("reference_usage_prompt_tokens")
         usage_delta = case.get("reference_usage_delta")
-        if (
-            not isinstance(reference_prompt_tokens, int)
-            or isinstance(reference_prompt_tokens, bool)
-            or reference_prompt_tokens <= 0
-        ):
-            errors.append(f"API render reference usage is invalid: {case_id}")
-        elif (
-            not isinstance(usage_delta, int)
-            or isinstance(usage_delta, bool)
-            or usage_delta != reference_prompt_tokens - len(token_ids)
-        ):
-            errors.append(f"API render reference usage delta is invalid: {case_id}")
-        expected_delta = 1 if case_id in API_RENDER_TOOL_CASES else 0
-        if usage_delta != expected_delta:
-            errors.append(f"API render full-server usage offset changed: {case_id}")
+        if case_id in API_RENDER_USAGELESS_CASES:
+            if reference_prompt_tokens is not None or usage_delta is not None:
+                errors.append(f"API render stream usage must be absent: {case_id}")
+        else:
+            if (
+                not isinstance(reference_prompt_tokens, int)
+                or isinstance(reference_prompt_tokens, bool)
+                or reference_prompt_tokens <= 0
+            ):
+                errors.append(f"API render reference usage is invalid: {case_id}")
+            elif (
+                not isinstance(usage_delta, int)
+                or isinstance(usage_delta, bool)
+                or usage_delta != reference_prompt_tokens - len(token_ids)
+            ):
+                errors.append(
+                    f"API render reference usage delta is invalid: {case_id}"
+                )
+            expected_delta = 1 if case_id in API_RENDER_TOOL_CASES else 0
+            if usage_delta != expected_delta:
+                errors.append(
+                    f"API render full-server usage offset changed: {case_id}"
+                )
         if case.get("max_tokens") != API_RENDER_MAX_TOKENS.get(case_id):
             errors.append(f"API render max_tokens changed: {case_id}")
 
@@ -596,10 +605,11 @@ def validate_api_render_manifest(payload: Mapping[str, Any]) -> list[str]:
     recomputed = {
         "success_render_cases_20_of_20": tuple(case_ids)
         == REQUIRED_API_RENDER_CASES,
-        "non_tool_render_matches_full_usage": all(
+        "non_tool_non_stream_render_matches_full_usage": all(
             by_id.get(case_id, {}).get("reference_usage_delta") == 0
             for case_id in REQUIRED_API_RENDER_CASES
             if case_id not in API_RENDER_TOOL_CASES
+            and case_id not in API_RENDER_USAGELESS_CASES
         ),
         "tool_full_server_usage_offset_one": all(
             by_id.get(case_id, {}).get("reference_usage_delta") == 1

@@ -30,6 +30,7 @@ from aima_engine.vl_capability import (  # noqa: E402
     API_RENDER_MEDIA_COUNTS,
     API_RENDER_SCHEMA,
     API_RENDER_TOOL_CASES,
+    API_RENDER_USAGELESS_CASES,
     EXPECTED_TOOL_JSON_SCHEMA,
     REQUIRED_API_RENDER_CASES,
     validate_api_render_manifest,
@@ -340,14 +341,17 @@ def main() -> int:
             reference_prompt_tokens = (
                 usage.get("prompt_tokens") if isinstance(usage, dict) else None
             )
-            if (
+            if case_id in API_RENDER_USAGELESS_CASES:
+                if reference_prompt_tokens is not None:
+                    raise RuntimeError(
+                        f"stream reference unexpectedly reported usage: {case_id}"
+                    )
+            elif (
                 not isinstance(reference_prompt_tokens, int)
                 or isinstance(reference_prompt_tokens, bool)
                 or reference_prompt_tokens <= 0
             ):
-                raise RuntimeError(
-                    f"reference prompt usage is invalid: {case_id}"
-                )
+                raise RuntimeError(f"reference prompt usage is invalid: {case_id}")
             normalized_request = probe.recursive_replace(
                 spec["payload"], spec["replacements"]
             )
@@ -372,7 +376,11 @@ def main() -> int:
                     "prompt_token_ids_sha256": canonical_json_sha256(token_ids),
                     "mm_placeholders": placeholders,
                     "reference_usage_prompt_tokens": reference_prompt_tokens,
-                    "reference_usage_delta": reference_prompt_tokens - len(token_ids),
+                    "reference_usage_delta": (
+                        None
+                        if reference_prompt_tokens is None
+                        else reference_prompt_tokens - len(token_ids)
+                    ),
                     "max_tokens": sampling.get("max_tokens"),
                     "structured_outputs": sampling.get("structured_outputs"),
                 }
@@ -397,6 +405,7 @@ def main() -> int:
         case
         for case in cases
         if case["case_id"] not in API_RENDER_TOOL_CASES
+        and case["case_id"] not in API_RENDER_USAGELESS_CASES
     ]
     tool_comparable = [
         case
@@ -413,7 +422,7 @@ def main() -> int:
             case["case_id"] for case in cases
         )
         == REQUIRED_API_RENDER_CASES,
-        "non_tool_render_matches_full_usage": all(
+        "non_tool_non_stream_render_matches_full_usage": all(
             case["reference_usage_delta"] == 0 for case in non_tool_comparable
         ),
         "tool_full_server_usage_offset_one": all(
