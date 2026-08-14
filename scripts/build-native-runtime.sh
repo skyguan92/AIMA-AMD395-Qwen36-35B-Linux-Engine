@@ -35,6 +35,11 @@ for context in "${PREFILL_CONTEXT_LIST[@]}"; do
 done
 AOT_MANIFEST_Q8192="$(prefill_closure_dir 8192)/manifest.json"
 AOT_MANIFESTS="${AOT_MANIFESTS:-${DEFAULT_AOT_MANIFESTS}}"
+VL_UNIFIED_ATTENTION_MANIFEST="${ROOT}/native/aot/gfx1151/vl-unified-attention-v0.1.0/manifest.json"
+case ":${AOT_MANIFESTS}:" in
+  *":${VL_UNIFIED_ATTENTION_MANIFEST}:"*) ;;
+  *) AOT_MANIFESTS="${AOT_MANIFESTS}:${VL_UNIFIED_ATTENTION_MANIFEST}" ;;
+esac
 AOT_REGISTRY_CPP="${OUT_DIR}/aot_registry.cpp"
 AOT_OBJECT_PLAN="${OUT_DIR}/aot_objects.tsv"
 DECODE_SCHEDULE="${DECODE_SCHEDULE:-${ROOT}/native/aot/gfx1151/q8192-output2/decode-schedule.json}"
@@ -185,6 +190,8 @@ done < "${AOT_OBJECT_PLAN}"
   "${ROOT}/native/src/native_http_server.cpp" \
   "${ROOT}/native/src/native_pointwise.hip.cpp" \
   "${ROOT}/native/src/native_full_prefill.hip.cpp" \
+  "${ROOT}/native/src/native_vl_unified_attention.hip.cpp" \
+  "${ROOT}/native/src/native_vl_logical_projections.hip.cpp" \
   "${ROOT}/native/src/native_full_attention.hip.cpp" \
   "${ROOT}/native/src/native_full_layer.hip.cpp" \
   "${ROOT}/native/src/native_linear_layer.hip.cpp" \

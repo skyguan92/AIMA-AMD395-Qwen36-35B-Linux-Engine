@@ -11,6 +11,7 @@
 #include "aima/native_prefill_invocation.h"
 #include "aima/native_prefill_workspace.h"
 #include "aima/native_weight_store.h"
+#include "aima/native_vl_logical_projections.h"
 #include "aima/sha256.h"
 
 #include <hip/hip_runtime.h>
@@ -255,6 +256,7 @@ Execution execute_layer0(
     const aima::NativeDecodeBindings& bindings,
     aima::NativeDecodeExecutor& executor,
     aima::NativeQ8192PrefillGemmPlans& active_gemm_plans,
+    aima::NativeVlLogicalProjectionState& logical_projections,
     const std::filesystem::path& diagnostic_oracle_dir = {}) {
   if (prompt_tokens == 0 || prompt_tokens > kBucketTokens ||
       injected_embeddings.size() !=
@@ -289,6 +291,9 @@ Execution execute_layer0(
   linear_options.collect_oracle_comparisons = false;
   linear_options.has_initial_state = false;
   linear_options.gemm_plans = &active_gemm_plans;
+  linear_options.logical_ab_gemm_plan = &logical_projections.ab_plan();
+  linear_options.logical_ab_weight = logical_projections.ab_weight(0);
+  linear_options.logical_ab_output = logical_projections.ab_output();
   linear_options.bindings = &bindings;
   linear_options.sequence_oracle_dir = diagnostic_oracle_dir;
   aima::NativeMoePrefillOracleOptions moe_options;
@@ -299,6 +304,8 @@ Execution execute_layer0(
   moe_options.run_routing_diagnostic = false;
   moe_options.collect_oracle_comparisons = false;
   moe_options.gemm_plans = &active_gemm_plans;
+  moe_options.logical_router_gemm_plans =
+      &logical_projections.router_gemm_plans();
   if (!diagnostic_oracle_dir.empty()) {
     moe_options.chain_output_oracle_dir = diagnostic_oracle_dir;
     moe_options.chain_output_oracle_label = "diagnostic-output";
@@ -355,6 +362,8 @@ Execution execute_layer0(
     seeded_moe_options.run_routing_diagnostic = false;
     seeded_moe_options.collect_oracle_comparisons = false;
     seeded_moe_options.gemm_plans = &active_gemm_plans;
+    seeded_moe_options.logical_router_gemm_plans =
+        &logical_projections.router_gemm_plans();
     seeded_moe_options.chain_output_oracle_dir = diagnostic_oracle_dir;
     seeded_moe_options.chain_output_oracle_label = "diagnostic-output";
     const aima::NativeMoePrefillOracleResult seeded_moe =
@@ -382,6 +391,7 @@ json qualify_case(
     const std::filesystem::path& diagnostic_oracle_root, int device,
     const aima::NativeWeightStore& weights,
     const aima::NativeDecodeBindings& bindings,
+    aima::NativeVlLogicalProjectionState& logical_projections,
     aima::NativeDecodeExecutor& executor) {
   const std::string case_id = case_record.at("case_id").get<std::string>();
   const json& injected_record =
@@ -421,23 +431,29 @@ json qualify_case(
   (void)active_gemm_plans.moe_shared_projection();
   (void)active_gemm_plans.moe_shared_down();
   (void)active_gemm_plans.moe_router();
+  const aima::NativeVlLogicalProjectionPrepareMetrics logical_metrics =
+      logical_projections.prepare(prompt_tokens);
+  if (!logical_metrics.prepared || logical_metrics.plan_count != 2) {
+    throw std::runtime_error("logical VL projection plans are incomplete");
+  }
 
   const auto case_started = std::chrono::steady_clock::now();
   Execution diagnostic;
   if (!diagnostic_oracle_root.empty()) {
     diagnostic = execute_layer0(
         injected, prompt_tokens, device, weights, bindings, executor,
-        active_gemm_plans, diagnostic_oracle_root / case_id);
+        active_gemm_plans, logical_projections,
+        diagnostic_oracle_root / case_id);
   }
   const Execution warmup = execute_layer0(
       injected, prompt_tokens, device, weights, bindings, executor,
-      active_gemm_plans);
+      active_gemm_plans, logical_projections);
   std::vector<Execution> measured;
   measured.reserve(kMeasuredRuns);
   for (std::size_t run = 0; run < kMeasuredRuns; ++run) {
     measured.push_back(execute_layer0(
         injected, prompt_tokens, device, weights, bindings, executor,
-        active_gemm_plans));
+        active_gemm_plans, logical_projections));
   }
   write_file(actual_output, measured.front().output);
   const Comparison comparison = compare_bf16(measured.front().output, expected);
@@ -660,6 +676,10 @@ json qualify_case(
       {"prepared_launches", representative.invocations.launch_count},
       {"active_gemm_plan_count", active_gemm_plans.built_plan_count()},
       {"active_gemm_workspace_bytes", active_gemm_plans.workspace_bytes()},
+      {"logical_projection_plan_count", logical_metrics.plan_count},
+      {"logical_projection_workspace_bytes", logical_metrics.workspace_bytes},
+      {"logical_projection_plan_build_wall_ms", logical_metrics.build_wall_ms},
+      {"logical_projection_plan_reused", logical_metrics.reused},
       {"linear_dense_gemm_launches",
        representative.linear.dense_gemm_launches},
       {"linear_native_pointwise_launches",
@@ -743,6 +763,9 @@ int main(int argc, char** argv) {
     aima::NativeDecodeBindings bindings;
     const aima::NativeDecodeBindingMetrics binding_metrics =
         bindings.build(weights, derived, lm_head);
+    aima::NativeVlLogicalProjectionState logical_projections;
+    const aima::NativeVlLogicalProjectionLoadMetrics logical_load_metrics =
+        logical_projections.build(weights, kBucketTokens, options.device);
     aima::NativeDecodeExecutor executor;
     const aima::NativeDecodeExecutorMetrics executor_metrics = executor.load();
     json case_results = json::array();
@@ -756,7 +779,7 @@ int main(int argc, char** argv) {
           all_cases ? output / (case_id + ".bin") : output;
       json result = qualify_case(
           *case_record, oracle_root, actual_output, diagnostic_oracle_root,
-          options.device, weights, bindings, executor);
+          options.device, weights, bindings, logical_projections, executor);
       complete = complete && result.at("complete").get<bool>();
       total_elements += result.at("elements").get<std::size_t>();
       total_exact_elements +=
@@ -786,6 +809,12 @@ int main(int argc, char** argv) {
         {"lm_head_payload_bytes", lm_head_metrics.payload_bytes},
         {"lm_head_build_wall_ms", lm_head_metrics.build_wall_ms},
         {"decode_weight_bindings", binding_metrics.unique_bindings},
+        {"logical_projection_weights_loaded", logical_load_metrics.loaded},
+        {"logical_projection_weight_bytes", logical_load_metrics.weight_bytes},
+        {"logical_projection_output_scratch_bytes",
+         logical_load_metrics.output_scratch_bytes},
+        {"logical_projection_weight_build_wall_ms",
+         logical_load_metrics.build_wall_ms},
         {"aot_loaded_modules", executor_metrics.loaded_modules},
         {"total_elements", total_elements},
         {"total_exact_elements", total_exact_elements},

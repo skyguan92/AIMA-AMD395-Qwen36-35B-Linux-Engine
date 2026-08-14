@@ -123,6 +123,14 @@ void launch_full_attention_sigmoid_gate_f32_prefill(
     void* attention_bf16, void* gated_bf16, std::size_t token_count,
     std::size_t q_row_stride, void* stream = nullptr);
 
+// The exact vLLM unified-attention AOT path already returns BF16. Preserve the
+// same separately-rounded BF16 sigmoid boundary without converting through an
+// artificial FP32 attention buffer.
+void launch_full_attention_sigmoid_gate_bf16_prefill(
+    const void* attention_bf16, const void* fused_q_gate_storage,
+    void* gated_bf16, std::size_t token_count,
+    std::size_t q_row_stride, void* stream = nullptr);
+
 // Extracts the two 32-wide A/B projections from the fused q32768 linear input
 // projection [QKV(8192), Z(4096), A(32), B(32)].
 void launch_extract_linear_ab_fused(const void* fused_input_bf16,

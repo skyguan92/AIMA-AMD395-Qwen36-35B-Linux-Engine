@@ -56,6 +56,11 @@ struct NativeMoePrefillOracleOptions {
   bool collect_oracle_comparisons = true;
   bool synchronize_substages = false;
   NativeQ8192PrefillGemmPlans* gemm_plans = nullptr;
+  // A padded q1024 VL request may use a logical-M router plan for its active
+  // prefix while retaining the bucket plans for every other MoE projection.
+  // The plan token count must equal comparison_tokens. A null pointer keeps
+  // the fixed bucket router used by text and wider-context paths.
+  NativeQ8192PrefillGemmPlans* logical_router_gemm_plans = nullptr;
   std::string oracle_label_prefix;
   std::filesystem::path boundary_oracle_dir;
   std::string boundary_oracle_label_prefix;

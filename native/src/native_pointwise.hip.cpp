@@ -528,6 +528,25 @@ __global__ void full_attention_gate_f32_prefill_kernel(
       __bfloat162float(rounded_attention) * __bfloat162float(rounded_gate));
 }
 
+template <std::size_t QRowStride>
+__global__ void full_attention_gate_bf16_prefill_kernel(
+    const __hip_bfloat16* attention, const __hip_bfloat16* q_gate,
+    __hip_bfloat16* gated_bf16, std::size_t token_count) {
+  const std::size_t index = blockIdx.x * blockDim.x + threadIdx.x;
+  if (index >= token_count * kFullAttentionFeatures) return;
+  const std::size_t token = index / kFullAttentionFeatures;
+  const std::size_t feature = index - token * kFullAttentionFeatures;
+  const std::size_t head = feature / kHeadDim;
+  const std::size_t dimension = feature - head * kHeadDim;
+  const std::size_t gate_index =
+      token * QRowStride +
+      head * kFusedHeadStride + kHeadDim + dimension;
+  const __hip_bfloat16 rounded_gate = __float2bfloat16(
+      1.0f / (1.0f + expf(-__bfloat162float(q_gate[gate_index]))));
+  gated_bf16[index] = __float2bfloat16(
+      __bfloat162float(attention[index]) * __bfloat162float(rounded_gate));
+}
+
 __global__ void extract_linear_ab_fused_kernel(
     const __hip_bfloat16* fused, __hip_bfloat16* a, __hip_bfloat16* b,
     std::size_t token_count, std::size_t row_stride) {
@@ -951,6 +970,44 @@ void launch_full_attention_sigmoid_gate_f32_prefill(
   }
   check_hip(hipGetLastError(),
             "full_attention_gate_f32_prefill_kernel");
+}
+
+void launch_full_attention_sigmoid_gate_bf16_prefill(
+    const void* attention_bf16, const void* fused_q_gate_storage,
+    void* gated_bf16, std::size_t token_count,
+    std::size_t q_row_stride, void* stream_value) {
+  if (attention_bf16 == nullptr || fused_q_gate_storage == nullptr ||
+      gated_bf16 == nullptr) {
+    throw std::invalid_argument(
+        "native BF16 full-attention gate requires non-null pointers");
+  }
+  if (token_count == 0 || token_count > kMaxPrefillTokens ||
+      (q_row_stride != 8192 && q_row_stride != 9216)) {
+    throw std::invalid_argument(
+        "native BF16 full-attention gate geometry is unsupported");
+  }
+  const std::size_t elements = token_count * kFullAttentionFeatures;
+  const unsigned blocks =
+      static_cast<unsigned>((elements + kThreads - 1) / kThreads);
+  if (q_row_stride == 8192) {
+    hipLaunchKernelGGL(
+        (full_attention_gate_bf16_prefill_kernel<8192>),
+        dim3(blocks), dim3(kThreads), 0,
+        static_cast<hipStream_t>(stream_value),
+        static_cast<const __hip_bfloat16*>(attention_bf16),
+        static_cast<const __hip_bfloat16*>(fused_q_gate_storage),
+        static_cast<__hip_bfloat16*>(gated_bf16), token_count);
+  } else {
+    hipLaunchKernelGGL(
+        (full_attention_gate_bf16_prefill_kernel<9216>),
+        dim3(blocks), dim3(kThreads), 0,
+        static_cast<hipStream_t>(stream_value),
+        static_cast<const __hip_bfloat16*>(attention_bf16),
+        static_cast<const __hip_bfloat16*>(fused_q_gate_storage),
+        static_cast<__hip_bfloat16*>(gated_bf16), token_count);
+  }
+  check_hip(hipGetLastError(),
+            "full_attention_gate_bf16_prefill_kernel");
 }
 
 void launch_extract_linear_ab_fused(const void* fused_input_bf16,

@@ -19,6 +19,7 @@ namespace aima {
 
 class NativeQ8192PrefillGemmPlans;
 class NativeDecodeBindings;
+class Bf16GemmPlan;
 
 struct NativeLinearPrefillMetrics {
   std::size_t layer_index = 0;
@@ -71,6 +72,14 @@ struct NativeLinearPrefillOracleOptions {
   // Product owners retain all fixed-shape hipBLASLt plans across layers and
   // requests. A null pointer preserves focused-probe ownership semantics.
   NativeQ8192PrefillGemmPlans* gemm_plans = nullptr;
+  // A padded q1024 VL request may overwrite the logical A/B prefix with the
+  // reference 64-column logical-M hipBLASLt projection. The caller owns both
+  // the shape-specific plan and its compact [logical_tokens,64] output.
+  // It also supplies one compact [64,hidden] BF16 A/B weight view. All three
+  // pointers must be null or all non-null.
+  Bf16GemmPlan* logical_ab_gemm_plan = nullptr;
+  const void* logical_ab_weight = nullptr;
+  void* logical_ab_output = nullptr;
   // Required by q32768 to consume the resident derived fused input weight.
   const NativeDecodeBindings* bindings = nullptr;
   // Multi-layer fixtures prefix local AOT labels with layer-XXX-.

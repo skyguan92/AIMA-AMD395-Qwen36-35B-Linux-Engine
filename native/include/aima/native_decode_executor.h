@@ -35,6 +35,12 @@ class NativeDecodeExecutor {
   NativeDecodeExecutorMetrics load();
   void launch(const PreparedDecodeInvocation& invocation,
               void* stream = nullptr);
+  // Launches an embedded code object that is resident in this executor but is
+  // not part of a captured decode/prefill schedule.
+  void launch_embedded(const std::string& kernel_hash,
+                       const AotLaunchConfig& config,
+                       const std::vector<void*>& kernel_params,
+                       void* stream = nullptr);
   bool loaded() const { return !kernels_.empty(); }
   const NativeDecodeExecutorMetrics& metrics() const { return metrics_; }
 

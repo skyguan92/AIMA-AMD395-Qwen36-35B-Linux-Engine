@@ -59,6 +59,12 @@ struct NativeResidentLoadMetrics {
   std::size_t prefill_gemm_plans = 0;
   std::uint64_t prefill_workspace_bytes = 0;
   std::uint64_t mrope_position_state_bytes = 0;
+  std::uint64_t vl_unified_attention_metadata_bytes = 0;
+  std::size_t vl_unified_attention_image_bytes = 0;
+  bool vl_unified_attention_loaded = false;
+  std::uint64_t vl_logical_projection_weight_bytes = 0;
+  std::uint64_t vl_logical_projection_output_scratch_bytes = 0;
+  bool vl_logical_projection_weights_loaded = false;
   std::uint64_t decode_workspace_bytes = 0;
   std::uint64_t attention_state_bytes = 0;
   std::uint64_t exact_prefix_cache_bytes = 0;
@@ -80,6 +86,7 @@ struct NativeResidentLoadMetrics {
   double raw_weight_load_wall_ms = 0.0;
   double derived_weight_build_wall_ms = 0.0;
   double lm_head_build_wall_ms = 0.0;
+  double vl_logical_projection_weight_build_wall_ms = 0.0;
   double prefill_gemm_plan_build_wall_ms = 0.0;
   double command_to_ready_wall_ms = 0.0;
 };
@@ -132,6 +139,13 @@ struct NativeResidentRequestMetrics {
   std::size_t prefill_dense_gemm_launches = 0;
   std::size_t prefill_native_pointwise_launches = 0;
   std::size_t prefill_ck_fmha_launches = 0;
+  std::size_t prefill_vl_unified_attention_launches = 0;
+  bool vl_logical_projections_enabled = false;
+  std::size_t vl_logical_projection_tokens = 0;
+  std::size_t vl_logical_projection_plan_count = 0;
+  std::uint64_t vl_logical_projection_workspace_bytes = 0;
+  double vl_logical_projection_plan_build_wall_ms = 0.0;
+  bool vl_logical_projection_plan_reused = false;
   std::size_t decode_tokens_executed = 0;
   std::size_t decode_aot_launches = 0;
   std::size_t decode_native_launches = 0;

@@ -58,10 +58,6 @@ void NativeDecodeExecutor::launch(
       invocation.kernel_params.size() != invocation.launch->argument_count) {
     throw std::runtime_error("native decode executor received an incomplete invocation");
   }
-  const auto found = hash_to_index_.find(invocation.launch->kernel_hash);
-  if (found == hash_to_index_.end() || found->second >= kernels_.size()) {
-    throw std::runtime_error("native decode schedule references an unloaded AOT image");
-  }
   const DecodeLaunchConfig& source = invocation.launch->config;
   const AotLaunchConfig config{
       source.grid_x,
@@ -71,10 +67,26 @@ void NativeDecodeExecutor::launch(
       source.warp_size,
       source.shared_memory_bytes,
   };
+  launch_embedded(invocation.launch->kernel_hash, config,
+                  invocation.kernel_params, stream);
+}
+
+void NativeDecodeExecutor::launch_embedded(
+    const std::string& kernel_hash, const AotLaunchConfig& config,
+    const std::vector<void*>& kernel_params, void* stream) {
+  if (!loaded() || kernel_hash.empty() || kernel_params.empty()) {
+    throw std::runtime_error(
+        "native decode executor received an invalid embedded launch");
+  }
+  const auto found = hash_to_index_.find(kernel_hash);
+  if (found == hash_to_index_.end() || found->second >= kernels_.size()) {
+    throw std::runtime_error(
+        "native embedded launch references an unloaded AOT image");
+  }
   kernels_[found->second]->launch(
-      config, invocation.kernel_params, static_cast<hipStream_t>(stream));
+      config, kernel_params, static_cast<hipStream_t>(stream));
   ++metrics_.launched_kernels;
-  metrics_.launched_abi_arguments += invocation.kernel_params.size();
+  metrics_.launched_abi_arguments += kernel_params.size();
 }
 
 }  // namespace aima

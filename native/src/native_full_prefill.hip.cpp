@@ -7,6 +7,7 @@
 #include "aima/native_decode_bindings.h"
 #include "aima/native_pointwise.h"
 #include "aima/native_prefill_gemm_plans.h"
+#include "aima/native_vl_unified_attention.h"
 
 #include <dlfcn.h>
 #include <hip/hip_runtime.h>
@@ -304,16 +305,19 @@ NativeFullPrefillOracleResult probe_native_q8192_full_prefill_oracle(
       options.comparison_tokens == 0
           ? active_tokens
           : options.comparison_tokens;
+  const bool use_mrope = options.mrope_positions_i64 != nullptr;
+  const bool use_vl_unified_attention = use_mrope;
   if (tokens == 0 || tokens > 262144 ||
       active_tokens == 0 || active_tokens > tokens ||
       comparison_tokens == 0 || comparison_tokens > active_tokens ||
       provider.metrics().context_tokens < tokens ||
+      (use_vl_unified_attention &&
+       options.vl_unified_attention == nullptr) ||
       (active_tokens != tokens && options.collect_oracle_comparisons) ||
       (tokens != 8192 && options.collect_oracle_comparisons)) {
     throw std::invalid_argument(
         "native full prefill context or oracle mode is unsupported");
   }
-  const bool use_mrope = options.mrope_positions_i64 != nullptr;
   const std::size_t mrope_position_row_stride =
       options.mrope_position_row_stride == 0
           ? tokens
@@ -520,6 +524,19 @@ NativeFullPrefillOracleResult probe_native_q8192_full_prefill_oracle(
     return find_native_oracle_tensor_file_if_present(
         sequence_fixture, options.sequence_oracle_label_prefix + label);
   };
+  const std::filesystem::path attention_core_fixture =
+      options.attention_core_oracle_dir.empty()
+          ? sequence_fixture
+          : std::filesystem::absolute(options.attention_core_oracle_dir);
+  const auto optional_attention_core_file =
+      [&attention_core_fixture, &options](const char* label) {
+        const std::string prefix =
+            options.attention_core_oracle_label_prefix.empty()
+                ? options.sequence_oracle_label_prefix
+                : options.attention_core_oracle_label_prefix;
+        return find_native_oracle_tensor_file_if_present(
+            attention_core_fixture, prefix + label);
+      };
 
   NativeFullPrefillOracleResult result;
   const auto compare_optional_tail = [&] (
@@ -737,22 +754,29 @@ NativeFullPrefillOracleResult probe_native_q8192_full_prefill_oracle(
     attention_k = options.decode_attention_state->k_cache(options.layer_index);
     attention_v = options.decode_attention_state->v_cache(options.layer_index);
   }
-  if (active_tokens != tokens) {
-    const std::size_t active_attention_f32_bytes =
-        active_tokens * kQueryDimension * sizeof(float);
-    check_hip(
-        hipMemsetAsync(
-            static_cast<unsigned char*>(attention_f32) +
-                active_attention_f32_bytes,
-            0, attention_f32_bytes - active_attention_f32_bytes, nullptr),
-        "hipMemsetAsync native full attention padding");
+  void* attention_bf16 = nullptr;
+  if (use_vl_unified_attention) {
+    // The F32 provider scratch has twice the required byte capacity and is
+    // dead on this branch. Reuse it as the distinct BF16 attention output.
+    attention_bf16 = attention_f32;
+    options.vl_unified_attention->launch(
+        q, attention_k, attention_v, attention_bf16, active_tokens,
+        options.cache_position_start + active_tokens);
+    ++result.layer.native_vl_unified_attention_launches;
+    ++result.layer.aot_launches;
+  } else {
+    // Preserve the qualified scalar-position text contract: padded prompts
+    // launch the admitted bucket shape. The bundled AOTriton provider has no
+    // q81 specialization, and all downstream text operators already consume
+    // the full zero-padded bucket. M-RoPE requests take the logical-prefix
+    // unified-attention branch above.
+    provider.launch(q, attention_k, attention_v, attention_f32, tokens,
+                    options.cache_position_start + tokens);
+    ++result.layer.native_ck_fmha_launches;
   }
-  provider.launch(q, attention_k, attention_v, attention_f32, active_tokens,
-                  options.cache_position_start + active_tokens);
-  ++result.layer.native_ck_fmha_launches;
   if (options.synchronize_substages) {
     check_hip(hipDeviceSynchronize(),
-              "hipDeviceSynchronize native full CK attention core");
+              "hipDeviceSynchronize native full attention core");
   }
   diagnostic_stage("after_ck_attention");
   const std::filesystem::path pre_gate_expected =
@@ -761,25 +785,40 @@ NativeFullPrefillOracleResult probe_native_q8192_full_prefill_oracle(
           : optional_tail_file(
                 "intermediate-full_attention-attn_pre_gate");
   const std::filesystem::path pre_gate_sequence_expected =
-      sequence_fixture.empty()
+      attention_core_fixture.empty()
           ? std::filesystem::path{}
-          : optional_sequence_file(
+          : optional_attention_core_file(
                 "intermediate-full_attention-attn_pre_gate");
   void* diagnostic_attention_bf16 = nullptr;
   if ((!pre_gate_expected.empty() ||
-       !pre_gate_sequence_expected.empty()) && !split_projections) {
+       !pre_gate_sequence_expected.empty()) && !split_projections &&
+      !use_vl_unified_attention) {
     check_hip(hipMalloc(&diagnostic_attention_bf16, q_bytes),
               "hipMalloc native full attention pre-gate diagnostic");
   }
-  // The q buffer is dead after the provider launch on the same stream.  Reuse
-  // it for the BF16-rounded attention boundary before the gate.
-  launch_full_attention_sigmoid_gate_f32_prefill(
-      attention_f32, q_gate,
-      diagnostic_attention_bf16 == nullptr
-          ? q
-      : diagnostic_attention_bf16,
-      gated, tokens,
-      split_projections ? 8192 : 9216);
+  if (use_vl_unified_attention) {
+    launch_full_attention_sigmoid_gate_bf16_prefill(
+        attention_bf16, q_gate, gated, active_tokens,
+        split_projections ? 8192 : 9216);
+    if (active_tokens != tokens) {
+      const std::size_t active_gated_bytes =
+          active_tokens * kQueryDimension * sizeof(std::uint16_t);
+      check_hip(
+          hipMemsetAsync(
+              static_cast<unsigned char*>(gated) + active_gated_bytes, 0,
+              q_bytes - active_gated_bytes, nullptr),
+          "hipMemsetAsync native VL attention gate padding");
+    }
+  } else {
+    // The q buffer is dead after the provider launch on the same stream. Reuse
+    // it for the BF16-rounded attention boundary before the gate.
+    launch_full_attention_sigmoid_gate_f32_prefill(
+        attention_f32, q_gate,
+        diagnostic_attention_bf16 == nullptr
+            ? q
+            : diagnostic_attention_bf16,
+        gated, tokens, split_projections ? 8192 : 9216);
+  }
   ++result.layer.native_pointwise_launches;
   if (options.collect_oracle_comparisons ||
       options.synchronize_substages) {
@@ -788,7 +827,9 @@ NativeFullPrefillOracleResult probe_native_q8192_full_prefill_oracle(
   }
   if (!pre_gate_expected.empty()) {
     const void* pre_gate_attention =
-        diagnostic_attention_bf16 == nullptr
+        use_vl_unified_attention
+            ? attention_bf16
+        : diagnostic_attention_bf16 == nullptr
             ? q
             : diagnostic_attention_bf16;
     compare_optional_tail(
@@ -798,7 +839,9 @@ NativeFullPrefillOracleResult probe_native_q8192_full_prefill_oracle(
   }
   if (!pre_gate_sequence_expected.empty()) {
     const void* pre_gate_attention =
-        diagnostic_attention_bf16 == nullptr
+        use_vl_unified_attention
+            ? attention_bf16
+        : diagnostic_attention_bf16 == nullptr
             ? q
             : diagnostic_attention_bf16;
     result.boundary_comparisons.push_back(compare_native_oracle_tensor(
@@ -843,8 +886,16 @@ NativeFullPrefillOracleResult probe_native_q8192_full_prefill_oracle(
       "projected_attention_full_sequence", projected_attention,
       comparison_tokens * kHidden, "return-full_attention-output");
   diagnostic_stage("after_output_projection");
-  executor.launch(launches[base + 1]);
-  ++result.layer.aot_launches;
+  // Match the pinned eager RMSNorm boundary used by the native linear
+  // layers: round the residual sum to BF16 before the FP32 pow/mean/rsqrt
+  // reduction and the (weight + 1) multiplication. The captured Triton
+  // reduction differs by one BF16 element on the qualified image prefix,
+  // which is enough to change later routed-expert sets.
+  launch_prefill_add_rmsnorm_2048(
+      projected_attention, layer_input,
+      post_attention_norm_weight.device_pointer, after_attention,
+      post_attention_norm, tokens);
+  ++result.layer.native_pointwise_launches;
   if (options.collect_oracle_comparisons ||
       options.synchronize_substages) {
     check_hip(hipDeviceSynchronize(),

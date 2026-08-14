@@ -20,6 +20,8 @@
 #include "aima/native_prefill_invocation.h"
 #include "aima/native_prefill_workspace.h"
 #include "aima/native_prompt_plan.h"
+#include "aima/native_vl_unified_attention.h"
+#include "aima/native_vl_logical_projections.h"
 #include "aima/sha256.h"
 
 #include <hip/hip_runtime.h>
@@ -324,6 +326,8 @@ struct NativeResidentEngine::Impl {
   NativeDecodeWorkspace decode_workspace;
   NativeDecodeInvocations decode_invocations;
   NativeDecodeExecutor executor;
+  std::unique_ptr<NativeVlUnifiedAttentionPlan> vl_unified_attention;
+  NativeVlLogicalProjectionState vl_logical_projections;
   NativeQ8192CkProvider ck_provider;
   NativeQ8192CkProvider secondary_fmha_provider;
   NativeQ8192CkProvider auxiliary_short_fmha_provider;
@@ -504,6 +508,9 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
   }
   const NativeWeightLoadMetrics weight_metrics =
       impl_->weights.load_resident(options.weights);
+  const NativeVlLogicalProjectionLoadMetrics vl_logical_load_metrics =
+      impl_->vl_logical_projections.build(
+          impl_->weights, 1024, impl_->device);
   const NativeDerivedWeightMetrics derived_metrics =
       impl_->derived.build(impl_->weights, impl_->device);
   const NativeLmHeadMetrics lm_head_metrics =
@@ -551,6 +558,10 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
       impl_->decode_invocations.build(impl_->bindings,
                                       impl_->decode_workspace);
   const NativeDecodeExecutorMetrics executor_metrics = impl_->executor.load();
+  impl_->vl_unified_attention =
+      std::make_unique<NativeVlUnifiedAttentionPlan>(
+          impl_->executor, impl_->resident_prefill_buckets.back(),
+          options.cache_capacity, impl_->device);
   const NativeQ8192CkProviderMetrics provider_metrics =
       impl_->ck_provider.load(provider_path, impl_->prefill_tokens);
   NativeQ8192CkProviderMetrics secondary_provider_metrics;
@@ -700,6 +711,18 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
       impl_->mrope_position_state_bytes;
   impl_->metrics.mrope_position_state_bytes =
       impl_->mrope_position_state_bytes;
+  impl_->metrics.vl_unified_attention_metadata_bytes =
+      impl_->vl_unified_attention->metrics().metadata_bytes;
+  impl_->metrics.vl_unified_attention_image_bytes =
+      impl_->vl_unified_attention->metrics().image_bytes;
+  impl_->metrics.vl_unified_attention_loaded =
+      impl_->vl_unified_attention->metrics().loaded;
+  impl_->metrics.vl_logical_projection_weight_bytes =
+      vl_logical_load_metrics.weight_bytes;
+  impl_->metrics.vl_logical_projection_output_scratch_bytes =
+      vl_logical_load_metrics.output_scratch_bytes;
+  impl_->metrics.vl_logical_projection_weights_loaded =
+      vl_logical_load_metrics.loaded;
   impl_->metrics.decode_workspace_bytes =
       decode_workspace_metrics.allocation_bytes;
   impl_->metrics.attention_state_bytes = attention_metrics.allocation_bytes;
@@ -729,6 +752,8 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
   impl_->metrics.derived_weight_build_wall_ms =
       derived_metrics.build_wall_ms;
   impl_->metrics.lm_head_build_wall_ms = lm_head_metrics.build_wall_ms;
+  impl_->metrics.vl_logical_projection_weight_build_wall_ms =
+      vl_logical_load_metrics.build_wall_ms;
   impl_->metrics.prefill_gemm_plan_build_wall_ms = plan_wall_ms;
   impl_->metrics.command_to_ready_wall_ms = elapsed_ms(started);
   impl_->ready = true;
@@ -830,6 +855,18 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
     throw std::invalid_argument(
         "native composed prefill does not admit layer-oracle diagnostics");
   }
+  std::size_t vl_logical_projection_tokens = 0;
+  if (mrope_plan != nullptr) {
+    for (const NativePromptAotSegment& segment : prompt_plan.aot_segments) {
+      if (segment.bucket_tokens != 1024 || !segment.padded()) continue;
+      if (vl_logical_projection_tokens != 0 &&
+          vl_logical_projection_tokens != segment.input_tokens) {
+        throw std::runtime_error(
+            "native VL request has multiple logical q1024 shapes");
+      }
+      vl_logical_projection_tokens = segment.input_tokens;
+    }
+  }
 
   NativeResidentRequestMetrics metrics;
   metrics.request_index = ++impl_->request_count;
@@ -916,6 +953,18 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
     }
   }
   const auto request_started = std::chrono::steady_clock::now();
+  if (vl_logical_projection_tokens != 0) {
+    const NativeVlLogicalProjectionPrepareMetrics logical_metrics =
+        impl_->vl_logical_projections.prepare(vl_logical_projection_tokens);
+    metrics.vl_logical_projections_enabled = logical_metrics.prepared;
+    metrics.vl_logical_projection_tokens = logical_metrics.tokens;
+    metrics.vl_logical_projection_plan_count = logical_metrics.plan_count;
+    metrics.vl_logical_projection_workspace_bytes =
+        logical_metrics.workspace_bytes;
+    metrics.vl_logical_projection_plan_build_wall_ms =
+        logical_metrics.build_wall_ms;
+    metrics.vl_logical_projection_plan_reused = logical_metrics.reused;
+  }
   const bool timeline_enabled = prefill_timeline_enabled() && !prefix_hit &&
                                 !prompt_plan.aot_segments.empty();
   std::vector<double> attention_wall_ms;
@@ -1004,6 +1053,10 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
         NativePrefillWorkspace& chunk_workspace = *owner.workspace;
         NativePrefillInvocations& chunk_invocations = *owner.invocations;
         NativeQ8192PrefillGemmPlans* chunk_gemm_plans = owner.gemm_plans;
+        const bool logical_vl_segment =
+            metrics.vl_logical_projections_enabled &&
+            segment.bucket_tokens == 1024 && segment.padded() &&
+            segment.input_tokens == metrics.vl_logical_projection_tokens;
         const std::size_t hidden_offset =
             segment.input_offset - matched_prefix_tokens;
         void* layer_input = native_prefill_layer_input_pointer(
@@ -1050,6 +1103,8 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
           attention_options.decode_attention_state = &impl_->attention_state;
           attention_options.gemm_plans = chunk_gemm_plans;
           attention_options.bindings = &impl_->bindings;
+          attention_options.vl_unified_attention =
+              impl_->vl_unified_attention.get();
           attention_options.cache_position_start = segment.input_offset;
           if (mrope_plan != nullptr) {
             attention_options.mrope_positions_i64 =
@@ -1093,6 +1148,8 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
               attention.layer.native_pointwise_launches;
           metrics.prefill_ck_fmha_launches +=
               attention.layer.native_ck_fmha_launches;
+          metrics.prefill_vl_unified_attention_launches +=
+              attention.layer.native_vl_unified_attention_launches;
           metrics.layer_tail_comparisons.insert(
               metrics.layer_tail_comparisons.end(),
               attention.boundary_comparisons.begin(),
@@ -1141,6 +1198,14 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
           attention_options.decode_state_workspace = &impl_->decode_workspace;
           attention_options.has_initial_state = has_initial_state;
           attention_options.gemm_plans = chunk_gemm_plans;
+          if (logical_vl_segment) {
+            attention_options.logical_ab_gemm_plan =
+                &impl_->vl_logical_projections.ab_plan();
+            attention_options.logical_ab_weight =
+                impl_->vl_logical_projections.ab_weight(layer_index);
+            attention_options.logical_ab_output =
+                impl_->vl_logical_projections.ab_output();
+          }
           attention_options.bindings = &impl_->bindings;
           if (focused_tail_oracle) {
             std::ostringstream prefix;
@@ -1198,6 +1263,10 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
         moe_options.collect_oracle_comparisons = false;
         moe_options.comparison_tokens = segment.input_tokens;
         moe_options.gemm_plans = chunk_gemm_plans;
+        if (logical_vl_segment) {
+          moe_options.logical_router_gemm_plans =
+              &impl_->vl_logical_projections.router_gemm_plans();
+        }
         if (focused_sequence_oracle) {
           std::ostringstream label;
           label << "layer-";

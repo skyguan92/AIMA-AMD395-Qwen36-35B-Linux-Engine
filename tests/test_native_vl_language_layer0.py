@@ -21,6 +21,55 @@ QUALIFICATION_RESULT = (
 
 
 class NativeVlLanguageLayer0Test(unittest.TestCase):
+    def test_logical_projection_owner_is_resident_and_vl_scoped(self) -> None:
+        header = (
+            ROOT / "native/include/aima/native_vl_logical_projections.h"
+        ).read_text(encoding="utf-8")
+        source = (
+            ROOT / "native/src/native_vl_logical_projections.hip.cpp"
+        ).read_text(encoding="utf-8")
+        linear = (
+            ROOT / "native/src/native_linear_prefill.hip.cpp"
+        ).read_text(encoding="utf-8")
+        moe = (ROOT / "native/src/native_moe_prefill.hip.cpp").read_text(
+            encoding="utf-8"
+        )
+        resident = (
+            ROOT / "native/src/native_resident_engine.hip.cpp"
+        ).read_text(encoding="utf-8")
+        main = (ROOT / "native/src/main.cpp").read_text(encoding="utf-8")
+        runtime_build = (ROOT / "scripts/build-native-runtime.sh").read_text(
+            encoding="utf-8"
+        )
+        layer0_build = (
+            ROOT / "scripts/build-native-vl-language-layer0-probe.sh"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("class NativeVlLogicalProjectionState", header)
+        self.assertIn("NativeVlLogicalProjectionLoadMetrics build", header)
+        self.assertIn("NativeVlLogicalProjectionPrepareMetrics prepare", header)
+        self.assertIn("constexpr std::size_t kLinearLayers = 30", source)
+        self.assertIn("maximum_tokens * kMergedColumns", source)
+        self.assertIn('prefix + "a.weight"', source)
+        self.assertIn('prefix + "b.weight"', source)
+        self.assertIn("tokens, kMergedColumns, kHidden", source)
+        self.assertIn("router_gemm_plans->moe_router()", source)
+
+        self.assertIn("logical_ab_gemm_plan->launch", linear)
+        self.assertIn("launch_extract_compact_linear_ab", linear)
+        self.assertIn("logical_router_gemm_plans->moe_router()", moe)
+        self.assertIn("hipMemsetAsync native MoE padded router logits", moe)
+
+        self.assertIn("if (mrope_plan != nullptr)", resident)
+        self.assertIn("segment.bucket_tokens != 1024 || !segment.padded()", resident)
+        self.assertIn("vl_logical_projections.prepare", resident)
+        self.assertIn("attention_options.logical_ab_gemm_plan", resident)
+        self.assertIn("moe_options.logical_router_gemm_plans", resident)
+        self.assertIn("vl_logical_projections_enabled", main)
+        self.assertIn("vl_logical_projection_plan_reused", main)
+        self.assertIn("native_vl_logical_projections.hip.cpp", runtime_build)
+        self.assertIn("native_vl_logical_projections.hip.cpp", layer0_build)
+
     def test_probe_executes_the_product_q1024_layer_without_oracle_seeds(self) -> None:
         probe = (
             ROOT / "native/tools/vl_language_layer0_oracle_probe.hip.cpp"
@@ -110,14 +159,23 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         self.assertIn("launch_prefill_rmsnorm_2048(", linear_source)
         self.assertIn("launch_prefill_add_rmsnorm_2048(", linear_source)
         self.assertIn("launch_prefill_rmsnorm_2048(", full_source)
+        self.assertIn("launch_prefill_add_rmsnorm_2048(", full_source)
         self.assertNotIn("executor.launch(launches[base]);", full_source)
+        self.assertNotIn("executor.launch(launches[base + 1]);", full_source)
         self.assertIn("std::size_t active_tokens = 0", full_header)
         self.assertIn("attention_options.active_tokens", resident_source)
         self.assertIn(
             "full_options.active_tokens = prompt_tokens", layer3_probe
         )
         self.assertIn(
-            "options.cache_position_start + active_tokens", full_source
+            "attention_f32, tokens,\n"
+            "                    options.cache_position_start + tokens",
+            full_source,
+        )
+        self.assertIn(
+            "attention_bf16, active_tokens,\n"
+            "        options.cache_position_start + active_tokens",
+            full_source,
         )
         self.assertIn("exact_linear_b_projection_kernel", linear_source)
         self.assertIn("exact_b_tokens != 0", linear_source)

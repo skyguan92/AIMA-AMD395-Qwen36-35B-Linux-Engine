@@ -803,6 +803,13 @@ NativeMoePrefillOracleResult probe_native_q8192_moe_prefill_layer0_oracle(
   if (gemm_plans->token_count() != tokens) {
     throw std::invalid_argument("native MoE prefill GEMM context mismatch");
   }
+  NativeQ8192PrefillGemmPlans* logical_router_gemm_plans =
+      options.logical_router_gemm_plans;
+  if (logical_router_gemm_plans != nullptr &&
+      logical_router_gemm_plans->token_count() != comparison_tokens) {
+    throw std::invalid_argument(
+        "native MoE logical router GEMM context mismatch");
+  }
   diagnostic_stage("before_shared_gate_plan");
   Bf16GemmPlan& shared_gate_plan = gemm_plans->moe_shared_gate();
   diagnostic_stage("after_shared_gate_plan");
@@ -811,7 +818,10 @@ NativeMoePrefillOracleResult probe_native_q8192_moe_prefill_layer0_oracle(
   diagnostic_stage("after_shared_projection_plan");
   Bf16GemmPlan& shared_down_plan = gemm_plans->moe_shared_down();
   diagnostic_stage("after_shared_down_plan");
-  Bf16GemmPlan& router_plan = gemm_plans->moe_router();
+  Bf16GemmPlan& router_plan =
+      logical_router_gemm_plans == nullptr
+          ? gemm_plans->moe_router()
+          : logical_router_gemm_plans->moe_router();
   diagnostic_stage("after_router_plan");
   result.layer.gemm_workspace_bytes =
       shared_gate_plan.workspace_bytes() +
@@ -858,8 +868,13 @@ NativeMoePrefillOracleResult probe_native_q8192_moe_prefill_layer0_oracle(
                      shared_scaled, tokens);
   ++result.layer.native_pointwise_launches;
 
-  router_plan.launch(h2, router_weight.device_pointer,
-                     router_logits);
+  if (logical_router_gemm_plans != nullptr) {
+    check_hip(hipMemsetAsync(
+                  router_logits, 0,
+                  tokens * kExperts * sizeof(std::uint16_t), nullptr),
+              "hipMemsetAsync native MoE padded router logits");
+  }
+  router_plan.launch(h2, router_weight.device_pointer, router_logits);
   if (options.synchronize_substages) {
     check_hip(hipDeviceSynchronize(),
               "hipDeviceSynchronize native MoE router projection");

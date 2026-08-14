@@ -106,11 +106,53 @@ class NativeVlLanguageLayer3MropeTest(unittest.TestCase):
         self.assertIn("launch_full_attention_head_norm_mrope_prefill", full)
         self.assertIn("launch_prefill_rotary_table", full)
         self.assertIn("launch_full_attention_head_norm_rope_prefill", full)
+        self.assertIn("const bool use_vl_unified_attention = use_mrope", full)
+        self.assertIn(
+            "provider.launch(q, attention_k, attention_v, attention_f32, tokens",
+            full,
+        )
 
         self.assertIn("std::size_t rotary_position", decode_header)
         self.assertIn("position, position, input_token_id", decode)
         self.assertIn("decode_rotary_kernel", decode)
         self.assertIn("rotary_position, static_cast<float*>(cosine)", decode)
+
+    def test_unified_attention_artifact_is_embedded_and_hash_bound(self) -> None:
+        import hashlib
+        import json
+
+        closure = (
+            ROOT / "native/aot/gfx1151/vl-unified-attention-v0.1.0"
+        )
+        manifest = json.loads(
+            (closure / "manifest.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(manifest["kernel_count"], 1)
+        kernel = manifest["kernels"][0]
+        self.assertEqual(kernel["symbol"], "kernel_unified_attention_2d")
+        self.assertEqual(kernel["metadata"]["num_warps"], 4)
+        self.assertEqual(kernel["metadata"]["shared"], 32768)
+        image = closure / kernel["image"]["path"]
+        self.assertEqual(
+            hashlib.sha256(image.read_bytes()).hexdigest(),
+            kernel["image"]["sha256"],
+        )
+
+        source = (
+            ROOT / "native/src/native_vl_unified_attention.hip.cpp"
+        ).read_text(encoding="utf-8")
+        runtime_build = (ROOT / "scripts/build-native-runtime.sh").read_text(
+            encoding="utf-8"
+        )
+        resident = (
+            ROOT / "native/src/native_resident_engine.hip.cpp"
+        ).read_text(encoding="utf-8")
+        self.assertIn(kernel["kernel_hash"], source)
+        self.assertIn('"kernel_unified_attention_2d"', source)
+        self.assertIn("vl-unified-attention-v0.1.0/manifest.json", runtime_build)
+        self.assertIn("native_vl_unified_attention.hip.cpp", runtime_build)
+        self.assertIn("std::make_unique<NativeVlUnifiedAttentionPlan>", resident)
+        self.assertIn("attention_options.vl_unified_attention", resident)
 
     def test_composed_probe_executes_layers_zero_through_three(self) -> None:
         probe = (
@@ -148,6 +190,13 @@ class NativeVlLanguageLayer3MropeTest(unittest.TestCase):
         self.assertIn("kMeasuredRuns = 5", probe)
         self.assertIn("relative_l2_error <= 0.002", probe)
         self.assertIn("cosine_similarity >= 0.999", probe)
+        self.assertIn("execute_full_language", probe)
+        self.assertIn("for (std::size_t layer_index = 0; layer_index < 40", probe)
+        self.assertIn('boundaries.at("language_final_norm")', probe)
+        self.assertIn('boundaries.at("full_vocabulary_logits")', probe)
+        self.assertIn("kl_divergence < 0.005", probe)
+        self.assertIn("native_vl_unified_attention_launches == 10", probe)
+        self.assertIn('std::string_view(argv[12]) != "full-language"', probe)
         self.assertIn("runtime_python", probe)
         self.assertIn("q1024-output1", build)
         self.assertIn("native_full_prefill.hip.cpp", build)

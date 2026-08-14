@@ -67,6 +67,7 @@ done < "${AOT_OBJECT_PLAN}"
   "${ROOT}/native/src/native_prefill_invocation.cpp" \
   "${ROOT}/native/src/native_prefill_workspace.hip.cpp" \
   "${ROOT}/native/src/native_prefill_gemm_plans.hip.cpp" \
+  "${ROOT}/native/src/native_vl_logical_projections.hip.cpp" \
   "${ROOT}/native/src/native_linear_prefill.hip.cpp" \
   "${ROOT}/native/src/native_moe_prefill.hip.cpp" \
   "${ROOT}/native/src/native_pointwise.hip.cpp" \

@@ -19,6 +19,7 @@ namespace aima {
 
 class NativeQ8192PrefillGemmPlans;
 class NativeDecodeBindings;
+class NativeVlUnifiedAttentionPlan;
 
 struct NativeQ8192CkProviderMetrics {
   std::filesystem::path library_path;
@@ -80,6 +81,7 @@ struct NativeFullPrefillMetrics {
   std::size_t dense_gemm_launches = 0;
   std::size_t native_pointwise_launches = 0;
   std::size_t native_ck_fmha_launches = 0;
+  std::size_t native_vl_unified_attention_launches = 0;
   std::size_t resident_kv_direct_bindings = 0;
   std::size_t resident_kv_payload_bytes = 0;
   std::size_t aot_launches = 0;
@@ -105,6 +107,9 @@ struct NativeFullPrefillOracleOptions {
   NativeFullAttentionState* decode_attention_state = nullptr;
   NativeQ8192PrefillGemmPlans* gemm_plans = nullptr;
   const NativeDecodeBindings* bindings = nullptr;
+  // Resident exact vLLM unified-attention owner. M-RoPE requests use it for
+  // the logical causal prefix; scalar-position text requests retain CK.
+  NativeVlUnifiedAttentionPlan* vl_unified_attention = nullptr;
   std::size_t cache_position_start = 0;
   // Optional device-resident row-major int64[3,row_stride] positions. A
   // non-null pointer selects the explicitly qualified M-RoPE table and Q/K
@@ -120,6 +125,11 @@ struct NativeFullPrefillOracleOptions {
   // accepted so one focused layer can localize a context-specific drift.
   std::filesystem::path sequence_oracle_dir;
   std::string sequence_oracle_label_prefix;
+  // Qualification-only attention-core boundary. Prefix diagnostics capture
+  // this later than the isolated Q/K/V fixture, so it may have a distinct
+  // immutable oracle ledger.
+  std::filesystem::path attention_core_oracle_dir;
+  std::string attention_core_oracle_label_prefix;
 };
 
 struct NativeFullPrefillOracleResult {
@@ -140,8 +150,9 @@ struct NativeFullPrefillOracleResult {
 
 // Executes the complete attention half of one q8192 full-attention layer:
 // captured RMSNorm, three native BF16 projection GEMMs, native head
-// RMSNorm+RoPE, the admitted CK-Tile causal FMHA provider, native gate,
-// native BF16 output projection, and captured fused residual+RMSNorm.
+// RMSNorm+RoPE, either the admitted text FMHA provider or exact embedded vLLM
+// VL unified attention, native gate, native BF16 output projection, and
+// captured fused residual+RMSNorm.
 // Oracle reads and the optional entry seed are qualification-only.
 NativeFullPrefillOracleResult probe_native_q8192_full_prefill_oracle(
     const std::filesystem::path& oracle_dir,

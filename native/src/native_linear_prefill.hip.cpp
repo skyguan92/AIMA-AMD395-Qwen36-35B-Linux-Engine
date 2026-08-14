@@ -164,6 +164,33 @@ void launch_exact_linear_b_projection(
   check_hip(hipGetLastError(), "exact_linear_b_projection_kernel");
 }
 
+__global__ void extract_compact_linear_ab_kernel(
+    const __hip_bfloat16* compact, __hip_bfloat16* a,
+    __hip_bfloat16* b, std::size_t token_count) {
+  const std::size_t index = blockIdx.x * blockDim.x + threadIdx.x;
+  const std::size_t elements = token_count * 2 * kLinearHeads;
+  if (index >= elements) return;
+  const std::size_t token = index / (2 * kLinearHeads);
+  const std::size_t column = index % (2 * kLinearHeads);
+  if (column < kLinearHeads) {
+    a[token * kLinearHeads + column] = compact[index];
+  } else {
+    b[token * kLinearHeads + column - kLinearHeads] = compact[index];
+  }
+}
+
+void launch_extract_compact_linear_ab(
+    const void* compact, void* a, void* b, std::size_t token_count) {
+  const std::size_t elements = token_count * 2 * kLinearHeads;
+  hipLaunchKernelGGL(
+      extract_compact_linear_ab_kernel,
+      dim3(static_cast<unsigned>((elements + 255) / 256)), dim3(256), 0,
+      nullptr, static_cast<const __hip_bfloat16*>(compact),
+      static_cast<__hip_bfloat16*>(a), static_cast<__hip_bfloat16*>(b),
+      token_count);
+  check_hip(hipGetLastError(), "extract_compact_linear_ab_kernel");
+}
+
 }  // namespace
 
 NativeLinearPrefillOracleResult
@@ -192,10 +219,20 @@ probe_native_q8192_linear_prefill_layer0_oracle(
   const std::size_t comparison_tokens =
       options.comparison_tokens == 0 ? tokens : options.comparison_tokens;
   const std::size_t exact_b_tokens = options.exact_b_projection_tokens;
+  Bf16GemmPlan* logical_ab_gemm_plan = options.logical_ab_gemm_plan;
+  const void* logical_ab_weight = options.logical_ab_weight;
+  void* logical_ab_output = options.logical_ab_output;
+  const bool logical_ab_enabled = logical_ab_gemm_plan != nullptr;
   if (bucket_tokens == 0 || bucket_tokens > 262144 || tokens == 0 ||
       tokens > bucket_tokens ||
       comparison_tokens == 0 || comparison_tokens > tokens ||
       exact_b_tokens > tokens ||
+      (logical_ab_enabled != (logical_ab_weight != nullptr)) ||
+      (logical_ab_enabled != (logical_ab_output != nullptr)) ||
+      (logical_ab_enabled &&
+       (logical_ab_gemm_plan->m() != comparison_tokens ||
+        logical_ab_gemm_plan->n() != 2 * kLinearHeads ||
+        logical_ab_gemm_plan->k() != kHidden)) ||
       (tokens != bucket_tokens && options.collect_oracle_comparisons) ||
       (bucket_tokens != 8192 && options.collect_oracle_comparisons)) {
     throw std::invalid_argument(
@@ -210,6 +247,10 @@ probe_native_q8192_linear_prefill_layer0_oracle(
       std::string(launches[1].launch->symbol) ==
           "_causal_conv1d_fwd_kernel";
   const bool split_projections = q8192_schedule || split_projection_tail;
+  if (logical_ab_enabled && split_projections) {
+    throw std::invalid_argument(
+        "native logical A/B GEMM requires the direct q1024 projection");
+  }
   const std::size_t linear_launches = q8192_schedule ? 13 : 12;
   const std::size_t attention_launches = q8192_schedule ? 11 : 10;
   const std::size_t base = find_linear_layer_base(
@@ -613,6 +654,14 @@ probe_native_q8192_linear_prefill_layer0_oracle(
     launch_extract_linear_ab_fused(qkv, a, b, tokens);
     ++result.layer.dense_gemm_launches;
     ++result.layer.native_pointwise_launches;
+    if (logical_ab_enabled) {
+      logical_ab_gemm_plan->launch(
+          h1, logical_ab_weight, logical_ab_output);
+      launch_extract_compact_linear_ab(
+          logical_ab_output, a, b, comparison_tokens);
+      ++result.layer.dense_gemm_launches;
+      ++result.layer.native_pointwise_launches;
+    }
     if (q1024_official_fla && exact_b_tokens != 0) {
       // vLLM projects B/A as a separate 64-column merged linear.  At this
       // gfx1151 padded shape, hipBLASLt changes BF16 B roundings at the

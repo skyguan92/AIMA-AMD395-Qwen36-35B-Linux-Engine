@@ -4666,6 +4666,20 @@ int run_resident_session_probe(int argc, char** argv) {
             << load.prefill_workspace_bytes << ",\n"
             << "    \"mrope_position_state_bytes\": "
             << load.mrope_position_state_bytes << ",\n"
+            << "    \"vl_unified_attention_metadata_bytes\": "
+            << load.vl_unified_attention_metadata_bytes << ",\n"
+            << "    \"vl_unified_attention_image_bytes\": "
+            << load.vl_unified_attention_image_bytes << ",\n"
+            << "    \"vl_unified_attention_loaded\": "
+            << (load.vl_unified_attention_loaded ? "true" : "false")
+            << ",\n"
+            << "    \"vl_logical_projection_weight_bytes\": "
+            << load.vl_logical_projection_weight_bytes << ",\n"
+            << "    \"vl_logical_projection_output_scratch_bytes\": "
+            << load.vl_logical_projection_output_scratch_bytes << ",\n"
+            << "    \"vl_logical_projection_weights_loaded\": "
+            << (load.vl_logical_projection_weights_loaded ? "true" : "false")
+            << ",\n"
             << "    \"decode_workspace_bytes\": "
             << load.decode_workspace_bytes << ",\n"
             << "    \"attention_state_bytes\": "
@@ -4711,6 +4725,8 @@ int run_resident_session_probe(int argc, char** argv) {
             << load.derived_weight_build_wall_ms << ",\n"
             << "    \"lm_head_build_wall_ms\": "
             << load.lm_head_build_wall_ms << ",\n"
+            << "    \"vl_logical_projection_weight_build_wall_ms\": "
+            << load.vl_logical_projection_weight_build_wall_ms << ",\n"
             << "    \"prefill_gemm_plan_build_wall_ms\": "
             << load.prefill_gemm_plan_build_wall_ms << ",\n"
             << "    \"command_to_ready_wall_ms\": "
@@ -4794,6 +4810,21 @@ int run_resident_session_probe(int argc, char** argv) {
               << request.prefill_native_pointwise_launches
               << ",\"prefill_ck_fmha_launches\":"
               << request.prefill_ck_fmha_launches
+              << ",\"prefill_vl_unified_attention_launches\":"
+              << request.prefill_vl_unified_attention_launches
+              << ",\"vl_logical_projections_enabled\":"
+              << (request.vl_logical_projections_enabled ? "true" : "false")
+              << ",\"vl_logical_projection_tokens\":"
+              << request.vl_logical_projection_tokens
+              << ",\"vl_logical_projection_plan_count\":"
+              << request.vl_logical_projection_plan_count
+              << ",\"vl_logical_projection_workspace_bytes\":"
+              << request.vl_logical_projection_workspace_bytes
+              << ",\"vl_logical_projection_plan_build_wall_ms\":"
+              << request.vl_logical_projection_plan_build_wall_ms
+              << ",\"vl_logical_projection_plan_reused\":"
+              << (request.vl_logical_projection_plan_reused ? "true"
+                                                            : "false")
               << ",\"decode_tokens_executed\":"
               << request.decode_tokens_executed
               << ",\"decode_aot_launches\":"
