@@ -75,6 +75,8 @@ class VlHttpLanguageLayerCaptureTest(unittest.TestCase):
         self.assertIn('CASE_ID = "multi_video"', source)
         self.assertIn("source_http_language_diagnostic_sha256", source)
         self.assertIn("autotuner.cache.clear()", source)
+        self.assertIn("NATIVE_BUCKET_TOKENS = 1024", source)
+        self.assertIn('"native_bucket_u"', source)
         self.assertIn('"num_warps": 4', source)
         self.assertIn('"num_stages": 2', source)
         self.assertIn("short-VL recompute-W/U output differs", source)

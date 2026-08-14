@@ -15,6 +15,7 @@ from typing import Any
 
 SCHEMA = "aima-amd395-qwen36/vl-http-language-layer-diagnostic-oracle/v1"
 CASE_ID = "multi_video"
+NATIVE_BUCKET_TOKENS = 1024
 
 
 def raw_bytes(tensor: Any) -> bytes:
@@ -54,6 +55,14 @@ def compare(actual: Any, expected: Any) -> dict[str, Any]:
         "actual_sha256": hashlib.sha256(actual_payload).hexdigest(),
         "exact": actual_payload == expected_payload,
     }
+
+
+def pad_tokens(tensor: Any, tokens: int) -> Any:
+    if tensor.ndim < 2 or tensor.shape[0] != 1 or tensor.shape[1] >= tokens:
+        raise RuntimeError("short-VL padded replay geometry differs")
+    padded = tensor.new_zeros((1, tokens, *tensor.shape[2:]))
+    padded[:, : tensor.shape[1]].copy_(tensor)
+    return padded
 
 
 def trace(manifest_path: Path, oracle_root: Path) -> dict[str, Any]:
@@ -98,12 +107,24 @@ def trace(manifest_path: Path, oracle_root: Path) -> dict[str, Any]:
 
     autotuner = recompute_w_u_fwd_kernel.fn
     autotuner.cache.clear()
+    key = key.unsqueeze(0)
+    value = value.unsqueeze(0)
+    beta = beta.unsqueeze(0)
     actual_w, actual_u = recompute_w_u_fwd(
-        k=key.unsqueeze(0),
-        v=value.unsqueeze(0),
-        beta=beta.unsqueeze(0),
+        k=key,
+        v=value,
+        beta=beta,
         A=inverse,
         g_cumsum=g_cumsum,
+        cu_seqlens=None,
+    )
+    torch.cuda.synchronize()
+    padded_w, padded_u = recompute_w_u_fwd(
+        k=pad_tokens(key, NATIVE_BUCKET_TOKENS),
+        v=pad_tokens(value, NATIVE_BUCKET_TOKENS),
+        beta=pad_tokens(beta, NATIVE_BUCKET_TOKENS),
+        A=pad_tokens(inverse, NATIVE_BUCKET_TOKENS),
+        g_cumsum=pad_tokens(g_cumsum, NATIVE_BUCKET_TOKENS),
         cu_seqlens=None,
     )
     torch.cuda.synchronize()
@@ -116,8 +137,14 @@ def trace(manifest_path: Path, oracle_root: Path) -> dict[str, Any]:
         "num_ctas": int(config.num_ctas),
     }
     comparisons = {
-        "w": compare(actual_w, expected_w),
-        "u": compare(actual_u, expected_u),
+        "direct_w": compare(actual_w, expected_w),
+        "direct_u": compare(actual_u, expected_u),
+        "native_bucket_w": compare(
+            padded_w[:, : key.shape[1]], expected_w
+        ),
+        "native_bucket_u": compare(
+            padded_u[:, : key.shape[1]], expected_u
+        ),
     }
     if selection != {"num_warps": 4, "num_stages": 2, "num_ctas": 1}:
         raise RuntimeError(f"short-VL recompute-W/U selection differs: {selection}")
@@ -132,6 +159,7 @@ def trace(manifest_path: Path, oracle_root: Path) -> dict[str, Any]:
         ).hexdigest(),
         "case_id": CASE_ID,
         "prompt_tokens": manifest["case"]["prompt_tokens"],
+        "native_bucket_tokens": NATIVE_BUCKET_TOKENS,
         "autotune_key": {
             "H": 32,
             "K": 128,
