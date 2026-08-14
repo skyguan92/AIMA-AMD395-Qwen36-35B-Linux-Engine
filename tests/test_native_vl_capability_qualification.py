@@ -11,9 +11,9 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts/qualify-native-vl-capabilities.py"
 RESULT = ROOT / "benchmarks/results/native-vl-capability-v0.1.0.json"
 RESULT_SIDECAR = RESULT.with_name(RESULT.name + ".sha256")
-QUALIFIED_COMMIT = "2b268d4e5dca359fb49b0d6f60a0f9a059a8e568"
+QUALIFIED_COMMIT = "85fa597c782d28c05c51467060d8e03a8a47646e"
 QUALIFIED_BINARY_SHA256 = (
-    "f62c4a2e95e749623b7db0ad37f3305189897c07eaeb768527a58a83d3574652"
+    "7fe6ceb07dbae924e8da5efa378b3a47ae7b0cd8e6fc023eff3c74d1298e67b2"
 )
 
 

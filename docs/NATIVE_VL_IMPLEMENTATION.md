@@ -565,9 +565,9 @@ disallowed rows. This remains certified top-1 selection over the allowed set,
 not post-generation repair. Unsupported schemas return HTTP 400 before model
 execution.
 
-Clean commit `2b268d4e5dca359fb49b0d6f60a0f9a059a8e568` produced full-AOT
-native binary SHA-256
-`f62c4a2e95e749623b7db0ad37f3305189897c07eaeb768527a58a83d3574652`.
+The formal runtime was most recently requalified from clean commit
+`85fa597c782d28c05c51467060d8e03a8a47646e`, native binary SHA-256
+`7fe6ceb07dbae924e8da5efa378b3a47ae7b0cd8e6fc023eff3c74d1298e67b2`.
 In one resident run, all 20 successful API cases returned HTTP 200, all 10
 invalid cases returned compatible HTTP 400, status matched `30/30`, finish
 reason matched `20/20`, both tool and both SSE cases were complete, and every
@@ -577,7 +577,7 @@ prompt hash was
 `c00ccaf4063b7a0eb5f30ca053d3484cd2658aac57d1ef7ee79d38287d940566`,
 and 18 certified selections uploaded exactly 4,469,760 mask bytes. The sealed
 result is `benchmarks/results/native-vl-capability-v0.1.0.json`, SHA-256
-`55a815bc227e3beee3236a707eccbebbd8446f0154128f48887efbede88aac25`.
+`53fe6babad27686a4b7a5eb27f800da247352b5bb3cb80a6148a76441e04defa`.
 
 The exact usage triplet now matches fixed vLLM for `14/18` comparable
 non-stream successes. The four remaining differences are explicit: the two
