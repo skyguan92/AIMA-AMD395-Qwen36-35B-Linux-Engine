@@ -240,6 +240,15 @@ and launched one extra block for every even 8,192-token segment. The runtime
 now uses exact ceil-division. This diagnosis is not a passing full-window or
 envelope artifact; both must be rerun against the corrected binary.
 
+Exact ceil-division moved the deterministic failure from layer 7 to layer 31
+but did not make the q81-captured kernel a stable long-window implementation.
+Complete 8,192-token M-RoPE chunks now reuse the existing qualified
+rectangular text FMHA provider after Q/K have received their M-RoPE rotation;
+only padded logical tails retain the unified-attention kernel. This preserves
+the short prompt path already used by the exact language evidence while
+removing hundreds of unsupported full-chunk launches. The long-window and
+full envelope reruns remain required.
+
 The native processor now also performs the exact fused normalization, odd-frame
 repeat and Qwen temporal/spatial patch permutation into contiguous
 `[patches,1536]` BF16. The frozen 256x256 image oracle matches byte-for-byte,
