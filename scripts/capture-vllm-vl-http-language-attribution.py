@@ -50,6 +50,14 @@ ATTENTION_DIAGNOSTIC_COMPONENTS = {
         "gdn_v",
         "gdn_g",
         "gdn_beta",
+        "gdn_g_cumsum",
+        "gdn_chunk_matrix",
+        "gdn_chunk_matrix_inverse",
+        "gdn_w",
+        "gdn_u",
+        "gdn_chunk_state",
+        "gdn_v_new",
+        "gdn_final_state",
         "gdn_core",
         "gdn_gated",
     )
@@ -118,6 +126,19 @@ def oracle_labels() -> dict[str, str]:
     labels[attention_prefix + "launch-008-o"] = component_name(
         ATTENTION_DIAGNOSTIC_LAYER, "gdn_core"
     )
+    for label_suffix, component_suffix in (
+        ("diagnostic-g-cumsum", "gdn_g_cumsum"),
+        ("diagnostic-chunk-matrix", "gdn_chunk_matrix"),
+        ("diagnostic-chunk-matrix-inverse", "gdn_chunk_matrix_inverse"),
+        ("diagnostic-w", "gdn_w"),
+        ("diagnostic-u", "gdn_u"),
+        ("diagnostic-chunk-state", "gdn_chunk_state"),
+        ("diagnostic-v-new", "gdn_v_new"),
+        ("diagnostic-final-state", "gdn_final_state"),
+    ):
+        labels[attention_prefix + label_suffix] = component_name(
+            ATTENTION_DIAGNOSTIC_LAYER, component_suffix
+        )
     labels[
         attention_prefix + "return-linear_attention-gated_out"
     ] = component_name(ATTENTION_DIAGNOSTIC_LAYER, "gdn_gated")
@@ -135,6 +156,10 @@ def remove_hooks(root: Any, state: dict[str, Any]) -> None:
         gdn_module.fused_post_conv_prep = state[
             "original_fused_post_conv_prep"
         ]
+    chunk_module = state.get("chunk_module")
+    if chunk_module is not None:
+        for name, original in state["original_chunk_functions"].items():
+            setattr(chunk_module, name, original)
     prefix._remove_hooks(root, state)
     if hasattr(root, STATE_ATTRIBUTE):
         delattr(root, STATE_ATTRIBUTE)
@@ -163,6 +188,16 @@ class InstallLanguageLayerOutputHooks:
         gdn_module = importlib.import_module(
             "vllm.model_executor.layers.mamba.gdn_linear_attn"
         )
+        chunk_module = importlib.import_module(
+            "vllm.model_executor.layers.fla.ops.chunk"
+        )
+        chunk_function_names = (
+            "chunk_local_cumsum",
+            "chunk_scaled_dot_kkt_fwd",
+            "solve_tril",
+            "recompute_w_u_fwd",
+            "chunk_gated_delta_rule_fwd_h",
+        )
         state: dict[str, Any] = {
             "output_root": self.output_root,
             "case_id": self.case_id,
@@ -171,18 +206,82 @@ class InstallLanguageLayerOutputHooks:
             "router_bindings": [],
             "attention_bindings": [],
             "gdn_module": gdn_module,
+            "chunk_module": chunk_module,
+            "original_chunk_functions": {
+                name: getattr(chunk_module, name) for name in chunk_function_names
+            },
             "original_causal_conv1d_fn": gdn_module.causal_conv1d_fn,
             "original_fused_post_conv_prep": gdn_module.fused_post_conv_prep,
             "active_linear_diagnostic": False,
         }
 
-        def capture(name: str, value: Any) -> None:
+        def capture(
+            name: str, value: Any, *, allow_singleton_batch: bool = False
+        ) -> None:
             tensor = prefix._first_tensor(value)
             if tensor is None or name in state["captures"]:
                 return
-            if tensor.ndim == 0 or tensor.shape[0] <= 1:
+            if tensor.ndim == 0 or (
+                not allow_singleton_batch and tensor.shape[0] <= 1
+            ):
                 return
             state["captures"][name] = tensor.detach().contiguous().cpu()
+
+        def capture_fla_internal(name: str, value: Any) -> None:
+            if state["active_linear_diagnostic"]:
+                capture(
+                    component_name(1, name),
+                    value,
+                    allow_singleton_batch=True,
+                )
+
+        def instrumented_chunk_local_cumsum(*args: Any, **kwargs: Any) -> Any:
+            output = state["original_chunk_functions"]["chunk_local_cumsum"](
+                *args, **kwargs
+            )
+            capture_fla_internal("gdn_g_cumsum", output)
+            return output
+
+        def instrumented_chunk_scaled_dot_kkt_fwd(
+            *args: Any, **kwargs: Any
+        ) -> Any:
+            output = state["original_chunk_functions"][
+                "chunk_scaled_dot_kkt_fwd"
+            ](*args, **kwargs)
+            capture_fla_internal("gdn_chunk_matrix", output)
+            return output
+
+        def instrumented_solve_tril(*args: Any, **kwargs: Any) -> Any:
+            output = state["original_chunk_functions"]["solve_tril"](
+                *args, **kwargs
+            )
+            capture_fla_internal("gdn_chunk_matrix_inverse", output)
+            return output
+
+        def instrumented_recompute_w_u_fwd(*args: Any, **kwargs: Any) -> Any:
+            output = state["original_chunk_functions"]["recompute_w_u_fwd"](
+                *args, **kwargs
+            )
+            if state["active_linear_diagnostic"]:
+                if not isinstance(output, (tuple, list)) or len(output) != 2:
+                    raise RuntimeError("language layer 1 W/U geometry differs")
+                capture_fla_internal("gdn_w", output[0])
+                capture_fla_internal("gdn_u", output[1])
+            return output
+
+        def instrumented_chunk_gated_delta_rule_fwd_h(
+            *args: Any, **kwargs: Any
+        ) -> Any:
+            output = state["original_chunk_functions"][
+                "chunk_gated_delta_rule_fwd_h"
+            ](*args, **kwargs)
+            if state["active_linear_diagnostic"]:
+                if not isinstance(output, (tuple, list)) or len(output) != 3:
+                    raise RuntimeError("language layer 1 chunk-state geometry differs")
+                capture_fla_internal("gdn_chunk_state", output[0])
+                capture_fla_internal("gdn_v_new", output[1])
+                capture_fla_internal("gdn_final_state", output[2])
+            return output
 
         def next_input_norm_hook(next_layer: int):
             def hook(_module: Any, _args: Any, output: Any) -> None:
@@ -367,6 +466,15 @@ class InstallLanguageLayerOutputHooks:
             instrument_router(layer_index, layer.mlp.experts.router)
         gdn_module.causal_conv1d_fn = instrumented_causal_conv1d_fn
         gdn_module.fused_post_conv_prep = instrumented_fused_post_conv_prep
+        chunk_module.chunk_local_cumsum = instrumented_chunk_local_cumsum
+        chunk_module.chunk_scaled_dot_kkt_fwd = (
+            instrumented_chunk_scaled_dot_kkt_fwd
+        )
+        chunk_module.solve_tril = instrumented_solve_tril
+        chunk_module.recompute_w_u_fwd = instrumented_recompute_w_u_fwd
+        chunk_module.chunk_gated_delta_rule_fwd_h = (
+            instrumented_chunk_gated_delta_rule_fwd_h
+        )
         setattr(root, STATE_ATTRIBUTE, state)
         return {
             "layer_count": len(language.model.layers),

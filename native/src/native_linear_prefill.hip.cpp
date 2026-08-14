@@ -489,6 +489,17 @@ probe_native_q8192_linear_prefill_layer0_oracle(
         comparison_label, "bfloat16", pointer, elements_per_token,
         oracle_label);
   };
+  const auto compare_optional_sequence_storage = [&] (
+      const char* comparison_label, const char* dtype, const void* pointer,
+      const char* oracle_label) {
+    if (sequence_fixture.empty()) return;
+    const std::filesystem::path expected =
+        optional_sequence_file(oracle_label);
+    if (expected.empty()) return;
+    result.boundary_comparisons.push_back(compare_native_oracle_tensor(
+        options.sequence_oracle_label_prefix + comparison_label,
+        dtype, pointer, std::filesystem::file_size(expected), expected));
+  };
   const auto compare_tail = [&](const char* comparison_label,
                                 const void* pointer,
                                 const char* oracle_label) {
@@ -803,6 +814,9 @@ probe_native_q8192_linear_prefill_layer0_oracle(
         boundary_file("launch-002-beta_ptr")));
   }
   executor.launch(launches[base + 3]);
+  compare_optional_sequence_storage(
+      "fla_g_cumsum_storage", "float32",
+      invocations.tensor_pointer(base + 3, "o"), "diagnostic-g-cumsum");
   if (tokens != 8192) {
     compare_optional_stage_tail(
         "fla_g_cumsum_last_token", "float32",
@@ -817,6 +831,9 @@ probe_native_q8192_linear_prefill_layer0_oracle(
         boundary_file("launch-003-o")));
   }
   executor.launch(launches[base + 4]);
+  compare_optional_sequence_storage(
+      "fla_chunk_matrix_storage", "float32",
+      invocations.tensor_pointer(base + 4, "A"), "diagnostic-chunk-matrix");
   if (tokens != 8192) {
     compare_optional_stage_tail(
         "fla_chunk_matrix_last_token", "float32",
@@ -843,6 +860,10 @@ probe_native_q8192_linear_prefill_layer0_oracle(
   result.layer.state_scratch_zero_bytes =
       inverse_scratch_bytes;
   executor.launch(launches[base + 5]);
+  compare_optional_sequence_storage(
+      "fla_chunk_matrix_inverse_storage", "bfloat16",
+      invocations.tensor_pointer(base + 5, "Ai"),
+      "diagnostic-chunk-matrix-inverse");
   if (tokens != 8192) {
     compare_optional_stage_tail(
         "fla_chunk_matrix_inverse_last_token", "bfloat16",
@@ -856,6 +877,12 @@ probe_native_q8192_linear_prefill_layer0_oracle(
         boundary_file("launch-005-Ai")));
   }
   executor.launch(launches[base + 6]);
+  compare_optional_sequence_storage(
+      "fla_w_storage", "bfloat16",
+      invocations.tensor_pointer(base + 6, "w"), "diagnostic-w");
+  compare_optional_sequence_storage(
+      "fla_u_storage", "bfloat16",
+      invocations.tensor_pointer(base + 6, "u"), "diagnostic-u");
   if (tokens != 8192) {
     compare_optional_stage_tail(
         "fla_w_last_token", "bfloat16",
@@ -891,6 +918,15 @@ probe_native_q8192_linear_prefill_layer0_oracle(
               "hipMemset prefill initial SSM state");
   }
   executor.launch(launches[base + 7]);
+  compare_optional_sequence_storage(
+      "fla_chunk_state_storage", "bfloat16",
+      invocations.tensor_pointer(base + 7, "h"), "diagnostic-chunk-state");
+  compare_optional_sequence_storage(
+      "fla_v_new_storage", "bfloat16",
+      invocations.tensor_pointer(base + 7, "v_new"), "diagnostic-v-new");
+  compare_optional_sequence_storage(
+      "fla_final_state_storage", "float32", final_state,
+      "diagnostic-final-state");
   if (tokens != 8192 && !tail_fixture.empty()) {
     compare_optional_stage_tail(
         "fla_v_new_last_token", "bfloat16",

@@ -38,8 +38,12 @@ class VlHttpLanguageLayerCaptureTest(unittest.TestCase):
         self.assertIn('"fused_input_projection"', hooks)
         self.assertIn('"gdn_core"', hooks)
         self.assertIn('"gdn_gated"', hooks)
+        self.assertIn('"gdn_chunk_matrix_inverse"', hooks)
+        self.assertIn('"gdn_chunk_state"', hooks)
         self.assertIn("instrumented_causal_conv1d_fn", hooks)
         self.assertIn("instrumented_fused_post_conv_prep", hooks)
+        self.assertIn("instrumented_chunk_scaled_dot_kkt_fwd", hooks)
+        self.assertIn("instrumented_chunk_gated_delta_rule_fwd_h", hooks)
         self.assertIn('("diagnostic-beta", "gdn_beta")', hooks)
         self.assertIn("diagnostic_layer.linear_attn.register_forward_hook", hooks)
         self.assertIn(
@@ -58,6 +62,11 @@ class VlHttpLanguageLayerCaptureTest(unittest.TestCase):
             native,
         )
         self.assertIn("vl_http_language_diagnostic_probe.hip.cpp", build)
+        linear_prefill = (
+            ROOT / "native/src/native_linear_prefill.hip.cpp"
+        ).read_text(encoding="utf-8")
+        self.assertIn("compare_optional_sequence_storage", linear_prefill)
+        self.assertIn('"diagnostic-final-state"', linear_prefill)
 
 
 if __name__ == "__main__":
