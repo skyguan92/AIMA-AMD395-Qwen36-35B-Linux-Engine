@@ -15,7 +15,7 @@ blocking condition in the governing goal can move a gate to `passed`.
 | Gate | Current state | Evidence required to pass | Next blocking action |
 |---|---|---|---|
 | G1 full VL functional parity | the native HTTP process now composes ordered media admission, processor, complete visual tower, injection, M-RoPE and all 40 language layers for image/video/multi-image/multi-video/mixed requests; full conversation/tools/stream/transport/error and boundary conformance remains open | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | run the frozen 30-case API capability matrix and extend it through boundary/media-reuse cases |
-| G2 VL correctness parity | all five processor-to-logits boundaries were qualified independently; an exploratory resident HTTP run now matches all five frozen prompt lengths and 8-token greedy outputs exactly, but clean hash-bound serving evidence and task/error suites remain open | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | run `qualify-native-vl-serving.py` from a clean exact-commit build, then add task-quality and error-parity evidence |
+| G2 VL correctness parity | all five processor-to-logits boundaries were qualified independently; clean resident HTTP evidence now matches all five frozen canonical prompt-token vectors, shapes, M-RoPE state and 8-token greedy outputs exactly; task/error suites remain open | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | add task-quality and error-parity evidence without weakening the frozen thresholds |
 | G3 text product no regression | frozen baseline identified; the shared pointwise source changed, while exact-commit layer-0 requalification retained every prior output hash and numerical metric; the complete paired release matrix has not run | paired 19-cell, maximum-window, correctness, MMLU, API, cache, startup and memory requalification | retain `v1.5.1` as an immutable paired binary and run the complete paired matrix after language integration stabilizes |
 | G4 native VL performance | not started | paired per-cell stage timings and memory records against the fixed VL-enabled vLLM | generate matrix cells from the capability manifest |
 | G5 native release product | the full runtime now includes all qualified vision sources and loads the 333 visual tensors in the same resident process; the external vision-attention code object is hash-checked and wired into the portable package contract, but final package qualification has not run | native-only package, security, isolated bundle, second-host, soak and rollback evidence | generate a clean product qualification containing the vision code object, then run isolated bundle, second-host, soak and rollback gates |
@@ -572,3 +572,19 @@ component, installs it under `lib/`, includes it in the deterministic bundle
 identity and fails manifest generation if it is missing. A final clean product
 record, archive build and isolated qualification are still required; G5
 remains false.
+
+The serving boundary now has clean exact-commit evidence. Commit
+`19e23400449f16c0af88d4c9886022531b6decd5` produced native binary SHA-256
+`e3d5f4aaaeab5a472e751d042199c5c49c9247142eb1472c4da9c738a8b3d1f2`.
+One resident process served all five frozen image/video/multi/mixed cases and
+matched canonical prompt-token SHA-256, prompt/completion counts, M-RoPE,
+vision shapes, greedy output-token SHA-256, output text and finish reason.
+The same process then passed same-path/same-shape A/B/A invalidation,
+data/local equivalence, exact multimodal prefix recovery and safe media/shape
+reuse with changed text. It emitted one READY and one stopped event, loaded the
+model once, read no oracle tensors and reported no Python, Torch, vLLM or
+Triton runtime. The sealed result is
+`benchmarks/results/native-vl-serving-v0.1.0.json`, file SHA-256
+`6486c46a0db3498c6785b165e630125b98be46bf4eec630c69480745fb67069c`.
+This closes the deterministic resident-serving slice only; the 30-case API
+matrix, task/error suites and G1-G5 release gates remain blocking.

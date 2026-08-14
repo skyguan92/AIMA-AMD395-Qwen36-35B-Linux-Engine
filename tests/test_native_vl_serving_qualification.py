@@ -10,6 +10,8 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts/qualify-native-vl-serving.py"
+RESULT = ROOT / "benchmarks/results/native-vl-serving-v0.1.0.json"
+RESULT_SIDECAR = RESULT.with_name(RESULT.name + ".sha256")
 
 
 def load_module():
@@ -156,6 +158,74 @@ class NativeVlServingQualificationTest(unittest.TestCase):
         self.assertNotIn("/qualified/", serialized)
         self.assertIn("${AIMA_FMHA_PROVIDER}", serialized)
         self.assertIn("${AIMA_VISION_ATTENTION_IMAGE}", serialized)
+
+    def test_clean_serving_evidence_is_hash_bound_and_complete(self) -> None:
+        payload = RESULT.read_bytes()
+        digest = hashlib.sha256(payload).hexdigest()
+        self.assertEqual(
+            RESULT_SIDECAR.read_text(encoding="utf-8"),
+            f"{digest}  {RESULT.name}\n",
+        )
+        result = json.loads(payload)
+        integrity = result["integrity"]
+        canonical_payload = {
+            key: value for key, value in result.items() if key != "integrity"
+        }
+        canonical_bytes = json.dumps(
+            canonical_payload,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode("utf-8")
+        self.assertEqual(integrity["algorithm"], "sha256")
+        self.assertEqual(
+            integrity["canonical_payload_sha256"],
+            hashlib.sha256(canonical_bytes).hexdigest(),
+        )
+        self.assertTrue(result["complete"])
+        self.assertTrue(result["qualified"])
+        self.assertFalse(result["source"]["dirty"])
+        self.assertEqual(
+            result["source"]["commit"],
+            "19e23400449f16c0af88d4c9886022531b6decd5",
+        )
+        self.assertEqual(
+            result["build_info"]["source_commit"],
+            result["source"]["commit"],
+        )
+        for component in result["source"]["files"]:
+            self.assertEqual(
+                hashlib.sha256(
+                    (ROOT / component["path"]).read_bytes()
+                ).hexdigest(),
+                component["sha256"],
+            )
+        self.assertEqual(len(result["oracle_cases"]), 5)
+        self.assertTrue(all(case["passed"] for case in result["oracle_cases"]))
+        self.assertTrue(all(result["cache_correctness"]["checks"].values()))
+        self.assertTrue(all(result["launch"]["checks"].values()))
+        self.assertTrue(result["decision"]["five_frozen_generations_exact"])
+        self.assertTrue(result["decision"]["five_frozen_prompt_hashes_exact"])
+        self.assertTrue(
+            result["decision"]["content_addressed_media_cache_qualified"]
+        )
+        self.assertTrue(result["decision"]["single_resident_model_load"])
+        for gate in (
+            "g1_passed",
+            "g2_passed",
+            "g3_passed",
+            "g4_passed",
+            "g5_passed",
+        ):
+            self.assertFalse(result["decision"][gate])
+        serialized = payload.decode("utf-8")
+        for private_prefix in (
+            "/home/",
+            "/Users/",
+            "/data/",
+            "/tmp/aima-native",
+        ):
+            self.assertNotIn(private_prefix, serialized)
 
 
 if __name__ == "__main__":
