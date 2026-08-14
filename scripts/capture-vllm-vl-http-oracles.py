@@ -91,6 +91,9 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
         raise ValueError("serving render case order changed")
 
     base = load_base_capture()
+    import cloudpickle
+
+    cloudpickle.register_pickle_by_value(base)
     fixture_records = base._load_fixture_records(args.fixture_root.resolve())
     render_by_id = {case["case_id"]: case for case in render["cases"]}
     for spec in base.CASE_SPECS:

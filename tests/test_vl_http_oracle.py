@@ -67,6 +67,7 @@ class VlHttpOracleTest(unittest.TestCase):
         self.assertIn("preprocessed prompt differs from the bound render", base)
         self.assertIn('args._chat_template_content_format = "string"', wrapper)
         self.assertIn("VLLM_ALLOW_INSECURE_SERIALIZATION", wrapper)
+        self.assertIn("cloudpickle.register_pickle_by_value(base)", wrapper)
         self.assertIn("validate_http_oracle_manifest", wrapper)
         self.assertIn("serving_render_manifest", wrapper)
 
