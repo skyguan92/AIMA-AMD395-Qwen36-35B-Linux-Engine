@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 RESULT = ROOT / "benchmarks/results/vl-api-render-manifest-v0.1.0.json"
 RESULT_SIDECAR = RESULT.with_name(RESULT.name + ".sha256")
 CAPABILITY = ROOT / "benchmarks/results/vl-capability-manifest.json"
-QUALIFIED_COMMIT = "dbd762df39b57518345c0446fe2d636f1f6afab7"
+QUALIFIED_COMMIT = "6e309d9e85c0fe79545dd0597255a514af5bc015"
 EXPECTED_PROMPT_TOKENS = {
     "residency_text_before": 15,
     "image_local_png": 82,

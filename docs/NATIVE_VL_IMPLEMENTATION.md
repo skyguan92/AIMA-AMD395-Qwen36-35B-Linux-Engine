@@ -620,19 +620,22 @@ of retaining the request's part interleave. The five existing numerical
 oracles therefore remain valid for their explicitly frozen internal prompts,
 but they do not establish HTTP request-rendering parity.
 
-Clean commit `dbd762df39b57518345c0446fe2d636f1f6afab7` captured all 20
+Clean commit `6e309d9e85c0fe79545dd0597255a514af5bc015` captured all 20
 successful API requests against fixed vLLM
 `0.19.1rc1.dev300+g29e5d1020`. The manifest stores every full prompt-token
 vector and hash, media-placeholder span/hash/pad count, fixture-normalized
 request, reference and render transport hashes, sampling limit and structured
-output. All 15 non-stream non-tool renders equal the full server's reported
-prompt usage; the three tool requests have the observed one-token full-server
-accounting offset; the two SSE responses intentionally have no usage because
-the frozen requests do not enable `stream_options.include_usage`. Named forced
-tool choice binds the complete vLLM structured-output configuration and exact
-JSON Schema. The sealed result is
+output. The render capture now reuses the capability probe's exact canonical
+JSON serializer. This is token-significant for tool requests because Qwen's
+template preserves nested JSON-Schema field order; the former apparent
+one-token tool offset came from sending equivalent mappings with different
+wire order. All 18 comparable non-stream renders now equal the full server's
+reported prompt usage. The two SSE responses intentionally have no usage
+because the frozen requests do not enable `stream_options.include_usage`.
+Named forced tool choice binds the complete vLLM structured-output
+configuration and exact JSON Schema. The sealed result is
 `benchmarks/results/vl-api-render-manifest-v0.1.0.json`, file SHA-256
-`9ea491ce73247ff2912206ec4706c44546e73c7ddf9b63d84caeb9d686e4abc4`.
+`a80e9977678606b0148f45008e2f389434618c8c9011d45af3415f61e71a54ca`.
 
 This reference evidence intentionally records `g1_passed=false` and
 `g2_passed=false`. The next native change must reproduce this real per-message

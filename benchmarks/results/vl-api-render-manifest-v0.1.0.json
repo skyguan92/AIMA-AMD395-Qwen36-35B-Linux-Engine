@@ -21,7 +21,7 @@
       "sha256": "8f03e939a9b15f58c2e623541d48be88c328ff19adac9eb52210e171766e9a00"
     }
   },
-  "captured_at": "2026-08-14T06:46:17+00:00",
+  "captured_at": "2026-08-14T07:20:51+00:00",
   "cases": [
     {
       "case_id": "residency_text_before",
@@ -2441,7 +2441,7 @@
         "image": [
           {
             "length": 64,
-            "offset": 318,
+            "offset": 319,
             "pad_token_count": 64,
             "token_ids_sha256": "45922ba183516ce4a23c13c38af977b130f0414156b4250ee4b499f071e4e888"
           }
@@ -2499,11 +2499,11 @@
         13390,
         763,
         5046,
-        1267,
+        34325,
+        7654,
         763,
-        328,
-        1640,
-        487,
+        867,
+        11,
         328,
         12811,
         763,
@@ -2524,11 +2524,12 @@
         1448,
         7664,
         328,
-        34325,
-        7654,
+        1267,
         763,
-        867,
-        72964,
+        328,
+        1640,
+        29958,
+        92,
         198,
         510,
         15449,
@@ -2843,10 +2844,10 @@
         248068,
         198
       ],
-      "prompt_token_ids_sha256": "ef4458ccb54b0c01aa28e668fbede22f118bca2df1f7d2e9adabb94814612625",
-      "prompt_tokens": 394,
+      "prompt_token_ids_sha256": "cd382d76d6e2386298140d3adc2b2e2356d68d05c214449d21b6adea98f5a8a6",
+      "prompt_tokens": 395,
       "reference_transport_request_sha256": "6d1d755b487b15d66249b304ba6d1b5354e1428def5fd71e48a77481ebda2e0e",
-      "reference_usage_delta": 1,
+      "reference_usage_delta": 0,
       "reference_usage_prompt_tokens": 395,
       "render_transport_request_sha256": "d0a4fa301ab46e615c07cc631f0f4a511282ae5180e4c53a6d81f0a81543831c",
       "request": {
@@ -2939,7 +2940,7 @@
         "image": [
           {
             "length": 64,
-            "offset": 268,
+            "offset": 269,
             "pad_token_count": 64,
             "token_ids_sha256": "45922ba183516ce4a23c13c38af977b130f0414156b4250ee4b499f071e4e888"
           }
@@ -2997,11 +2998,11 @@
         13390,
         763,
         5046,
-        1267,
+        34325,
+        7654,
         763,
-        328,
-        1640,
-        487,
+        867,
+        11,
         328,
         12811,
         763,
@@ -3022,11 +3023,12 @@
         1448,
         7664,
         328,
-        34325,
-        7654,
+        1267,
         763,
-        867,
-        72964,
+        328,
+        1640,
+        29958,
+        92,
         198,
         510,
         15449,
@@ -3295,10 +3297,10 @@
         248068,
         198
       ],
-      "prompt_token_ids_sha256": "6c0aefb8db8fad2be334ddedf9e9c89719e3dd9c1cf78de395a040eae99fbf4e",
-      "prompt_tokens": 348,
+      "prompt_token_ids_sha256": "c00ccaf4063b7a0eb5f30ca053d3484cd2658aac57d1ef7ee79d38287d940566",
+      "prompt_tokens": 349,
       "reference_transport_request_sha256": "0466d2854d61d9be5294ad192e3c116ee8b4219fdce2bf30a90f1b244f87bf83",
-      "reference_usage_delta": 1,
+      "reference_usage_delta": 0,
       "reference_usage_prompt_tokens": 349,
       "render_transport_request_sha256": "c5532586cc54d5cd4ff13ac31c0097a6b5e33114349c7147093d3068b0180298",
       "request": {
@@ -3395,7 +3397,7 @@
         "image": [
           {
             "length": 64,
-            "offset": 268,
+            "offset": 269,
             "pad_token_count": 64,
             "token_ids_sha256": "45922ba183516ce4a23c13c38af977b130f0414156b4250ee4b499f071e4e888"
           }
@@ -3453,11 +3455,11 @@
         13390,
         763,
         5046,
-        1267,
+        34325,
+        7654,
         763,
-        328,
-        1640,
-        487,
+        867,
+        11,
         328,
         12811,
         763,
@@ -3478,11 +3480,12 @@
         1448,
         7664,
         328,
-        34325,
-        7654,
+        1267,
         763,
-        867,
-        72964,
+        328,
+        1640,
+        29958,
+        92,
         198,
         510,
         15449,
@@ -3754,10 +3757,10 @@
         248068,
         198
       ],
-      "prompt_token_ids_sha256": "6f1b79ae317a8984ea6fe55d0b5aedaea7d4ac986da19eb6a7257683817828e6",
-      "prompt_tokens": 351,
+      "prompt_token_ids_sha256": "36946ec2e298a02ef43f7c7d33f01d04a26479a2944ef8b0b55148838f77867b",
+      "prompt_tokens": 352,
       "reference_transport_request_sha256": "58b2ccb8b0bb16a8b6208216283ef3586ec3983de3e17a3452896338724de24c",
-      "reference_usage_delta": 1,
+      "reference_usage_delta": 0,
       "reference_usage_prompt_tokens": 352,
       "render_transport_request_sha256": "a6f97245298b85c5cf1fc2e367aec56cc0b7ee99438746ef849d49cd800e8e5b",
       "request": {
@@ -4133,6 +4136,7 @@
     "content_format": "auto-resolved-string",
     "render_runtime_uses_gpu": false,
     "request_identity": "fixture-normalized-reference-request",
+    "request_serialization": "probe-canonical-bytes-sort-keys",
     "tool_normalization": "ChatCompletionRequest-Pydantic-model_dump"
   },
   "decision": {
@@ -4141,7 +4145,7 @@
     "named_tool_json_schema_bound": true,
     "non_tool_non_stream_render_matches_full_usage": true,
     "success_render_cases_20_of_20": true,
-    "tool_full_server_usage_offset_one": true
+    "tool_render_matches_full_usage": true
   },
   "host": {
     "hostname": "quings",
@@ -4149,7 +4153,7 @@
   },
   "integrity": {
     "algorithm": "sha256",
-    "canonical_payload_sha256": "7172ce5e2576a2968632abf6e2c545ced373c8f390f7d60c006e5301e9278e74"
+    "canonical_payload_sha256": "4d7c53c08185626b3d7da0eeff7ebdd2aeeed859b712864d04708ceac78a7616"
   },
   "qualified": true,
   "runtime": {
@@ -4163,13 +4167,13 @@
   "schema": "aima-amd395-qwen36/vl-api-render-manifest/v1",
   "scope": "fixed-vllm-openai-gpu-less-render-token-boundary",
   "source": {
-    "commit": "dbd762df39b57518345c0446fe2d636f1f6afab7",
+    "commit": "6e309d9e85c0fe79545dd0597255a514af5bc015",
     "dirty": false,
     "files": [
       {
-        "bytes": 26699,
+        "bytes": 26668,
         "path": "aima_engine/vl_capability.py",
-        "sha256": "d60aa451aea355dcf427fe0ab9d69c7a48c9f29951cd960b28a82de82b26a972"
+        "sha256": "4a04699edfc844dee3e651e855f8d56bfff4e1aaa8f78f24c2f64b1ef1206329"
       },
       {
         "bytes": 33216,
@@ -4182,9 +4186,9 @@
         "sha256": "2762c30b98119dbe87fe93f11db39523d26a4d43f2144f74b2479050aa90ebd1"
       },
       {
-        "bytes": 20076,
+        "bytes": 20846,
         "path": "scripts/capture-vllm-vl-api-render.py",
-        "sha256": "4c07f869a591f0e260ce2f9fb01be4e1c1136bf4f82311ae94819071ce1c14c9"
+        "sha256": "7df604bc7842200a49c6c9135e504d75c6dc329ccbd56bb8cd9acea9446dfe31"
       }
     ],
     "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
