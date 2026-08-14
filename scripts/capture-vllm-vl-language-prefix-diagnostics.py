@@ -41,7 +41,7 @@ from aima_engine.vl_reference import (  # noqa: E402
 )
 
 
-SCHEMA = "aima-amd395-qwen36/vl-language-prefix-diagnostic-oracle/v1"
+SCHEMA = "aima-amd395-qwen36/vl-language-prefix-diagnostic-oracle/v2"
 VL_ORACLE_SHA256 = (
     "87dcdf76b7251f78da01a2a5f4312a9fb5c7d07a1ca2b2420566e77930f23d44"
 )
@@ -73,6 +73,7 @@ SOURCE_HASHES = {
     ),
 }
 LINEAR_LAYERS = (0, 1, 2)
+FULL_ATTENTION_LAYER = 3
 COMPONENT_SUFFIXES = (
     "attention_input",
     "attention_output",
@@ -93,7 +94,17 @@ REQUIRED_COMPONENTS = {
     f"layer_{layer:03d}_{suffix}"
     for layer in LINEAR_LAYERS
     for suffix in COMPONENT_SUFFIXES + MOE_DIAGNOSTIC_SUFFIXES
-} | {"layer_003_attention_input"}
+} | {
+    f"layer_{FULL_ATTENTION_LAYER:03d}_{suffix}"
+    for suffix in (
+        "attention_input",
+        "attention_residual",
+        "post_attention_norm",
+        "combined_moe_output",
+        "output",
+    )
+    + MOE_DIAGNOSTIC_SUFFIXES
+}
 STATE_ATTRIBUTE = "_aima_vl_language_prefix_diagnostic_state"
 
 
@@ -214,8 +225,36 @@ def _oracle_labels() -> dict[str, str]:
         labels[prefix + "return-layer_body-moe_out"] = _component_name(
             layer, "combined_moe_output"
         )
-    labels["layer-003-return-full_attention-inp"] = (
-        "layer_003_attention_input"
+    full_prefix = f"layer-{FULL_ATTENTION_LAYER:03d}-"
+    labels[full_prefix + "return-full_attention-inp"] = (
+        f"layer_{FULL_ATTENTION_LAYER:03d}_attention_input"
+    )
+    labels[full_prefix + "return-layer_body-h2"] = _component_name(
+        FULL_ATTENTION_LAYER, "post_attention_norm"
+    )
+    labels[full_prefix + "return-layer_body-after_attn"] = _component_name(
+        FULL_ATTENTION_LAYER, "attention_residual"
+    )
+    for suffix in (
+        "router_logits",
+        "router_scores",
+        "router_weights",
+        "router_indices",
+    ):
+        labels[full_prefix + "return-layer_body-" + suffix] = _component_name(
+            FULL_ATTENTION_LAYER, suffix
+        )
+    labels[full_prefix + "return-layer_body-shared_out"] = _component_name(
+        FULL_ATTENTION_LAYER, "shared_moe_output"
+    )
+    labels[full_prefix + "return-layer_body-routed_moe"] = _component_name(
+        FULL_ATTENTION_LAYER, "routed_moe_output"
+    )
+    labels[full_prefix + "return-layer_body-moe_out"] = _component_name(
+        FULL_ATTENTION_LAYER, "combined_moe_output"
+    )
+    labels[full_prefix + "return-layer_body-output"] = _component_name(
+        FULL_ATTENTION_LAYER, "output"
     )
     return labels
 
@@ -235,14 +274,16 @@ class InstallLanguagePrefixDiagnosticHooks:
         if isinstance(previous, dict):
             _remove_hooks(root, previous)
         language = root.language_model
-        if len(language.model.layers) < 4:
-            raise RuntimeError("language model has no layer-3 input boundary")
+        if len(language.model.layers) < FULL_ATTENTION_LAYER + 2:
+            raise RuntimeError("language model has no layer-3 output boundary")
         for layer in LINEAR_LAYERS:
             if getattr(language.model.layers[layer], "layer_type", None) != (
                 "linear_attention"
             ):
                 raise RuntimeError(f"language layer {layer} is not linear attention")
-        if getattr(language.model.layers[3], "layer_type", None) != (
+        if getattr(
+            language.model.layers[FULL_ATTENTION_LAYER], "layer_type", None
+        ) != (
             "full_attention"
         ):
             raise RuntimeError("language layer 3 is not full attention")
@@ -314,6 +355,16 @@ class InstallLanguagePrefixDiagnosticHooks:
                 capture(
                     _component_name(layer_index, "combined_moe_output"), output
                 )
+
+            return hook
+
+        def next_layer_norm_hook(layer_index: int):
+            def hook(_module: Any, _args: Any, output: Any) -> None:
+                if not isinstance(output, (tuple, list)) or len(output) != 2:
+                    raise RuntimeError(
+                        f"language layer {layer_index + 1} input norm differs"
+                    )
+                capture(_component_name(layer_index, "output"), output[1])
 
             return hook
 
@@ -405,9 +456,38 @@ class InstallLanguagePrefixDiagnosticHooks:
             )
             handles.append(layer.mlp.register_forward_hook(moe_hook(layer_index)))
             instrument_router(layer_index, layer.mlp.experts.router)
+        full_layer = language.model.layers[FULL_ATTENTION_LAYER]
         handles.append(
-            language.model.layers[3].input_layernorm.register_forward_hook(
-                input_norm_hook(3)
+            full_layer.input_layernorm.register_forward_hook(
+                input_norm_hook(FULL_ATTENTION_LAYER)
+            )
+        )
+        handles.append(
+            full_layer.post_attention_layernorm.register_forward_hook(
+                post_attention_hook(FULL_ATTENTION_LAYER)
+            )
+        )
+        handles.append(
+            full_layer.mlp.gate.register_forward_hook(
+                component_hook(FULL_ATTENTION_LAYER, "router_logits")
+            )
+        )
+        handles.append(
+            full_layer.mlp.experts.register_forward_hook(
+                experts_hook(FULL_ATTENTION_LAYER)
+            )
+        )
+        handles.append(
+            full_layer.mlp.register_forward_hook(
+                moe_hook(FULL_ATTENTION_LAYER)
+            )
+        )
+        instrument_router(FULL_ATTENTION_LAYER, full_layer.mlp.experts.router)
+        handles.append(
+            language.model.layers[
+                FULL_ATTENTION_LAYER + 1
+            ].input_layernorm.register_forward_hook(
+                next_layer_norm_hook(FULL_ATTENTION_LAYER)
             )
         )
         setattr(root, STATE_ATTRIBUTE, state)
@@ -422,6 +502,8 @@ class InstallLanguagePrefixDiagnosticHooks:
                 )
                 for index in LINEAR_LAYERS
             },
+            "layer3_moe": _module_identity(full_layer.mlp),
+            "layer3_router": _module_identity(full_layer.mlp.experts.router),
         }
 
 
@@ -687,7 +769,17 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
                 actual_root=output_root,
                 expected_root=args.layer3_mrope_root.resolve(),
             )
-            if not layer0_comparison["exact"] or not layer3_comparison["exact"]:
+            layer3_output_comparison = _compare_component(
+                actual=record["components"]["layer_003_output"],
+                expected=layer3_cases[case_id]["components"]["layer_output"],
+                actual_root=output_root,
+                expected_root=args.layer3_mrope_root.resolve(),
+            )
+            if (
+                not layer0_comparison["exact"]
+                or not layer3_comparison["exact"]
+                or not layer3_output_comparison["exact"]
+            ):
                 raise RuntimeError(
                     f"language prefix capture differs from frozen boundary: {case_id}"
                 )
@@ -703,6 +795,9 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
                     "frozen_layer0_comparison": layer0_comparison,
                     "frozen_layer3_attention_input_comparison": (
                         layer3_comparison
+                    ),
+                    "frozen_layer3_output_comparison": (
+                        layer3_output_comparison
                     ),
                 }
             )

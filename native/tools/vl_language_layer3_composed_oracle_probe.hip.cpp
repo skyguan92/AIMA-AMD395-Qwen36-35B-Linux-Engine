@@ -755,7 +755,7 @@ int main(int argc, char** argv) {
             "aima-amd395-qwen36/vl-oracle-manifest/v1" ||
         !vl_manifest.value("complete", false) ||
         prefix_manifest.value("schema", "") !=
-            "aima-amd395-qwen36/vl-language-prefix-diagnostic-oracle/v1" ||
+            "aima-amd395-qwen36/vl-language-prefix-diagnostic-oracle/v2" ||
         !prefix_manifest.value("complete", false) ||
         !prefix_manifest.value("qualified_for_attribution_only", false) ||
         layer3_manifest.value("schema", "") !=

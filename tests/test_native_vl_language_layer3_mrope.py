@@ -147,14 +147,17 @@ class NativeVlLanguageLayer3MropeTest(unittest.TestCase):
         self.assertIn("native_full_prefill.hip.cpp", build)
         self.assertIn("--offload-arch=gfx1151", build)
         self.assertIn("build-native-vl-language-layer3-composed-probe", makefile)
-        self.assertIn("vl-language-prefix-diagnostic-oracle/v1", capture)
+        self.assertIn("vl-language-prefix-diagnostic-oracle/v2", capture)
         self.assertIn("LINEAR_LAYERS = (0, 1, 2)", capture)
+        self.assertIn("FULL_ATTENTION_LAYER = 3", capture)
         self.assertIn("MOE_DIAGNOSTIC_SUFFIXES", capture)
         self.assertIn("router.select_experts = wrapped", capture)
         self.assertIn('"routed_moe_output"', capture)
         self.assertIn("layer_003_attention_input", capture)
+        self.assertIn("layer_003_output", capture)
         self.assertIn("frozen_layer0_comparison", capture)
         self.assertIn("frozen_layer3_attention_input_comparison", capture)
+        self.assertIn("frozen_layer3_output_comparison", capture)
         self.assertIn("source must be a clean commit", capture)
 
     def test_qualification_is_exact_hash_bound_and_non_overclaiming(self) -> None:
