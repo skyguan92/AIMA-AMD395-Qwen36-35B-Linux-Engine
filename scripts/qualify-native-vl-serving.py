@@ -234,7 +234,9 @@ def oracle_case_result(
         for span in spans
     )
     expected_patches = sum(
-        int(tensor["shape"][0]) for tensor in processor["tensors"].values()
+        int(tensor["shape"][0])
+        for name, tensor in processor["tensors"].items()
+        if name in {"pixel_values", "pixel_values_videos"}
     )
     expected_mrope_delta = case["boundaries"]["mrope_positions"][
         "position_delta"

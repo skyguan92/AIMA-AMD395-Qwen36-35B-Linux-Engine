@@ -73,7 +73,10 @@ class NativeVlServingQualificationTest(unittest.TestCase):
                 "prompt_token_ids": prompt_ids,
                 "prompt_token_ids_sha256": canonical(prompt_ids),
                 "placeholders": {"image": [{"num_embeds": 1}]},
-                "tensors": {"pixel_values": {"shape": [4, 1536]}},
+                "tensors": {
+                    "image_grid_thw": {"shape": [1, 3]},
+                    "pixel_values": {"shape": [4, 1536]},
+                },
             },
             "boundaries": {"mrope_positions": {"position_delta": -1}},
             "generation": {
