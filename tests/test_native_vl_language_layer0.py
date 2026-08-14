@@ -358,7 +358,7 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         self.assertTrue(result["source"]["clean"])
         self.assertEqual(
             result["source"]["commit"],
-            "764fd57a08105f79b2d86cdcba45f9c25b17a864",
+            "c44d1997c93349c1eec71c5f1a2b678a8439864c",
         )
         for record in result["source"]["files"]:
             self.assertEqual(
@@ -418,7 +418,7 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         self.assertTrue(closure["prefill_schedule_probe"]["complete"])
         self.assertTrue(closure["decode_schedule_probe"]["complete"])
         self.assertTrue(closure["aot_closure_probe"]["complete"])
-        self.assertEqual(closure["aot_closure_probe"]["loaded_count"], 59)
+        self.assertEqual(closure["aot_closure_probe"]["loaded_count"], 60)
         self.assertFalse(closure["portable_package_qualified"])
 
         decision = result["decision"]

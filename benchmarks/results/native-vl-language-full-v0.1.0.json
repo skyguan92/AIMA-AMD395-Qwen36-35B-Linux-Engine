@@ -1,0 +1,268 @@
+{
+  "schema": "aima-amd395-qwen36/native-vl-language-full-qualification/v1",
+  "complete": true,
+  "recorded_at": "2026-08-14T11:48:00+08:00",
+  "host": {
+    "label": "amd395",
+    "os": "Linux",
+    "gpu_arch": "gfx1151",
+    "device_name": "Radeon 8060S Graphics"
+  },
+  "source": {
+    "commit": "c44d1997c93349c1eec71c5f1a2b678a8439864c",
+    "clean": true,
+    "qualification_source_bundle_sha256": "1fc1944fc59611aaf6f13421eb40556062270fb2f565c1863db6e845a7ac0f10",
+    "files": [
+      {
+        "path": "native/src/native_full_prefill.hip.cpp",
+        "sha256": "b297441cacc4ecc04077f202a91795c2d54faf79609620fa787f8a451d9373d4"
+      },
+      {
+        "path": "native/src/native_linear_prefill.hip.cpp",
+        "sha256": "7113c9ba6ef78c9819813675026a667ebdb8b25d1f9449825438210f8cb6f889"
+      },
+      {
+        "path": "native/src/native_moe_prefill.hip.cpp",
+        "sha256": "1183cc1532cfece9cf9de884d1683b926aab495ec4c36117ce3c04baf547e035"
+      },
+      {
+        "path": "native/src/native_pointwise.hip.cpp",
+        "sha256": "9fd0816c7255000d52df24df94659a505988b29425ea55168f7862fd115c069a"
+      },
+      {
+        "path": "native/include/aima/native_vl_unified_attention.h",
+        "sha256": "d3516cd221e626c71352aaeab9356dd2740a54b37e4b95596791978da7942d21"
+      },
+      {
+        "path": "native/src/native_vl_unified_attention.hip.cpp",
+        "sha256": "d77ac8ecd27d79f9e747b556360937bdff6a7c209a052abbe73608e4bf354726"
+      },
+      {
+        "path": "native/include/aima/native_vl_logical_projections.h",
+        "sha256": "fb5959883480ef6f077b577a47e4aab7612386009daa639b782102c64231c370"
+      },
+      {
+        "path": "native/src/native_vl_logical_projections.hip.cpp",
+        "sha256": "b2b8d07cf580460e69e83aadcc9f5ea5a3b09e4665194255904f3a5bc06e6d6e"
+      },
+      {
+        "path": "native/tools/vl_language_layer3_composed_oracle_probe.hip.cpp",
+        "sha256": "96643c7cf45243ea12f57d43baef3f2a43d069c4b6debe1ab934a3493bee770a"
+      },
+      {
+        "path": "scripts/build-native-vl-language-layer3-composed-probe.sh",
+        "sha256": "33733344d1f15dbf5c94b8d65674de45c0972c5d2a7fd0b309b8568ee2311151"
+      }
+    ]
+  },
+  "model": {
+    "repository": "Qwen/Qwen3.6-35B-A3B",
+    "revision": "995ad96eacd98c81ed38be0c5b274b04031597b0",
+    "dtype": "bfloat16",
+    "language_hidden_size": 2048,
+    "language_layer_count": 40,
+    "linear_attention_layer_count": 30,
+    "full_attention_layer_count": 10,
+    "vocabulary_size": 248320
+  },
+  "reference_oracles": {
+    "full_model": {
+      "path": "benchmarks/results/vl-oracle-manifest.json",
+      "sha256": "87dcdf76b7251f78da01a2a5f4312a9fb5c7d07a1ca2b2420566e77930f23d44"
+    },
+    "language_prefix_diagnostics": {
+      "schema": "aima-amd395-qwen36/vl-language-prefix-diagnostic-oracle/v3",
+      "source_commit": "a8bfefcca402f593b3b36422bdef600c22f51e8e",
+      "manifest_sha256": "6637ff1b767add5c2a0a51093e73f31e556f552baf275c27c00d1f90ad96c16e"
+    },
+    "layer3_mrope_diagnostics": {
+      "schema": "aima-amd395-qwen36/vl-language-layer3-mrope-diagnostic-oracle/v1",
+      "source_commit": "8e6f66c60c10d5a9df908c14ca7b0950929074da",
+      "manifest_sha256": "3eec5efb9db108dc5eeaba2001cadd7b4f3335e7e2a346a312cd034ee6989b9a"
+    },
+    "all_layer_diagnostics": {
+      "schema": "aima-amd395-qwen36/vl-language-layer-output-diagnostic-oracle/v1",
+      "source_commit": "ae871f17fad694e8d2ce40bb308126f11774c917",
+      "manifest_sha256": "a2528c022825c5ac28979b5d4e47f3475e2d83ba329b415379be6f2335700e0d",
+      "capture_script": {
+        "path": "scripts/capture-vllm-vl-language-layer-outputs.py",
+        "sha256": "eddcf17e206aa628f86aaaa29bb66bfcb213322370f175abaf600cb0dd879717"
+      }
+    }
+  },
+  "implementation_contract": {
+    "execution": "one resident BF16 language weight load followed by all 40 layers, final RMSNorm and selected full-vocabulary lm_head rows",
+    "bucket_tokens": 1024,
+    "logical_prompt_tokens": "63 through 182",
+    "padding": "all compute buffers retain the q1024 resident bucket while M-RoPE attention and logical projections consume only the active prefix",
+    "full_attention": {
+      "aot_manifest": "native/aot/gfx1151/vl-unified-attention-v0.1.0/manifest.json",
+      "manifest_sha256": "adaa60abb9f8980b83b7e4cad8ee25a2d4366314b4ebb3ff89d56154121f49ee",
+      "kernel_image_sha256": "faac2cf293089a4a2aa0a777fc838e9d6cad4b2ae90428a89cd6fe6953c22df4",
+      "kernel_symbol": "kernel_unified_attention_2d",
+      "launches_per_request": 10
+    },
+    "logical_projections": {
+      "resident_weight_bytes": 7864320,
+      "output_scratch_bytes": 131072,
+      "plan_count": 2,
+      "text_only_affected": false
+    },
+    "normalization": "native eager-compatible FP32 pow/mean/rsqrt order with BF16 residual boundary and weight-plus-one semantics",
+    "text_isolation": "paired q81 text execution retained identical output-token SHA with 10 CK launches and zero M-RoPE, unified-attention or logical-projection use"
+  },
+  "reference_thresholds": {
+    "maximum_relative_l2_error": 0.002,
+    "minimum_cosine_similarity": 0.999,
+    "maximum_logits_kl_divergence": 0.005,
+    "logits_top1_match": true,
+    "finite_elements": "all"
+  },
+  "qualification_run": {
+    "probe_binary": {
+      "path": "${AIMA_QUALIFICATION_DIR}/native-vl-language-layer3-composed-probe",
+      "sha256": "941c73f0ea745c3ede9c3df7b35fb66281774bd8b6f73b0ae8c5787d4558d907",
+      "source_commit": "c44d1997c93349c1eec71c5f1a2b678a8439864c",
+      "runtime_python": false,
+      "runtime_numpy": false,
+      "runtime_torch": false,
+      "runtime_vllm": false,
+      "runtime_triton": false
+    },
+    "all_cases_raw_result_sha256": "26b9e4a79ba6414f1c89d0a40df5211f0036c1ae2cd04cd7a753b77b72b751c9",
+    "all_cases_weight_load_report_sha256": "7754f71ed2d325f1319d01e65398e812d363b00a105b22e4fd229675b530ba05",
+    "single_image_layer_diagnostic_raw_result_sha256": "cc54e99ca71c486e4996135c3140d7f7aac3ea3ad7eb1d3ab1397e8133ecbe12",
+    "single_image_layer_diagnostic_weight_load_report_sha256": "bbedd3f748cdc721181f59523cb7012baa301bf82d6de9fc12247e3051f0d89c",
+    "single_resident_weight_load_per_run": true,
+    "warmup_runs_per_case": 1,
+    "measured_runs_per_case": 5,
+    "language_weight_payload_bytes": 69321221376,
+    "derived_weight_payload_bytes": 2105180160,
+    "lm_head_payload_bytes": 510545920,
+    "aggregate": {
+      "case_count": 5,
+      "logical_prompt_tokens": 585,
+      "final_norm_elements": 1198080,
+      "final_norm_exact_elements": 1194627,
+      "maximum_final_norm_relative_l2_error": 0.0015769192484265358,
+      "minimum_final_norm_cosine_similarity": 0.9999987566684578,
+      "selected_logits_rows": 42,
+      "selected_logits_elements": 10429440,
+      "selected_logits_exact_elements": 10429440,
+      "maximum_logits_kl_divergence": 0.0,
+      "top1_matches": 42,
+      "top1_rows": 42,
+      "all_outputs_repeat_deterministic": true,
+      "all_cases_production_operation_shape": true
+    },
+    "single_image_layer_diagnostic": {
+      "comparison_count": 80,
+      "layer_output_elements": 6635520,
+      "layer_output_exact_elements": 6635520,
+      "router_expert_set_rows": 3240,
+      "router_expert_set_rows_exact": 3240,
+      "all_40_layer_outputs_bit_exact": true,
+      "all_40_router_expert_sets_exact": true
+    },
+    "cases": [
+      {
+        "case_id": "image_local_png",
+        "prompt_tokens": 81,
+        "padding_tokens": 943,
+        "final_norm_elements": 165888,
+        "final_norm_exact_elements": 165888,
+        "final_norm_relative_l2_error": 0.0,
+        "final_norm_cosine_similarity": 1.0,
+        "selected_logits_rows": 6,
+        "selected_logits_elements": 1489920,
+        "selected_logits_exact_elements": 1489920,
+        "maximum_logits_kl_divergence": 0.0,
+        "top1_matches": 6,
+        "repeat_deterministic": true,
+        "median_ms": 709.3758544921875
+      },
+      {
+        "case_id": "video_local_mp4",
+        "prompt_tokens": 63,
+        "padding_tokens": 961,
+        "final_norm_elements": 129024,
+        "final_norm_exact_elements": 127329,
+        "final_norm_relative_l2_error": 0.0015769192484265358,
+        "final_norm_cosine_similarity": 0.9999987566684578,
+        "selected_logits_rows": 6,
+        "selected_logits_elements": 1489920,
+        "selected_logits_exact_elements": 1489920,
+        "maximum_logits_kl_divergence": 0.0,
+        "top1_matches": 6,
+        "repeat_deterministic": true,
+        "median_ms": 699.693359375
+      },
+      {
+        "case_id": "multi_image",
+        "prompt_tokens": 182,
+        "padding_tokens": 842,
+        "final_norm_elements": 372736,
+        "final_norm_exact_elements": 372736,
+        "final_norm_relative_l2_error": 0.0,
+        "final_norm_cosine_similarity": 1.0,
+        "selected_logits_rows": 10,
+        "selected_logits_elements": 2483200,
+        "selected_logits_exact_elements": 2483200,
+        "maximum_logits_kl_divergence": 0.0,
+        "top1_matches": 10,
+        "repeat_deterministic": true,
+        "median_ms": 749.7114868164062
+      },
+      {
+        "case_id": "multi_video",
+        "prompt_tokens": 128,
+        "padding_tokens": 896,
+        "final_norm_elements": 262144,
+        "final_norm_exact_elements": 262144,
+        "final_norm_relative_l2_error": 0.0,
+        "final_norm_cosine_similarity": 1.0,
+        "selected_logits_rows": 10,
+        "selected_logits_elements": 2483200,
+        "selected_logits_exact_elements": 2483200,
+        "maximum_logits_kl_divergence": 0.0,
+        "top1_matches": 10,
+        "repeat_deterministic": true,
+        "median_ms": 731.5621948242188
+      },
+      {
+        "case_id": "mixed_image_video",
+        "prompt_tokens": 131,
+        "padding_tokens": 893,
+        "final_norm_elements": 268288,
+        "final_norm_exact_elements": 266530,
+        "final_norm_relative_l2_error": 0.0011778294199944366,
+        "final_norm_cosine_similarity": 0.9999993063598507,
+        "selected_logits_rows": 10,
+        "selected_logits_elements": 2483200,
+        "selected_logits_exact_elements": 2483200,
+        "maximum_logits_kl_divergence": 0.0,
+        "top1_matches": 10,
+        "repeat_deterministic": true,
+        "median_ms": 744.86865234375
+      }
+    ],
+    "timing_scope": "diagnostic native q1024 language chain only; excludes media processing, vision, serving, TTFT, decode and G4"
+  },
+  "decision": {
+    "language_boundary_gate": "passed",
+    "teacher_forced_full_vocabulary_logits_gate": "passed",
+    "g1_full_vl_functional_parity": false,
+    "g2_vl_correctness_parity": false,
+    "g3_text_product_no_regression": false,
+    "g4_native_vl_performance": false,
+    "g5_native_release_product": false,
+    "next_blocking_boundary": "attach native processor and vision outputs to resident HTTP requests, then qualify deterministic VL generation and task suites",
+    "non_claims": [
+      "the probe starts from frozen injected embeddings and M-RoPE positions; it does not execute media transport, processor or vision in the same native request",
+      "teacher-forced rows do not replace greedy generation, tool, finish-reason, usage, task-quality or error-parity qualification",
+      "the q81 paired smoke is not the complete G3 correctness and 19-cell performance matrix",
+      "diagnostic language-chain medians are not serving TTFT or G4 performance evidence",
+      "package, second-host, soak, security and release gates remain open"
+    ]
+  }
+}

@@ -9,6 +9,9 @@ RESULT = (
     ROOT
     / "benchmarks/results/native-vl-language-layer3-mrope-v0.1.0.json"
 )
+FULL_RESULT = (
+    ROOT / "benchmarks/results/native-vl-language-full-v0.1.0.json"
+)
 
 
 class NativeVlLanguageLayer3MropeTest(unittest.TestCase):
@@ -226,7 +229,7 @@ class NativeVlLanguageLayer3MropeTest(unittest.TestCase):
         self.assertTrue(result["source"]["clean"])
         self.assertEqual(
             result["source"]["commit"],
-            "764fd57a08105f79b2d86cdcba45f9c25b17a864",
+            "c44d1997c93349c1eec71c5f1a2b678a8439864c",
         )
         for record in result["source"]["files"]:
             self.assertEqual(
@@ -277,6 +280,117 @@ class NativeVlLanguageLayer3MropeTest(unittest.TestCase):
         decision = result["decision"]
         self.assertEqual(
             decision["language_layer3_mrope_table_and_qk_consumption"],
+            "passed",
+        )
+        for gate in (
+            "g1_full_vl_functional_parity",
+            "g2_vl_correctness_parity",
+            "g3_text_product_no_regression",
+            "g4_native_vl_performance",
+            "g5_native_release_product",
+        ):
+            self.assertFalse(decision[gate])
+
+    def test_full_language_qualification_is_hash_bound_and_threshold_complete(
+        self,
+    ) -> None:
+        import hashlib
+        import json
+
+        result = json.loads(FULL_RESULT.read_text(encoding="utf-8"))
+        self.assertTrue(result["complete"])
+        self.assertTrue(result["source"]["clean"])
+        self.assertEqual(
+            result["source"]["commit"],
+            "c44d1997c93349c1eec71c5f1a2b678a8439864c",
+        )
+        for record in result["source"]["files"]:
+            self.assertEqual(
+                hashlib.sha256(
+                    (ROOT / record["path"]).read_bytes()
+                ).hexdigest(),
+                record["sha256"],
+            )
+
+        references = result["reference_oracles"]
+        full_model = references["full_model"]
+        self.assertEqual(
+            hashlib.sha256(
+                (ROOT / full_model["path"]).read_bytes()
+            ).hexdigest(),
+            full_model["sha256"],
+        )
+        capture_script = references["all_layer_diagnostics"][
+            "capture_script"
+        ]
+        self.assertEqual(
+            hashlib.sha256(
+                (ROOT / capture_script["path"]).read_bytes()
+            ).hexdigest(),
+            capture_script["sha256"],
+        )
+
+        thresholds = result["reference_thresholds"]
+        run = result["qualification_run"]
+        aggregate = run["aggregate"]
+        cases = run["cases"]
+        self.assertEqual(len(cases), 5)
+        self.assertEqual(sum(case["prompt_tokens"] for case in cases), 585)
+        self.assertEqual(
+            sum(case["final_norm_elements"] for case in cases),
+            aggregate["final_norm_elements"],
+        )
+        self.assertEqual(
+            sum(case["final_norm_exact_elements"] for case in cases),
+            aggregate["final_norm_exact_elements"],
+        )
+        self.assertEqual(
+            sum(case["selected_logits_elements"] for case in cases),
+            aggregate["selected_logits_elements"],
+        )
+        self.assertEqual(
+            aggregate["selected_logits_exact_elements"],
+            aggregate["selected_logits_elements"],
+        )
+        self.assertEqual(
+            aggregate["top1_matches"], aggregate["top1_rows"]
+        )
+        for case in cases:
+            self.assertTrue(case["repeat_deterministic"])
+            self.assertLessEqual(
+                case["final_norm_relative_l2_error"],
+                thresholds["maximum_relative_l2_error"],
+            )
+            self.assertGreaterEqual(
+                case["final_norm_cosine_similarity"],
+                thresholds["minimum_cosine_similarity"],
+            )
+            self.assertEqual(
+                case["selected_logits_exact_elements"],
+                case["selected_logits_elements"],
+            )
+            self.assertLess(
+                case["maximum_logits_kl_divergence"],
+                thresholds["maximum_logits_kl_divergence"],
+            )
+            self.assertEqual(case["top1_matches"], case["selected_logits_rows"])
+
+        diagnostic = run["single_image_layer_diagnostic"]
+        self.assertTrue(diagnostic["all_40_layer_outputs_bit_exact"])
+        self.assertTrue(diagnostic["all_40_router_expert_sets_exact"])
+        self.assertEqual(
+            diagnostic["layer_output_exact_elements"],
+            diagnostic["layer_output_elements"],
+        )
+        self.assertEqual(
+            diagnostic["router_expert_set_rows_exact"],
+            diagnostic["router_expert_set_rows"],
+        )
+
+        decision = result["decision"]
+        self.assertEqual(decision["language_boundary_gate"], "passed")
+        self.assertEqual(
+            decision["teacher_forced_full_vocabulary_logits_gate"],
             "passed",
         )
         for gate in (

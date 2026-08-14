@@ -1,7 +1,7 @@
 {
   "schema": "aima-amd395-qwen36/native-vl-language-layer3-mrope-qualification/v1",
   "complete": true,
-  "recorded_at": "2026-08-14T06:22:00+08:00",
+  "recorded_at": "2026-08-14T11:40:00+08:00",
   "host": {
     "label": "amd395",
     "os": "Linux",
@@ -9,16 +9,16 @@
     "device_name": "Radeon 8060S Graphics"
   },
   "source": {
-    "commit": "764fd57a08105f79b2d86cdcba45f9c25b17a864",
+    "commit": "c44d1997c93349c1eec71c5f1a2b678a8439864c",
     "clean": true,
     "files": [
       {
         "path": "native/include/aima/native_pointwise.h",
-        "sha256": "3245be975adfa4e89e0aea9ce23e9b38770aec1e3d8fecc2b22d668efb3b2c78"
+        "sha256": "049b3ce6b46cbce237dcb95f9c3a53f9726ccebc19ef8b8cadf73959a8daea2d"
       },
       {
         "path": "native/src/native_pointwise.hip.cpp",
-        "sha256": "4ab61766ae83f9ccba6d88e922b93dce51fea7faf6cdc36706dd914982a7ad07"
+        "sha256": "9fd0816c7255000d52df24df94659a505988b29425ea55168f7862fd115c069a"
       },
       {
         "path": "native/tools/vl_language_layer3_mrope_oracle_probe.hip.cpp",
@@ -117,11 +117,11 @@
   "qualification_run": {
     "probe_binary": {
       "path": "${AIMA_QUALIFICATION_DIR}/native-vl-language-layer3-mrope-probe",
-      "sha256": "fab0bd21e95f6f1f497a02e45a739b042418a0f1b031966e12d7c19e71dca8af",
-      "source_commit": "764fd57a08105f79b2d86cdcba45f9c25b17a864"
+      "sha256": "b8635d116f6598326212def2950f4bb750b06bb11421cea398bb4fae5b95bac3",
+      "source_commit": "c44d1997c93349c1eec71c5f1a2b678a8439864c"
     },
-    "run_a_result_sha256": "95697e3faab79a95b00a10249599412a6065fd1f7547b713e7c5248bcd571fe6",
-    "run_b_result_sha256": "7a27750619bf709ba5e3b892f264bf10cdab036ac8deb7aa77ed7ae2fdca0c9d",
+    "run_a_result_sha256": "4cbda30063acd2bd2802951b6883719b0d6a5013812644c08b96c329b0c50e4b",
+    "run_b_result_sha256": "423e0043a36a931d76ffabbc6dd8a8aeda0bd3d45f0898870c9bc33b245e1a34",
     "warmup_runs_per_case": 1,
     "measured_runs_per_case": 5,
     "comparison_set_per_case": 8,
@@ -145,8 +145,8 @@
         "prompt_tokens": 81,
         "exact_comparison_elements": 751680,
         "comparison_elements": 751680,
-        "run_a_median_ms": 0.05023600161075592,
-        "run_b_median_ms": 0.05031599849462509,
+        "run_a_median_ms": 0.04963900148868561,
+        "run_b_median_ms": 0.05051900073885918,
         "all_eight_comparisons_bit_exact": true,
         "output_sha256": {
           "effective_cos": "938b60927c6c766be17d441f326e7f9ce72ee98dde929f98e294bf041fe3b27b",
@@ -160,8 +160,8 @@
         "prompt_tokens": 63,
         "exact_comparison_elements": 584640,
         "comparison_elements": 584640,
-        "run_a_median_ms": 0.05143599957227707,
-        "run_b_median_ms": 0.04215700179338455,
+        "run_a_median_ms": 0.049359001219272614,
+        "run_b_median_ms": 0.05043900012969971,
         "all_eight_comparisons_bit_exact": true,
         "output_sha256": {
           "effective_cos": "2b82770fcec3a42126cc11cb2f88024136f1529a33c3900e58989c305769f67d",
@@ -175,8 +175,8 @@
         "prompt_tokens": 182,
         "exact_comparison_elements": 1688960,
         "comparison_elements": 1688960,
-        "run_a_median_ms": 0.08467400074005127,
-        "run_b_median_ms": 0.08395300060510635,
+        "run_a_median_ms": 0.08327800035476685,
+        "run_b_median_ms": 0.08275800198316574,
         "all_eight_comparisons_bit_exact": true,
         "output_sha256": {
           "effective_cos": "fc6254f9bce92321d5507ae83c4d86ef3ad0bbcc97c6f5b13ece9f464c694cb3",
@@ -190,8 +190,8 @@
         "prompt_tokens": 128,
         "exact_comparison_elements": 1187840,
         "comparison_elements": 1187840,
-        "run_a_median_ms": 0.06839500367641449,
-        "run_b_median_ms": 0.06883399933576584,
+        "run_a_median_ms": 0.06919799745082855,
+        "run_b_median_ms": 0.06607899814844131,
         "all_eight_comparisons_bit_exact": true,
         "output_sha256": {
           "effective_cos": "0782e70e66c513c1c7b4da9a4b9d74ed5067eb77dd3f780c528dae5f7bc02775",
@@ -205,8 +205,8 @@
         "prompt_tokens": 131,
         "exact_comparison_elements": 1215680,
         "comparison_elements": 1215680,
-        "run_a_median_ms": 0.06915400177240372,
-        "run_b_median_ms": 0.06987400352954865,
+        "run_a_median_ms": 0.06951799988746643,
+        "run_b_median_ms": 0.07004000246524811,
         "all_eight_comparisons_bit_exact": true,
         "output_sha256": {
           "effective_cos": "7c0a26b0150214df1edb33391f30bd52b4fa59b2329a22a91ff8a917a2436125",
@@ -224,11 +224,9 @@
     "g3_text_product_no_regression": false,
     "g4_native_vl_performance": false,
     "g5_native_release_product": false,
-    "next_blocking_boundary": "wire the exact M-RoPE positions into the resident q1024 layer-3 path, compose layers 0 through 3, and qualify the complete layer-3 attention plus MoE output",
+    "next_blocking_boundary": "attach native processor and vision outputs to resident HTTP requests, then qualify deterministic VL generation and task suites",
     "non_claims": [
-      "the isolated probe starts from captured layer-3 Q/Gate and K projections rather than a same-request native layer-0-through-layer-3 composition",
-      "layer-3 causal attention, output projection, residual, MoE and final layer output are not qualified by this record",
-      "the resident request path does not yet upload and bind the NativeMropePlan positions to layer 3",
+      "this isolated record starts from captured layer-3 Q/Gate and K projections; the separate composed and full-language records carry same-request evidence",
       "the q1024 shared text path still requires the complete G3 paired no-regression matrix",
       "sub-millisecond isolated medians are not TTFT or G4 serving performance evidence"
     ]
