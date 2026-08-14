@@ -38,7 +38,9 @@ from aima_engine.vl_reference import (  # noqa: E402
 
 SCHEMA = "aima-amd395-qwen36/vl-http-language-layer-diagnostic-oracle/v1"
 BASE_CAPTURE = ROOT / "scripts/capture-vllm-vl-oracles.py"
-LAYER_CAPTURE = ROOT / "scripts/capture-vllm-vl-language-layer-outputs.py"
+LAYER_CAPTURE = (
+    ROOT / "scripts/capture-vllm-vl-http-language-attribution.py"
+)
 PREFIX_CAPTURE = ROOT / "scripts/capture-vllm-vl-language-prefix-diagnostics.py"
 HTTP_ORACLE_CONTRACT = ROOT / "aima_engine/vl_http_oracle.py"
 CASE_IDS = (
