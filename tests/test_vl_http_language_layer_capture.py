@@ -132,6 +132,8 @@ class VlHttpLanguageLayerCaptureTest(unittest.TestCase):
         self.assertIn(kernel["kernel_hash"], native)
         self.assertIn("use_short_prefill_recompute_w_u", native)
         self.assertIn("executor.launch_embedded", native)
+        self.assertIn("(comparison_tokens + 63) / 64", native)
+        self.assertIn('base + 6, "T"', native)
         for build_path in (
             ROOT / "scripts/build-native-runtime.sh",
             NATIVE_DIAGNOSTIC_BUILD,

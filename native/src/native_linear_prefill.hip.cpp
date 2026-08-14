@@ -881,6 +881,9 @@ probe_native_q8192_linear_prefill_layer0_oracle(
   const bool use_short_prefill_recompute_w_u =
       q1024_official_fla && comparison_tokens < tokens;
   if (use_short_prefill_recompute_w_u) {
+    // The fixed q1024 schedule carries non-zero convolution tail rows beyond
+    // the logical request. vLLM autotunes and launches recompute-W/U at the
+    // logical T, where block-pointer boundary checks exclude those rows.
     const PreparedDecodeInvocation& recompute = launches[base + 6];
     const DecodeLaunchConfig& captured = recompute.launch->config;
     if (captured.grid_x != 16 || captured.grid_y != 32 ||
@@ -889,12 +892,24 @@ probe_native_q8192_linear_prefill_layer0_oracle(
       throw std::runtime_error(
           "native short-prefill recompute-W/U launch geometry mismatch");
     }
+    const std::uint32_t logical_grid_x = static_cast<std::uint32_t>(
+        (comparison_tokens + 63) / 64);
     const AotLaunchConfig qualified{
-        captured.grid_x, captured.grid_y, captured.grid_z,
+        logical_grid_x, captured.grid_y, captured.grid_z,
         4, captured.warp_size, captured.shared_memory_bytes};
-    executor.launch_embedded(
-        kShortPrefillRecomputeWuKernelHash, qualified,
-        recompute.kernel_params);
+    invocations.set_int32_argument(
+        base + 6, "T", static_cast<std::int32_t>(comparison_tokens));
+    try {
+      executor.launch_embedded(
+          kShortPrefillRecomputeWuKernelHash, qualified,
+          recompute.kernel_params);
+    } catch (...) {
+      invocations.set_int32_argument(
+          base + 6, "T", static_cast<std::int32_t>(tokens));
+      throw;
+    }
+    invocations.set_int32_argument(
+        base + 6, "T", static_cast<std::int32_t>(tokens));
   } else {
     executor.launch(launches[base + 6]);
   }
@@ -945,9 +960,14 @@ probe_native_q8192_linear_prefill_layer0_oracle(
   compare_optional_sequence_storage(
       "fla_v_new_storage", "bfloat16",
       invocations.tensor_pointer(base + 7, "v_new"), "diagnostic-v-new");
-  compare_optional_sequence_storage(
-      "fla_final_state_storage", "float32", final_state,
-      "diagnostic-final-state");
+  // Padded prefill deliberately repairs/promotes the recurrent final state
+  // after the layer stack. Before that repair it represents the full bucket,
+  // not the logical HTTP sequence, so only compare an unpadded execution.
+  if (comparison_tokens == tokens) {
+    compare_optional_sequence_storage(
+        "fla_final_state_storage", "float32", final_state,
+        "diagnostic-final-state");
+  }
   if (tokens != 8192 && !tail_fixture.empty()) {
     compare_optional_stage_tail(
         "fla_v_new_last_token", "bfloat16",
