@@ -30,6 +30,8 @@ constexpr std::size_t kLinearHeads = 32;
 constexpr std::size_t kStateElements = 32 * 128 * 128;
 constexpr std::size_t kLinearConvChannels = 8192;
 constexpr std::size_t kLinearConvStateTokens = 3;
+constexpr char kShortPrefillRecomputeWuKernelHash[] =
+    "37364a45c33cbce02dd7417f568abf12062d6b061c01ba8380114a9fc3589468";
 
 void check_hip(hipError_t status, const char* operation) {
   if (status != hipSuccess) {
@@ -876,7 +878,26 @@ probe_native_q8192_linear_prefill_layer0_oracle(
         invocations.tensor_pointer(base + 5, "Ai"), 16777216,
         boundary_file("launch-005-Ai")));
   }
-  executor.launch(launches[base + 6]);
+  const bool use_short_prefill_recompute_w_u =
+      q1024_official_fla && comparison_tokens < tokens;
+  if (use_short_prefill_recompute_w_u) {
+    const PreparedDecodeInvocation& recompute = launches[base + 6];
+    const DecodeLaunchConfig& captured = recompute.launch->config;
+    if (captured.grid_x != 16 || captured.grid_y != 32 ||
+        captured.grid_z != 1 || captured.warp_size != 32 ||
+        captured.shared_memory_bytes != 8192) {
+      throw std::runtime_error(
+          "native short-prefill recompute-W/U launch geometry mismatch");
+    }
+    const AotLaunchConfig qualified{
+        captured.grid_x, captured.grid_y, captured.grid_z,
+        4, captured.warp_size, captured.shared_memory_bytes};
+    executor.launch_embedded(
+        kShortPrefillRecomputeWuKernelHash, qualified,
+        recompute.kernel_params);
+  } else {
+    executor.launch(launches[base + 6]);
+  }
   compare_optional_sequence_storage(
       "fla_w_storage", "bfloat16",
       invocations.tensor_pointer(base + 6, "w"), "diagnostic-w");

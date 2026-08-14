@@ -1,0 +1,57 @@
+{
+  "autotune_key": {
+    "BK": 64,
+    "BT": 64,
+    "BV": 64,
+    "H": 32,
+    "IS_VARLEN": false,
+    "K": 128,
+    "V": 128
+  },
+  "case_id": "multi_video",
+  "comparisons": {
+    "direct_u": {
+      "actual_sha256": "309588e24466d8ea8bf6b7de0f3487e3eeedc8c1ba9374f14d473a15f5413fb0",
+      "elements": 536576,
+      "exact": true,
+      "exact_elements": 536576,
+      "expected_sha256": "309588e24466d8ea8bf6b7de0f3487e3eeedc8c1ba9374f14d473a15f5413fb0",
+      "first_mismatch_index": null
+    },
+    "direct_w": {
+      "actual_sha256": "4a5b6988421dc7d7ef8821d208ff677139e720fd0d42ed010982ae6cc03f2ea1",
+      "elements": 536576,
+      "exact": true,
+      "exact_elements": 536576,
+      "expected_sha256": "4a5b6988421dc7d7ef8821d208ff677139e720fd0d42ed010982ae6cc03f2ea1",
+      "first_mismatch_index": null
+    },
+    "native_bucket_u": {
+      "actual_sha256": "309588e24466d8ea8bf6b7de0f3487e3eeedc8c1ba9374f14d473a15f5413fb0",
+      "elements": 536576,
+      "exact": true,
+      "exact_elements": 536576,
+      "expected_sha256": "309588e24466d8ea8bf6b7de0f3487e3eeedc8c1ba9374f14d473a15f5413fb0",
+      "first_mismatch_index": null
+    },
+    "native_bucket_w": {
+      "actual_sha256": "4a5b6988421dc7d7ef8821d208ff677139e720fd0d42ed010982ae6cc03f2ea1",
+      "elements": 536576,
+      "exact": true,
+      "exact_elements": 536576,
+      "expected_sha256": "4a5b6988421dc7d7ef8821d208ff677139e720fd0d42ed010982ae6cc03f2ea1",
+      "first_mismatch_index": null
+    }
+  },
+  "complete": true,
+  "native_bucket_tokens": 1024,
+  "prompt_tokens": 131,
+  "qualified_for_short_vl_prefill": true,
+  "schema": "aima-amd395-qwen36/vl-recompute-w-u-aot-trace/v1",
+  "selection": {
+    "num_ctas": 1,
+    "num_stages": 2,
+    "num_warps": 4
+  },
+  "source_http_language_diagnostic_sha256": "c556f5b2d171bfe7c96040e106506ae1fd0164ccbbdda7e9dfe51e72b88d2381"
+}

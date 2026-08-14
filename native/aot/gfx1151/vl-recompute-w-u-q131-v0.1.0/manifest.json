@@ -1,0 +1,487 @@
+{
+  "abi": {
+    "hidden_argument_values": [
+      0,
+      0
+    ],
+    "hidden_arguments": [
+      "global_scratch",
+      "profile_scratch"
+    ],
+    "launch": "hipModuleLaunchKernel"
+  },
+  "coverage": {
+    "cache_state": "warm_compilation_cache_cold_prefix_request",
+    "completion_tokens": 1,
+    "context_tokens": 131,
+    "full_matrix_complete": false
+  },
+  "kernel_count": 1,
+  "kernel_symbol_count": 1,
+  "kernels": [
+    {
+      "audit_artifacts": [
+        {
+          "bytes": 1139,
+          "name": "recompute_w_u_fwd_kernel.json",
+          "sha256": "05d327eb9e61ce837516eb58045fa6b85a1a5acff53a3b46a40e747f8c5014f9"
+        },
+        {
+          "bytes": 693665,
+          "name": "recompute_w_u_fwd_kernel.llir",
+          "sha256": "2772a920df724fb90c85bcfa73606b08182113040c81fe9ae069b9fa6b18930b"
+        },
+        {
+          "bytes": 32213,
+          "name": "recompute_w_u_fwd_kernel.ttgir",
+          "sha256": "b45e459eadb0e6bc91522ff188191966441dcef256abe6ab9448c781705d7ee9"
+        },
+        {
+          "bytes": 85240,
+          "name": "recompute_w_u_fwd_kernel.hsaco",
+          "sha256": "e5650cc7faa0d105fc0b3dd5d1530e5de4afaa7f76809fa56ff2a5f7d4a501dc"
+        },
+        {
+          "bytes": 554346,
+          "name": "recompute_w_u_fwd_kernel.amdgcn",
+          "sha256": "efcef0b4b120f8e7080a9d681444ea1e6f5ca1d22951020d0c1d0f5f86962b24"
+        },
+        {
+          "bytes": 19535,
+          "name": "recompute_w_u_fwd_kernel.ttir",
+          "sha256": "f03ee8b08ff0253ca92bfb3b09db355325734cfecc3be218f1d1b660b1d185a3"
+        },
+        {
+          "bytes": 42298,
+          "name": "recompute_w_u_fwd_kernel.source",
+          "sha256": "f2b0901d4d7bbd7fd724ae25f381e8e1c0c2ec3a0d7d7a8103fa63eb65cb9817"
+        }
+      ],
+      "compile_constants": {
+        "BK": 64,
+        "BT": 64,
+        "BV": 64,
+        "H": 32,
+        "Hg": 16,
+        "IS_VARLEN": false,
+        "K": 128,
+        "V": 128,
+        "chunk_indices": null,
+        "cu_seqlens": null
+      },
+      "image": {
+        "bytes": 75144,
+        "path": "kernels/37364a45c33cbce0-recompute_w_u_fwd_kernel.hsaco",
+        "raw_bytes": 85240,
+        "raw_sha256": "e5650cc7faa0d105fc0b3dd5d1530e5de4afaa7f76809fa56ff2a5f7d4a501dc",
+        "sha256": "80ea78d01d2abcf20626b8ddfbcb58b350ab6769c20f7396df4eba5626dfec77",
+        "transformation": "llvm-strip --strip-debug"
+      },
+      "kernel_hash": "37364a45c33cbce02dd7417f568abf12062d6b061c01ba8380114a9fc3589468",
+      "launch_variants": [
+        {
+          "arguments": [
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "k",
+              "shape": [
+                1,
+                1024,
+                16,
+                128
+              ],
+              "stride": [
+                2097152,
+                2048,
+                128,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "v",
+              "shape": [
+                1,
+                1024,
+                32,
+                128
+              ],
+              "stride": [
+                4194304,
+                4096,
+                128,
+                1
+              ]
+            },
+            {
+              "abi_type": "*fp32",
+              "dtype": "torch.float32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "beta",
+              "shape": [
+                1,
+                1024,
+                32
+              ],
+              "stride": [
+                32768,
+                32,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "w",
+              "shape": [
+                1,
+                1024,
+                32,
+                128
+              ],
+              "stride": [
+                4194304,
+                4096,
+                128,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "u",
+              "shape": [
+                1,
+                1024,
+                32,
+                128
+              ],
+              "stride": [
+                4194304,
+                4096,
+                128,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "A",
+              "shape": [
+                1,
+                1024,
+                32,
+                64
+              ],
+              "stride": [
+                2097152,
+                2048,
+                64,
+                1
+              ]
+            },
+            {
+              "abi_type": "*fp32",
+              "dtype": "torch.float32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "g",
+              "shape": [
+                1,
+                1024,
+                32
+              ],
+              "stride": [
+                32768,
+                32,
+                1
+              ]
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "T",
+              "value": 1024
+            }
+          ],
+          "grid": [
+            16,
+            32,
+            1
+          ]
+        },
+        {
+          "arguments": [
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "k",
+              "shape": [
+                1,
+                131,
+                16,
+                128
+              ],
+              "stride": [
+                268288,
+                2048,
+                128,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "v",
+              "shape": [
+                1,
+                131,
+                32,
+                128
+              ],
+              "stride": [
+                536576,
+                4096,
+                128,
+                1
+              ]
+            },
+            {
+              "abi_type": "*fp32",
+              "dtype": "torch.float32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "beta",
+              "shape": [
+                1,
+                131,
+                32
+              ],
+              "stride": [
+                4192,
+                32,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "w",
+              "shape": [
+                1,
+                131,
+                32,
+                128
+              ],
+              "stride": [
+                536576,
+                4096,
+                128,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "u",
+              "shape": [
+                1,
+                131,
+                32,
+                128
+              ],
+              "stride": [
+                536576,
+                4096,
+                128,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "A",
+              "shape": [
+                1,
+                131,
+                32,
+                64
+              ],
+              "stride": [
+                268288,
+                2048,
+                64,
+                1
+              ]
+            },
+            {
+              "abi_type": "*fp32",
+              "dtype": "torch.float32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "g",
+              "shape": [
+                1,
+                131,
+                32
+              ],
+              "stride": [
+                4192,
+                32,
+                1
+              ]
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "T",
+              "value": 131
+            }
+          ],
+          "grid": [
+            3,
+            32,
+            1
+          ]
+        }
+      ],
+      "metadata": {
+        "launch_cooperative_grid": false,
+        "name": "recompute_w_u_fwd_kernel",
+        "num_ctas": 1,
+        "num_stages": 2,
+        "num_warps": 4,
+        "shared": 8192,
+        "target": {
+          "arch": "gfx1151",
+          "backend": "hip",
+          "warp_size": 32
+        },
+        "warp_size": 32
+      },
+      "regular_abi": [
+        {
+          "name": "k",
+          "type": "*bf16"
+        },
+        {
+          "name": "v",
+          "type": "*bf16"
+        },
+        {
+          "name": "beta",
+          "type": "*fp32"
+        },
+        {
+          "name": "w",
+          "type": "*bf16"
+        },
+        {
+          "name": "u",
+          "type": "*bf16"
+        },
+        {
+          "name": "A",
+          "type": "*bf16"
+        },
+        {
+          "name": "g",
+          "type": "*fp32"
+        },
+        {
+          "name": "T",
+          "type": "i32"
+        }
+      ],
+      "signature": {
+        "A": "*bf16",
+        "BK": "constexpr",
+        "BT": "constexpr",
+        "BV": "constexpr",
+        "H": "constexpr",
+        "Hg": "constexpr",
+        "IS_VARLEN": "constexpr",
+        "K": "constexpr",
+        "T": "i32",
+        "V": "constexpr",
+        "beta": "*fp32",
+        "chunk_indices": "constexpr",
+        "cu_seqlens": "constexpr",
+        "g": "*fp32",
+        "k": "*bf16",
+        "u": "*bf16",
+        "v": "*bf16",
+        "w": "*bf16"
+      },
+      "source_provenance": [
+        {
+          "license": "MIT",
+          "owner": "Triton",
+          "path": "triton/language/standard.py"
+        },
+        {
+          "license": "Apache-2.0",
+          "owner": "vLLM",
+          "path": "vllm/model_executor/layers/fla/ops/wy_fast.py"
+        }
+      ],
+      "symbol": "recompute_w_u_fwd_kernel"
+    }
+  ],
+  "launch_variant_count": 2,
+  "non_claims": [
+    "not_yet_a_complete_native_model_executor",
+    "not_yet_full_context_matrix_coverage",
+    "not_yet_a_correctness_or_performance_promotion"
+  ],
+  "packaged_hsaco_bytes": 75144,
+  "raw_hsaco_bytes": 85240,
+  "schema": "aima-amd395-qwen36/native-aot-closure/v1",
+  "source": {
+    "commit": "30cc3c451d05d0cbb0bb47761439e2d609561a8b",
+    "compiler": {
+      "license": "MIT",
+      "name": "Triton",
+      "version": "3.6.0"
+    },
+    "engine_sha256": "642d7183bc7e4e3e273406f0d29060c1437959f4e98bfd172e51bbaf1c4768bb",
+    "traces": [
+      {
+        "bytes": 12327,
+        "records": 6,
+        "sha256": "0afd3553ac8dfd6c288546d0377e032c6cbdc73dd3fa043b8ee07547e934adc9"
+      }
+    ],
+    "vllm_license": "Apache-2.0",
+    "vllm_version": "0.19.1rc1.dev300+g29e5d1020.rocm721"
+  },
+  "status": "bounded_q131_output1_executor_migration_evidence",
+  "target": {
+    "arch": "gfx1151",
+    "backend": "HIP",
+    "warp_size": 32
+  }
+}

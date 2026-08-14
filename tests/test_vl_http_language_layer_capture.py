@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from pathlib import Path
 import unittest
 
@@ -14,6 +16,12 @@ NATIVE_DIAGNOSTIC_BUILD = (
     ROOT / "scripts/build-native-vl-http-language-diagnostic-probe.sh"
 )
 RECOMPUTE_AOT_TRACE = ROOT / "scripts/trace-vllm-vl-recompute-w-u-aot.py"
+RECOMPUTE_AOT_ROOT = (
+    ROOT / "native/aot/gfx1151/vl-recompute-w-u-q131-v0.1.0"
+)
+RECOMPUTE_AOT_RESULT = (
+    ROOT / "benchmarks/results/vl-recompute-w-u-aot-v0.1.0.json"
+)
 
 
 class VlHttpLanguageLayerCaptureTest(unittest.TestCase):
@@ -80,6 +88,54 @@ class VlHttpLanguageLayerCaptureTest(unittest.TestCase):
         self.assertIn('"num_warps": 4', source)
         self.assertIn('"num_stages": 2', source)
         self.assertIn("short-VL recompute-W/U output differs", source)
+
+    def test_short_vl_recompute_aot_variant_is_hash_bound(self) -> None:
+        manifest = json.loads(
+            (RECOMPUTE_AOT_ROOT / "manifest.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(manifest["kernel_count"], 1)
+        self.assertEqual(manifest["launch_variant_count"], 2)
+        kernel = manifest["kernels"][0]
+        self.assertEqual(
+            kernel["kernel_hash"],
+            "37364a45c33cbce02dd7417f568abf12062d6b061c01ba8380114a9fc3589468",
+        )
+        self.assertEqual(kernel["metadata"]["num_warps"], 4)
+        self.assertEqual(kernel["metadata"]["num_stages"], 2)
+        self.assertEqual(
+            {tuple(item["grid"]) for item in kernel["launch_variants"]},
+            {(3, 32, 1), (16, 32, 1)},
+        )
+        image = RECOMPUTE_AOT_ROOT / kernel["image"]["path"]
+        self.assertEqual(image.stat().st_size, kernel["image"]["bytes"])
+        self.assertEqual(
+            hashlib.sha256(image.read_bytes()).hexdigest(),
+            kernel["image"]["sha256"],
+        )
+        result = json.loads(RECOMPUTE_AOT_RESULT.read_text(encoding="utf-8"))
+        self.assertTrue(result["complete"])
+        self.assertTrue(result["qualified_for_short_vl_prefill"])
+        self.assertEqual(result["native_bucket_tokens"], 1024)
+        self.assertTrue(
+            all(item["exact"] for item in result["comparisons"].values())
+        )
+
+        native = (
+            ROOT / "native/src/native_linear_prefill.hip.cpp"
+        ).read_text(encoding="utf-8")
+        self.assertIn(kernel["kernel_hash"], native)
+        self.assertIn("use_short_prefill_recompute_w_u", native)
+        self.assertIn("executor.launch_embedded", native)
+        for build_path in (
+            ROOT / "scripts/build-native-runtime.sh",
+            NATIVE_DIAGNOSTIC_BUILD,
+            ROOT / "scripts/build-native-vl-language-layer0-probe.sh",
+            ROOT / "scripts/build-native-vl-language-layer3-composed-probe.sh",
+        ):
+            self.assertIn(
+                "vl-recompute-w-u-q131-v0.1.0",
+                build_path.read_text(encoding="utf-8"),
+            )
 
 
 if __name__ == "__main__":
