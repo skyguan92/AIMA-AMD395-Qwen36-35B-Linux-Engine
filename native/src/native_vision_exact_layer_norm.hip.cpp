@@ -181,7 +181,7 @@ __global__ void exact_vision_layer_norm_kernel(
 struct NativeVisionExactLayerNormPlan::Impl {
   Impl(std::size_t rows, NativeVisionLayerNormReciprocal requested_mode)
       : row_count_value(rows), reciprocal_mode_value(requested_mode) {
-    if (rows == 0 || rows > 4 * kNativeVlAggregateTokenLimit) {
+    if (rows == 0 || rows > kNativeVlVisionBatchPatchLimit) {
       throw std::invalid_argument(
           "native exact vision LayerNorm row count is outside the budget");
     }

@@ -156,7 +156,7 @@ struct NativeVisionSegmentedAttentionPlan::Impl {
         workspace_bytes_value(2 * requested_patch_count *
                               sizeof(std::uint32_t)) {
     if (requested_patch_count == 0 ||
-        requested_patch_count > 4 * kNativeVlAggregateTokenLimit) {
+        requested_patch_count > kNativeVlVisionBatchPatchLimit) {
       throw std::invalid_argument(
           "native vision attention patch count is outside the serving budget");
     }

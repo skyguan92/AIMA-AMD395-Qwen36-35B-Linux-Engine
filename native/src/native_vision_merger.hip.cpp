@@ -37,7 +37,7 @@ void check_hip(hipError_t status, const char* operation) {
 
 std::size_t validate_patch_count(std::size_t patch_count) {
   if (patch_count == 0 || patch_count % kSpatialMergeArea != 0 ||
-      patch_count > kSpatialMergeArea * kNativeVlAggregateTokenLimit) {
+      patch_count > kNativeVlVisionBatchPatchLimit) {
     throw std::invalid_argument(
         "native vision merger patch count is outside the serving budget");
   }

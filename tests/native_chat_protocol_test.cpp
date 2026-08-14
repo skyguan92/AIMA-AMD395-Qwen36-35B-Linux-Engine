@@ -414,9 +414,32 @@ int main() {
         {{"type", "image_url"},
          {"image_url", {{"url", "file:///media/a.png"}}}});
   }
+  NativeOrderedJson maximum_images = too_many_images;
+  maximum_images["messages"][0]["content"].erase(
+      maximum_images["messages"][0]["content"].end() - 1);
+  require(aima::prepare_native_chat(maximum_images).media.size() == 16,
+          "maximum image count was not admitted");
   require_invalid(
       [&]() { (void)aima::prepare_native_chat(too_many_images); },
       "image count above the frozen limit was admitted");
+
+  NativeOrderedJson maximum_videos = {
+      {"messages", NativeOrderedJson::array(
+                       {{{"role", "user"},
+                         {"content", NativeOrderedJson::array()}}})}};
+  for (std::size_t index = 0; index < 21; ++index) {
+    maximum_videos["messages"][0]["content"].push_back(
+        {{"type", "video_url"},
+         {"video_url", {{"url", "file:///media/a.mp4"}}}});
+  }
+  require(aima::prepare_native_chat(maximum_videos).media.size() == 21,
+          "maximum video count was not admitted");
+  maximum_videos["messages"][0]["content"].push_back(
+      {{"type", "video_url"},
+       {"video_url", {{"url", "file:///media/a.mp4"}}}});
+  require_invalid(
+      [&]() { (void)aima::prepare_native_chat(maximum_videos); },
+      "video count above the frozen limit was admitted");
 
   std::cout << "native_chat_protocol_test: PASS\n";
   return 0;

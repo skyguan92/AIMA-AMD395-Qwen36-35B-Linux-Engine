@@ -42,7 +42,7 @@ std::size_t validate_block_index(std::size_t block_index) {
 
 std::size_t validate_patch_count(std::size_t patch_count) {
   if (patch_count == 0 ||
-      patch_count > 4 * kNativeVlAggregateTokenLimit) {
+      patch_count > kNativeVlVisionBatchPatchLimit) {
     throw std::invalid_argument(
         "native vision block patch count is outside the serving budget");
   }

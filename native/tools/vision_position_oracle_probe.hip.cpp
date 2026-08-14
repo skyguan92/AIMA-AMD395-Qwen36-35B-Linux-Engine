@@ -143,7 +143,7 @@ int main(int argc, char** argv) {
     }
     constexpr std::size_t kVisionHidden = 1152;
     const std::size_t patches = grid.temporal * spatial;
-    if (patches > 2 * aima::kNativeVlAggregateTokenLimit) {
+    if (patches > aima::kNativeVlVisionBatchPatchLimit / 2) {
       throw std::invalid_argument(
           "duplicated probe grid exceeds the serving budget");
     }

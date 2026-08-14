@@ -42,7 +42,7 @@ struct NativeVisionAotAttentionPlan::Impl {
   Impl(const std::filesystem::path& image_path, std::size_t patches,
        const std::vector<std::uint32_t>& cu_seqlens)
       : patch_count_value(patches) {
-    if (patches == 0 || patches > 4 * kNativeVlAggregateTokenLimit) {
+    if (patches == 0 || patches > kNativeVlVisionBatchPatchLimit) {
       throw std::invalid_argument(
           "native AOT vision attention patch count is outside the budget");
     }

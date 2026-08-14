@@ -42,6 +42,14 @@ std::size_t checked_product(std::size_t left, std::size_t right,
   return left * right;
 }
 
+std::size_t checked_sum(std::size_t left, std::size_t right,
+                        const char* label) {
+  if (right > std::numeric_limits<std::size_t>::max() - left) {
+    throw std::invalid_argument(std::string(label) + " overflows");
+  }
+  return left + right;
+}
+
 // Python round() and NumPy rint use ties-to-even. std::round instead rounds
 // ties away from zero, which changes frozen resize and sampling boundaries.
 std::size_t round_half_to_even(double value) {
@@ -403,6 +411,59 @@ std::size_t NativeVlGrid::language_token_count() const {
     throw std::invalid_argument("VL grid is not spatial-merge aligned");
   }
   return patches / merge_area;
+}
+
+std::vector<NativeVlVisionBatch> native_qwen36_vision_batches(
+    const std::vector<NativeVlGrid>& grids) {
+  if (grids.empty()) {
+    throw std::invalid_argument("native VL vision grids are empty");
+  }
+  std::vector<NativeVlVisionBatch> batches;
+  NativeVlVisionBatch current;
+  std::size_t aggregate_patches = 0;
+  std::size_t aggregate_tokens = 0;
+  for (std::size_t media_index = 0; media_index < grids.size();
+       ++media_index) {
+    const std::size_t patches = grids[media_index].patch_count();
+    const std::size_t tokens = grids[media_index].language_token_count();
+    if (tokens == 0 || tokens > kNativeVlVisionBatchTokenLimit ||
+        patches > kNativeVlVisionBatchPatchLimit) {
+      throw std::invalid_argument(
+          "native VL media item exceeds the vision batch limit");
+    }
+    if (tokens > kNativeVlAggregateTokenLimit - aggregate_tokens) {
+      throw std::invalid_argument(
+          "native VL media grids exceed the aggregate token budget");
+    }
+    if (current.media_count != 0 &&
+        tokens > kNativeVlVisionBatchTokenLimit -
+                     current.visual_token_count) {
+      batches.push_back(current);
+      current = {};
+    }
+    if (current.media_count == 0) {
+      current.media_offset = media_index;
+      current.patch_offset = aggregate_patches;
+      current.visual_token_offset = aggregate_tokens;
+    }
+    ++current.media_count;
+    current.patch_count = checked_sum(
+        current.patch_count, patches, "native VL vision batch patches");
+    current.visual_token_count = checked_sum(
+        current.visual_token_count, tokens,
+        "native VL vision batch tokens");
+    aggregate_patches = checked_sum(
+        aggregate_patches, patches, "native VL aggregate patches");
+    aggregate_tokens = checked_sum(
+        aggregate_tokens, tokens, "native VL aggregate tokens");
+  }
+  if (current.media_count != 0) batches.push_back(current);
+  if (batches.empty() ||
+      aggregate_tokens > kNativeVlAggregateTokenLimit) {
+    throw std::runtime_error(
+        "native VL vision batch accounting is inconsistent");
+  }
+  return batches;
 }
 
 NativeVlResizeGeometry native_qwen36_image_geometry(

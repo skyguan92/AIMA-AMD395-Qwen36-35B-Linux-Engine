@@ -31,6 +31,7 @@
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <cstddef>
 #include <cstdlib>
 #include <cstring>
 #include <iomanip>
@@ -967,6 +968,7 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
   const NativeResidentVlInput* vl_input =
       request.vl_input.has_value() ? &request.vl_input.value() : nullptr;
   std::optional<NativeVlEmbeddingPlan> vl_embedding_plan;
+  std::vector<NativeVlVisionBatch> vl_vision_batches;
   std::size_t vl_vision_patches = 0;
   std::size_t vl_visual_tokens = 0;
   if (vl_input != nullptr) {
@@ -979,26 +981,36 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
       throw std::invalid_argument(
           "native resident VL request contract is incomplete");
     }
+    vl_vision_batches = native_qwen36_vision_batches(vl_input->grids);
+    const NativeVlVisionBatch& final_batch = vl_vision_batches.back();
+    vl_vision_patches = final_batch.patch_offset + final_batch.patch_count;
+    vl_visual_tokens = final_batch.visual_token_offset +
+                       final_batch.visual_token_count;
     std::size_t derived_images = 0;
     std::size_t derived_videos = 0;
     for (std::size_t index = 0; index < vl_input->grids.size(); ++index) {
       const NativeVlGrid& grid = vl_input->grids[index];
       const NativeVlEmbeddingSpan& span = vl_input->embedding_spans[index];
-      const std::size_t patches = grid.patch_count();
       const std::size_t visual_tokens = grid.language_token_count();
-      if (patches > 4 * kNativeVlAggregateTokenLimit - vl_vision_patches ||
-          visual_tokens >
-              kNativeVlAggregateTokenLimit - vl_visual_tokens ||
-          span.visual_embedding_count != visual_tokens) {
+      if (span.visual_embedding_count != visual_tokens) {
         throw std::invalid_argument(
             "native resident VL grid/span budget is invalid");
       }
-      vl_vision_patches += patches;
-      vl_visual_tokens += visual_tokens;
-      if (span.kind == NativeMediaKind::kImage) {
-        ++derived_images;
-      } else {
-        ++derived_videos;
+      switch (span.kind) {
+        case NativeMediaKind::kImage:
+          if (visual_tokens > kNativeVlImageTokenLimit) {
+            throw std::invalid_argument(
+                "native resident VL image grid exceeds its token limit");
+          }
+          ++derived_images;
+          break;
+        case NativeMediaKind::kVideo:
+          if (visual_tokens > kNativeVlVideoTokenLimit) {
+            throw std::invalid_argument(
+                "native resident VL video grid exceeds its token limit");
+          }
+          ++derived_videos;
+          break;
       }
     }
     if (derived_images != vl_input->image_count ||
@@ -1288,50 +1300,71 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
         throw std::runtime_error(
             "native resident VL embedding owner is incomplete");
       }
-      bool vision_plan_cache_hit = false;
-      double vision_plan_build_wall_ms = 0.0;
-      NativeVisionPipelinePlan& pipeline = impl_->vision_plan(
-          vl_input->grids, &vision_plan_cache_hit,
-          &vision_plan_build_wall_ms);
-      if (pipeline.patch_count() != vl_vision_patches ||
-          pipeline.merged_token_count() != vl_visual_tokens) {
-        throw std::runtime_error(
-            "native resident vision plan shape is inconsistent");
-      }
       const std::uint64_t pixel_bytes =
           vl_input->pixel_values_bf16.size() * sizeof(std::uint16_t);
       const std::uint64_t embedding_bytes =
           vl_visual_tokens * kHidden * sizeof(std::uint16_t);
       impl_->ensure_vision_allocation(
-          &impl_->vision_pixel_values,
-          &impl_->vision_pixel_capacity_bytes, pixel_bytes,
-          "hipMalloc resident vision pixel input");
-      impl_->ensure_vision_allocation(
           &impl_->vision_embeddings,
           &impl_->vision_embedding_capacity_bytes, embedding_bytes,
           "hipMalloc resident vision embeddings");
-      impl_->ensure_vision_allocation(
-          &impl_->vision_temporary,
-          &impl_->vision_temporary_capacity_bytes,
-          pipeline.temporary_bytes(),
-          "hipMalloc resident vision temporary arena");
-      metrics.vl_vision_plan_cache_hit = vision_plan_cache_hit;
-      metrics.vl_vision_plan_build_wall_ms =
-          vision_plan_build_wall_ms;
+      bool all_vision_plan_cache_hits = true;
+      for (const NativeVlVisionBatch& batch : vl_vision_batches) {
+        const auto grid_begin =
+            vl_input->grids.begin() +
+            static_cast<std::ptrdiff_t>(batch.media_offset);
+        const std::vector<NativeVlGrid> batch_grids(
+            grid_begin,
+            grid_begin + static_cast<std::ptrdiff_t>(batch.media_count));
+        bool batch_cache_hit = false;
+        double batch_plan_build_wall_ms = 0.0;
+        NativeVisionPipelinePlan& pipeline = impl_->vision_plan(
+            batch_grids, &batch_cache_hit, &batch_plan_build_wall_ms);
+        if (pipeline.patch_count() != batch.patch_count ||
+            pipeline.merged_token_count() !=
+                batch.visual_token_count) {
+          throw std::runtime_error(
+              "native resident vision batch shape is inconsistent");
+        }
+        const std::uint64_t batch_pixel_bytes =
+            batch.patch_count * kVisionPixelColumns *
+            sizeof(std::uint16_t);
+        impl_->ensure_vision_allocation(
+            &impl_->vision_pixel_values,
+            &impl_->vision_pixel_capacity_bytes, batch_pixel_bytes,
+            "hipMalloc resident vision pixel input");
+        impl_->ensure_vision_allocation(
+            &impl_->vision_temporary,
+            &impl_->vision_temporary_capacity_bytes,
+            pipeline.temporary_bytes(),
+            "hipMalloc resident vision temporary arena");
+        const auto* batch_pixels =
+            vl_input->pixel_values_bf16.data() +
+            batch.patch_offset * kVisionPixelColumns;
+        auto* batch_embeddings =
+            static_cast<unsigned char*>(impl_->vision_embeddings) +
+            batch.visual_token_offset * kHidden *
+                sizeof(std::uint16_t);
+        check_hip(
+            hipMemcpyAsync(impl_->vision_pixel_values, batch_pixels,
+                           batch_pixel_bytes, hipMemcpyHostToDevice,
+                           nullptr),
+            "hipMemcpyAsync resident vision batch pixels");
+        const auto vision_started = std::chrono::steady_clock::now();
+        pipeline.launch(impl_->vision_pixel_values, batch_embeddings,
+                        impl_->vision_temporary,
+                        impl_->vision_temporary_capacity_bytes);
+        check_hip(hipDeviceSynchronize(),
+                  "hipDeviceSynchronize resident vision batch");
+        metrics.vl_vision_encode_wall_ms +=
+            elapsed_ms(vision_started);
+        metrics.vl_vision_plan_build_wall_ms +=
+            batch_plan_build_wall_ms;
+        all_vision_plan_cache_hits =
+            all_vision_plan_cache_hits && batch_cache_hit;
+      }
+      metrics.vl_vision_plan_cache_hit = all_vision_plan_cache_hits;
       metrics.vl_vision_plan_cache_entries = impl_->vision_plans.size();
-      check_hip(
-          hipMemcpyAsync(impl_->vision_pixel_values,
-                         vl_input->pixel_values_bf16.data(), pixel_bytes,
-                         hipMemcpyHostToDevice, nullptr),
-          "hipMemcpyAsync resident vision pixels");
-      const auto vision_started = std::chrono::steady_clock::now();
-      pipeline.launch(impl_->vision_pixel_values,
-                      impl_->vision_embeddings,
-                      impl_->vision_temporary,
-                      impl_->vision_temporary_capacity_bytes);
-      check_hip(hipDeviceSynchronize(),
-                "hipDeviceSynchronize resident vision pipeline");
-      metrics.vl_vision_encode_wall_ms = elapsed_ms(vision_started);
 
       const NativePromptAotSegment& first_segment =
           prompt_plan.aot_segments.front();

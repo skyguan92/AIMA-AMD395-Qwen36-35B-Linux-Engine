@@ -362,9 +362,7 @@ NativeVlPreparedRequest prepare_native_vl_request(
         media_cache->resident_bytes();
   }
   if (result.metrics.visual_tokens > kNativeVlAggregateTokenLimit ||
-      result.metrics.vision_patches >
-          kNativeVlMergeSize * kNativeVlMergeSize *
-              kNativeVlAggregateTokenLimit) {
+      result.metrics.vision_patches > kNativeVlAggregatePatchLimit) {
     throw std::invalid_argument(
         "native VL request exceeds the aggregate visual budget");
   }

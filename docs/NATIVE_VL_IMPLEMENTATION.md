@@ -14,10 +14,10 @@ blocking condition in the governing goal can move a gate to `passed`.
 
 | Gate | Current state | Evidence required to pass | Next blocking action |
 |---|---|---|---|
-| G1 full VL functional parity | the native HTTP path passes the frozen 30-case status/finish/tool/SSE surface, all 18 media prompt vectors match the real vLLM render boundary, and named-tool decoding is schema constrained; the generated min/typical/max envelope remains open | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | generate and execute the remaining processor-derived boundary cases without shrinking the frozen envelope |
-| G2 VL correctness parity | the five private and five independently rendered real-HTTP language prompts now pass final norm and 84/84 selected full-vocabulary rows bit-exact; resident serving still preserves the five frozen 8-token outputs; task-quality suites and the remaining generated-envelope cases remain open | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | run the frozen image/video task-quality suites and the remaining processor-derived envelope/error cases |
+| G1 full VL functional parity | the native HTTP path passes the frozen 30-case status/finish/tool/SSE surface, all 18 media prompt vectors match the real vLLM render boundary, and named-tool decoding is schema constrained; the deterministic 22-cell min/typical/max envelope is sealed but not yet executed | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | execute all remaining envelope cells without shrinking the frozen support surface |
+| G2 VL correctness parity | the five private and five independently rendered real-HTTP language prompts now pass final norm and 84/84 selected full-vocabulary rows bit-exact; resident serving still preserves the five frozen 8-token outputs; task-quality suites and unexecuted envelope cells remain open | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | run the frozen image/video task-quality suites and all remaining envelope/error cells |
 | G3 text product no regression | frozen baseline identified; the resident engine and certified lm_head now have an optional mask path that is disabled for ordinary requests, but the complete paired release matrix has not run | paired 19-cell, maximum-window, correctness, MMLU, API, cache, startup and memory requalification | retain `v1.5.1` as an immutable paired binary and run the complete paired matrix after language integration stabilizes |
-| G4 native VL performance | not started | paired per-cell stage timings and memory records against the fixed VL-enabled vLLM | generate matrix cells from the capability manifest |
+| G4 native VL performance | the 22-cell capability envelope is generated, but paired execution has not started | paired per-cell stage timings and memory records against the fixed VL-enabled vLLM | execute the generated cells with the frozen paired timing protocol |
 | G5 native release product | the full runtime now includes all qualified vision sources and loads the 333 visual tensors in the same resident process; the external vision-attention code object is hash-checked and wired into the portable package contract, but final package qualification has not run | native-only package, security, isolated bundle, second-host, soak and rollback evidence | generate a clean product qualification containing the vision code object, then run isolated bundle, second-host, soak and rollback gates |
 
 ## Phase 0 invariants
@@ -173,6 +173,21 @@ the chat template, all effective numeric parameters and the four special-token
 IDs. A native regression covers every frozen resize boundary and compares the
 complete frame-index vectors for all six accepted sampling cases by SHA-256;
 it passes both locally and on `amd395`.
+
+A deterministic projection of the frozen processor and API manifests now
+seals all 29 discrete resize, sampling and media-count boundaries plus 22
+min/typical/max and pairwise execution cells. The hash-bound artifact is
+`benchmarks/results/vl-capability-envelope-v0.1.0.json`, SHA-256
+`94591cc2fde748ecc9a4ecb9c5b455a4b877172f751b7676c578d7ea490d78f9`.
+It exposes a previously conflated contract: ordered media may consume the full
+262,144 encoder-token budget, while each visual-tower execution batch remains
+bounded to 16,384 merged tokens and 65,536 patches. The native request path now
+admits that aggregate budget and partitions consecutive whole media items into
+bounded batches with exact patch and embedding offsets; requests at or below
+16,384 tokens retain the original single-batch path. The full 262,144-image
+cell is explicitly processor/vision-only because an HTTP request also needs
+text and wrapper headroom. These source and CPU boundary checks are not target
+execution evidence; all 22 cells still must run before G1 or G2 can pass.
 
 The native processor now also performs the exact fused normalization, odd-frame
 repeat and Qwen temporal/spatial patch permutation into contiguous
@@ -637,7 +652,7 @@ reruns vision/language normally.
 The runtime build still installs and verifies the fixed vision-attention code
 object, and the portable package contract includes it in the deterministic
 bundle identity. These records close the frozen API/render and deterministic
-resident-serving slices only. The generated min/typical/max capability
-envelope, image/video task quality, complete text no-regression, paired
-performance, portable-package, second-host, soak and rollback qualifications
-remain blocking. Therefore G1 through G5 all remain false.
+resident-serving slices only. Execution of the sealed min/typical/max
+capability envelope, image/video task quality, complete text no-regression,
+paired performance, portable-package, second-host, soak and rollback
+qualifications remain blocking. Therefore G1 through G5 all remain false.

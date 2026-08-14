@@ -119,9 +119,9 @@ HostEncoderMetadata build_host_metadata(
         checked_multiply(grid.height, grid.width, "vision frame patches");
     const std::size_t grid_patches = checked_multiply(
         grid.temporal, patches_per_frame, "vision grid patches");
-    if (grid_patches > kSpatialMergeArea * kNativeVlAggregateTokenLimit ||
+    if (grid_patches > kNativeVlVisionBatchPatchLimit ||
         result.patch_count >
-            kSpatialMergeArea * kNativeVlAggregateTokenLimit - grid_patches) {
+            kNativeVlVisionBatchPatchLimit - grid_patches) {
       throw std::invalid_argument(
           "native vision encoder grids exceed the serving budget");
     }

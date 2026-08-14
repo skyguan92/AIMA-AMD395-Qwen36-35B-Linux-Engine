@@ -164,7 +164,8 @@ int main(int argc, char** argv) {
   try {
     constexpr std::size_t kVisionHidden = 1152;
     const std::size_t patches = std::stoull(argv[6]);
-    if (patches == 0 || patches > 4 * aima::kNativeVlAggregateTokenLimit) {
+    if (patches == 0 ||
+        patches > aima::kNativeVlVisionBatchPatchLimit) {
       throw std::invalid_argument("patch count is outside the probe domain");
     }
     const std::vector<std::uint32_t> cu_seqlens =

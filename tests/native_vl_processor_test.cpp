@@ -94,6 +94,11 @@ std::vector<aima::NativeRgbFrame> deterministic_video() {
 }  // namespace
 
 int main() {
+  require(aima::kNativeVlAggregateTokenLimit == 262144 &&
+              aima::kNativeVlVisionBatchTokenLimit == 16384 &&
+              aima::kNativeVlVisionBatchPatchLimit == 65536 &&
+              aima::kNativeVlAggregatePatchLimit == 1048576,
+          "processor-derived aggregate/batch limits drifted");
   require_geometry(aima::native_qwen36_image_geometry(1, 1),
                    256, 256, 1, 16, 16, 64, "minimum image geometry drifted");
   require_geometry(aima::native_qwen36_image_geometry(1, 200),
@@ -145,6 +150,68 @@ int main() {
   require_invalid(
       []() { (void)aima::native_qwen36_video_geometry(2, 32, 6432); },
       "video aspect ratio over 200 was admitted");
+
+  const aima::NativeVlGrid maximum_image_grid{1, 256, 256};
+  const aima::NativeVlGrid minimum_image_grid{1, 16, 16};
+  const aima::NativeVlGrid maximum_video_grid{1, 192, 256};
+  const std::vector<aima::NativeVlVisionBatch> mixed_batches =
+      aima::native_qwen36_vision_batches(
+          {maximum_image_grid, minimum_image_grid, {2, 16, 16}});
+  require(mixed_batches.size() == 2 &&
+              mixed_batches[0].media_offset == 0 &&
+              mixed_batches[0].media_count == 1 &&
+              mixed_batches[0].patch_offset == 0 &&
+              mixed_batches[0].patch_count == 65536 &&
+              mixed_batches[0].visual_token_offset == 0 &&
+              mixed_batches[0].visual_token_count == 16384 &&
+              mixed_batches[1].media_offset == 1 &&
+              mixed_batches[1].media_count == 2 &&
+              mixed_batches[1].patch_offset == 65536 &&
+              mixed_batches[1].patch_count == 768 &&
+              mixed_batches[1].visual_token_offset == 16384 &&
+              mixed_batches[1].visual_token_count == 192,
+          "ordered bounded vision batching drifted");
+
+  const std::vector<aima::NativeVlGrid> maximum_image_count(
+      16, maximum_image_grid);
+  const auto image_count_batches =
+      aima::native_qwen36_vision_batches(maximum_image_count);
+  require(image_count_batches.size() == 16 &&
+              image_count_batches.back().visual_token_offset == 245760 &&
+              image_count_batches.back().visual_token_count == 16384,
+          "maximum image-count encoder budget was not admitted");
+  require_invalid(
+      [&]() {
+        auto over = maximum_image_count;
+        over.push_back(maximum_image_grid);
+        (void)aima::native_qwen36_vision_batches(over);
+      },
+      "image aggregate above the full encoder budget was admitted");
+
+  const std::vector<aima::NativeVlGrid> maximum_video_count(
+      21, maximum_video_grid);
+  const auto video_count_batches =
+      aima::native_qwen36_vision_batches(maximum_video_count);
+  require(video_count_batches.size() == 21 &&
+              video_count_batches.back().visual_token_offset == 245760 &&
+              video_count_batches.back().visual_token_count == 12288,
+          "maximum video-count encoder budget was not admitted");
+  require_invalid(
+      [&]() {
+        auto over = maximum_video_count;
+        over.push_back(maximum_video_grid);
+        (void)aima::native_qwen36_vision_batches(over);
+      },
+      "video aggregate above the full encoder budget was admitted");
+
+  const std::vector<aima::NativeVlGrid> small_image_count(
+      16, minimum_image_grid);
+  const auto small_image_batches =
+      aima::native_qwen36_vision_batches(small_image_count);
+  require(small_image_batches.size() == 1 &&
+              small_image_batches[0].media_count == 16 &&
+              small_image_batches[0].visual_token_count == 1024,
+          "small maximum-count images were split unnecessarily");
 
   struct SamplingCase {
     std::size_t total;

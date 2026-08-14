@@ -16,7 +16,18 @@ inline constexpr std::size_t kNativeVlTemporalPatchSize = 2;
 inline constexpr std::size_t kNativeVlMergeSize = 2;
 inline constexpr std::size_t kNativeVlImageTokenLimit = 16384;
 inline constexpr std::size_t kNativeVlVideoTokenLimit = 12288;
-inline constexpr std::size_t kNativeVlAggregateTokenLimit = 16384;
+// The fixed vLLM processor admits the complete 262,144-token encoder budget
+// across ordered media. Individual image/video limits remain smaller, and the
+// resident visual tower executes bounded batches so aggregate admission does
+// not require an aggregate-sized vision scratch arena.
+inline constexpr std::size_t kNativeVlAggregateTokenLimit = 262144;
+inline constexpr std::size_t kNativeVlVisionBatchTokenLimit = 16384;
+inline constexpr std::size_t kNativeVlVisionBatchPatchLimit =
+    kNativeVlVisionBatchTokenLimit * kNativeVlMergeSize *
+    kNativeVlMergeSize;
+inline constexpr std::size_t kNativeVlAggregatePatchLimit =
+    kNativeVlAggregateTokenLimit * kNativeVlMergeSize *
+    kNativeVlMergeSize;
 
 struct NativeVlGrid {
   std::size_t temporal = 0;
@@ -31,6 +42,18 @@ struct NativeVlResizeGeometry {
   std::size_t resized_height = 0;
   std::size_t resized_width = 0;
   NativeVlGrid grid;
+};
+
+// One ordered slice of the concatenated processor tensors. Every media item
+// remains whole; consecutive items are packed up to the bounded visual-tower
+// batch limit. Offsets are expressed in patch rows and merged embedding rows.
+struct NativeVlVisionBatch {
+  std::size_t media_offset = 0;
+  std::size_t media_count = 0;
+  std::size_t patch_offset = 0;
+  std::size_t patch_count = 0;
+  std::size_t visual_token_offset = 0;
+  std::size_t visual_token_count = 0;
 };
 
 struct NativeVlVideoSamplingOptions {
@@ -69,6 +92,9 @@ NativeVlResizeGeometry native_qwen36_image_geometry(
 NativeVlResizeGeometry native_qwen36_video_geometry(
     std::size_t sampled_frames, std::size_t source_height,
     std::size_t source_width);
+
+std::vector<NativeVlVisionBatch> native_qwen36_vision_batches(
+    const std::vector<NativeVlGrid>& grids);
 
 std::vector<std::size_t> native_qwen36_sample_video_frames(
     std::size_t total_frames, double source_fps,

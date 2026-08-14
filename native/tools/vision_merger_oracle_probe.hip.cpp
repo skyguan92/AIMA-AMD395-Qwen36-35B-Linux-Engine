@@ -166,7 +166,7 @@ int main(int argc, char** argv) {
     constexpr std::size_t kMergeArea = 4;
     const std::size_t patches = std::stoull(argv[4]);
     if (patches == 0 || patches % kMergeArea != 0 ||
-        patches > kMergeArea * aima::kNativeVlAggregateTokenLimit) {
+        patches > aima::kNativeVlVisionBatchPatchLimit) {
       throw std::invalid_argument("merger probe patch count is invalid");
     }
     const std::size_t input_bytes =

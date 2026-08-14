@@ -174,7 +174,7 @@ struct NativeVisionPatchEmbedPlan::Impl {
                             kVisionHidden * sizeof(std::uint16_t))),
         gemm(patches, kVisionHidden, kPatchFeatures, kWorkspaceLimit, true,
              true) {
-    if (patches == 0 || patches > 4 * 16384) {
+    if (patches == 0 || patches > kNativeVlVisionBatchPatchLimit) {
       throw std::invalid_argument(
           "native vision patch count is outside the serving budget");
     }
@@ -245,8 +245,8 @@ struct NativeVisionPositionPlan::Impl {
           checked_product(grid.height, grid.width, "vision spatial grid");
       const std::size_t patches =
           checked_product(grid.temporal, spatial, "vision patch grid");
-      if (patches > 4 * kNativeVlAggregateTokenLimit ||
-          patch_count_value > 4 * kNativeVlAggregateTokenLimit - patches) {
+      if (patches > kNativeVlVisionBatchPatchLimit ||
+          patch_count_value > kNativeVlVisionBatchPatchLimit - patches) {
         throw std::invalid_argument(
             "native vision position patches exceed the serving budget");
       }

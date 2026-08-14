@@ -125,7 +125,7 @@ int main(int argc, char** argv) {
     const std::size_t block_index = std::stoull(argv[2]);
     const std::size_t rows = std::stoull(argv[5]);
     if (block_index >= kVisionBlockCount || rows == 0 ||
-        rows > 4 * aima::kNativeVlAggregateTokenLimit) {
+        rows > aima::kNativeVlVisionBatchPatchLimit) {
       throw std::invalid_argument("exact LayerNorm probe shape is invalid");
     }
     const std::size_t tensor_bytes =

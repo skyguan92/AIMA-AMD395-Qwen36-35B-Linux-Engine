@@ -75,7 +75,7 @@ __global__ void vision_rotary_kernel(const __hip_bfloat16* qkv,
 NativeVisionRotaryPlan::NativeVisionRotaryPlan(std::size_t patch_count)
     : patch_count_(patch_count) {
   if (patch_count == 0 ||
-      patch_count > 4 * kNativeVlAggregateTokenLimit) {
+      patch_count > kNativeVlVisionBatchPatchLimit) {
     throw std::invalid_argument(
         "native vision rotary patch count is outside the serving budget");
   }

@@ -1,0 +1,1044 @@
+{
+  "bindings": {
+    "api_capability_manifest": {
+      "bytes": 86659,
+      "path": "benchmarks/results/vl-capability-manifest.json",
+      "sha256": "72e64b8d5cb0c1de8a355617676c46c98c1e0f05cec7a6e3a7df79dd36560d7a"
+    },
+    "derivation_module": {
+      "bytes": 18453,
+      "path": "aima_engine/vl_envelope.py",
+      "sha256": "9807d700b0d40d02405bc847ad1aed49fc1bea3c0162cd3f583de4af6cd9402f"
+    },
+    "generator": {
+      "bytes": 2309,
+      "path": "scripts/generate-vl-capability-envelope.py",
+      "sha256": "3023f7fd59acc8d632bc7aa48710185c77daed94ab146def161590cd6bb2468e"
+    },
+    "processor_probe": {
+      "bytes": 39849,
+      "path": "benchmarks/results/vl-processor-capability-v0.1.0.json",
+      "sha256": "a3aa0ce74cd522ffd4d6c9ec2188b5e340c7dfc7fbe4509e146c18cdeb343589"
+    }
+  },
+  "complete": true,
+  "decision": {
+    "g1_passed": false,
+    "g2_passed": false,
+    "native_execution_qualification_complete": false,
+    "processor_boundary_manifest_complete": true,
+    "task_quality_qualification_complete": false
+  },
+  "derivation": {
+    "cartesian_product": false,
+    "coverage_strategy": "all discrete boundaries plus min/typical/max and pairwise cross-batch cells",
+    "hand_authored_boundary_values": false,
+    "method": "deterministic projection of frozen processor and API capability evidence"
+  },
+  "execution_cells": [
+    {
+      "aggregate_visual_tokens": 64,
+      "boundary_ids": [
+        "image.resize.minimum_source"
+      ],
+      "cell_id": "image_minimum",
+      "expected_outcome": "accepted",
+      "media_items": 1,
+      "media_token_counts": [
+        64
+      ],
+      "qualification_layers": [
+        "processor",
+        "http",
+        "vision",
+        "language",
+        "generation"
+      ],
+      "vision_batch_count": 1
+    },
+    {
+      "aggregate_visual_tokens": 256,
+      "boundary_ids": [
+        "image.resize.portrait"
+      ],
+      "cell_id": "image_typical_portrait",
+      "expected_outcome": "accepted",
+      "media_items": 1,
+      "media_token_counts": [
+        256
+      ],
+      "qualification_layers": [
+        "processor",
+        "http",
+        "vision",
+        "language",
+        "generation"
+      ],
+      "vision_batch_count": 1
+    },
+    {
+      "aggregate_visual_tokens": 256,
+      "boundary_ids": [
+        "image.resize.landscape"
+      ],
+      "cell_id": "image_typical_landscape",
+      "expected_outcome": "accepted",
+      "media_items": 1,
+      "media_token_counts": [
+        256
+      ],
+      "qualification_layers": [
+        "processor",
+        "http",
+        "vision",
+        "language",
+        "generation"
+      ],
+      "vision_batch_count": 1
+    },
+    {
+      "aggregate_visual_tokens": 16384,
+      "boundary_ids": [
+        "image.resize.maximum_pixels"
+      ],
+      "cell_id": "image_maximum_pixels",
+      "expected_outcome": "accepted",
+      "media_items": 1,
+      "media_token_counts": [
+        16384
+      ],
+      "qualification_layers": [
+        "processor",
+        "http",
+        "vision",
+        "language",
+        "generation"
+      ],
+      "vision_batch_count": 1
+    },
+    {
+      "aggregate_visual_tokens": 16384,
+      "boundary_ids": [
+        "image.resize.above_maximum_pixels"
+      ],
+      "cell_id": "image_above_maximum_clamp",
+      "expected_outcome": "accepted",
+      "media_items": 1,
+      "media_token_counts": [
+        16384
+      ],
+      "qualification_layers": [
+        "processor",
+        "http",
+        "vision",
+        "language",
+        "generation"
+      ],
+      "vision_batch_count": 1
+    },
+    {
+      "aggregate_visual_tokens": 0,
+      "boundary_ids": [
+        "image.resize.aspect_ratio_over_200"
+      ],
+      "cell_id": "image_aspect_rejection",
+      "expected_outcome": "rejected",
+      "media_items": 0,
+      "media_token_counts": [],
+      "qualification_layers": [
+        "processor",
+        "http"
+      ],
+      "vision_batch_count": 0
+    },
+    {
+      "aggregate_visual_tokens": 4,
+      "boundary_ids": [
+        "video.resize.temporal_factor",
+        "video.resize.spatial_factor"
+      ],
+      "cell_id": "video_minimum",
+      "expected_outcome": "accepted",
+      "media_items": 1,
+      "media_token_counts": [
+        4
+      ],
+      "qualification_layers": [
+        "processor",
+        "http",
+        "vision",
+        "language",
+        "generation"
+      ],
+      "vision_batch_count": 1
+    },
+    {
+      "aggregate_visual_tokens": 128,
+      "boundary_ids": [
+        "video.resize.typical",
+        "video.sampling.typical_fps"
+      ],
+      "cell_id": "video_typical",
+      "expected_outcome": "accepted",
+      "media_items": 1,
+      "media_token_counts": [
+        128
+      ],
+      "qualification_layers": [
+        "processor",
+        "http",
+        "vision",
+        "language",
+        "generation"
+      ],
+      "vision_batch_count": 1
+    },
+    {
+      "aggregate_visual_tokens": 12288,
+      "boundary_ids": [
+        "video.resize.maximum_feature_shape"
+      ],
+      "cell_id": "video_maximum_feature_shape",
+      "expected_outcome": "accepted",
+      "media_items": 1,
+      "media_token_counts": [
+        12288
+      ],
+      "qualification_layers": [
+        "processor",
+        "http",
+        "vision",
+        "language",
+        "generation"
+      ],
+      "vision_batch_count": 1
+    },
+    {
+      "aggregate_visual_tokens": 0,
+      "boundary_ids": [
+        "video.resize.below_temporal_factor",
+        "video.resize.below_spatial_factor"
+      ],
+      "cell_id": "video_minimum_rejections",
+      "expected_outcome": "rejected",
+      "media_items": 0,
+      "media_token_counts": [],
+      "qualification_layers": [
+        "processor",
+        "http"
+      ],
+      "vision_batch_count": 0
+    },
+    {
+      "aggregate_visual_tokens": 0,
+      "boundary_ids": [
+        "video.resize.aspect_ratio_over_200"
+      ],
+      "cell_id": "video_aspect_rejection",
+      "expected_outcome": "rejected",
+      "media_items": 0,
+      "media_token_counts": [],
+      "qualification_layers": [
+        "processor",
+        "http"
+      ],
+      "vision_batch_count": 0
+    },
+    {
+      "aggregate_visual_tokens": 4,
+      "boundary_ids": [
+        "video.sampling.minimum_frames"
+      ],
+      "cell_id": "video_sampling_minimum",
+      "expected_outcome": "accepted",
+      "media_items": 1,
+      "media_token_counts": [
+        4
+      ],
+      "qualification_layers": [
+        "processor",
+        "http",
+        "vision",
+        "language",
+        "generation"
+      ],
+      "vision_batch_count": 1
+    },
+    {
+      "aggregate_visual_tokens": 12288,
+      "boundary_ids": [
+        "video.sampling.maximum_frames",
+        "video.sampling.above_maximum_frames"
+      ],
+      "cell_id": "video_sampling_maximum",
+      "expected_outcome": "accepted",
+      "media_items": 1,
+      "media_token_counts": [
+        12288
+      ],
+      "qualification_layers": [
+        "processor",
+        "http",
+        "vision",
+        "language",
+        "generation"
+      ],
+      "vision_batch_count": 1
+    },
+    {
+      "aggregate_visual_tokens": 0,
+      "boundary_ids": [
+        "video.sampling.fps_num_frames_conflict"
+      ],
+      "cell_id": "video_sampling_option_conflict",
+      "expected_outcome": "rejected",
+      "media_items": 0,
+      "media_token_counts": [],
+      "qualification_layers": [
+        "processor",
+        "http"
+      ],
+      "vision_batch_count": 0
+    },
+    {
+      "aggregate_visual_tokens": 1024,
+      "boundary_ids": [
+        "image.count.maximum"
+      ],
+      "cell_id": "image_count_maximum_small",
+      "expected_outcome": "accepted",
+      "media_items": 16,
+      "media_token_counts": [
+        64,
+        64,
+        64,
+        64,
+        64,
+        64,
+        64,
+        64,
+        64,
+        64,
+        64,
+        64,
+        64,
+        64,
+        64,
+        64
+      ],
+      "qualification_layers": [
+        "processor",
+        "http",
+        "vision",
+        "language",
+        "generation"
+      ],
+      "vision_batch_count": 1
+    },
+    {
+      "aggregate_visual_tokens": 84,
+      "boundary_ids": [
+        "video.count.maximum"
+      ],
+      "cell_id": "video_count_maximum_small",
+      "expected_outcome": "accepted",
+      "media_items": 21,
+      "media_token_counts": [
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4
+      ],
+      "qualification_layers": [
+        "processor",
+        "http",
+        "vision",
+        "language",
+        "generation"
+      ],
+      "vision_batch_count": 1
+    },
+    {
+      "aggregate_visual_tokens": 0,
+      "boundary_ids": [
+        "image.count.first_rejected"
+      ],
+      "cell_id": "image_count_over_limit",
+      "expected_outcome": "rejected",
+      "media_items": 0,
+      "media_token_counts": [],
+      "qualification_layers": [
+        "http"
+      ],
+      "vision_batch_count": 0
+    },
+    {
+      "aggregate_visual_tokens": 0,
+      "boundary_ids": [
+        "video.count.first_rejected"
+      ],
+      "cell_id": "video_count_over_limit",
+      "expected_outcome": "rejected",
+      "media_items": 0,
+      "media_token_counts": [],
+      "qualification_layers": [
+        "http"
+      ],
+      "vision_batch_count": 0
+    },
+    {
+      "aggregate_visual_tokens": 16388,
+      "boundary_ids": [
+        "image.resize.maximum_pixels",
+        "video.resize.temporal_factor"
+      ],
+      "cell_id": "mixed_cross_batch_boundary",
+      "expected_outcome": "accepted",
+      "media_items": 2,
+      "media_token_counts": [
+        16384,
+        4
+      ],
+      "note": "first mixed-media cell above one bounded 16,384-token vision batch",
+      "qualification_layers": [
+        "processor",
+        "http",
+        "vision",
+        "language",
+        "generation"
+      ],
+      "vision_batch_count": 2
+    },
+    {
+      "aggregate_visual_tokens": 245760,
+      "boundary_ids": [
+        "image.resize.maximum_pixels",
+        "image.count.maximum"
+      ],
+      "cell_id": "image_near_window_maximum",
+      "expected_outcome": "accepted",
+      "media_items": 15,
+      "media_token_counts": [
+        16384,
+        16384,
+        16384,
+        16384,
+        16384,
+        16384,
+        16384,
+        16384,
+        16384,
+        16384,
+        16384,
+        16384,
+        16384,
+        16384,
+        16384
+      ],
+      "note": "leaves one maximum-image token block for text and wrapper headroom",
+      "qualification_layers": [
+        "processor",
+        "http",
+        "vision",
+        "language",
+        "generation"
+      ],
+      "vision_batch_count": 15
+    },
+    {
+      "aggregate_visual_tokens": 262144,
+      "boundary_ids": [
+        "image.resize.maximum_pixels",
+        "image.count.maximum"
+      ],
+      "cell_id": "image_full_encoder_budget",
+      "expected_outcome": "accepted",
+      "media_items": 16,
+      "media_token_counts": [
+        16384,
+        16384,
+        16384,
+        16384,
+        16384,
+        16384,
+        16384,
+        16384,
+        16384,
+        16384,
+        16384,
+        16384,
+        16384,
+        16384,
+        16384,
+        16384
+      ],
+      "note": "encoder-budget boundary only; an HTTP prompt also needs wrapper/text tokens",
+      "qualification_layers": [
+        "processor",
+        "vision"
+      ],
+      "vision_batch_count": 16
+    },
+    {
+      "aggregate_visual_tokens": 258048,
+      "boundary_ids": [
+        "video.resize.maximum_feature_shape",
+        "video.count.maximum"
+      ],
+      "cell_id": "video_full_item_budget",
+      "expected_outcome": "accepted",
+      "media_items": 21,
+      "media_token_counts": [
+        12288,
+        12288,
+        12288,
+        12288,
+        12288,
+        12288,
+        12288,
+        12288,
+        12288,
+        12288,
+        12288,
+        12288,
+        12288,
+        12288,
+        12288,
+        12288,
+        12288,
+        12288,
+        12288,
+        12288,
+        12288
+      ],
+      "note": "21 maximum-token videos consume 258,048 of 262,144 encoder tokens",
+      "qualification_layers": [
+        "processor",
+        "http",
+        "vision",
+        "language",
+        "generation"
+      ],
+      "vision_batch_count": 21
+    }
+  ],
+  "generated_at": "2026-08-14T12:00:00+00:00",
+  "integrity": {
+    "algorithm": "sha256",
+    "canonical_payload_sha256": "5bcce89e29b54d2b108f5b6873ec2ae3d8831afdfb86f419a116d738114ca873"
+  },
+  "limits": {
+    "encoder_tokens": 262144,
+    "items_per_prompt": {
+      "image": 16,
+      "video": 21
+    },
+    "model_tokens": 262144,
+    "tokens_per_item": {
+      "image": 16384,
+      "video": 12288
+    },
+    "vision_batch_tokens": 16384
+  },
+  "processor_boundaries": {
+    "image_resize": [
+      {
+        "boundary_id": "image.resize.minimum_source",
+        "modality": "image",
+        "outcome": "accepted",
+        "result": {
+          "grid_thw": [
+            1,
+            16,
+            16
+          ],
+          "resized_height": 256,
+          "resized_width": 256,
+          "vision_tokens": 64
+        },
+        "role": "minimum",
+        "source": {
+          "height": 1,
+          "width": 1
+        },
+        "stage": "resize"
+      },
+      {
+        "boundary_id": "image.resize.aspect_ratio_200",
+        "modality": "image",
+        "outcome": "accepted",
+        "result": {
+          "grid_thw": [
+            1,
+            2,
+            228
+          ],
+          "resized_height": 32,
+          "resized_width": 3648,
+          "vision_tokens": 114
+        },
+        "role": "maximum-aspect-ratio",
+        "source": {
+          "height": 1,
+          "width": 200
+        },
+        "stage": "resize"
+      },
+      {
+        "boundary_id": "image.resize.aspect_ratio_over_200",
+        "error_class": "ValueError",
+        "error_message": "absolute aspect ratio must be smaller than 200, got 201.0",
+        "modality": "image",
+        "outcome": "rejected",
+        "role": "first-rejected-aspect-ratio",
+        "source": {
+          "height": 1,
+          "width": 201
+        },
+        "stage": "resize"
+      },
+      {
+        "boundary_id": "image.resize.factor_minus_one",
+        "modality": "image",
+        "outcome": "accepted",
+        "result": {
+          "grid_thw": [
+            1,
+            16,
+            16
+          ],
+          "resized_height": 256,
+          "resized_width": 256,
+          "vision_tokens": 64
+        },
+        "role": "discrete-factor-minus-one",
+        "source": {
+          "height": 31,
+          "width": 31
+        },
+        "stage": "resize"
+      },
+      {
+        "boundary_id": "image.resize.factor_exact",
+        "modality": "image",
+        "outcome": "accepted",
+        "result": {
+          "grid_thw": [
+            1,
+            16,
+            16
+          ],
+          "resized_height": 256,
+          "resized_width": 256,
+          "vision_tokens": 64
+        },
+        "role": "discrete-factor-exact",
+        "source": {
+          "height": 32,
+          "width": 32
+        },
+        "stage": "resize"
+      },
+      {
+        "boundary_id": "image.resize.factor_plus_one",
+        "modality": "image",
+        "outcome": "accepted",
+        "result": {
+          "grid_thw": [
+            1,
+            16,
+            16
+          ],
+          "resized_height": 256,
+          "resized_width": 256,
+          "vision_tokens": 64
+        },
+        "role": "discrete-factor-plus-one",
+        "source": {
+          "height": 33,
+          "width": 33
+        },
+        "stage": "resize"
+      },
+      {
+        "boundary_id": "image.resize.portrait",
+        "modality": "image",
+        "outcome": "accepted",
+        "result": {
+          "grid_thw": [
+            1,
+            64,
+            16
+          ],
+          "resized_height": 1024,
+          "resized_width": 256,
+          "vision_tokens": 256
+        },
+        "role": "typical-portrait",
+        "source": {
+          "height": 1024,
+          "width": 256
+        },
+        "stage": "resize"
+      },
+      {
+        "boundary_id": "image.resize.landscape",
+        "modality": "image",
+        "outcome": "accepted",
+        "result": {
+          "grid_thw": [
+            1,
+            16,
+            64
+          ],
+          "resized_height": 256,
+          "resized_width": 1024,
+          "vision_tokens": 256
+        },
+        "role": "typical-landscape",
+        "source": {
+          "height": 256,
+          "width": 1024
+        },
+        "stage": "resize"
+      },
+      {
+        "boundary_id": "image.resize.maximum_pixels",
+        "modality": "image",
+        "outcome": "accepted",
+        "result": {
+          "grid_thw": [
+            1,
+            256,
+            256
+          ],
+          "resized_height": 4096,
+          "resized_width": 4096,
+          "vision_tokens": 16384
+        },
+        "role": "maximum-output-pixels",
+        "source": {
+          "height": 4096,
+          "width": 4096
+        },
+        "stage": "resize"
+      },
+      {
+        "boundary_id": "image.resize.above_maximum_pixels",
+        "modality": "image",
+        "outcome": "accepted",
+        "result": {
+          "grid_thw": [
+            1,
+            256,
+            256
+          ],
+          "resized_height": 4096,
+          "resized_width": 4096,
+          "vision_tokens": 16384
+        },
+        "role": "maximum-output-pixels-clamp",
+        "source": {
+          "height": 8192,
+          "width": 8192
+        },
+        "stage": "resize"
+      }
+    ],
+    "media_count": [
+      {
+        "boundary_id": "image.count.maximum",
+        "count": 16,
+        "modality": "image",
+        "outcome": "accepted",
+        "role": "maximum-item-count",
+        "stage": "server-admission"
+      },
+      {
+        "boundary_id": "image.count.first_rejected",
+        "count": 17,
+        "modality": "image",
+        "outcome": "rejected",
+        "role": "first-rejected-item-count",
+        "stage": "server-admission"
+      },
+      {
+        "boundary_id": "video.count.maximum",
+        "count": 21,
+        "modality": "video",
+        "outcome": "accepted",
+        "role": "maximum-item-count",
+        "stage": "server-admission"
+      },
+      {
+        "boundary_id": "video.count.first_rejected",
+        "count": 22,
+        "modality": "video",
+        "outcome": "rejected",
+        "role": "first-rejected-item-count",
+        "stage": "server-admission"
+      }
+    ],
+    "video_resize": [
+      {
+        "boundary_id": "video.resize.below_temporal_factor",
+        "error_class": "ValueError",
+        "error_message": "t:1 must be larger than temporal_factor:2",
+        "modality": "video",
+        "outcome": "rejected",
+        "role": "first-rejected-temporal-factor",
+        "source": {
+          "frames": 1,
+          "height": 32,
+          "width": 32
+        },
+        "stage": "resize"
+      },
+      {
+        "boundary_id": "video.resize.temporal_factor",
+        "modality": "video",
+        "outcome": "accepted",
+        "result": {
+          "grid_thw": [
+            1,
+            4,
+            4
+          ],
+          "resized_height": 64,
+          "resized_width": 64,
+          "vision_tokens": 4
+        },
+        "role": "minimum-temporal-factor",
+        "source": {
+          "frames": 2,
+          "height": 32,
+          "width": 32
+        },
+        "stage": "resize"
+      },
+      {
+        "boundary_id": "video.resize.below_spatial_factor",
+        "error_class": "ValueError",
+        "error_message": "height:31 or width:32 must be larger than factor:32",
+        "modality": "video",
+        "outcome": "rejected",
+        "role": "first-rejected-spatial-factor",
+        "source": {
+          "frames": 2,
+          "height": 31,
+          "width": 32
+        },
+        "stage": "resize"
+      },
+      {
+        "boundary_id": "video.resize.spatial_factor",
+        "modality": "video",
+        "outcome": "accepted",
+        "result": {
+          "grid_thw": [
+            1,
+            4,
+            4
+          ],
+          "resized_height": 64,
+          "resized_width": 64,
+          "vision_tokens": 4
+        },
+        "role": "minimum-spatial-factor",
+        "source": {
+          "frames": 2,
+          "height": 32,
+          "width": 32
+        },
+        "stage": "resize"
+      },
+      {
+        "boundary_id": "video.resize.aspect_ratio_200",
+        "modality": "video",
+        "outcome": "accepted",
+        "result": {
+          "grid_thw": [
+            1,
+            2,
+            400
+          ],
+          "resized_height": 32,
+          "resized_width": 6400,
+          "vision_tokens": 200
+        },
+        "role": "maximum-aspect-ratio",
+        "source": {
+          "frames": 2,
+          "height": 32,
+          "width": 6400
+        },
+        "stage": "resize"
+      },
+      {
+        "boundary_id": "video.resize.aspect_ratio_over_200",
+        "error_class": "ValueError",
+        "error_message": "absolute aspect ratio must be smaller than 200, got 201.0",
+        "modality": "video",
+        "outcome": "rejected",
+        "role": "first-rejected-aspect-ratio",
+        "source": {
+          "frames": 2,
+          "height": 32,
+          "width": 6432
+        },
+        "stage": "resize"
+      },
+      {
+        "boundary_id": "video.resize.typical",
+        "modality": "video",
+        "outcome": "accepted",
+        "result": {
+          "grid_thw": [
+            2,
+            16,
+            16
+          ],
+          "resized_height": 256,
+          "resized_width": 256,
+          "vision_tokens": 128
+        },
+        "role": "typical",
+        "source": {
+          "frames": 4,
+          "height": 256,
+          "width": 256
+        },
+        "stage": "resize"
+      },
+      {
+        "boundary_id": "video.resize.maximum_feature_shape",
+        "modality": "video",
+        "outcome": "accepted",
+        "result": {
+          "grid_thw": [
+            1,
+            192,
+            256
+          ],
+          "resized_height": 3072,
+          "resized_width": 4096,
+          "vision_tokens": 12288
+        },
+        "role": "maximum-feature-shape",
+        "source": {
+          "frames": 2,
+          "height": 3072,
+          "width": 4096
+        },
+        "stage": "resize"
+      }
+    ],
+    "video_sampling": [
+      {
+        "boundary_id": "video.sampling.below_min_frames",
+        "modality": "video",
+        "outcome": "accepted",
+        "result": {
+          "count": 3,
+          "first_index": 0,
+          "indices_sha256": "434026bd98ff2d8a2fb346c89ae9de006d1e2a6862832b6b3cd86e51de36d5c5",
+          "last_index": 2
+        },
+        "role": "source-below-minimum",
+        "stage": "sampling"
+      },
+      {
+        "boundary_id": "video.sampling.minimum_frames",
+        "modality": "video",
+        "outcome": "accepted",
+        "result": {
+          "count": 4,
+          "first_index": 0,
+          "indices_sha256": "51e6fcc5ecfb80fbdb5d4d8b8167f367bd7f209a3f5c9f585b7c508fd44722d8",
+          "last_index": 47
+        },
+        "role": "minimum-sampled-frames",
+        "stage": "sampling"
+      },
+      {
+        "boundary_id": "video.sampling.typical_fps",
+        "modality": "video",
+        "outcome": "accepted",
+        "result": {
+          "count": 20,
+          "first_index": 0,
+          "indices_sha256": "628d7429de9079136c1a9cb2fc082870ed444c5c7f28110bae0bb1280ac110e3",
+          "last_index": 239
+        },
+        "role": "typical-fps",
+        "stage": "sampling"
+      },
+      {
+        "boundary_id": "video.sampling.maximum_frames",
+        "modality": "video",
+        "outcome": "accepted",
+        "result": {
+          "count": 768,
+          "first_index": 0,
+          "indices_sha256": "8d738258d5beeaa855caab98dec37b94aa9d6a8b9ce40ad299a132f2d5fd04e9",
+          "last_index": 9215
+        },
+        "role": "maximum-sampled-frames",
+        "stage": "sampling"
+      },
+      {
+        "boundary_id": "video.sampling.above_maximum_frames",
+        "modality": "video",
+        "outcome": "accepted",
+        "result": {
+          "count": 768,
+          "first_index": 0,
+          "indices_sha256": "21c72aca74d990785c2afa35e43bca0ede02585bca7cea361b626d7974234c58",
+          "last_index": 18431
+        },
+        "role": "maximum-sampled-frames-clamp",
+        "stage": "sampling"
+      },
+      {
+        "boundary_id": "video.sampling.explicit_num_frames",
+        "modality": "video",
+        "outcome": "accepted",
+        "result": {
+          "count": 32,
+          "first_index": 0,
+          "indices_sha256": "f679bcc1359f9050cf16a3b73d511936c89fc30095f8f6ea1a933177934d3e4c",
+          "last_index": 239
+        },
+        "role": "explicit-frame-count",
+        "stage": "sampling"
+      },
+      {
+        "boundary_id": "video.sampling.fps_num_frames_conflict",
+        "error_class": "ValueError",
+        "error_message": "`num_frames` and `fps` are mutually exclusive arguments, please use only one!",
+        "modality": "video",
+        "outcome": "rejected",
+        "role": "mutually-exclusive-options",
+        "stage": "sampling"
+      }
+    ]
+  },
+  "schema": "aima-amd395-qwen36/vl-capability-envelope/v1"
+}
