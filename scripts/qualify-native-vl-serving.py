@@ -153,6 +153,12 @@ def write_cache_variant_png(path: Path) -> None:
     )
 
 
+def request_bytes(payload: dict[str, Any]) -> bytes:
+    """Serialize the serving request exactly as the qualification client does."""
+
+    return json.dumps(payload, separators=(",", ":")).encode("utf-8")
+
+
 def post_json(
     opener: urllib.request.OpenerDirector,
     endpoint: str,
@@ -160,7 +166,7 @@ def post_json(
     *,
     timeout: float,
 ) -> tuple[int, dict[str, Any], float]:
-    wire = json.dumps(payload, separators=(",", ":")).encode("utf-8")
+    wire = request_bytes(payload)
     request = urllib.request.Request(
         endpoint,
         data=wire,
