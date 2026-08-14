@@ -25,6 +25,7 @@ class VlHttpLanguageLayerCaptureTest(unittest.TestCase):
         self.assertIn("InstallLanguageLayerOutputHooks", source)
         self.assertIn("FinalizeLanguageLayerOutputHooks", source)
         self.assertIn("cloudpickle.register_pickle_by_value", source)
+        self.assertIn("layers.base,", source)
         self.assertIn("http_oracle_final_norm_comparison", source)
         self.assertIn('"diagnostic_only": True', source)
         self.assertIn('"g2_passed": False', source)

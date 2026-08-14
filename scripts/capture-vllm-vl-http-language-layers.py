@@ -125,7 +125,13 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
     from vllm import LLM, SamplingParams
     from vllm.outputs import RequestOutput
 
-    for module in (base, layers, layers.prefix, sys.modules[__name__]):
+    for module in (
+        base,
+        layers,
+        layers.base,
+        layers.prefix,
+        sys.modules[__name__],
+    ):
         cloudpickle.register_pickle_by_value(module)
     llm_kwargs = base._llm_kwargs(args.model_dir.resolve(), fixture_root)
     llm_kwargs["skip_mm_profiling"] = True
