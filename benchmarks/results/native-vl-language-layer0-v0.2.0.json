@@ -1,0 +1,359 @@
+{
+  "schema": "aima-amd395-qwen36/native-vl-language-layer0-qualification/v2",
+  "complete": true,
+  "recorded_at": "2026-08-14T19:34:00+08:00",
+  "host": {
+    "label": "amd395",
+    "os": "Linux",
+    "gpu_arch": "gfx1151",
+    "device_name": "Radeon 8060S Graphics"
+  },
+  "source": {
+    "commit": "85fa597c782d28c05c51467060d8e03a8a47646e",
+    "clean": true,
+    "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "files": [
+      {
+        "path": "native/aot/gfx1151/q1024-output1/manifest.json",
+        "sha256": "61fc1fc76e851774fc1b270fec00e1abcd621c214096755710c6e387f516ee40"
+      },
+      {
+        "path": "native/aot/gfx1151/q1024-output1/prefill-schedule.json",
+        "sha256": "1945779eda1e0cc86fd7f18350aea6076389a99b6bf5d0bd751cff4db475a5ae"
+      },
+      {
+        "path": "native/aot/gfx1151/q8192-output2/manifest.json",
+        "sha256": "8ea05788685ccfacddb28409ded478f1adaec2b52908ebdea138c089dce49d91"
+      },
+      {
+        "path": "native/aot/gfx1151/q8192-output2/decode-schedule.json",
+        "sha256": "9026fdce0dfd69896f4f0ee27a1b574438523e3ea99180f7d42f0691ee8603e8"
+      },
+      {
+        "path": "native/aot/gfx1151/vl-recompute-w-u-q131-v0.1.0/manifest.json",
+        "sha256": "fe7a926d27ff434c909f32316b9bd1daad7b3cd292d65f944915fc228ff8d921"
+      },
+      {
+        "path": "native/aot/gfx1151/vl-recompute-w-u-q131-v0.1.0/kernels/37364a45c33cbce0-recompute_w_u_fwd_kernel.hsaco",
+        "sha256": "80ea78d01d2abcf20626b8ddfbcb58b350ab6769c20f7396df4eba5626dfec77"
+      },
+      {
+        "path": "native/tools/vl_language_layer0_oracle_probe.hip.cpp",
+        "sha256": "d13430cd99875c187a66abe062d536646210062f195fe306a2539bba6a5b711f"
+      },
+      {
+        "path": "native/src/native_linear_prefill.hip.cpp",
+        "sha256": "8ed6a386a4a1c9755cfc66f2a8a8e22c3eb89aebab562690745eb2e81a6dd966"
+      },
+      {
+        "path": "native/src/native_moe_prefill.hip.cpp",
+        "sha256": "1183cc1532cfece9cf9de884d1683b926aab495ec4c36117ce3c04baf547e035"
+      },
+      {
+        "path": "native/src/native_pointwise.hip.cpp",
+        "sha256": "9fd0816c7255000d52df24df94659a505988b29425ea55168f7862fd115c069a"
+      },
+      {
+        "path": "native/src/native_layer_oracle.hip.cpp",
+        "sha256": "9f01bfc162ba32941a5a92ac865371b806c20c436e3485741c0e32fad1a8439c"
+      },
+      {
+        "path": "native/include/aima/native_vl_logical_projections.h",
+        "sha256": "fb5959883480ef6f077b577a47e4aab7612386009daa639b782102c64231c370"
+      },
+      {
+        "path": "native/src/native_vl_logical_projections.hip.cpp",
+        "sha256": "b2b8d07cf580460e69e83aadcc9f5ea5a3b09e4665194255904f3a5bc06e6d6e"
+      },
+      {
+        "path": "scripts/build-native-vl-language-layer0-probe.sh",
+        "sha256": "3267c9c5eaf40b008f31f20726dd35ac73602e13c9eebedc78cded93361c0ea8"
+      },
+      {
+        "path": "scripts/generate-native-aot-registry.py",
+        "sha256": "59e2c21b392f88d2812619ce0d03159d77086b3b6f269dbbf5ef8fd97505edd8"
+      },
+      {
+        "path": "scripts/generate-native-decode-registry.py",
+        "sha256": "6ef0a3bf762230d2c4899db599ad0c5eaf8594d73ded8794fef10f93434eb63d"
+      },
+      {
+        "path": "scripts/generate-native-layout.py",
+        "sha256": "63dc5ffb3b1bf241377f6e5a92be23b15cf7aae6febe813f975688bb8b91a0fd"
+      }
+    ]
+  },
+  "model": {
+    "repository": "Qwen/Qwen3.6-35B-A3B",
+    "revision": "995ad96eacd98c81ed38be0c5b274b04031597b0",
+    "dtype": "bfloat16",
+    "language_hidden_size": 2048,
+    "language_layer_count": 40,
+    "qualified_layer": 0
+  },
+  "dependencies": {
+    "full_model_oracle": {
+      "path": "benchmarks/results/vl-oracle-manifest.json",
+      "sha256": "87dcdf76b7251f78da01a2a5f4312a9fb5c7d07a1ca2b2420566e77930f23d44"
+    },
+    "visual_pipeline": {
+      "path": "benchmarks/results/native-vision-pipeline-v0.1.0.json",
+      "sha256": "037fc26c25c5586959e1f3119a933c1f964e2aeb1d1ec0df056ae958072c1b7b"
+    },
+    "embedding_injection": {
+      "path": "benchmarks/results/native-vl-embedding-v0.1.0.json",
+      "sha256": "4f837b4ca5c3393e7d1ae62eec2db8aed6bf5b76a9a2265b5cb7dbde95c61182"
+    },
+    "mrope_plan": {
+      "path": "benchmarks/results/native-vl-mrope-v0.1.0.json",
+      "sha256": "69070ceccc9e98481af0a59c583abea4346d7bcf45813df52996295ac9d87d1a"
+    },
+    "full_language": {
+      "path": "benchmarks/results/native-vl-language-full-v0.2.0.json",
+      "sha256": "6de4f46b10a659c358350b1c42dec6e1d361f81c01926bf628b44b892fffb636"
+    },
+    "resident_serving": {
+      "path": "benchmarks/results/native-vl-serving-v0.1.0.json",
+      "sha256": "01bacc552c0c93a6878efb745e976a187ff6c94458b7ef4fc8501d4ca087dc65"
+    }
+  },
+  "implementation_contract": {
+    "boundary": "injected BF16 prompt embeddings through language layer 0 linear attention and MoE",
+    "execution_geometry": {
+      "batch_size": 1,
+      "bucket_tokens": 1024,
+      "logical_prompt_tokens": "63 through 182",
+      "padding": "zero-filled resident tail remains allocated while logical VL projections and short FLA recompute use only the active prefix",
+      "comparison": "only the logical unpadded prefix is compared with the frozen oracle"
+    },
+    "q1024_aot": {
+      "launch_count": 401,
+      "kernel_image_count": 13,
+      "linear_attention_fla_chunk_size": 64
+    },
+    "short_linear_attention_recompute": {
+      "kernel_hash": "37364a45c33cbce02dd7417f568abf12062d6b061c01ba8380114a9fc3589468",
+      "kernel_image_sha256": "80ea78d01d2abcf20626b8ddfbcb58b350ab6769c20f7396df4eba5626dfec77",
+      "num_warps": 4,
+      "logical_t_boundary_masking": true,
+      "fixed_bucket_invocation_restored_after_launch": true
+    },
+    "diagnostic_oracle": {
+      "independent_layer0_capture": true,
+      "main_chain_comparisons_per_case": 24,
+      "seeded_moe_comparisons_per_case": 9
+    },
+    "routing_discrete_semantics": "top-k expert IDs are compared as an unordered set per row; ordering may differ while weights and MoE output remain numerically qualified"
+  },
+  "reference_thresholds": {
+    "maximum_relative_l2_error": 0.002,
+    "minimum_cosine_similarity": 0.999,
+    "finite_elements": "all",
+    "router_expert_sets": "exact"
+  },
+  "qualification_run": {
+    "probe_binary": {
+      "path": "${AIMA_QUALIFICATION_DIR}/native-vl-language-layer0-probe",
+      "sha256": "77e7c7fa6847b664a24dcd883e5d43e6acfedad2f01693d37d0d545bcf49d130",
+      "bytes": 1852240,
+      "source_commit": "85fa597c782d28c05c51467060d8e03a8a47646e",
+      "embedded_kernel_count": 14,
+      "embedded_manifest_count": 2,
+      "runtime_python": false,
+      "runtime_torch": false,
+      "runtime_vllm": false,
+      "runtime_triton": false
+    },
+    "raw_result_sha256": "c4561c025f897bf53d1afebfdf17a721041ad9ba06a720ae9796f0e7d634015e",
+    "weight_load_report_sha256": "fda7b225e3d3ba6332180f7118e34a0de1ac637cccc7fa6d8d058a1eb4788511",
+    "single_resident_weight_load": true,
+    "loaded_tensors": 693,
+    "loaded_payload_bytes": 69321221376,
+    "warmup_runs_per_case": 1,
+    "measured_runs_per_case": 5,
+    "total_wall_ms": 45046.563559,
+    "timing_scope": "diagnostic layer-0 kernel chain only; not G4 serving evidence",
+    "aggregate": {
+      "case_count": 5,
+      "logical_prompt_tokens": 585,
+      "output_elements": 1198080,
+      "exact_output_elements": 1198080,
+      "finite_output_elements": 1198080,
+      "maximum_output_relative_l2_error": 0.0,
+      "minimum_output_cosine_similarity": 1.0,
+      "diagnostic_comparisons": 165,
+      "maximum_diagnostic_relative_l2_error": 0.000008215728667517548,
+      "minimum_diagnostic_cosine_similarity": 0.9999999999662511,
+      "main_router_expert_set_rows_exact": 585,
+      "main_router_expert_set_rows": 585,
+      "seeded_router_expert_set_rows_exact": 585,
+      "seeded_router_expert_set_rows": 585,
+      "all_required_diagnostics_passed": true,
+      "all_outputs_repeat_deterministic": true
+    },
+    "cases": [
+      {
+        "case_id": "image_local_png",
+        "prompt_tokens": 81,
+        "padding_tokens": 943,
+        "elements": 165888,
+        "exact_elements": 165888,
+        "finite_elements": 165888,
+        "maximum_absolute_error": 0.0,
+        "relative_l2_error": 0.0,
+        "cosine_similarity": 1.0,
+        "expected_sha256": "730f078bc97c7553f40f2f9f1c92c72608152f7cac7b18afea133b55e583a3cb",
+        "actual_sha256": "730f078bc97c7553f40f2f9f1c92c72608152f7cac7b18afea133b55e583a3cb",
+        "repeat_deterministic": true,
+        "median_ms": 15.755338668823242,
+        "diagnostic_comparison_count": 33,
+        "diagnostic_maximum_relative_l2_error": 8.899149044823874e-9,
+        "diagnostic_minimum_cosine_similarity": 1.0,
+        "input_norm_bit_exact": true,
+        "b_projection_exact_elements": 2592,
+        "b_projection_elements": 2592,
+        "b_projection_relative_l2_error": 0.0,
+        "post_attention_norm_relative_l2_error": 0.0,
+        "shared_expert_relative_l2_error": 0.0,
+        "main_router_expert_set_rows_exact": 81,
+        "seeded_router_expert_set_rows_exact": 81
+      },
+      {
+        "case_id": "video_local_mp4",
+        "prompt_tokens": 63,
+        "padding_tokens": 961,
+        "elements": 129024,
+        "exact_elements": 129024,
+        "finite_elements": 129024,
+        "maximum_absolute_error": 0.0,
+        "relative_l2_error": 0.0,
+        "cosine_similarity": 1.0,
+        "expected_sha256": "bc822e132eeeee9824c6ceeb43aabcafe0a31843ca88f990ff18734250bc192e",
+        "actual_sha256": "bc822e132eeeee9824c6ceeb43aabcafe0a31843ca88f990ff18734250bc192e",
+        "repeat_deterministic": true,
+        "median_ms": 16.036537170410156,
+        "diagnostic_comparison_count": 33,
+        "diagnostic_maximum_relative_l2_error": 0.000008215728667517548,
+        "diagnostic_minimum_cosine_similarity": 0.9999999999662511,
+        "input_norm_bit_exact": true,
+        "b_projection_exact_elements": 2016,
+        "b_projection_elements": 2016,
+        "b_projection_relative_l2_error": 0.0,
+        "post_attention_norm_relative_l2_error": 0.0,
+        "shared_expert_relative_l2_error": 0.0,
+        "main_router_expert_set_rows_exact": 63,
+        "seeded_router_expert_set_rows_exact": 63
+      },
+      {
+        "case_id": "multi_image",
+        "prompt_tokens": 182,
+        "padding_tokens": 842,
+        "elements": 372736,
+        "exact_elements": 372736,
+        "finite_elements": 372736,
+        "maximum_absolute_error": 0.0,
+        "relative_l2_error": 0.0,
+        "cosine_similarity": 1.0,
+        "expected_sha256": "7603077857c6ff64b7c4fd03fc76dfb5bbfabb9ac85be2d387b32df433531e25",
+        "actual_sha256": "7603077857c6ff64b7c4fd03fc76dfb5bbfabb9ac85be2d387b32df433531e25",
+        "repeat_deterministic": true,
+        "median_ms": 16.53477668762207,
+        "diagnostic_comparison_count": 33,
+        "diagnostic_maximum_relative_l2_error": 1.9462601349370266e-7,
+        "diagnostic_minimum_cosine_similarity": 0.9999999999999809,
+        "input_norm_bit_exact": true,
+        "b_projection_exact_elements": 5824,
+        "b_projection_elements": 5824,
+        "b_projection_relative_l2_error": 0.0,
+        "post_attention_norm_relative_l2_error": 0.0,
+        "shared_expert_relative_l2_error": 0.0,
+        "main_router_expert_set_rows_exact": 182,
+        "seeded_router_expert_set_rows_exact": 182
+      },
+      {
+        "case_id": "multi_video",
+        "prompt_tokens": 128,
+        "padding_tokens": 896,
+        "elements": 262144,
+        "exact_elements": 262144,
+        "finite_elements": 262144,
+        "maximum_absolute_error": 0.0,
+        "relative_l2_error": 0.0,
+        "cosine_similarity": 1.0,
+        "expected_sha256": "69a4f890bbee2bf79f979b0198fb6710e515cc79aae3c67580c957059ad5910c",
+        "actual_sha256": "69a4f890bbee2bf79f979b0198fb6710e515cc79aae3c67580c957059ad5910c",
+        "repeat_deterministic": true,
+        "median_ms": 16.609474182128906,
+        "diagnostic_comparison_count": 33,
+        "diagnostic_maximum_relative_l2_error": 0.000003459267966367188,
+        "diagnostic_minimum_cosine_similarity": 0.9999999999940168,
+        "input_norm_bit_exact": true,
+        "b_projection_exact_elements": 4096,
+        "b_projection_elements": 4096,
+        "b_projection_relative_l2_error": 0.0,
+        "post_attention_norm_relative_l2_error": 0.0,
+        "shared_expert_relative_l2_error": 0.0,
+        "main_router_expert_set_rows_exact": 128,
+        "seeded_router_expert_set_rows_exact": 128
+      },
+      {
+        "case_id": "mixed_image_video",
+        "prompt_tokens": 131,
+        "padding_tokens": 893,
+        "elements": 268288,
+        "exact_elements": 268288,
+        "finite_elements": 268288,
+        "maximum_absolute_error": 0.0,
+        "relative_l2_error": 0.0,
+        "cosine_similarity": 1.0,
+        "expected_sha256": "277c5cbc0833fbd4a40f845669a6beab43478b54a0fe27d1f64406687a8cc446",
+        "actual_sha256": "277c5cbc0833fbd4a40f845669a6beab43478b54a0fe27d1f64406687a8cc446",
+        "repeat_deterministic": true,
+        "median_ms": 16.79854393005371,
+        "diagnostic_comparison_count": 33,
+        "diagnostic_maximum_relative_l2_error": 0.0,
+        "diagnostic_minimum_cosine_similarity": 1.0,
+        "input_norm_bit_exact": true,
+        "b_projection_exact_elements": 4192,
+        "b_projection_elements": 4192,
+        "b_projection_relative_l2_error": 0.0,
+        "post_attention_norm_relative_l2_error": 0.0,
+        "shared_expert_relative_l2_error": 0.0,
+        "main_router_expert_set_rows_exact": 131,
+        "seeded_router_expert_set_rows_exact": 131
+      }
+    ]
+  },
+  "runtime_closure": {
+    "binary": {
+      "path": "${AIMA_NATIVE_BUILD_DIR}/aima-engine-native",
+      "sha256": "7fe6ceb07dbae924e8da5efa378b3a47ae7b0cd8e6fc023eff3c74d1298e67b2",
+      "embedded_source_commit": "85fa597c782d28c05c51467060d8e03a8a47646e"
+    },
+    "embedded_aot": {
+      "complete_default_closure": true,
+      "kernel_count": 61,
+      "manifest_count": 11
+    },
+    "resident_serving_qualified": true,
+    "runtime_python": false,
+    "runtime_torch": false,
+    "runtime_vllm": false,
+    "runtime_triton": false,
+    "portable_package_qualified": false
+  },
+  "decision": {
+    "language_layer0_boundary": "passed",
+    "g1_full_vl_functional_parity": false,
+    "g2_vl_correctness_parity": false,
+    "g3_text_product_no_regression": false,
+    "g4_native_vl_performance": false,
+    "g5_native_release_product": false,
+    "next_blocking_boundary": "generate the processor-derived min/typical/max image/video envelope and execute the frozen task-quality suites",
+    "non_claims": [
+      "this record qualifies only the first language layer; the separate full-language record carries the 40-layer, final-norm and lm-head evidence",
+      "diagnostic medians are not end-to-end TTFT or G4 performance evidence",
+      "the formal build-tree runtime is not portable-package, second-host, soak, rollback or release evidence"
+    ]
+  }
+}

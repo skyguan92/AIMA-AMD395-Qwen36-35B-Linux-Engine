@@ -445,45 +445,43 @@ boundary is now qualified below, while resident integration and the complete
 layer remain blocking. G1 and G2 therefore remain false.
 
 The first resident language compute boundary is qualified at the actual
-product geometry. A clean `764fd57` worktree executes the complete
-q1024 bucket for every case, including its zero-padded tail, and compares only
-the 63-to-182-token logical prefix. The q1024 closure uses the serving
-`BT=64` FLA chain (401 launches, 13 code objects), while native 32-by-16 vec4
-RMSNorm reproduces the pinned PyTorch eager reduction order. A deterministic
-FP32 B-projection override is restricted to layer 0, VL requests, q1024 and at
-most 64 logical tokens; text requests, wider VL requests and later layers do
-not enter that override.
+product geometry. A clean `85fa597` worktree executes the complete q1024
+bucket for every case, including its zero-padded tail, and compares only the
+63-to-182-token logical prefix. The q1024 closure uses the serving `BT=64` FLA
+chain (401 launches, 13 code objects). Short VL requests use the qualified
+four-warp recompute-W/U image at logical `T`; the resident bucket argument is
+restored after that launch. Native 32-by-16 vec4 RMSNorm reproduces the pinned
+PyTorch eager reduction order, and logical A/B and router projections remain
+VL-scoped.
 
 | Case | Logical tokens | Layer-0 relL2 | Cosine | Diagnostic median | Main/seeded expert sets |
 |---|---:|---:|---:|---:|---:|
-| Image | 81 | `0.000343641` | `0.999999941` | `19.348 ms` | `81/81`, `81/81` |
-| Video | 63 | `0.000170082` | `0.999999986` | `19.801 ms` | `63/63`, `63/63` |
-| Multi-image | 182 | `0.000253718` | `0.999999968` | `20.465 ms` | `182/182`, `182/182` |
-| Multi-video | 128 | `0.000719335` | `0.999999741` | `20.316 ms` | `128/128`, `128/128` |
-| Mixed image/video | 131 | `0.000433011` | `0.999999906` | `20.454 ms` | `131/131`, `131/131` |
+| Image | 81 | `0` | `1` | `15.755 ms` | `81/81`, `81/81` |
+| Video | 63 | `0` | `1` | `16.037 ms` | `63/63`, `63/63` |
+| Multi-image | 182 | `0` | `1` | `16.535 ms` | `182/182`, `182/182` |
+| Multi-video | 128 | `0` | `1` | `16.609 ms` | `128/128`, `128/128` |
+| Mixed image/video | 131 | `0` | `1` | `16.799 ms` | `131/131`, `131/131` |
 
-All five outputs are finite, repeat deterministic and within the frozen
-`relL2<=0.002`, `cosine>=0.999` thresholds. Each case also passes 24 main-chain
-and 9 seeded-MoE diagnostic comparisons. Input RMSNorm is bit-exact in all five
-cases, and the unordered top-k expert sets are exact for all 585 rows in both
-the main and seeded runs. These output hashes and metrics are unchanged from
-the previous source identity, proving that the separate M-RoPE consumer did
-not alter layer 0. The exact-commit probe binary SHA-256 is
-`cd2a022df6a0ed8c9ba759b1b1cffc3bf274e4c587457c547256535d5568c600`;
+All five outputs are finite, repeat deterministic and bit-exact: 1,198,080 of
+1,198,080 BF16 elements. Each case also passes 24 main-chain and 9 seeded-MoE
+diagnostic comparisons. Input RMSNorm and the logical B projection are
+bit-exact in all five cases; the unordered top-k expert sets are exact for all
+585 rows in both the main and seeded runs. The exact-commit probe binary
+SHA-256 is
+`77e7c7fa6847b664a24dcd883e5d43e6acfedad2f01693d37d0d545bcf49d130`;
 the raw result SHA-256 is
-`05e7f29894d82e1433ffaf115491cffe3ae5ac28c6fdb8694b1d254c8a267c0d`.
-The curated record is
-`benchmarks/results/native-vl-language-layer0-v0.1.0.json`.
+`c4561c025f897bf53d1afebfdf17a721041ad9ba06a720ae9796f0e7d634015e`.
+The superseding hash-bound record is
+`benchmarks/results/native-vl-language-layer0-v0.2.0.json`; v0.1 remains as
+historical evidence.
 
-The same commit also builds the complete native runtime. Its binary SHA-256 is
-`1f6b674b5d28ca2ba78e2db52f436245f704e60b1fd5a3b24ee404b505c0fa6b`
-and it embeds the full `764fd57a08105f79b2d86cdcba45f9c25b17a864` source
-identity. The q8192 compatibility prefill schedule closes all 431 launches,
-decode closes all 402 launches, and the AOT loader closes all 59 of 59 images;
-all three probes report no Python, Torch, vLLM or Triton runtime dependency.
-This is compile and AOT-closure evidence only. The build-tree binary resolves
-target-system libraries and is not a portable-package, isolated-bundle,
-second-host, soak or release qualification, so G5 remains false.
+The same source identity is tied to the formal resident runtime SHA-256
+`7fe6ceb07dbae924e8da5efa378b3a47ae7b0cd8e6fc023eff3c74d1298e67b2`,
+which embeds the complete default 61-kernel, eleven-manifest closure and has
+separate resident-serving qualification. It has no Python, Torch, vLLM or
+Triton runtime dependency. The build-tree binary is still not a portable
+package, second-host, soak, rollback or release qualification, so G5 remains
+false.
 
 The layer-3 reference capture uses the real pinned vLLM serving path. Two
 clean `8e6f66c` runs each captured 24 components for image, video,

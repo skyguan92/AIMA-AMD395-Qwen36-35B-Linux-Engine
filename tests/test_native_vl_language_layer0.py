@@ -16,7 +16,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 ORACLE_MANIFEST = ROOT / "benchmarks/results/vl-oracle-manifest.json"
 QUALIFICATION_RESULT = (
-    ROOT / "benchmarks/results/native-vl-language-layer0-v0.1.0.json"
+    ROOT / "benchmarks/results/native-vl-language-layer0-v0.2.0.json"
 )
 
 
@@ -358,7 +358,7 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         self.assertTrue(result["source"]["clean"])
         self.assertEqual(
             result["source"]["commit"],
-            "c44d1997c93349c1eec71c5f1a2b678a8439864c",
+            "85fa597c782d28c05c51467060d8e03a8a47646e",
         )
         for record in result["source"]["files"]:
             self.assertEqual(
@@ -375,6 +375,12 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
 
         thresholds = result["reference_thresholds"]
         run = result["qualification_run"]
+        self.assertEqual(
+            run["probe_binary"]["source_commit"], result["source"]["commit"]
+        )
+        self.assertEqual(run["probe_binary"]["embedded_kernel_count"], 14)
+        self.assertEqual(run["probe_binary"]["embedded_manifest_count"], 2)
+        self.assertTrue(run["single_resident_weight_load"])
         cases = run["cases"]
         self.assertEqual(len(cases), 5)
         self.assertEqual(sum(case["prompt_tokens"] for case in cases), 585)
@@ -405,6 +411,13 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
 
         aggregate = run["aggregate"]
         self.assertEqual(
+            aggregate["exact_output_elements"], aggregate["output_elements"]
+        )
+        self.assertEqual(
+            aggregate["finite_output_elements"], aggregate["output_elements"]
+        )
+        self.assertEqual(aggregate["diagnostic_comparisons"], 5 * 33)
+        self.assertEqual(
             aggregate["main_router_expert_set_rows_exact"],
             aggregate["main_router_expert_set_rows"],
         )
@@ -415,10 +428,14 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         self.assertTrue(aggregate["all_required_diagnostics_passed"])
 
         closure = result["runtime_closure"]
-        self.assertTrue(closure["prefill_schedule_probe"]["complete"])
-        self.assertTrue(closure["decode_schedule_probe"]["complete"])
-        self.assertTrue(closure["aot_closure_probe"]["complete"])
-        self.assertEqual(closure["aot_closure_probe"]["loaded_count"], 60)
+        self.assertEqual(
+            closure["binary"]["embedded_source_commit"],
+            result["source"]["commit"],
+        )
+        self.assertTrue(closure["embedded_aot"]["complete_default_closure"])
+        self.assertEqual(closure["embedded_aot"]["kernel_count"], 61)
+        self.assertEqual(closure["embedded_aot"]["manifest_count"], 11)
+        self.assertTrue(closure["resident_serving_qualified"])
         self.assertFalse(closure["portable_package_qualified"])
 
         decision = result["decision"]
