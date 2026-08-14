@@ -31,12 +31,17 @@ sys.path.insert(0, str(ROOT))
 from aima_engine.vl_oracle import validate_oracle_manifest  # noqa: E402
 from aima_engine.vl_reference import (  # noqa: E402
     atomic_json,
+    canonical_json_sha256,
     file_component,
     git_identity,
     load_json_object,
     seal_manifest,
     sha256_bytes,
     sha256_file,
+)
+from aima_engine.vl_serving_render import (  # noqa: E402
+    SERVING_RENDER_CASES,
+    validate_serving_render_manifest,
 )
 
 
@@ -50,6 +55,9 @@ CASE_ORDER = (
 )
 VISION_ATTENTION_SHA256 = (
     "b709a058a77d61e14db73c1ff7d7f4c20859d997bec811cad7339d3e59223d00"
+)
+SERVING_RENDER_MANIFEST = (
+    ROOT / "benchmarks/results/vl-serving-render-manifest-v0.1.0.json"
 )
 
 
@@ -218,7 +226,11 @@ def wait_ready(
 
 
 def oracle_case_result(
-    case: dict[str, Any], status: int, response: dict[str, Any], wall_ms: float
+    case: dict[str, Any],
+    render: dict[str, Any],
+    status: int,
+    response: dict[str, Any],
+    wall_ms: float,
 ) -> dict[str, Any]:
     generation = case["generation"]
     processor = case["processor"]
@@ -249,10 +261,18 @@ def oracle_case_result(
     ]
     checks = {
         "http_200": status == 200,
-        "prompt_tokens_exact": usage.get("prompt_tokens") == len(prompt_ids),
-        "prompt_token_ids_sha256_exact": metrics.get(
+        "real_http_prompt_tokens_exact": usage.get("prompt_tokens")
+        == render["prompt_tokens"],
+        "real_http_prompt_token_ids_sha256_exact": metrics.get(
             "prompt_token_ids_sha256"
         )
+        == render["prompt_token_ids_sha256"],
+        "private_prompt_boundary_distinguished": render[
+            "private_prompt_matches_real_http"
+        ]
+        is False
+        and render["private_prompt_tokens"] == len(prompt_ids)
+        and render["private_prompt_token_ids_sha256"]
         == processor["prompt_token_ids_sha256"],
         "completion_tokens_exact": usage.get("completion_tokens")
         == generation["completion_tokens"],
@@ -278,6 +298,10 @@ def oracle_case_result(
         "checks": checks,
         "prompt_tokens": usage.get("prompt_tokens"),
         "prompt_token_ids_sha256": metrics.get("prompt_token_ids_sha256"),
+        "render_prompt_tokens": render["prompt_tokens"],
+        "render_prompt_token_ids_sha256": render[
+            "prompt_token_ids_sha256"
+        ],
         "completion_tokens": usage.get("completion_tokens"),
         "output_token_ids_sha256": metrics.get(
             "output_token_ids_canonical_sha256"
@@ -327,6 +351,9 @@ def main() -> int:
         type=Path,
         default=ROOT / "benchmarks/results/vl-oracle-manifest.json",
     )
+    parser.add_argument(
+        "--render-manifest", type=Path, default=SERVING_RENDER_MANIFEST
+    )
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=18086)
@@ -340,6 +367,7 @@ def main() -> int:
     fmha_provider = args.fmha_provider.resolve()
     vision_attention_image = args.vision_attention_image.resolve()
     oracle_path = args.oracle_manifest.resolve()
+    render_path = args.render_manifest.resolve()
     output = args.output.resolve()
     raw_root = output.parent / f"{output.stem}-raw"
     required_paths = (
@@ -347,6 +375,7 @@ def main() -> int:
         fmha_provider,
         vision_attention_image,
         oracle_path,
+        render_path,
         fixture_root / "fixtures-manifest.json",
     )
     missing = [str(path) for path in required_paths if not path.exists()]
@@ -380,6 +409,36 @@ def main() -> int:
     cases_by_id = {case["case_id"]: case for case in oracle["cases"]}
     if tuple(case_id for case_id in CASE_ORDER if case_id in cases_by_id) != CASE_ORDER:
         raise SystemExit("VL oracle case order is incomplete")
+
+    render_manifest = load_json_object(render_path)
+    render_errors = validate_serving_render_manifest(render_manifest)
+    if render_errors:
+        raise SystemExit(
+            "invalid serving HTTP render manifest:\n- "
+            + "\n- ".join(render_errors)
+        )
+    render_cases = {
+        case["case_id"]: case for case in render_manifest["cases"]
+    }
+    if tuple(render_cases) != SERVING_RENDER_CASES or (
+        SERVING_RENDER_CASES != CASE_ORDER
+    ):
+        raise SystemExit("serving render case order changed")
+    for case_id in CASE_ORDER:
+        case = cases_by_id[case_id]
+        render = render_cases[case_id]
+        processor = case["processor"]
+        if render.get("oracle_request_sha256") != canonical_json_sha256(
+            case["request"]
+        ):
+            raise SystemExit(f"serving render request drifted: {case_id}")
+        if (
+            render.get("private_prompt_tokens")
+            != len(processor["prompt_token_ids"])
+            or render.get("private_prompt_token_ids_sha256")
+            != processor["prompt_token_ids_sha256"]
+        ):
+            raise SystemExit(f"serving private prompt binding drifted: {case_id}")
 
     raw_root.mkdir(parents=True)
     cache_media_root = raw_root / "cache-media"
@@ -456,7 +515,9 @@ def main() -> int:
                     build_request(case, fixture_root),
                     timeout=args.request_timeout_seconds,
                 )
-                result = oracle_case_result(case, status, response, wall_ms)
+                result = oracle_case_result(
+                    case, render_cases[case_id], status, response, wall_ms
+                )
                 oracle_results.append(result)
                 print(
                     json.dumps(
@@ -591,6 +652,11 @@ def main() -> int:
         "visual_weights_resident": ready.get("visual_model_tensor_count") == 333
         and ready.get("visual_model_payload_bytes") == 893_142_496,
         "vl_ready": ready.get("native_vl") is True,
+        "structured_token_mask_resident": health.get(
+            "structured_token_mask_bytes"
+        )
+        == 248_320
+        and ready.get("structured_token_mask_bytes") == 248_320,
     }
     replacements = [
         (str(ROOT), "${AIMA_REPO_ROOT}"),
@@ -604,11 +670,14 @@ def main() -> int:
     source_files = tuple(
         ROOT / relative
         for relative in (
+            "native/include/aima/native_chat_protocol.h",
             "native/include/aima/native_vl_request.h",
+            "native/src/native_chat_protocol.cpp",
             "native/src/native_vl_request.cpp",
             "native/include/aima/native_resident_engine.h",
             "native/src/native_resident_engine.hip.cpp",
             "native/src/native_http_server.cpp",
+            "aima_engine/vl_serving_render.py",
             "scripts/build-native-runtime.sh",
             "scripts/qualify-native-vl-serving.py",
         )
@@ -624,8 +693,8 @@ def main() -> int:
         "complete": complete,
         "qualified": complete,
         "scope": (
-            "resident-native-http-five-frozen-greedy-oracles-and-"
-            "content-addressed-cache-correctness"
+            "resident-native-five-real-http-render-prompts-private-greedy-"
+            "oracles-and-content-addressed-cache-correctness"
         ),
         "host": {
             "label": "amd395",
@@ -643,6 +712,10 @@ def main() -> int:
         "dependencies": {
             "oracle_manifest": file_component(
                 oracle_path, "benchmarks/results/vl-oracle-manifest.json"
+            ),
+            "serving_render_manifest": file_component(
+                render_path,
+                "benchmarks/results/vl-serving-render-manifest-v0.1.0.json",
             ),
             "fixture_manifest": file_component(
                 fixture_root / "fixtures-manifest.json",
@@ -677,13 +750,18 @@ def main() -> int:
             ),
         },
         "decision": {
-            "five_frozen_prompt_hashes_exact": all(
-                item["checks"]["prompt_token_ids_sha256_exact"]
+            "five_real_http_prompt_hashes_exact": all(
+                item["checks"]["real_http_prompt_token_ids_sha256_exact"]
+                and item["checks"]["real_http_prompt_tokens_exact"]
                 for item in oracle_results
             ),
-            "five_frozen_generations_exact": all(
+            "five_private_oracle_generations_preserved": all(
                 item["checks"]["output_token_ids_sha256_exact"]
                 and item["checks"]["output_text_sha256_exact"]
+                for item in oracle_results
+            ),
+            "five_private_prompt_boundaries_distinguished": all(
+                item["checks"]["private_prompt_boundary_distinguished"]
                 for item in oracle_results
             ),
             "content_addressed_media_cache_qualified": cache_result.get(
