@@ -294,6 +294,8 @@ Execution execute_layer0(
   linear_options.logical_ab_gemm_plan = &logical_projections.ab_plan();
   linear_options.logical_ab_weight = logical_projections.ab_weight(0);
   linear_options.logical_ab_output = logical_projections.ab_output();
+  linear_options.logical_output_gemm_plan =
+      &logical_projections.linear_output_plan();
   linear_options.bindings = &bindings;
   linear_options.sequence_oracle_dir = diagnostic_oracle_dir;
   aima::NativeMoePrefillOracleOptions moe_options;
@@ -433,7 +435,7 @@ json qualify_case(
   (void)active_gemm_plans.moe_router();
   const aima::NativeVlLogicalProjectionPrepareMetrics logical_metrics =
       logical_projections.prepare(prompt_tokens);
-  if (!logical_metrics.prepared || logical_metrics.plan_count != 2) {
+  if (!logical_metrics.prepared || logical_metrics.plan_count != 3) {
     throw std::runtime_error("logical VL projection plans are incomplete");
   }
 
