@@ -14,8 +14,8 @@ blocking condition in the governing goal can move a gate to `passed`.
 
 | Gate | Current state | Evidence required to pass | Next blocking action |
 |---|---|---|---|
-| G1 full VL functional parity | the native HTTP path now passes the frozen 30-case API surface: 20 image/video/mixed/conversation/tool/stream/transport/residency successes and 10 compatible input errors; the broader min/typical/max boundary envelope and exact usage accounting remain open | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | extend the closed API surface through processor-generated boundary/media-reuse cases and reconcile usage semantics |
-| G2 VL correctness parity | all five processor-to-logits boundaries, five resident greedy oracles and the frozen API status/finish/tool/SSE checks pass; numeric reference usage is still `0/18` exact and task-quality suites remain open | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | close prompt/completion usage accounting, then run the frozen image/video task-quality suites |
+| G1 full VL functional parity | the native HTTP path passes the frozen 30-case status/finish/tool/SSE surface, but its media/text prompt layout does not yet match the newly frozen real vLLM OpenAI render boundary; the broader min/typical/max envelope also remains open | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | implement vLLM's auto-resolved string content layout and named-tool structured decoding, then rerun the full surface and generated boundary cases |
+| G2 VL correctness parity | all five explicitly forced-`openai` processor-to-logits boundaries and resident greedy oracles pass, but that offline format is not the real HTTP prompt contract; task-quality suites also remain open | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | qualify native prompt-token vectors against the real API render manifest before rerunning generation and image/video task-quality suites |
 | G3 text product no regression | frozen baseline identified; the shared pointwise source changed, while exact-commit layer-0 requalification retained every prior output hash and numerical metric; the complete paired release matrix has not run | paired 19-cell, maximum-window, correctness, MMLU, API, cache, startup and memory requalification | retain `v1.5.1` as an immutable paired binary and run the complete paired matrix after language integration stabilizes |
 | G4 native VL performance | not started | paired per-cell stage timings and memory records against the fixed VL-enabled vLLM | generate matrix cells from the capability manifest |
 | G5 native release product | the full runtime now includes all qualified vision sources and loads the 333 visual tensors in the same resident process; the external vision-attention code object is hash-checked and wired into the portable package contract, but final package qualification has not run | native-only package, security, isolated bundle, second-host, soak and rollback evidence | generate a clean product qualification containing the vision code object, then run isolated bundle, second-host, soak and rollback gates |
@@ -528,14 +528,16 @@ text qualification and G4 serving performance also remain blocking.
 warnings and pass on `amd395`. This is implementation progress, not G1 or G2
 acceptance evidence.
 
-The resident serving boundary is now implemented. A host request object loads
-and processes every ordered media part, expands placeholders at token-segment
+The resident serving boundary is now implemented for the offline oracle's
+explicitly forced `openai` content format. A host request object loads and
+processes every ordered media part, expands placeholders at token-segment
 boundaries, derives injection spans, builds the exact M-RoPE plan and seals the
-multimodal prefix identity. Segment-preserving expansion matters for video:
-encoding one concatenated string merges the user's terminal `.` with the
-leading timestamp `<`, while the fixed vLLM processor retains separate tokens.
-The native path now reproduces the frozen prompt-token vectors instead of only
-their lengths.
+multimodal prefix identity. Segment-preserving expansion matters for that
+oracle's video prompts: encoding one concatenated string merges the user's
+terminal `.` with the leading timestamp `<`, while the processor retains
+separate tokens. The native path reproduces those frozen prompt-token vectors,
+but the later real-API render capture below proves that this is not yet the
+fixed vLLM OpenAI server's request-layout contract.
 
 Inside the already resident engine, the request selects a bounded four-entry
 LRU of shape-specific visual plans, uploads processor BF16 pixels, executes the
@@ -601,8 +603,40 @@ reported no Python, Torch, vLLM or Triton runtime. The sealed evidence is
 `benchmarks/results/native-vl-capability-v0.1.0.json`, file SHA-256
 `cf2aaa143c8f8b7746770a6276c95427995ca5a1ad4b542a05231d9b3b3d3bdd`.
 
-This closes the frozen API surface and deterministic resident-serving slice,
-not G1 or G2. Numeric vLLM usage accounting is still exact for only `0/18`
-comparable non-stream successes, the generated min/typical/max boundary
-envelope is not fully exercised, and task-quality suites have not run. G3-G5
-also remain blocking.
+This closes the frozen API status/finish/tool/SSE surface and deterministic
+resident-serving slice, not G1 or G2. Numeric vLLM usage accounting is still
+exact for only `0/18` comparable non-stream successes, the generated
+min/typical/max boundary envelope is not fully exercised, and task-quality
+suites have not run. G3-G5 also remain blocking.
+
+The real fixed-vLLM OpenAI prompt boundary is now separately captured through
+its GPU-less `/v1/chat/completions/render` endpoint. This was necessary because
+`scripts/capture-vllm-vl-oracles.py` explicitly calls the private preprocessing
+path with `chat_template_content_format="openai"`, whereas the real OpenAI
+server auto-resolves Qwen3.6-VL content to `string`. With
+`interleave_mm_strings=false`, vLLM prepends each message's missing media
+placeholders and joins the placeholders and text parts with newlines instead
+of retaining the request's part interleave. The five existing numerical
+oracles therefore remain valid for their explicitly frozen internal prompts,
+but they do not establish HTTP request-rendering parity.
+
+Clean commit `dbd762df39b57518345c0446fe2d636f1f6afab7` captured all 20
+successful API requests against fixed vLLM
+`0.19.1rc1.dev300+g29e5d1020`. The manifest stores every full prompt-token
+vector and hash, media-placeholder span/hash/pad count, fixture-normalized
+request, reference and render transport hashes, sampling limit and structured
+output. All 15 non-stream non-tool renders equal the full server's reported
+prompt usage; the three tool requests have the observed one-token full-server
+accounting offset; the two SSE responses intentionally have no usage because
+the frozen requests do not enable `stream_options.include_usage`. Named forced
+tool choice binds the complete vLLM structured-output configuration and exact
+JSON Schema. The sealed result is
+`benchmarks/results/vl-api-render-manifest-v0.1.0.json`, file SHA-256
+`9ea491ce73247ff2912206ec4706c44546e73c7ddf9b63d84caeb9d686e4abc4`.
+
+This reference evidence intentionally records `g1_passed=false` and
+`g2_passed=false`. The next native change must reproduce this real per-message
+string layout while preserving text-only `v1.5.1` behavior, reorder media
+objects to the same placeholder association, and implement the named-tool
+JSON-Schema decoding constraint. Native status/shape or synthetic usage-only
+adjustments cannot close the mismatch.
