@@ -1676,8 +1676,11 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
               attention.boundary_comparisons.end());
         }
         if (timeline_enabled) {
-          check_hip(hipDeviceSynchronize(),
-                    "hipDeviceSynchronize after prefill attention");
+          const std::string operation =
+              "hipDeviceSynchronize after prefill attention layer " +
+              std::to_string(layer_index) + " segment " +
+              std::to_string(segment_index);
+          check_hip(hipDeviceSynchronize(), operation.c_str());
           layer_attention_wall_ms += elapsed_ms(attention_started);
         }
 
@@ -1740,8 +1743,11 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
                     "hipMemcpyAsync composed prefill layer output");
         }
         if (timeline_enabled) {
-          check_hip(hipDeviceSynchronize(),
-                    "hipDeviceSynchronize after prefill MoE");
+          const std::string operation =
+              "hipDeviceSynchronize after prefill MoE layer " +
+              std::to_string(layer_index) + " segment " +
+              std::to_string(segment_index);
+          check_hip(hipDeviceSynchronize(), operation.c_str());
           layer_moe_wall_ms += elapsed_ms(moe_started);
         }
       }
