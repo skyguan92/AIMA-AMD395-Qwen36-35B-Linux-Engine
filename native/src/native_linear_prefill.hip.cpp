@@ -732,16 +732,18 @@ probe_native_q8192_linear_prefill_layer0_oracle(
           oracle_file("launch-009-z"));
   }
   executor.launch(launches[base + 1]);
+  // Both the canonical q8192 schedule and split-projection tails expose the
+  // convolution result as o_ptr. Direct fused projections expose it as out.
   compare_optional_sequence(
       "linear_convolution_full_sequence",
       invocations.tensor_pointer(
-          base + 1, split_projection_tail ? "o_ptr" : "out"),
+          base + 1, split_projections ? "o_ptr" : "out"),
       kLinearQkv, "diagnostic-conv");
   if (tokens != 8192) {
     compare_optional_stage_tail(
         "linear_convolution_last_token", "bfloat16",
         invocations.tensor_pointer(
-            base + 1, split_projection_tail ? "o_ptr" : "out"),
+            base + 1, split_projections ? "o_ptr" : "out"),
         kLinearQkv,
         kLinearQkv, "launch-001-out");
   }

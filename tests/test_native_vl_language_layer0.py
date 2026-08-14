@@ -180,6 +180,16 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         self.assertIn("exact_linear_b_projection_kernel", linear_source)
         self.assertIn("exact_b_tokens != 0", linear_source)
         self.assertIn("fmaf(", linear_source)
+        self.assertEqual(
+            linear_source.count(
+                'base + 1, split_projections ? "o_ptr" : "out"'
+            ),
+            2,
+        )
+        self.assertNotIn(
+            'base + 1, split_projection_tail ? "o_ptr" : "out"',
+            linear_source,
+        )
         self.assertIn("request.multimodal_cache_namespace.empty()", resident_source)
         self.assertIn("if (layer_index == 0", resident_source)
         self.assertIn("segment.input_tokens <= 64", resident_source)
