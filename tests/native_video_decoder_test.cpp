@@ -55,6 +55,8 @@ int main(int argc, char **argv) {
   }
   const std::filesystem::path root(argv[1]);
   const aima::NativeMediaPolicy policy;
+  require(policy.maximum_decoded_video_pixels == 768ULL * 256ULL * 256ULL,
+          "maximum sampling source-pixel policy drifted");
 
   const aima::NativeDecodedVideo mp4 = aima::decode_native_video(
       payload(root, "video-8f-4fps-128.mp4", "video/mp4"), policy);
@@ -135,13 +137,12 @@ int main(int argc, char **argv) {
 
   aima::NativeMediaPolicy small_sample_count = policy;
   small_sample_count.maximum_video_sampled_frames = 3;
-  try {
-    (void)aima::decode_native_video(
-        payload(root, "video-8f-4fps-128.mp4", "video/mp4"),
-        small_sample_count);
-    require(false, "video sampled-frame boundary was ignored");
-  } catch (const std::invalid_argument &) {
-  }
+  const aima::NativeDecodedVideo clamped = aima::decode_native_video(
+      payload(root, "video-8f-4fps-128.mp4", "video/mp4"),
+      small_sample_count);
+  require(clamped.frame_indices == std::vector<std::size_t>({0, 3, 7}) &&
+              clamped.frames.size() == 3,
+          "video sampled-frame clamp drifted");
 
   aima::NativeMediaPolicy small_duration = policy;
   small_duration.maximum_video_duration_seconds = 1.0;

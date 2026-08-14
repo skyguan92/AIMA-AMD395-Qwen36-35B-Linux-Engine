@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+import math
 import re
 from typing import Any
 
@@ -23,6 +24,14 @@ from aima_engine.vl_reference import (
 
 ENVELOPE_SCHEMA = "aima-amd395-qwen36/vl-capability-envelope/v1"
 VISION_BATCH_TOKEN_LIMIT = 16_384
+VIDEO_TEMPORAL_FACTOR = 2
+VIDEO_SPATIAL_FACTOR = 32
+VIDEO_PATCH_SIZE = 16
+VIDEO_MERGE_SIZE = 2
+VIDEO_MINIMUM_PIXELS = 4_096
+VIDEO_MAXIMUM_PIXELS = 25_165_824
+VIDEO_SAMPLING_HEIGHT = 256
+VIDEO_SAMPLING_WIDTH = 256
 
 IMAGE_BOUNDARY_ROLES = {
     "minimum_source": "minimum",
@@ -135,6 +144,60 @@ def _vision_batch_count(token_counts: Sequence[int]) -> int:
     return batches + int(current != 0)
 
 
+def _video_sampling_visual_tokens(sampled_frames: int) -> int:
+    """Project a frozen 256x256 sampling probe through video smart-resize.
+
+    The sampling probe records frame indices independently from resize.  An
+    execution cell must combine the sampled-frame count with the probe's
+    256x256 metadata before claiming a visual-token count; borrowing a token
+    count from an unrelated resize case produces an impossible request.
+    """
+
+    if sampled_frames < VIDEO_TEMPORAL_FACTOR:
+        raise ReferenceManifestError(
+            "video sampling execution cell is below the temporal factor"
+        )
+    height = VIDEO_SAMPLING_HEIGHT
+    width = VIDEO_SAMPLING_WIDTH
+    temporal_rounded = round(sampled_frames / VIDEO_TEMPORAL_FACTOR)
+    temporal_rounded *= VIDEO_TEMPORAL_FACTOR
+    rounded_height = round(height / VIDEO_SPATIAL_FACTOR) * VIDEO_SPATIAL_FACTOR
+    rounded_width = round(width / VIDEO_SPATIAL_FACTOR) * VIDEO_SPATIAL_FACTOR
+    rounded_pixels = temporal_rounded * rounded_height * rounded_width
+    source_pixels = sampled_frames * height * width
+    if rounded_pixels > VIDEO_MAXIMUM_PIXELS:
+        beta = math.sqrt(source_pixels / VIDEO_MAXIMUM_PIXELS)
+        rounded_height = max(
+            VIDEO_SPATIAL_FACTOR,
+            math.floor(height / beta / VIDEO_SPATIAL_FACTOR)
+            * VIDEO_SPATIAL_FACTOR,
+        )
+        rounded_width = max(
+            VIDEO_SPATIAL_FACTOR,
+            math.floor(width / beta / VIDEO_SPATIAL_FACTOR)
+            * VIDEO_SPATIAL_FACTOR,
+        )
+    elif rounded_pixels < VIDEO_MINIMUM_PIXELS:
+        beta = math.sqrt(VIDEO_MINIMUM_PIXELS / source_pixels)
+        rounded_height = (
+            math.ceil(height * beta / VIDEO_SPATIAL_FACTOR)
+            * VIDEO_SPATIAL_FACTOR
+        )
+        rounded_width = (
+            math.ceil(width * beta / VIDEO_SPATIAL_FACTOR)
+            * VIDEO_SPATIAL_FACTOR
+        )
+    temporal_grid = (sampled_frames + VIDEO_TEMPORAL_FACTOR - 1) // (
+        VIDEO_TEMPORAL_FACTOR
+    )
+    return (
+        temporal_grid
+        * (rounded_height // VIDEO_PATCH_SIZE)
+        * (rounded_width // VIDEO_PATCH_SIZE)
+        // (VIDEO_MERGE_SIZE * VIDEO_MERGE_SIZE)
+    )
+
+
 def _execution_cell(
     cell_id: str,
     boundary_ids: Sequence[str],
@@ -175,6 +238,9 @@ def derive_execution_cells(
 ) -> list[dict[str, Any]]:
     image = _indexed(processor_probe["image_resize_cases"], "image resize")
     video = _indexed(processor_probe["video_resize_cases"], "video resize")
+    sampling = _indexed(
+        processor_probe["video_sampling_cases"], "video sampling"
+    )
 
     def tokens(records: Mapping[str, Mapping[str, Any]], case_id: str) -> int:
         result = records[case_id].get("result")
@@ -193,6 +259,32 @@ def derive_execution_cells(
     video_min = tokens(video, "temporal_factor")
     video_typical = tokens(video, "typical")
     video_max = tokens(video, "maximum_feature_shape")
+
+    def sampled_count(case_id: str) -> int:
+        result = sampling[case_id].get("result")
+        if not isinstance(result, Mapping) or not isinstance(
+            result.get("count"), int
+        ):
+            raise ReferenceManifestError(
+                f"accepted video sampling boundary has no count: {case_id}"
+            )
+        return int(result["count"])
+
+    video_sampling_min = _video_sampling_visual_tokens(
+        sampled_count("minimum_frames")
+    )
+    video_sampling_typical = _video_sampling_visual_tokens(
+        sampled_count("typical_fps")
+    )
+    video_sampling_max = _video_sampling_visual_tokens(
+        sampled_count("maximum_frames")
+    )
+    if video_sampling_max != _video_sampling_visual_tokens(
+        sampled_count("above_maximum_frames")
+    ):
+        raise ReferenceManifestError(
+            "maximum video sampling boundaries disagree after smart-resize"
+        )
     max_images = int(processor_probe["vllm_budget"]["max_items_per_prompt"]["image"])
     max_videos = int(processor_probe["vllm_budget"]["max_items_per_prompt"]["video"])
 
@@ -236,7 +328,7 @@ def derive_execution_cells(
         ),
         _execution_cell(
             "video_typical",
-            ["video.resize.typical", "video.sampling.typical_fps"],
+            ["video.resize.typical"],
             [video_typical],
         ),
         _execution_cell(
@@ -264,7 +356,12 @@ def derive_execution_cells(
         _execution_cell(
             "video_sampling_minimum",
             ["video.sampling.minimum_frames"],
-            [video_min],
+            [video_sampling_min],
+        ),
+        _execution_cell(
+            "video_sampling_typical",
+            ["video.sampling.typical_fps"],
+            [video_sampling_typical],
         ),
         _execution_cell(
             "video_sampling_maximum",
@@ -272,14 +369,18 @@ def derive_execution_cells(
                 "video.sampling.maximum_frames",
                 "video.sampling.above_maximum_frames",
             ],
-            [video_max],
+            [video_sampling_max],
         ),
         _execution_cell(
             "video_sampling_option_conflict",
             ["video.sampling.fps_num_frames_conflict"],
             [],
             expected_outcome="rejected",
-            qualification_layers=("processor", "http"),
+            qualification_layers=("processor",),
+            note=(
+                "the frozen evidence is a direct processor option conflict, "
+                "not an OpenAI HTTP content-part contract"
+            ),
         ),
         _execution_cell(
             "image_count_maximum_small",
@@ -322,7 +423,10 @@ def derive_execution_cells(
             ["image.resize.maximum_pixels", "image.count.maximum"],
             [image_max] * max_images,
             qualification_layers=("processor", "vision"),
-            note="encoder-budget boundary only; an HTTP prompt also needs wrapper/text tokens",
+            note=(
+                "encoder-budget boundary only; an HTTP prompt also needs "
+                "wrapper/text tokens"
+            ),
         ),
         _execution_cell(
             "video_full_item_budget",
@@ -404,10 +508,16 @@ def build_envelope(
         "complete": True,
         "generated_at": generated_at,
         "derivation": {
-            "method": "deterministic projection of frozen processor and API capability evidence",
+            "method": (
+                "deterministic projection of frozen processor and API "
+                "capability evidence"
+            ),
             "hand_authored_boundary_values": False,
             "cartesian_product": False,
-            "coverage_strategy": "all discrete boundaries plus min/typical/max and pairwise cross-batch cells",
+            "coverage_strategy": (
+                "all discrete boundaries plus min/typical/max and pairwise "
+                "cross-batch cells"
+            ),
         },
         "bindings": dict(bindings),
         "limits": {
@@ -471,9 +581,15 @@ def validate_envelope(payload: Mapping[str, Any]) -> list[str]:
             ):
                 errors.append(f"VL envelope binding is invalid: {name}")
     cells = payload.get("execution_cells")
-    if not isinstance(cells, list) or len(cells) != 22:
-        errors.append("VL envelope must contain exactly 22 execution cells")
-    elif len({cell.get("cell_id") for cell in cells if isinstance(cell, Mapping)}) != len(cells):
+    if not isinstance(cells, list) or len(cells) != 23:
+        errors.append("VL envelope must contain exactly 23 execution cells")
+    elif len(
+        {
+            cell.get("cell_id")
+            for cell in cells
+            if isinstance(cell, Mapping)
+        }
+    ) != len(cells):
         errors.append("VL envelope execution cell IDs must be unique")
     else:
         by_id = {
@@ -482,6 +598,9 @@ def validate_envelope(payload: Mapping[str, Any]) -> list[str]:
             if isinstance(cell, Mapping) and isinstance(cell.get("cell_id"), str)
         }
         expected = {
+            "video_sampling_minimum": (128, 1),
+            "video_sampling_typical": (640, 1),
+            "video_sampling_maximum": (9_600, 1),
             "mixed_cross_batch_boundary": (16_388, 2),
             "image_near_window_maximum": (245_760, 15),
             "image_full_encoder_budget": (262_144, 16),

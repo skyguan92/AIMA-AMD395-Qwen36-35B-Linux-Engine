@@ -135,6 +135,12 @@ int main() {
   require_geometry(aima::native_qwen36_video_geometry(4, 256, 256),
                    256, 256, 2, 16, 16, 128,
                    "typical video geometry drifted");
+  require_geometry(aima::native_qwen36_video_geometry(20, 256, 256),
+                   256, 256, 10, 16, 16, 640,
+                   "typical sampling execution geometry drifted");
+  require_geometry(aima::native_qwen36_video_geometry(768, 256, 256),
+                   160, 160, 384, 10, 10, 9600,
+                   "maximum sampling execution geometry drifted");
   require_geometry(aima::native_qwen36_video_geometry(2, 32, 6400),
                    32, 6400, 1, 2, 400, 200,
                    "video aspect-ratio boundary drifted");

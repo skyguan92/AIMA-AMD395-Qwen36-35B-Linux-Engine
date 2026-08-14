@@ -52,7 +52,11 @@ struct NativeMediaPolicy {
   std::uint32_t remote_low_speed_seconds = 5;
   std::uint64_t maximum_decoded_image_pixels = 8192ULL * 8192ULL;
   std::uint32_t maximum_decoded_image_dimension = 8192;
-  std::uint64_t maximum_decoded_video_pixels = 25165824ULL;
+  // The maximum 768-frame sampling probe uses 256x256 source frames before
+  // the processor smart-resizes them to its 25,165,824-pixel feature budget.
+  // This bound therefore applies to selected decoded source pixels, not to
+  // the smaller post-resize tensor.
+  std::uint64_t maximum_decoded_video_pixels = 50331648ULL;
   std::uint32_t maximum_decoded_video_dimension = 8192;
   std::uint32_t maximum_video_source_frames = 18432;
   std::uint32_t maximum_video_sampled_frames = 768;

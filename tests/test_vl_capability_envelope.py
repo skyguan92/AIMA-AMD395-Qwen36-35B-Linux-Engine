@@ -62,12 +62,15 @@ class VlCapabilityEnvelopeTest(unittest.TestCase):
         cells = {
             cell["cell_id"]: cell for cell in self.result["execution_cells"]
         }
-        self.assertEqual(len(cells), 22)
+        self.assertEqual(len(cells), 23)
         expected = {
             "image_minimum": (64, 1),
             "image_maximum_pixels": (16_384, 1),
             "video_minimum": (4, 1),
             "video_maximum_feature_shape": (12_288, 1),
+            "video_sampling_minimum": (128, 1),
+            "video_sampling_typical": (640, 1),
+            "video_sampling_maximum": (9_600, 1),
             "mixed_cross_batch_boundary": (16_388, 2),
             "image_count_maximum_small": (1_024, 1),
             "video_count_maximum_small": (84, 1),
@@ -78,6 +81,14 @@ class VlCapabilityEnvelopeTest(unittest.TestCase):
         for case_id, (tokens, batches) in expected.items():
             self.assertEqual(cells[case_id]["aggregate_visual_tokens"], tokens)
             self.assertEqual(cells[case_id]["vision_batch_count"], batches)
+        self.assertEqual(
+            cells["video_typical"]["boundary_ids"],
+            ["video.resize.typical"],
+        )
+        self.assertEqual(
+            cells["video_sampling_option_conflict"]["qualification_layers"],
+            ["processor"],
+        )
 
     def test_native_contract_separates_aggregate_and_vision_batch_limits(self) -> None:
         header = (

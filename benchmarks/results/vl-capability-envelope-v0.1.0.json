@@ -6,9 +6,9 @@
       "sha256": "72e64b8d5cb0c1de8a355617676c46c98c1e0f05cec7a6e3a7df79dd36560d7a"
     },
     "derivation_module": {
-      "bytes": 18453,
+      "bytes": 22552,
       "path": "aima_engine/vl_envelope.py",
-      "sha256": "9807d700b0d40d02405bc847ad1aed49fc1bea3c0162cd3f583de4af6cd9402f"
+      "sha256": "6fbbaf2464294fda37e6bc4533fb76578936aef0ac55be4f7e4d349fb383a170"
     },
     "generator": {
       "bytes": 2309,
@@ -175,8 +175,7 @@
     {
       "aggregate_visual_tokens": 128,
       "boundary_ids": [
-        "video.resize.typical",
-        "video.sampling.typical_fps"
+        "video.resize.typical"
       ],
       "cell_id": "video_typical",
       "expected_outcome": "accepted",
@@ -245,7 +244,7 @@
       "vision_batch_count": 0
     },
     {
-      "aggregate_visual_tokens": 4,
+      "aggregate_visual_tokens": 128,
       "boundary_ids": [
         "video.sampling.minimum_frames"
       ],
@@ -253,7 +252,7 @@
       "expected_outcome": "accepted",
       "media_items": 1,
       "media_token_counts": [
-        4
+        128
       ],
       "qualification_layers": [
         "processor",
@@ -265,7 +264,27 @@
       "vision_batch_count": 1
     },
     {
-      "aggregate_visual_tokens": 12288,
+      "aggregate_visual_tokens": 640,
+      "boundary_ids": [
+        "video.sampling.typical_fps"
+      ],
+      "cell_id": "video_sampling_typical",
+      "expected_outcome": "accepted",
+      "media_items": 1,
+      "media_token_counts": [
+        640
+      ],
+      "qualification_layers": [
+        "processor",
+        "http",
+        "vision",
+        "language",
+        "generation"
+      ],
+      "vision_batch_count": 1
+    },
+    {
+      "aggregate_visual_tokens": 9600,
       "boundary_ids": [
         "video.sampling.maximum_frames",
         "video.sampling.above_maximum_frames"
@@ -274,7 +293,7 @@
       "expected_outcome": "accepted",
       "media_items": 1,
       "media_token_counts": [
-        12288
+        9600
       ],
       "qualification_layers": [
         "processor",
@@ -294,9 +313,9 @@
       "expected_outcome": "rejected",
       "media_items": 0,
       "media_token_counts": [],
+      "note": "the frozen evidence is a direct processor option conflict, not an OpenAI HTTP content-part contract",
       "qualification_layers": [
-        "processor",
-        "http"
+        "processor"
       ],
       "vision_batch_count": 0
     },
@@ -539,10 +558,10 @@
       "vision_batch_count": 21
     }
   ],
-  "generated_at": "2026-08-14T12:00:00+00:00",
+  "generated_at": "2026-08-14T10:08:35+00:00",
   "integrity": {
     "algorithm": "sha256",
-    "canonical_payload_sha256": "5bcce89e29b54d2b108f5b6873ec2ae3d8831afdfb86f419a116d738114ca873"
+    "canonical_payload_sha256": "1cc0521dc5790915846b4db1890d48a11b7bb7c24048954a5b3facb04a932978"
   },
   "limits": {
     "encoder_tokens": 262144,

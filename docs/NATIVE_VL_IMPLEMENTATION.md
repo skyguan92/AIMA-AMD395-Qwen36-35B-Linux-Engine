@@ -14,10 +14,10 @@ blocking condition in the governing goal can move a gate to `passed`.
 
 | Gate | Current state | Evidence required to pass | Next blocking action |
 |---|---|---|---|
-| G1 full VL functional parity | the native HTTP path passes the frozen 30-case status/finish/tool/SSE surface, all 18 media prompt vectors match the real vLLM render boundary, and named-tool decoding is schema constrained; the deterministic 22-cell min/typical/max envelope is sealed but not yet executed | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | execute all remaining envelope cells without shrinking the frozen support surface |
+| G1 full VL functional parity | the native HTTP path passes the frozen 30-case status/finish/tool/SSE surface, all 18 media prompt vectors match the real vLLM render boundary, and named-tool decoding is schema constrained; the corrected deterministic 23-cell min/typical/max envelope is sealed but not yet executed | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | execute all remaining envelope cells without shrinking the frozen support surface |
 | G2 VL correctness parity | the five private and five independently rendered real-HTTP language prompts now pass final norm and 84/84 selected full-vocabulary rows bit-exact; resident serving still preserves the five frozen 8-token outputs; task-quality suites and unexecuted envelope cells remain open | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | run the frozen image/video task-quality suites and all remaining envelope/error cells |
 | G3 text product no regression | frozen baseline identified; the resident engine and certified lm_head now have an optional mask path that is disabled for ordinary requests, but the complete paired release matrix has not run | paired 19-cell, maximum-window, correctness, MMLU, API, cache, startup and memory requalification | retain `v1.5.1` as an immutable paired binary and run the complete paired matrix after language integration stabilizes |
-| G4 native VL performance | the 22-cell capability envelope is generated, but paired execution has not started | paired per-cell stage timings and memory records against the fixed VL-enabled vLLM | execute the generated cells with the frozen paired timing protocol |
+| G4 native VL performance | the 23-cell capability envelope is generated, but paired execution has not started | paired per-cell stage timings and memory records against the fixed VL-enabled vLLM | execute the generated cells with the frozen paired timing protocol |
 | G5 native release product | the full runtime now includes all qualified vision sources and loads the 333 visual tensors in the same resident process; the external vision-attention code object is hash-checked and wired into the portable package contract, but final package qualification has not run | native-only package, security, isolated bundle, second-host, soak and rollback evidence | generate a clean product qualification containing the vision code object, then run isolated bundle, second-host, soak and rollback gates |
 
 ## Phase 0 invariants
@@ -175,10 +175,22 @@ complete frame-index vectors for all six accepted sampling cases by SHA-256;
 it passes both locally and on `amd395`.
 
 A deterministic projection of the frozen processor and API manifests now
-seals all 29 discrete resize, sampling and media-count boundaries plus 22
+seals all 29 discrete resize, sampling and media-count boundaries plus 23
 min/typical/max and pairwise execution cells. The hash-bound artifact is
 `benchmarks/results/vl-capability-envelope-v0.1.0.json`, SHA-256
-`94591cc2fde748ecc9a4ecb9c5b455a4b877172f751b7676c578d7ea490d78f9`.
+`7f8431565404000ef1692da31d461d93c02c3322e420e35fefc6dc3dcd2976a6`.
+The sampling cells project the frozen 4/20/768 sampled-frame counts through
+the probe's 256x256 source metadata and video smart-resize, yielding 128, 640
+and 9,600 visual tokens. They no longer borrow the unrelated two-frame resize
+cell's token count. The 768-frame source boundary admits 50,331,648 selected
+decoded pixels before smart-resize; the separate post-resize feature budget
+remains 25,165,824 pixels. The direct `fps` plus `num_frames` processor
+conflict is processor evidence only and is not mislabelled as a frozen OpenAI
+HTTP content-part contract.
+The native OpenCV-compatible sampler clamps the requested sample count to the
+frozen 768-frame maximum before computing linspace indices, so the 18,432-frame
+above-maximum source boundary remains accepted with exactly 768 selected
+frames instead of being rejected by a stricter implementation limit.
 It exposes a previously conflated contract: ordered media may consume the full
 262,144 encoder-token budget, while each visual-tower execution batch remains
 bounded to 16,384 merged tokens and 65,536 patches. The native request path now
@@ -189,7 +201,20 @@ batch count and maximum batch token/patch counts so qualification can prove
 the bound directly. The full 262,144-image cell is explicitly
 processor/vision-only because an HTTP request also needs text and wrapper
 headroom. These source and CPU boundary checks are not target execution
-evidence; all 22 cells still must run before G1 or G2 can pass.
+evidence; all 23 cells still must run before G1 or G2 can pass.
+
+A checked-in 16-file deterministic media corpus now makes that execution plan
+replayable without synthesizing inputs on the target. Its sealed manifest is
+`benchmarks/fixtures/vl-envelope-v0.1.0/fixtures-manifest.json`, SHA-256
+`5833acac02f6eb68d057c431e73f57434b4fc6c20c000e0ed3eec5dc00236161`,
+and binds the generator plus NumPy 2.1.3, Pillow 12.2.0 and imageio-ffmpeg
+0.6.0. The fail-closed qualifier maps 23 HTTP observations to the 21 HTTP
+cells, runs the processor-only option-conflict cell directly, and executes the
+full encoder-budget cell with a dedicated 16-batch visual-tower probe. It also
+requires one resident model load, contiguous accepted-request indices, exact
+media/token/patch/batch metrics, native-only runtime markers and no oracle
+reads. This paragraph describes the qualification mechanism only; no `amd395`
+execution artifact has yet been accepted.
 
 The native processor now also performs the exact fused normalization, odd-frame
 repeat and Qwen temporal/spatial patch permutation into contiguous
