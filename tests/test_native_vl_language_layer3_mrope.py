@@ -10,7 +10,7 @@ RESULT = (
     / "benchmarks/results/native-vl-language-layer3-mrope-v0.1.0.json"
 )
 FULL_RESULT = (
-    ROOT / "benchmarks/results/native-vl-language-full-v0.1.0.json"
+    ROOT / "benchmarks/results/native-vl-language-full-v0.2.0.json"
 )
 
 
@@ -298,100 +298,199 @@ class NativeVlLanguageLayer3MropeTest(unittest.TestCase):
         import json
 
         result = json.loads(FULL_RESULT.read_text(encoding="utf-8"))
+        self.assertEqual(
+            result["schema"],
+            "aima-amd395-qwen36/native-vl-language-dual-qualification/v2",
+        )
         self.assertTrue(result["complete"])
         self.assertTrue(result["source"]["clean"])
         self.assertEqual(
             result["source"]["commit"],
-            "c44d1997c93349c1eec71c5f1a2b678a8439864c",
+            "e402b3ac33fa942877aa3a6a820bbcc0f6af432f",
         )
-        for record in result["source"]["files"]:
+        source_manifest = result["source"]["source_manifest"]
+        source_records = []
+        for record in source_manifest["files"]:
+            actual_sha256 = hashlib.sha256(
+                (ROOT / record["path"]).read_bytes()
+            ).hexdigest()
+            self.assertEqual(
+                actual_sha256,
+                record["sha256"],
+            )
+            source_records.append(
+                (
+                    record["path"],
+                    f'{record["sha256"]}  {record["path"]}\n',
+                )
+            )
+        self.assertEqual(
+            hashlib.sha256(
+                "".join(
+                    line for _, line in sorted(source_records)
+                ).encode("utf-8")
+            ).hexdigest(),
+            source_manifest["canonical_records_sha256"],
+        )
+
+        references = result["reference_oracles"]
+        for name in (
+            "model_and_runtime",
+            "private_processor_prompt",
+            "real_http_rendered_prompt",
+        ):
+            record = references[name]
             self.assertEqual(
                 hashlib.sha256(
                     (ROOT / record["path"]).read_bytes()
                 ).hexdigest(),
                 record["sha256"],
             )
-
-        references = result["reference_oracles"]
-        full_model = references["full_model"]
-        self.assertEqual(
-            hashlib.sha256(
-                (ROOT / full_model["path"]).read_bytes()
-            ).hexdigest(),
-            full_model["sha256"],
+        self.assertFalse(
+            references["real_http_rendered_prompt"][
+                "private_processor_prompt_reused"
+            ]
         )
-        capture_script = references["all_layer_diagnostics"][
-            "capture_script"
+
+        recompute = result["implementation_contract"][
+            "short_linear_attention_recompute"
         ]
         self.assertEqual(
             hashlib.sha256(
-                (ROOT / capture_script["path"]).read_bytes()
+                (ROOT / recompute["aot_manifest"]).read_bytes()
             ).hexdigest(),
-            capture_script["sha256"],
+            recompute["manifest_sha256"],
         )
+        self.assertTrue(recompute["logical_t_boundary_masking"])
+        self.assertTrue(
+            recompute["fixed_bucket_invocation_restored_after_launch"]
+        )
+        self.assertEqual(recompute["num_warps"], 4)
 
         thresholds = result["reference_thresholds"]
-        run = result["qualification_run"]
-        aggregate = run["aggregate"]
-        cases = run["cases"]
-        self.assertEqual(len(cases), 5)
-        self.assertEqual(sum(case["prompt_tokens"] for case in cases), 585)
-        self.assertEqual(
-            sum(case["final_norm_elements"] for case in cases),
-            aggregate["final_norm_elements"],
-        )
-        self.assertEqual(
-            sum(case["final_norm_exact_elements"] for case in cases),
-            aggregate["final_norm_exact_elements"],
-        )
-        self.assertEqual(
-            sum(case["selected_logits_elements"] for case in cases),
-            aggregate["selected_logits_elements"],
-        )
-        self.assertEqual(
-            aggregate["selected_logits_exact_elements"],
-            aggregate["selected_logits_elements"],
-        )
-        self.assertEqual(
-            aggregate["top1_matches"], aggregate["top1_rows"]
-        )
-        for case in cases:
-            self.assertTrue(case["repeat_deterministic"])
-            self.assertLessEqual(
-                case["final_norm_relative_l2_error"],
-                thresholds["maximum_relative_l2_error"],
-            )
-            self.assertGreaterEqual(
-                case["final_norm_cosine_similarity"],
-                thresholds["minimum_cosine_similarity"],
+        runs = result["qualification_runs"]
+        expected_prompt_tokens = {
+            "private_processor_prompt": [81, 63, 182, 128, 131],
+            "real_http_rendered_prompt": [82, 64, 186, 131, 134],
+        }
+        expected_cases = {
+            "image_local_png",
+            "video_local_mp4",
+            "multi_image",
+            "multi_video",
+            "mixed_image_video",
+        }
+        for name, prompt_tokens in expected_prompt_tokens.items():
+            run = runs[name]
+            aggregate = run["aggregate"]
+            cases = run["cases"]
+            self.assertTrue(run["single_resident_weight_load"])
+            self.assertEqual(len(cases), 5)
+            self.assertEqual(
+                [case["prompt_tokens"] for case in cases], prompt_tokens
             )
             self.assertEqual(
-                case["selected_logits_exact_elements"],
-                case["selected_logits_elements"],
+                {case["case_id"] for case in cases}, expected_cases
             )
-            self.assertLess(
-                case["maximum_logits_kl_divergence"],
-                thresholds["maximum_logits_kl_divergence"],
+            self.assertEqual(
+                sum(case["prompt_tokens"] for case in cases),
+                aggregate["logical_prompt_tokens"],
             )
-            self.assertEqual(case["top1_matches"], case["selected_logits_rows"])
+            self.assertEqual(
+                sum(case["final_norm_elements"] for case in cases),
+                aggregate["final_norm_elements"],
+            )
+            self.assertEqual(
+                sum(case["final_norm_exact_elements"] for case in cases),
+                aggregate["final_norm_exact_elements"],
+            )
+            self.assertEqual(
+                aggregate["final_norm_exact_elements"],
+                aggregate["final_norm_elements"],
+            )
+            self.assertEqual(
+                sum(case["selected_logits_elements"] for case in cases),
+                aggregate["selected_logits_elements"],
+            )
+            self.assertEqual(
+                aggregate["selected_logits_exact_elements"],
+                aggregate["selected_logits_elements"],
+            )
+            self.assertEqual(
+                aggregate["top1_matches"], aggregate["top1_rows"]
+            )
+            self.assertEqual(aggregate["selected_logits_rows"], 42)
+            self.assertEqual(
+                aggregate["maximum_final_norm_relative_l2_error"], 0.0
+            )
+            self.assertEqual(
+                aggregate["minimum_final_norm_cosine_similarity"], 1.0
+            )
+            for case in cases:
+                self.assertTrue(case["repeat_deterministic"])
+                self.assertEqual(
+                    case["final_norm_exact_elements"],
+                    case["final_norm_elements"],
+                )
+                self.assertEqual(
+                    case["selected_logits_exact_elements"],
+                    case["selected_logits_elements"],
+                )
+                self.assertLess(
+                    case["maximum_logits_kl_divergence"],
+                    thresholds["maximum_logits_kl_divergence"],
+                )
+                self.assertEqual(
+                    case["top1_matches"], case["selected_logits_rows"]
+                )
 
-        diagnostic = run["single_image_layer_diagnostic"]
-        self.assertTrue(diagnostic["all_40_layer_outputs_bit_exact"])
-        self.assertTrue(diagnostic["all_40_router_expert_sets_exact"])
-        self.assertEqual(
-            diagnostic["layer_output_exact_elements"],
-            diagnostic["layer_output_elements"],
+        self.assertNotEqual(
+            expected_prompt_tokens["private_processor_prompt"],
+            expected_prompt_tokens["real_http_rendered_prompt"],
         )
         self.assertEqual(
-            diagnostic["router_expert_set_rows_exact"],
-            diagnostic["router_expert_set_rows"],
+            sum(
+                run["aggregate"]["selected_logits_rows"]
+                for run in runs.values()
+            ),
+            84,
+        )
+
+        diagnostic = result["deep_http_attribution"]
+        self.assertEqual(
+            diagnostic["comparison_records_passed"],
+            diagnostic["comparison_records"],
+        )
+        self.assertEqual(diagnostic["comparison_records_bit_exact"], 110)
+        self.assertLessEqual(
+            diagnostic["maximum_relative_l2_error"],
+            thresholds["maximum_relative_l2_error"],
+        )
+        self.assertGreaterEqual(
+            diagnostic["minimum_cosine_similarity"],
+            thresholds["minimum_cosine_similarity"],
+        )
+        self.assertEqual(
+            diagnostic["language_layer_outputs"]["exact_elements"],
+            diagnostic["language_layer_outputs"]["elements"],
+        )
+        self.assertEqual(
+            diagnostic["router_expert_sets"]["exact_rows"],
+            diagnostic["router_expert_sets"]["rows"],
         )
 
         decision = result["decision"]
-        self.assertEqual(decision["language_boundary_gate"], "passed")
+        self.assertEqual(
+            decision["private_processor_language_boundary_gate"],
+            "passed-bit-exact",
+        )
+        self.assertEqual(
+            decision["real_http_rendered_language_boundary_gate"],
+            "passed-bit-exact",
+        )
         self.assertEqual(
             decision["teacher_forced_full_vocabulary_logits_gate"],
-            "passed",
+            "passed-84-of-84-rows-bit-exact",
         )
         for gate in (
             "g1_full_vl_functional_parity",
