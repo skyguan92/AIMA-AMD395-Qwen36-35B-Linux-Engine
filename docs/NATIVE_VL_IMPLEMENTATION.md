@@ -15,7 +15,7 @@ blocking condition in the governing goal can move a gate to `passed`.
 | Gate | Current state | Evidence required to pass | Next blocking action |
 |---|---|---|---|
 | G1 full VL functional parity | the native HTTP path passes the frozen 30-case status/finish/tool/SSE surface, all 18 media prompt vectors match the real vLLM render boundary, and named-tool decoding is schema constrained; the generated min/typical/max envelope remains open | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | generate and execute the remaining processor-derived boundary cases without shrinking the frozen envelope |
-| G2 VL correctness parity | the five private processor-to-logits oracles remain exact, five real-HTTP serving prompts now match independently captured render vectors, and their frozen 8-token outputs remain unchanged; real-HTTP full-vocabulary rows and task-quality suites remain open | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | capture real-HTTP teacher-forced rows, then run frozen image/video task-quality suites |
+| G2 VL correctness parity | the five private and five independently rendered real-HTTP language prompts now pass final norm and 84/84 selected full-vocabulary rows bit-exact; resident serving still preserves the five frozen 8-token outputs; task-quality suites and the remaining generated-envelope cases remain open | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | run the frozen image/video task-quality suites and the remaining processor-derived envelope/error cases |
 | G3 text product no regression | frozen baseline identified; the resident engine and certified lm_head now have an optional mask path that is disabled for ordinary requests, but the complete paired release matrix has not run | paired 19-cell, maximum-window, correctness, MMLU, API, cache, startup and memory requalification | retain `v1.5.1` as an immutable paired binary and run the complete paired matrix after language integration stabilizes |
 | G4 native VL performance | not started | paired per-cell stage timings and memory records against the fixed VL-enabled vLLM | generate matrix cells from the capability manifest |
 | G5 native release product | the full runtime now includes all qualified vision sources and loads the 333 visual tensors in the same resident process; the external vision-attention code object is hash-checked and wired into the portable package contract, but final package qualification has not run | native-only package, security, isolated bundle, second-host, soak and rollback evidence | generate a clean product qualification containing the vision code object, then run isolated bundle, second-host, soak and rollback gates |
@@ -595,9 +595,25 @@ private-preprocessor vectors as expected. The sealed result is
 `benchmarks/results/vl-serving-render-manifest-v0.1.0.json`, SHA-256
 `6649347f8e9c606b4098a4b3d4fbe8e857f4acbd2518ee37f16744f6ce277336`.
 
-Clean commit `f91b357ae12589be81a957680d45a255621c50d2` then produced
-full-AOT native binary SHA-256
-`00b70560d7b6dd1381e312b41f40a9d411f567804d50025c7d71be7efea0944b`.
+The real-HTTP language attribution isolated its only material downstream drift
+to short-sequence FLA recompute-W/U: the frozen q1024 schedule ran a two-warp
+bucket launch, while fixed vLLM selected the four-warp kernel and applied its
+boundary mask at logical `T`. The production path now embeds that exact gfx1151
+image, launches `ceil(logical_T/64) x 32` with logical `T`, and restores the
+resident bucket argument after the launch. On clean commit
+`e402b3ac33fa942877aa3a6a820bbcc0f6af432f`, one native binary ran both
+independent five-case prompt identities. All 2,420,736 final-norm BF16 elements
+and all 20,858,880 selected-logit BF16 elements were bit-exact; all 84 rows had
+top-1 equality and KLD zero. The deep real-HTTP multi-video run also retained
+40/40 exact layer outputs and 5,240/5,240 exact router rows. This qualification
+starts from frozen injected embeddings and M-RoPE positions, so it is numerical
+language-boundary evidence rather than G4 serving timing. The hash-bound record
+is `benchmarks/results/native-vl-language-full-v0.2.0.json`, SHA-256
+`6de4f46b10a659c358350b1c42dec6e1d361f81c01926bf628b44b892fffb636`.
+
+Clean commit `85fa597c782d28c05c51467060d8e03a8a47646e` then rebuilt the
+formal resident runtime with binary SHA-256
+`7fe6ceb07dbae924e8da5efa378b3a47ae7b0cd8e6fc023eff3c74d1298e67b2`.
 One resident process matched all five real-HTTP prompt vectors and preserved
 all five frozen private-oracle 8-token outputs, output text, finish reasons,
 vision shapes and M-RoPE deltas. The same process passed all A/B/A,
@@ -606,13 +622,13 @@ safe media/shape reuse checks. It emitted one READY and one stopped event,
 loaded the model once, read no oracle tensors and reported no Python, Torch,
 vLLM or Triton runtime. The sealed result is
 `benchmarks/results/native-vl-serving-v0.1.0.json`, SHA-256
-`e587befebfa0159638e8abaac1783d8c146f69612af9fcad4e7e7c6d6ae3553e`.
+`01bacc552c0c93a6878efb745e976a187ff6c94458b7ef4fc8501d4ca087dc65`.
 
 Formal binaries must retain the complete default AOT closure. A q1024-only
 diagnostic build embedded 14 kernels from two manifests and correctly failed
 when a longer tool decode referenced a q8192 image; the accepted builds embed
-60 kernels from ten manifests. The serving context may be q1024, but its decode
-schedule still depends on the q8192 closure.
+61 kernels from eleven manifests. The serving context may be q1024, but its
+decode schedule still depends on the q8192 closure.
 
 Processor results continue to use the resident 4 GiB/64-entry
 content-addressed LRU. Only matching processor identity, media kind and content
@@ -624,7 +640,6 @@ The runtime build still installs and verifies the fixed vision-attention code
 object, and the portable package contract includes it in the deterministic
 bundle identity. These records close the frozen API/render and deterministic
 resident-serving slices only. The generated min/typical/max capability
-envelope, real-HTTP teacher-forced full-vocabulary rows, image/video task
-quality, complete text no-regression, paired performance, portable-package,
-second-host, soak and rollback qualifications remain blocking. Therefore G1
-through G5 all remain false.
+envelope, image/video task quality, complete text no-regression, paired
+performance, portable-package, second-host, soak and rollback qualifications
+remain blocking. Therefore G1 through G5 all remain false.

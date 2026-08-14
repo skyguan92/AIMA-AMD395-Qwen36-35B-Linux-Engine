@@ -201,7 +201,7 @@ class NativeVlServingQualificationTest(unittest.TestCase):
         self.assertFalse(result["source"]["dirty"])
         self.assertEqual(
             result["source"]["commit"],
-            "f91b357ae12589be81a957680d45a255621c50d2",
+            "85fa597c782d28c05c51467060d8e03a8a47646e",
         )
         self.assertEqual(
             result["build_info"]["source_commit"],
@@ -216,7 +216,7 @@ class NativeVlServingQualificationTest(unittest.TestCase):
             )
         self.assertEqual(
             result["binary"]["sha256"],
-            "00b70560d7b6dd1381e312b41f40a9d411f567804d50025c7d71be7efea0944b",
+            "7fe6ceb07dbae924e8da5efa378b3a47ae7b0cd8e6fc023eff3c74d1298e67b2",
         )
         for name in (
             "oracle_manifest",

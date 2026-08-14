@@ -1,11 +1,11 @@
 {
   "binary": {
-    "bytes": 38749504,
+    "bytes": 38829672,
     "path": "build/native/aima-engine-native",
-    "sha256": "00b70560d7b6dd1381e312b41f40a9d411f567804d50025c7d71be7efea0944b"
+    "sha256": "7fe6ceb07dbae924e8da5efa378b3a47ae7b0cd8e6fc023eff3c74d1298e67b2"
   },
   "build_info": {
-    "source_commit": "f91b357ae12589be81a957680d45a255621c50d2",
+    "source_commit": "85fa597c782d28c05c51467060d8e03a8a47646e",
     "version": "1.5.1-native"
   },
   "cache_correctness": {
@@ -29,12 +29,12 @@
       },
       "b": {
         "bytes": 1345,
-        "path": "native-vl-serving-f91b357-raw/cache-media/alternate-160x320.png",
+        "path": "aima-native-vl-serving-85fa597-v2-raw/cache-media/alternate-160x320.png",
         "sha256": "6735374d5ee8d1da320044bfd28bf97380ce8bd0d9f54df2f1b3fca7b95cbddb"
       },
       "mutable_final": {
         "bytes": 4993,
-        "path": "native-vl-serving-f91b357-raw/cache-media/mutable.png",
+        "path": "aima-native-vl-serving-85fa597-v2-raw/cache-media/mutable.png",
         "sha256": "72e63cabe9a897fac895e9148fdb203867bb7f8ef95311fdfeaf4cd1026580f9"
       }
     },
@@ -44,7 +44,7 @@
         "output_token_ids_sha256": "a9cf0c5bfacb7118d245ee1a31149cbb264f7138ee585445dd76cc681d755554",
         "prefix_lookup": "miss",
         "vl": {
-          "embedding_injection_wall_ms": 0.05839,
+          "embedding_injection_wall_ms": 0.045361,
           "enabled": true,
           "host_to_device_bytes": 885676,
           "image_count": 1,
@@ -53,15 +53,15 @@
           "media_cache_misses": 1,
           "media_cache_resident_bytes": 3836075,
           "media_count": 1,
-          "media_decode_wall_ms": 0.913635,
-          "media_load_decode_wall_ms": 1.415792,
-          "media_load_wall_ms": 0.502157,
-          "processor_wall_ms": 1.037504,
+          "media_decode_wall_ms": 0.728694,
+          "media_load_decode_wall_ms": 1.026579,
+          "media_load_wall_ms": 0.297885,
+          "processor_wall_ms": 1.04452,
           "source_bytes": 4993,
           "video_count": 0,
-          "vision_encode_wall_ms": 20.094543,
+          "vision_encode_wall_ms": 19.874354,
           "vision_patches": 288,
-          "vision_plan_build_wall_ms": 138.941122,
+          "vision_plan_build_wall_ms": 324.682849,
           "vision_plan_cache_entries": 4,
           "vision_plan_cache_hit": false,
           "visual_tokens": 72
@@ -72,7 +72,7 @@
         "output_token_ids_sha256": "a9cf0c5bfacb7118d245ee1a31149cbb264f7138ee585445dd76cc681d755554",
         "prefix_lookup": "miss",
         "vl": {
-          "embedding_injection_wall_ms": 0.03469,
+          "embedding_injection_wall_ms": 0.03649,
           "enabled": true,
           "host_to_device_bytes": 885676,
           "image_count": 1,
@@ -81,13 +81,13 @@
           "media_cache_misses": 1,
           "media_cache_resident_bytes": 4721242,
           "media_count": 1,
-          "media_decode_wall_ms": 0.148649,
-          "media_load_decode_wall_ms": 0.195729,
-          "media_load_wall_ms": 0.04708,
-          "processor_wall_ms": 7.712305,
+          "media_decode_wall_ms": 0.149383,
+          "media_load_decode_wall_ms": 0.19994399999999998,
+          "media_load_wall_ms": 0.050561,
+          "processor_wall_ms": 1.000389,
           "source_bytes": 1345,
           "video_count": 0,
-          "vision_encode_wall_ms": 20.56246,
+          "vision_encode_wall_ms": 20.628327,
           "vision_patches": 288,
           "vision_plan_build_wall_ms": 0.0,
           "vision_plan_cache_entries": 4,
@@ -110,8 +110,8 @@
           "media_cache_resident_bytes": 4721242,
           "media_count": 1,
           "media_decode_wall_ms": 0.0,
-          "media_load_decode_wall_ms": 0.05588,
-          "media_load_wall_ms": 0.05588,
+          "media_load_decode_wall_ms": 0.052441,
+          "media_load_wall_ms": 0.052441,
           "processor_wall_ms": 0.0,
           "source_bytes": 4993,
           "video_count": 0,
@@ -138,8 +138,8 @@
           "media_cache_resident_bytes": 4721242,
           "media_count": 1,
           "media_decode_wall_ms": 0.0,
-          "media_load_decode_wall_ms": 0.04692,
-          "media_load_wall_ms": 0.04692,
+          "media_load_decode_wall_ms": 0.045701,
+          "media_load_wall_ms": 0.045701,
           "processor_wall_ms": 0.0,
           "source_bytes": 4993,
           "video_count": 0,
@@ -156,7 +156,7 @@
         "output_token_ids_sha256": "a9cf0c5bfacb7118d245ee1a31149cbb264f7138ee585445dd76cc681d755554",
         "prefix_lookup": "miss",
         "vl": {
-          "embedding_injection_wall_ms": 0.03653,
+          "embedding_injection_wall_ms": 0.033461,
           "enabled": true,
           "host_to_device_bytes": 885680,
           "image_count": 1,
@@ -166,12 +166,12 @@
           "media_cache_resident_bytes": 4721242,
           "media_count": 1,
           "media_decode_wall_ms": 0.0,
-          "media_load_decode_wall_ms": 0.045519,
-          "media_load_wall_ms": 0.045519,
+          "media_load_decode_wall_ms": 0.0374,
+          "media_load_wall_ms": 0.0374,
           "processor_wall_ms": 0.0,
           "source_bytes": 4993,
           "video_count": 0,
-          "vision_encode_wall_ms": 19.846564,
+          "vision_encode_wall_ms": 19.325172,
           "vision_patches": 288,
           "vision_plan_build_wall_ms": 0.0,
           "vision_plan_cache_entries": 4,
@@ -182,7 +182,7 @@
     ],
     "passed": true
   },
-  "captured_at": "2026-08-14T08:27:36+00:00",
+  "captured_at": "2026-08-14T11:19:49+00:00",
   "complete": true,
   "decision": {
     "content_addressed_media_cache_qualified": true,
@@ -207,9 +207,9 @@
       "sha256": "07d3e6aa54cd80707d77d2f8f406788dabb219a5b98225cf6a7b63602a009028"
     },
     "fmha_provider": {
-      "bytes": 22968,
+      "bytes": 93432,
       "path": "build/native/libaima-fmha-aotriton.so",
-      "sha256": "8f42d7b17a778168a1bb66b34eff282e13955541ededfa838355ffbc176b43a5"
+      "sha256": "33f5884cc65575b111bc984ac02c838a6e88a2b90da3570b7f939210972ae843"
     },
     "oracle_manifest": {
       "bytes": 68498,
@@ -233,7 +233,7 @@
   },
   "integrity": {
     "algorithm": "sha256",
-    "canonical_payload_sha256": "5185001df6499350776b0dce33a1ef36d7672218f19ba8ff948cbe44d575db8d"
+    "canonical_payload_sha256": "b78b4dfc363dc7007c58c51c57a1cdf849ac1f52881b178acbbf884d354c2c07"
   },
   "launch": {
     "checks": {
@@ -266,7 +266,7 @@
       "--host",
       "127.0.0.1",
       "--port",
-      "18132",
+      "18086",
       "--max-requests",
       "10",
       "--request-timeout-ms",
@@ -282,9 +282,9 @@
     "health": {
       "admitted_prompt_tokens": 2048,
       "authentication": "none",
-      "command_to_ready_wall_ms": 41876.704801,
+      "command_to_ready_wall_ms": 43597.994293,
       "context_capacity": 2048,
-      "fmha_provider_backend": "AOTriton 0.11.1",
+      "fmha_provider_backend": "CK-Tile",
       "http_shutdown_enabled": true,
       "media_cache_capacity_bytes": 4294967296,
       "media_cache_capacity_entries": 64,
@@ -307,18 +307,18 @@
       "static_prefill_tokens": 1024,
       "status": "ok",
       "structured_token_mask_bytes": 248320,
-      "uptime_ms": 42058.56372,
+      "uptime_ms": 43668.068104,
       "vision_plan_cache_capacity": 4
     },
     "ready": {
       "allowed_local_media_roots": 2,
       "allowed_media_domains": 0,
       "authentication": "none",
-      "command_to_ready_wall_ms": 41876.704801,
+      "command_to_ready_wall_ms": 43597.994293,
       "context_capacity": 2048,
-      "engine_load_wall_ms": 41504.435831,
+      "engine_load_wall_ms": 43200.89741,
       "event": "ready",
-      "fmha_provider_backend": "AOTriton 0.11.1",
+      "fmha_provider_backend": "CK-Tile",
       "fmha_provider_path": "${AIMA_FMHA_PROVIDER}",
       "host": "127.0.0.1",
       "http_shutdown_enabled": true,
@@ -333,7 +333,7 @@
       "model_tensor_count": 1026,
       "mrope_position_state_bytes": 49152,
       "native_vl": true,
-      "port": 18132,
+      "port": 18086,
       "prefix_cache_entries": 4,
       "prompt_token_ids_extension": true,
       "request_timeout_ms": 600000,
@@ -385,8 +385,8 @@
         "client_cancelled": false,
         "cold_prompt_decode_tokens": 0,
         "cold_prompt_decode_wall_ms": 0.0,
-        "decode_tokens_per_second": 33.99099829017509,
-        "http_request_wall_ms": 1088.649208,
+        "decode_tokens_per_second": 33.98158234160472,
+        "http_request_wall_ms": 1243.098334,
         "model_loads": 1,
         "mrope": {
           "decode_steps": 7,
@@ -399,7 +399,7 @@
         "output_token_ids_canonical_sha256": "119fed6e82a744d60e564ed932340c6275b6e285298618ba3330487f62f9a18c",
         "output_token_ids_sha256": "c69009eacfc6eb12bff9b5452adb14c1296ac82e96dc16491243770fa76854af",
         "padded_prefill_tokens": 942,
-        "prefill_tokens_per_second": 93.13186193358203,
+        "prefill_tokens_per_second": 79.20328817434869,
         "prefix_cache": {
           "hits": 0,
           "implemented": true,
@@ -419,16 +419,16 @@
         "prompt_token_ids_sha256": "6462d85f92fb077999f1b028006631937910dc5cadf4ea6fdda8805982863701",
         "prompt_tokens": 82,
         "request_index": 1,
-        "request_wall_ms": 1086.63742,
+        "request_wall_ms": 1241.519724,
         "runtime": "native-resident-q82",
         "structured_decoding": {
           "enabled": false,
           "token_mask_upload_bytes": 0,
           "token_selections": 0
         },
-        "ttft_ms": 880.472035,
+        "ttft_ms": 1035.310552,
         "vl": {
-          "embedding_injection_wall_ms": 0.946285,
+          "embedding_injection_wall_ms": 2.561899,
           "enabled": true,
           "host_to_device_bytes": 787272,
           "image_count": 1,
@@ -437,15 +437,15 @@
           "media_cache_misses": 1,
           "media_cache_resident_bytes": 786863,
           "media_count": 1,
-          "media_decode_wall_ms": 0.719395,
-          "media_load_decode_wall_ms": 0.796145,
-          "media_load_wall_ms": 0.07675,
-          "processor_wall_ms": 0.604677,
+          "media_decode_wall_ms": 0.575231,
+          "media_load_decode_wall_ms": 0.704404,
+          "media_load_wall_ms": 0.129173,
+          "processor_wall_ms": 0.233635,
           "source_bytes": 5467,
           "video_count": 0,
-          "vision_encode_wall_ms": 24.400291,
+          "vision_encode_wall_ms": 40.007562,
           "vision_patches": 256,
-          "vision_plan_build_wall_ms": 138.802001,
+          "vision_plan_build_wall_ms": 394.390231,
           "vision_plan_cache_entries": 1,
           "vision_plan_cache_hit": false,
           "visual_tokens": 64
@@ -458,7 +458,7 @@
       "prompt_tokens": 82,
       "render_prompt_token_ids_sha256": "6462d85f92fb077999f1b028006631937910dc5cadf4ea6fdda8805982863701",
       "render_prompt_tokens": 82,
-      "request_wall_ms": 1089.0057059004903
+      "request_wall_ms": 1243.551792576909
     },
     {
       "case_id": "video_local_mp4",
@@ -484,8 +484,8 @@
         "client_cancelled": false,
         "cold_prompt_decode_tokens": 0,
         "cold_prompt_decode_wall_ms": 0.0,
-        "decode_tokens_per_second": 33.993882713392885,
-        "http_request_wall_ms": 1040.417808,
+        "decode_tokens_per_second": 34.02055981987883,
+        "http_request_wall_ms": 1084.152653,
         "model_loads": 1,
         "mrope": {
           "decode_steps": 7,
@@ -498,7 +498,7 @@
         "output_token_ids_canonical_sha256": "35a736dd4c55ef8789a794613a019188873ebf3e5fd25a1fa3c05c26c4572582",
         "output_token_ids_sha256": "2150839c5051bac87e598d4edcda3eb549e60f65bcbfea777eab4c3ad281b84d",
         "padded_prefill_tokens": 960,
-        "prefill_tokens_per_second": 76.87449547583924,
+        "prefill_tokens_per_second": 77.28010487721673,
         "prefix_cache": {
           "hits": 0,
           "implemented": true,
@@ -518,16 +518,16 @@
         "prompt_token_ids_sha256": "6e632c4f208a83c4c0fdb66fe16a8104e4578b2c89e6542247f720084e78c446",
         "prompt_tokens": 64,
         "request_index": 2,
-        "request_wall_ms": 1038.481559,
+        "request_wall_ms": 1033.960169,
         "runtime": "native-resident-q64",
         "structured_decoding": {
           "enabled": false,
           "token_mask_upload_bytes": 0,
           "token_selections": 0
         },
-        "ttft_ms": 832.525789,
+        "ttft_ms": 828.156226,
         "vl": {
-          "embedding_injection_wall_ms": 0.03935,
+          "embedding_injection_wall_ms": 0.059021,
           "enabled": true,
           "host_to_device_bytes": 393728,
           "image_count": 0,
@@ -536,15 +536,15 @@
           "media_cache_misses": 1,
           "media_cache_resident_bytes": 1180542,
           "media_count": 1,
-          "media_decode_wall_ms": 1.257923,
-          "media_load_decode_wall_ms": 1.438202,
-          "media_load_wall_ms": 0.180279,
-          "processor_wall_ms": 0.117329,
+          "media_decode_wall_ms": 49.034172,
+          "media_load_decode_wall_ms": 49.547122,
+          "media_load_wall_ms": 0.51295,
+          "processor_wall_ms": 0.117313,
           "source_bytes": 54027,
           "video_count": 1,
-          "vision_encode_wall_ms": 12.685687,
+          "vision_encode_wall_ms": 13.157863,
           "vision_patches": 128,
-          "vision_plan_build_wall_ms": 133.906636,
+          "vision_plan_build_wall_ms": 264.003903,
           "vision_plan_cache_entries": 2,
           "vision_plan_cache_hit": false,
           "visual_tokens": 32
@@ -557,7 +557,7 @@
       "prompt_tokens": 64,
       "render_prompt_token_ids_sha256": "6e632c4f208a83c4c0fdb66fe16a8104e4578b2c89e6542247f720084e78c446",
       "render_prompt_tokens": 64,
-      "request_wall_ms": 1040.8301558345556
+      "request_wall_ms": 1084.6416130661964
     },
     {
       "case_id": "multi_image",
@@ -583,8 +583,8 @@
         "client_cancelled": false,
         "cold_prompt_decode_tokens": 0,
         "cold_prompt_decode_wall_ms": 0.0,
-        "decode_tokens_per_second": 34.01471331692596,
-        "http_request_wall_ms": 1247.778591,
+        "decode_tokens_per_second": 5.886150596507126,
+        "http_request_wall_ms": 2984.394097,
         "model_loads": 1,
         "mrope": {
           "decode_steps": 7,
@@ -597,7 +597,7 @@
         "output_token_ids_canonical_sha256": "6f43fb74aa12ec8877c036d5a3dfc266172cfda42126bf5405463607046da4db",
         "output_token_ids_sha256": "c7f880b7f92b44cf267936cefdfc56739626236a30d1ad822e4b614350ab837e",
         "padded_prefill_tokens": 838,
-        "prefill_tokens_per_second": 179.47172030186908,
+        "prefill_tokens_per_second": 104.98339354901395,
         "prefix_cache": {
           "hits": 0,
           "implemented": true,
@@ -617,16 +617,16 @@
         "prompt_token_ids_sha256": "3859b4d1942df0d6fa9d4e67c42a833bae351096c0cbc107c636cdcb434124cd",
         "prompt_tokens": 186,
         "request_index": 3,
-        "request_wall_ms": 1242.209604,
+        "request_wall_ms": 2961.09683,
         "runtime": "native-resident-q186",
         "structured_decoding": {
           "enabled": false,
           "token_mask_upload_bytes": 0,
           "token_selections": 0
         },
-        "ttft_ms": 1036.374977,
+        "ttft_ms": 1771.708779,
         "vl": {
-          "embedding_injection_wall_ms": 0.058139,
+          "embedding_injection_wall_ms": 0.057561,
           "enabled": true,
           "host_to_device_bytes": 1968104,
           "image_count": 2,
@@ -635,15 +635,15 @@
           "media_cache_misses": 1,
           "media_cache_resident_bytes": 2360621,
           "media_count": 2,
-          "media_decode_wall_ms": 3.47315,
-          "media_load_decode_wall_ms": 3.862627,
-          "media_load_wall_ms": 0.389477,
-          "processor_wall_ms": 0.344178,
+          "media_decode_wall_ms": 20.520603,
+          "media_load_decode_wall_ms": 21.34055,
+          "media_load_wall_ms": 0.819947,
+          "processor_wall_ms": 0.364777,
           "source_bytes": 131149,
           "video_count": 0,
-          "vision_encode_wall_ms": 36.852239,
+          "vision_encode_wall_ms": 57.125311,
           "vision_patches": 640,
-          "vision_plan_build_wall_ms": 214.005884,
+          "vision_plan_build_wall_ms": 347.515564,
           "vision_plan_cache_entries": 3,
           "vision_plan_cache_hit": false,
           "visual_tokens": 160
@@ -656,7 +656,7 @@
       "prompt_tokens": 186,
       "render_prompt_token_ids_sha256": "3859b4d1942df0d6fa9d4e67c42a833bae351096c0cbc107c636cdcb434124cd",
       "render_prompt_tokens": 186,
-      "request_wall_ms": 1248.352208174765
+      "request_wall_ms": 2984.9291862919927
     },
     {
       "case_id": "multi_video",
@@ -682,8 +682,8 @@
         "client_cancelled": false,
         "cold_prompt_decode_tokens": 0,
         "cold_prompt_decode_wall_ms": 0.0,
-        "decode_tokens_per_second": 33.97331124615125,
-        "http_request_wall_ms": 1458.813059,
+        "decode_tokens_per_second": 34.02125873758268,
+        "http_request_wall_ms": 1164.96459,
         "model_loads": 1,
         "mrope": {
           "decode_steps": 7,
@@ -696,7 +696,7 @@
         "output_token_ids_canonical_sha256": "ec2180afb59664da9781946b9e0fec0b317c09620b1ac52dd33b1a8484a500fc",
         "output_token_ids_sha256": "2de3091b4c6e6e11a75842eacb006123e3ac10cadfa07f7286c840881867ece8",
         "padded_prefill_tokens": 893,
-        "prefill_tokens_per_second": 105.11450706198455,
+        "prefill_tokens_per_second": 137.22991596915702,
         "prefix_cache": {
           "hits": 0,
           "implemented": true,
@@ -716,16 +716,16 @@
         "prompt_token_ids_sha256": "f11eb4c121339971b871b52c1d535803627336e201f6fc759062b5635dbe19b6",
         "prompt_tokens": 131,
         "request_index": 4,
-        "request_wall_ms": 1452.345587,
+        "request_wall_ms": 1160.401103,
         "runtime": "native-resident-q131",
         "structured_decoding": {
           "enabled": false,
           "token_mask_upload_bytes": 0,
           "token_selections": 0
         },
-        "ttft_ms": 1246.259947,
+        "ttft_ms": 954.602348,
         "vl": {
-          "embedding_injection_wall_ms": 0.05814,
+          "embedding_injection_wall_ms": 0.056951,
           "enabled": true,
           "host_to_device_bytes": 984204,
           "image_count": 0,
@@ -734,15 +734,15 @@
           "media_cache_misses": 1,
           "media_cache_resident_bytes": 2950908,
           "media_count": 2,
-          "media_decode_wall_ms": 4.112476,
-          "media_load_decode_wall_ms": 5.689387,
-          "media_load_wall_ms": 1.576911,
-          "processor_wall_ms": 0.174389,
+          "media_decode_wall_ms": 3.16565,
+          "media_load_decode_wall_ms": 3.815902,
+          "media_load_wall_ms": 0.650252,
+          "processor_wall_ms": 0.177494,
           "source_bytes": 223653,
           "video_count": 2,
-          "vision_encode_wall_ms": 51.703053,
+          "vision_encode_wall_ms": 40.294013,
           "vision_patches": 320,
-          "vision_plan_build_wall_ms": 356.52981,
+          "vision_plan_build_wall_ms": 326.188502,
           "vision_plan_cache_entries": 4,
           "vision_plan_cache_hit": false,
           "visual_tokens": 80
@@ -755,7 +755,7 @@
       "prompt_tokens": 131,
       "render_prompt_token_ids_sha256": "f11eb4c121339971b871b52c1d535803627336e201f6fc759062b5635dbe19b6",
       "render_prompt_tokens": 131,
-      "request_wall_ms": 1459.6566539257765
+      "request_wall_ms": 1165.4187180101871
     },
     {
       "case_id": "mixed_image_video",
@@ -781,8 +781,8 @@
         "client_cancelled": false,
         "cold_prompt_decode_tokens": 0,
         "cold_prompt_decode_wall_ms": 0.0,
-        "decode_tokens_per_second": 33.98625261907773,
-        "http_request_wall_ms": 1435.793342,
+        "decode_tokens_per_second": 34.013702624184376,
+        "http_request_wall_ms": 1331.380734,
         "model_loads": 1,
         "mrope": {
           "decode_steps": 7,
@@ -795,7 +795,7 @@
         "output_token_ids_canonical_sha256": "3d1272216997047bc14ecb7430b1074eaec89a380e08ef2feb090b718d343130",
         "output_token_ids_sha256": "4220864433fd6f9b56a504f01fc0bb03c355deb288abb4041570a26df93ec34e",
         "padded_prefill_tokens": 890,
-        "prefill_tokens_per_second": 109.11403901679613,
+        "prefill_tokens_per_second": 119.16553120220085,
         "prefix_cache": {
           "hits": 0,
           "implemented": true,
@@ -815,16 +815,16 @@
         "prompt_token_ids_sha256": "d2d4f5cace39ca45fa3f57dd73745e351a629240e91a5a58fe6ff79f2094e76f",
         "prompt_tokens": 134,
         "request_index": 5,
-        "request_wall_ms": 1434.080263,
+        "request_wall_ms": 1330.331944,
         "runtime": "native-resident-q134",
         "structured_decoding": {
           "enabled": false,
           "token_mask_upload_bytes": 0,
           "token_selections": 0
         },
-        "ttft_ms": 1228.072952,
+        "ttft_ms": 1124.486239,
         "vl": {
-          "embedding_injection_wall_ms": 0.05853,
+          "embedding_injection_wall_ms": 0.053271,
           "enabled": true,
           "host_to_device_bytes": 1180952,
           "image_count": 1,
@@ -834,14 +834,14 @@
           "media_cache_resident_bytes": 2950908,
           "media_count": 2,
           "media_decode_wall_ms": 0.0,
-          "media_load_decode_wall_ms": 0.578437,
-          "media_load_wall_ms": 0.578437,
+          "media_load_decode_wall_ms": 0.223314,
+          "media_load_wall_ms": 0.223314,
           "processor_wall_ms": 0.0,
           "source_bytes": 59494,
           "video_count": 1,
-          "vision_encode_wall_ms": 22.024872,
+          "vision_encode_wall_ms": 22.295141,
           "vision_patches": 384,
-          "vision_plan_build_wall_ms": 448.557642,
+          "vision_plan_build_wall_ms": 484.617513,
           "vision_plan_cache_entries": 4,
           "vision_plan_cache_hit": false,
           "visual_tokens": 96
@@ -854,31 +854,31 @@
       "prompt_tokens": 134,
       "render_prompt_token_ids_sha256": "d2d4f5cace39ca45fa3f57dd73745e351a629240e91a5a58fe6ff79f2094e76f",
       "render_prompt_tokens": 134,
-      "request_wall_ms": 1436.5626079961658
+      "request_wall_ms": 1331.8789936602116
     }
   ],
   "qualified": true,
   "raw": {
     "stderr": {
       "bytes": 0,
-      "path": "native-vl-serving-f91b357-raw/server.stderr.log",
+      "path": "aima-native-vl-serving-85fa597-v2-raw/server.stderr.log",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     "stdout": {
-      "bytes": 1462,
-      "path": "native-vl-serving-f91b357-raw/server.stdout.log",
-      "sha256": "d50f80f75461bd50a2a437cd9b93fdd82e45bd62e4fa202ecd126431e939b56c"
+      "bytes": 1459,
+      "path": "aima-native-vl-serving-85fa597-v2-raw/server.stdout.log",
+      "sha256": "374f68d086473463f59f67189a83dfd8716cf8dbf4bcb9acb9b0e6075ddd0fff"
     },
     "weight_load": {
-      "bytes": 1142,
-      "path": "native-vl-serving-f91b357-raw/native-weight-load.json",
-      "sha256": "667983f9ec0af599d4238ff7131f1edfd038f9e5e414f6a9402a46b0b5be8826"
+      "bytes": 1149,
+      "path": "aima-native-vl-serving-85fa597-v2-raw/native-weight-load.json",
+      "sha256": "21a696ca208363ca6c03471908e976d94cc5047dbadfcdb9429d48fcc4f26303"
     }
   },
   "schema": "aima-amd395-qwen36/native-vl-serving-qualification/v1",
   "scope": "resident-native-five-real-http-render-prompts-private-greedy-oracles-and-content-addressed-cache-correctness",
   "source": {
-    "commit": "f91b357ae12589be81a957680d45a255621c50d2",
+    "commit": "85fa597c782d28c05c51467060d8e03a8a47646e",
     "dirty": false,
     "files": [
       {
@@ -922,9 +922,9 @@
         "sha256": "cae66de143dca6e5818cdc83fdfde77f3089d6450207e8a48d5ee7a11d48a3a3"
       },
       {
-        "bytes": 11429,
+        "bytes": 11669,
         "path": "scripts/build-native-runtime.sh",
-        "sha256": "20722f40c92aa5bd26c104c851df7da3f61d28def439fabce48cacd7992b31e7"
+        "sha256": "24b0244ca278a9ebb89113c2bc93397b241e44ffc50cc0572b22e522f976fa90"
       },
       {
         "bytes": 29280,
