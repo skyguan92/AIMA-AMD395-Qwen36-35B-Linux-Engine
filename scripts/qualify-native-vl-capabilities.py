@@ -773,11 +773,14 @@ def main() -> int:
                 for case in success_cases
             ),
             "named_tool_mask_accounting_exact": next(
-                case["qualification_checks"].get(
-                    "structured_token_mask_accounting_exact", False
-                )
-                for case in success_cases
-                if case["case_id"] == "tool_forced_image"
+                (
+                    case["qualification_checks"].get(
+                        "structured_token_mask_accounting_exact", False
+                    )
+                    for case in success_cases
+                    if case["case_id"] == "tool_forced_image"
+                ),
+                False,
             ),
             "runtime_python": False,
             "runtime_torch": False,
