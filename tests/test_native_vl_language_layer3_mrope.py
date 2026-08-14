@@ -142,6 +142,9 @@ class NativeVlLanguageLayer3MropeTest(unittest.TestCase):
         )
         self.assertIn("diagnostic_options.seed_post_attention = true", probe)
         self.assertIn("return-layer_body-router_indices", probe)
+        self.assertIn(
+            '"layer-003-return-layer_body-router_indices"', probe
+        )
         self.assertIn("kMeasuredRuns = 5", probe)
         self.assertIn("relative_l2_error <= 0.002", probe)
         self.assertIn("cosine_similarity >= 0.999", probe)

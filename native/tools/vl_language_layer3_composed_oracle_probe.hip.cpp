@@ -355,6 +355,12 @@ Execution execute_layers_0_through_3(
                             full.boundary_comparisons.end());
   result.comparisons.insert(result.comparisons.end(),
                             moe.comparisons.begin(), moe.comparisons.end());
+  if (moe.router_expert_set_rows != 0) {
+    result.router_expert_sets.push_back(
+        {"layer-003-return-layer_body-router_indices",
+         moe.router_expert_set_rows,
+         moe.router_expert_set_rows_exact});
+  }
   if (moe.chain_output_comparison_provided) {
     aima::NativeOracleComparison output = moe.chain_output_comparison;
     output.label = "layer-003-same_request_layer_output";
@@ -445,6 +451,14 @@ json qualify_case(
       "layer-003-projected_attention_full_sequence",
       "layer-003-post_attention_residual_full_sequence",
       "layer-003-post_attention_norm_full_sequence",
+      "layer-003-return-layer_body-h2",
+      "layer-003-return-layer_body-router_logits",
+      "layer-003-return-layer_body-router_scores",
+      "layer-003-return-layer_body-router_weights",
+      "layer-003-return-layer_body-router_indices",
+      "layer-003-return-layer_body-shared_out",
+      "layer-003-return-layer_body-routed_moe",
+      "layer-003-return-layer_body-moe_out",
       "layer-003-same_request_layer_output",
   };
   for (std::size_t layer_index = 0; layer_index < 3; ++layer_index) {
