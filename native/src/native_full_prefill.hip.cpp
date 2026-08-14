@@ -298,11 +298,17 @@ NativeFullPrefillOracleResult probe_native_q8192_full_prefill_oracle(
         "native full prefill oracle requires complete resident owners");
   }
   const std::size_t tokens = workspace.context_tokens();
+  const std::size_t active_tokens =
+      options.active_tokens == 0 ? tokens : options.active_tokens;
   const std::size_t comparison_tokens =
-      options.comparison_tokens == 0 ? tokens : options.comparison_tokens;
+      options.comparison_tokens == 0
+          ? active_tokens
+          : options.comparison_tokens;
   if (tokens == 0 || tokens > 262144 ||
-      comparison_tokens == 0 || comparison_tokens > tokens ||
+      active_tokens == 0 || active_tokens > tokens ||
+      comparison_tokens == 0 || comparison_tokens > active_tokens ||
       provider.metrics().context_tokens < tokens ||
+      (active_tokens != tokens && options.collect_oracle_comparisons) ||
       (tokens != 8192 && options.collect_oracle_comparisons)) {
     throw std::invalid_argument(
         "native full prefill context or oracle mode is unsupported");
@@ -731,8 +737,18 @@ NativeFullPrefillOracleResult probe_native_q8192_full_prefill_oracle(
     attention_k = options.decode_attention_state->k_cache(options.layer_index);
     attention_v = options.decode_attention_state->v_cache(options.layer_index);
   }
-  provider.launch(q, attention_k, attention_v, attention_f32, tokens,
-                  options.cache_position_start + tokens);
+  if (active_tokens != tokens) {
+    const std::size_t active_attention_f32_bytes =
+        active_tokens * kQueryDimension * sizeof(float);
+    check_hip(
+        hipMemsetAsync(
+            static_cast<unsigned char*>(attention_f32) +
+                active_attention_f32_bytes,
+            0, attention_f32_bytes - active_attention_f32_bytes, nullptr),
+        "hipMemsetAsync native full attention padding");
+  }
+  provider.launch(q, attention_k, attention_v, attention_f32, active_tokens,
+                  options.cache_position_start + active_tokens);
   ++result.layer.native_ck_fmha_launches;
   if (options.synchronize_substages) {
     check_hip(hipDeviceSynchronize(),

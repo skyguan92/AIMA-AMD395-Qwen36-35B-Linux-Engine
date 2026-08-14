@@ -25,6 +25,10 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         probe = (
             ROOT / "native/tools/vl_language_layer0_oracle_probe.hip.cpp"
         ).read_text(encoding="utf-8")
+        layer3_probe = (
+            ROOT
+            / "native/tools/vl_language_layer3_composed_oracle_probe.hip.cpp"
+        ).read_text(encoding="utf-8")
         moe_header = (
             ROOT / "native/include/aima/native_moe_prefill.h"
         ).read_text(encoding="utf-8")
@@ -39,6 +43,9 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         ).read_text(encoding="utf-8")
         full_source = (
             ROOT / "native/src/native_full_prefill.hip.cpp"
+        ).read_text(encoding="utf-8")
+        full_header = (
+            ROOT / "native/include/aima/native_full_prefill.h"
         ).read_text(encoding="utf-8")
         resident_source = (
             ROOT / "native/src/native_resident_engine.hip.cpp"
@@ -104,6 +111,14 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         self.assertIn("launch_prefill_add_rmsnorm_2048(", linear_source)
         self.assertIn("launch_prefill_rmsnorm_2048(", full_source)
         self.assertNotIn("executor.launch(launches[base]);", full_source)
+        self.assertIn("std::size_t active_tokens = 0", full_header)
+        self.assertIn("attention_options.active_tokens", resident_source)
+        self.assertIn(
+            "full_options.active_tokens = prompt_tokens", layer3_probe
+        )
+        self.assertIn(
+            "options.cache_position_start + active_tokens", full_source
+        )
         self.assertIn("exact_linear_b_projection_kernel", linear_source)
         self.assertIn("exact_b_tokens != 0", linear_source)
         self.assertIn("fmaf(", linear_source)

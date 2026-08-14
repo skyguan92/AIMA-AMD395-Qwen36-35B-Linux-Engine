@@ -89,6 +89,10 @@ struct NativeFullPrefillMetrics {
 
 struct NativeFullPrefillOracleOptions {
   std::size_t layer_index = 3;
+  // A padded fixed-shape schedule keeps its bucket-sized projections while
+  // FMHA executes only the causal logical prefix. Zero preserves the full
+  // workspace context.
+  std::size_t active_tokens = 0;
   // Zero compares the whole fixed bucket. A smaller value limits optional
   // qualification boundaries to the logical prefix of a padded request.
   std::size_t comparison_tokens = 0;

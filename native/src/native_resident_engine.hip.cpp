@@ -1042,6 +1042,8 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
         if (layer_index % 4 == 3) {
           NativeFullPrefillOracleOptions attention_options;
           attention_options.layer_index = layer_index;
+          attention_options.active_tokens = segment.input_tokens;
+          attention_options.comparison_tokens = segment.input_tokens;
           attention_options.seed_layer_input = false;
           attention_options.prepare_rotary_table = true;
           attention_options.collect_oracle_comparisons = false;

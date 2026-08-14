@@ -305,6 +305,7 @@ Execution execute_layers_0_through_3(
 
   aima::NativeFullPrefillOracleOptions full_options;
   full_options.layer_index = 3;
+  full_options.active_tokens = prompt_tokens;
   full_options.comparison_tokens = prompt_tokens;
   full_options.seed_layer_input = false;
   full_options.prepare_rotary_table = true;
