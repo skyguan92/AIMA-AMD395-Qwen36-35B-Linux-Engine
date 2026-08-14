@@ -590,6 +590,8 @@ def main() -> int:
         (str(ROOT), "${AIMA_REPO_ROOT}"),
         (str(model_dir), "${AIMA_MODEL_DIR}"),
         (str(fixture_root), "${AIMA_VL_FIXTURE_ROOT}"),
+        (str(fmha_provider), "${AIMA_FMHA_PROVIDER}"),
+        (str(vision_attention_image), "${AIMA_VISION_ATTENTION_IMAGE}"),
         (str(binary.parent), "${AIMA_NATIVE_BUILD_DIR}"),
         (str(raw_root), "${AIMA_QUALIFICATION_RAW_DIR}"),
     ]

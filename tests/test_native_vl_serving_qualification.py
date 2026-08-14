@@ -134,6 +134,29 @@ class NativeVlServingQualificationTest(unittest.TestCase):
             )
             self.assertNotEqual(payload, cache_a.read_bytes())
 
+    def test_publicize_replaces_qualified_dependency_paths(self) -> None:
+        value = {
+            "command": [
+                "/qualified/fmha.so",
+                "/qualified/vision.hsaco",
+            ],
+            "ready": {"fmha_provider_path": "/qualified/fmha.so"},
+        }
+        replaced = self.module.publicize(
+            value,
+            [
+                ("/qualified/fmha.so", "${AIMA_FMHA_PROVIDER}"),
+                (
+                    "/qualified/vision.hsaco",
+                    "${AIMA_VISION_ATTENTION_IMAGE}",
+                ),
+            ],
+        )
+        serialized = json.dumps(replaced, sort_keys=True)
+        self.assertNotIn("/qualified/", serialized)
+        self.assertIn("${AIMA_FMHA_PROVIDER}", serialized)
+        self.assertIn("${AIMA_VISION_ATTENTION_IMAGE}", serialized)
+
 
 if __name__ == "__main__":
     unittest.main()
