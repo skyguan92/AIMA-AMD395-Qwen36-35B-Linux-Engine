@@ -27,6 +27,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from aima_engine.vl_capability import (  # noqa: E402
+    API_RENDER_MEDIA_COUNTS,
     API_RENDER_SCHEMA,
     API_RENDER_TOOL_CASES,
     EXPECTED_TOOL_JSON_SCHEMA,
@@ -320,10 +321,12 @@ def main() -> int:
             if not isinstance(token_ids, list) or not token_ids:
                 raise RuntimeError(f"render returned no prompt tokens: {case_id}")
             features = rendered.get("features")
-            if not isinstance(features, dict):
+            if not isinstance(features, dict) and API_RENDER_MEDIA_COUNTS[case_id]:
                 raise RuntimeError(f"render returned no feature object: {case_id}")
             placeholders = normalized_placeholders(
                 features.get("mm_placeholders")
+                if isinstance(features, dict)
+                else None
             )
             sampling = rendered.get("sampling_params")
             if not isinstance(sampling, dict):
