@@ -187,7 +187,7 @@ class NativeVlServingQualificationTest(unittest.TestCase):
         self.assertFalse(result["source"]["dirty"])
         self.assertEqual(
             result["source"]["commit"],
-            "19e23400449f16c0af88d4c9886022531b6decd5",
+            "7f402a21934876ec9a43ff62758c33988532e651",
         )
         self.assertEqual(
             result["build_info"]["source_commit"],

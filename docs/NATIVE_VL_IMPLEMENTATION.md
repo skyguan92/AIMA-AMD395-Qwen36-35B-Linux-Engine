@@ -14,8 +14,8 @@ blocking condition in the governing goal can move a gate to `passed`.
 
 | Gate | Current state | Evidence required to pass | Next blocking action |
 |---|---|---|---|
-| G1 full VL functional parity | the native HTTP process now composes ordered media admission, processor, complete visual tower, injection, M-RoPE and all 40 language layers for image/video/multi-image/multi-video/mixed requests; full conversation/tools/stream/transport/error and boundary conformance remains open | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | run the frozen 30-case API capability matrix and extend it through boundary/media-reuse cases |
-| G2 VL correctness parity | all five processor-to-logits boundaries were qualified independently; clean resident HTTP evidence now matches all five frozen canonical prompt-token vectors, shapes, M-RoPE state and 8-token greedy outputs exactly; task/error suites remain open | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | add task-quality and error-parity evidence without weakening the frozen thresholds |
+| G1 full VL functional parity | the native HTTP path now passes the frozen 30-case API surface: 20 image/video/mixed/conversation/tool/stream/transport/residency successes and 10 compatible input errors; the broader min/typical/max boundary envelope and exact usage accounting remain open | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | extend the closed API surface through processor-generated boundary/media-reuse cases and reconcile usage semantics |
+| G2 VL correctness parity | all five processor-to-logits boundaries, five resident greedy oracles and the frozen API status/finish/tool/SSE checks pass; numeric reference usage is still `0/18` exact and task-quality suites remain open | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | close prompt/completion usage accounting, then run the frozen image/video task-quality suites |
 | G3 text product no regression | frozen baseline identified; the shared pointwise source changed, while exact-commit layer-0 requalification retained every prior output hash and numerical metric; the complete paired release matrix has not run | paired 19-cell, maximum-window, correctness, MMLU, API, cache, startup and memory requalification | retain `v1.5.1` as an immutable paired binary and run the complete paired matrix after language integration stabilizes |
 | G4 native VL performance | not started | paired per-cell stage timings and memory records against the fixed VL-enabled vLLM | generate matrix cells from the capability manifest |
 | G5 native release product | the full runtime now includes all qualified vision sources and loads the 333 visual tensors in the same resident process; the external vision-attention code object is hash-checked and wired into the portable package contract, but final package qualification has not run | native-only package, security, isolated bundle, second-host, soak and rollback evidence | generate a clean product qualification containing the vision code object, then run isolated bundle, second-host, soak and rollback gates |
@@ -573,9 +573,9 @@ identity and fails manifest generation if it is missing. A final clean product
 record, archive build and isolated qualification are still required; G5
 remains false.
 
-The serving boundary now has clean exact-commit evidence. Commit
-`19e23400449f16c0af88d4c9886022531b6decd5` produced native binary SHA-256
-`e3d5f4aaaeab5a472e751d042199c5c49c9247142eb1472c4da9c738a8b3d1f2`.
+The serving boundary now has refreshed clean exact-commit evidence. Commit
+`7f402a21934876ec9a43ff62758c33988532e651` produced native binary SHA-256
+`c1c90b10e4bb78a07ec7b87bc43271f9bd93021e6ac70d05920ab8329248669e`.
 One resident process served all five frozen image/video/multi/mixed cases and
 matched canonical prompt-token SHA-256, prompt/completion counts, M-RoPE,
 vision shapes, greedy output-token SHA-256, output text and finish reason.
@@ -585,6 +585,24 @@ reuse with changed text. It emitted one READY and one stopped event, loaded the
 model once, read no oracle tensors and reported no Python, Torch, vLLM or
 Triton runtime. The sealed result is
 `benchmarks/results/native-vl-serving-v0.1.0.json`, file SHA-256
-`6486c46a0db3498c6785b165e630125b98be46bf4eec630c69480745fb67069c`.
-This closes the deterministic resident-serving slice only; the 30-case API
-matrix, task/error suites and G1-G5 release gates remain blocking.
+`b80552401789b7d3dce244adf135e77bcd09bc07bfeb6d2232af06ec8949b87e`.
+
+The same exact binary also closes the frozen 30-case API capability surface.
+VL prompt tools now reproduce the reference vLLM Pydantic field order, retain
+the caller's JSON-Schema order and avoid the baseline text path's synthetic
+tool-choice directive. Forced and auto tool requests both return complete
+structured calls; named forced calls retain vLLM-compatible content and finish
+semantics. In one resident process, all 20 success cases returned HTTP 200,
+all 10 invalid-input cases returned compatible HTTP 400 responses, status was
+exact for `30/30`, finish reason was exact for `20/20`, both tool cases and
+both SSE cases were structurally complete, and the 333 visual tensors remained
+resident across contiguous requests. The process loaded the model once and
+reported no Python, Torch, vLLM or Triton runtime. The sealed evidence is
+`benchmarks/results/native-vl-capability-v0.1.0.json`, file SHA-256
+`cf2aaa143c8f8b7746770a6276c95427995ca5a1ad4b542a05231d9b3b3d3bdd`.
+
+This closes the frozen API surface and deterministic resident-serving slice,
+not G1 or G2. Numeric vLLM usage accounting is still exact for only `0/18`
+comparable non-stream successes, the generated min/typical/max boundary
+envelope is not fully exercised, and task-quality suites have not run. G3-G5
+also remain blocking.
