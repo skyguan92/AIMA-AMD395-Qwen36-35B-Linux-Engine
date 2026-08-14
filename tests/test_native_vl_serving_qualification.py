@@ -62,8 +62,9 @@ class NativeVlServingQualificationTest(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "fixture changed"):
                 self.module.build_request(case, root)
 
-    def test_oracle_result_requires_both_canonical_token_hashes(self) -> None:
+    def test_oracle_result_separates_http_prompt_and_private_output(self) -> None:
         prompt_ids = [1, 2, 3]
+        render_prompt_ids = [1, 7, 2, 3]
         output_ids = [4, 5]
         canonical = lambda values: hashlib.sha256(
             json.dumps(values, separators=(",", ":")).encode()
@@ -95,9 +96,9 @@ class NativeVlServingQualificationTest(unittest.TestCase):
                     "finish_reason": "length",
                 }
             ],
-            "usage": {"prompt_tokens": 3, "completion_tokens": 2},
+            "usage": {"prompt_tokens": 4, "completion_tokens": 2},
             "aima_amd395": {
-                "prompt_token_ids_sha256": canonical(prompt_ids),
+                "prompt_token_ids_sha256": canonical(render_prompt_ids),
                 "output_token_ids_canonical_sha256": canonical(output_ids),
                 "model_loads": 1,
                 "oracle_tensor_reads": 0,
@@ -109,12 +110,25 @@ class NativeVlServingQualificationTest(unittest.TestCase):
                 "mrope": {"enabled": True, "position_delta": -1},
             },
         }
-        result = self.module.oracle_case_result(case, 200, response, 1.0)
+        render = {
+            "prompt_tokens": 4,
+            "prompt_token_ids_sha256": canonical(render_prompt_ids),
+            "private_prompt_tokens": len(prompt_ids),
+            "private_prompt_token_ids_sha256": canonical(prompt_ids),
+            "private_prompt_matches_real_http": False,
+        }
+        result = self.module.oracle_case_result(
+            case, render, 200, response, 1.0
+        )
         self.assertTrue(result["passed"])
         response["aima_amd395"]["prompt_token_ids_sha256"] = "0" * 64
-        result = self.module.oracle_case_result(case, 200, response, 1.0)
+        result = self.module.oracle_case_result(
+            case, render, 200, response, 1.0
+        )
         self.assertFalse(result["passed"])
-        self.assertFalse(result["checks"]["prompt_token_ids_sha256_exact"])
+        self.assertFalse(
+            result["checks"]["real_http_prompt_token_ids_sha256_exact"]
+        )
 
     def test_cache_variant_is_deterministic_same_shape_png(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -187,7 +201,7 @@ class NativeVlServingQualificationTest(unittest.TestCase):
         self.assertFalse(result["source"]["dirty"])
         self.assertEqual(
             result["source"]["commit"],
-            "7f402a21934876ec9a43ff62758c33988532e651",
+            "f91b357ae12589be81a957680d45a255621c50d2",
         )
         self.assertEqual(
             result["build_info"]["source_commit"],
@@ -200,12 +214,38 @@ class NativeVlServingQualificationTest(unittest.TestCase):
                 ).hexdigest(),
                 component["sha256"],
             )
+        self.assertEqual(
+            result["binary"]["sha256"],
+            "00b70560d7b6dd1381e312b41f40a9d411f567804d50025c7d71be7efea0944b",
+        )
+        for name in (
+            "oracle_manifest",
+            "serving_render_manifest",
+            "fixture_manifest",
+        ):
+            component = result["dependencies"][name]
+            path = ROOT / component["path"]
+            self.assertEqual(path.stat().st_size, component["bytes"])
+            self.assertEqual(
+                hashlib.sha256(path.read_bytes()).hexdigest(),
+                component["sha256"],
+            )
         self.assertEqual(len(result["oracle_cases"]), 5)
         self.assertTrue(all(case["passed"] for case in result["oracle_cases"]))
+        self.assertTrue(
+            all(all(case["checks"].values()) for case in result["oracle_cases"])
+        )
         self.assertTrue(all(result["cache_correctness"]["checks"].values()))
         self.assertTrue(all(result["launch"]["checks"].values()))
-        self.assertTrue(result["decision"]["five_frozen_generations_exact"])
-        self.assertTrue(result["decision"]["five_frozen_prompt_hashes_exact"])
+        self.assertTrue(
+            result["decision"]["five_private_oracle_generations_preserved"]
+        )
+        self.assertTrue(
+            result["decision"]["five_real_http_prompt_hashes_exact"]
+        )
+        self.assertTrue(
+            result["decision"]["five_private_prompt_boundaries_distinguished"]
+        )
         self.assertTrue(
             result["decision"]["content_addressed_media_cache_qualified"]
         )

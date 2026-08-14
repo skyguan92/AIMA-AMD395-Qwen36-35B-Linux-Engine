@@ -2,7 +2,7 @@
 
 > Status: proposed hard target
 > Baseline: `v1.5.1`
-> Last updated: 2026-08-13
+> Last updated: 2026-08-14
 
 ## One-sentence goal
 
@@ -272,12 +272,16 @@ VL 性能比较必须在同一 AMD395、同一模型、同一 processor 输出�
 1. `vl-reference-manifest.json`：冻结原模型、processor、vLLM、环境和命令；
 2. `vl-capability-manifest.json`：所有成功/失败请求形态及准确边界；
 3. `vl-oracle-manifest.json`：processor、boundary 和 end-to-end oracle hashes；
-4. `vl-correctness.json`：逐 fixture KLD/top-1/token/task-score 结果；
-5. `vl-performance.json`：逐格 paired runs、分阶段耗时、内存与判定；
-6. `text-v151-nonregression.json`：完整文本 product requalification；
-7. 更新后的 machine product contract、package qualification、evidence archive
+4. `vl-api-render-manifest.json`：冻结完整 API capability corpus 的真实 OpenAI
+   HTTP prompt token vectors、placeholder spans 和 structured-output 配置；
+5. `vl-serving-render-manifest.json`：冻结数值 oracle serving corpus 的真实 HTTP
+   prompt vectors，并与私有 processor-to-logits prompt 独立绑定；
+6. `vl-correctness.json`：逐 fixture KLD/top-1/token/task-score 结果；
+7. `vl-performance.json`：逐格 paired runs、分阶段耗时、内存与判定；
+8. `text-v151-nonregression.json`：完整文本 product requalification；
+9. 更新后的 machine product contract、package qualification、evidence archive
    和 checksum sidecar；
-8. API、安装、架构、性能、安全、限制和回滚文档。
+10. API、安装、架构、性能、安全、限制和回滚文档。
 
 这些文件的最终路径由实现阶段按现有 `benchmarks/results/`、
 `benchmarks/runs/` 和 `share/aima/` 约定确定；目标和门槛以本文为准。
@@ -304,6 +308,9 @@ VL 性能比较必须在同一 AMD395、同一模型、同一 processor 输出�
   能力；image-only 或缩小 envelope 不能作为完成态。
 - `2026-08-13` — 正确性和性能均为阻断式 no-regression gate；文本 floor 是
   当前 native product，VL performance floor 是同机固定 vLLM。
+- `2026-08-14` — 私有 processor-to-logits prompt 不能替代真实 OpenAI HTTP
+  render 边界；两类证据必须分别捕获、hash-bound 并在 native qualification 中
+  同时验证。
 
 ## Source-of-truth pointers
 
