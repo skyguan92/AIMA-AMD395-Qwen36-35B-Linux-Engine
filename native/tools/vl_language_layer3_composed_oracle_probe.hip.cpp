@@ -439,8 +439,6 @@ Execution execute_layers_0_through_3(
     attention_options.logical_ab_weight =
         logical_projections.ab_weight(layer_index);
     attention_options.logical_ab_output = logical_projections.ab_output();
-    attention_options.logical_output_gemm_plan =
-        &logical_projections.linear_output_plan();
     attention_options.bindings = &bindings;
     if (!prefix_oracle_dir.empty()) {
       attention_options.sequence_oracle_dir = prefix_oracle_dir;
@@ -710,8 +708,6 @@ FullLanguageExecution execute_full_language(
       attention_options.logical_ab_weight =
           logical_projections.ab_weight(layer_index);
       attention_options.logical_ab_output = logical_projections.ab_output();
-      attention_options.logical_output_gemm_plan =
-          &logical_projections.linear_output_plan();
       attention_options.bindings = &bindings;
       const aima::NativeLinearPrefillOracleResult attention =
           aima::probe_native_q8192_linear_prefill_layer0_oracle(
@@ -855,7 +851,7 @@ json qualify_case(
       read_tensor(layer3_root, positions_record);
   const aima::NativeVlLogicalProjectionPrepareMetrics logical_metrics =
       logical_projections.prepare(prompt_tokens);
-  if (!logical_metrics.prepared || logical_metrics.plan_count != 3) {
+  if (!logical_metrics.prepared || logical_metrics.plan_count != 2) {
     throw std::runtime_error("logical VL projection plans are incomplete");
   }
   const std::filesystem::path case_oracle_dir = layer3_root / case_id;
@@ -972,8 +968,6 @@ json qualify_case(
       logical_projections.ab_weight(1);
   attention_diagnostic_options.logical_ab_output =
       logical_projections.ab_output();
-  attention_diagnostic_options.logical_output_gemm_plan =
-      &logical_projections.linear_output_plan();
   attention_diagnostic_options.bindings = &bindings;
   attention_diagnostic_options.oracle_label_prefix = "layer-000-";
   attention_diagnostic_options.sequence_oracle_dir =
@@ -1241,7 +1235,7 @@ json qualify_full_language_case(
       read_tensor(vl_root, logits_record);
   const aima::NativeVlLogicalProjectionPrepareMetrics logical_metrics =
       logical_projections.prepare(prompt_tokens);
-  if (!logical_metrics.prepared || logical_metrics.plan_count != 3) {
+  if (!logical_metrics.prepared || logical_metrics.plan_count != 2) {
     throw std::runtime_error("full-language logical plans are incomplete");
   }
 

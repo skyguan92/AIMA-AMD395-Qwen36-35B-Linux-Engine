@@ -17,7 +17,6 @@ namespace aima {
 namespace {
 
 constexpr std::size_t kHidden = 2048;
-constexpr std::size_t kLinearValue = 4096;
 constexpr std::size_t kProjectionColumns = 32;
 constexpr std::size_t kMergedColumns = 2 * kProjectionColumns;
 constexpr std::size_t kLanguageLayers = 40;
@@ -61,12 +60,10 @@ struct NativeVlLogicalProjectionState::Impl {
   std::size_t prepared_tokens = 0;
   std::unique_ptr<NativeQ8192PrefillGemmPlans> router_gemm_plans;
   std::unique_ptr<Bf16GemmPlan> ab_plan;
-  std::unique_ptr<Bf16GemmPlan> linear_output_plan;
   NativeVlLogicalProjectionLoadMetrics load_metrics;
 
   void reset() noexcept {
     ab_plan.reset();
-    linear_output_plan.reset();
     router_gemm_plans.reset();
     prepared_tokens = 0;
     if (output != nullptr) {
@@ -163,12 +160,10 @@ NativeVlLogicalProjectionState::prepare(std::size_t tokens) {
   NativeVlLogicalProjectionPrepareMetrics metrics;
   metrics.tokens = tokens;
   if (impl_->prepared_tokens == tokens && impl_->ab_plan != nullptr &&
-      impl_->linear_output_plan != nullptr &&
       impl_->router_gemm_plans != nullptr) {
-    metrics.plan_count = 3;
+    metrics.plan_count = 2;
     metrics.workspace_bytes =
         impl_->ab_plan->workspace_bytes() +
-        impl_->linear_output_plan->workspace_bytes() +
         impl_->router_gemm_plans->workspace_bytes();
     metrics.reused = true;
     metrics.prepared = true;
@@ -177,7 +172,6 @@ NativeVlLogicalProjectionState::prepare(std::size_t tokens) {
 
   const auto started = std::chrono::steady_clock::now();
   impl_->ab_plan.reset();
-  impl_->linear_output_plan.reset();
   impl_->router_gemm_plans.reset();
   impl_->prepared_tokens = 0;
   impl_->router_gemm_plans =
@@ -185,13 +179,10 @@ NativeVlLogicalProjectionState::prepare(std::size_t tokens) {
   (void)impl_->router_gemm_plans->moe_router();
   impl_->ab_plan = std::make_unique<Bf16GemmPlan>(
       tokens, kMergedColumns, kHidden, kWorkspaceLimit, true);
-  impl_->linear_output_plan = std::make_unique<Bf16GemmPlan>(
-      tokens, kHidden, kLinearValue, kWorkspaceLimit, true);
   impl_->prepared_tokens = tokens;
-  metrics.plan_count = 3;
+  metrics.plan_count = 2;
   metrics.workspace_bytes =
       impl_->ab_plan->workspace_bytes() +
-      impl_->linear_output_plan->workspace_bytes() +
       impl_->router_gemm_plans->workspace_bytes();
   metrics.build_wall_ms = elapsed_ms(started);
   metrics.prepared = true;
@@ -207,7 +198,6 @@ bool NativeVlLogicalProjectionState::loaded() const {
 
 bool NativeVlLogicalProjectionState::prepared() const {
   return loaded() && impl_->prepared_tokens != 0 && impl_->ab_plan != nullptr &&
-         impl_->linear_output_plan != nullptr &&
          impl_->router_gemm_plans != nullptr;
 }
 
@@ -236,13 +226,6 @@ Bf16GemmPlan& NativeVlLogicalProjectionState::ab_plan() const {
     throw std::runtime_error("VL logical A/B plan is not prepared");
   }
   return *impl_->ab_plan;
-}
-
-Bf16GemmPlan& NativeVlLogicalProjectionState::linear_output_plan() const {
-  if (!prepared()) {
-    throw std::runtime_error("VL logical linear-output plan is not prepared");
-  }
-  return *impl_->linear_output_plan;
 }
 
 NativeQ8192PrefillGemmPlans&

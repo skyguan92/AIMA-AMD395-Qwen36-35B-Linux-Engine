@@ -223,8 +223,6 @@ probe_native_q8192_linear_prefill_layer0_oracle(
   const void* logical_ab_weight = options.logical_ab_weight;
   void* logical_ab_output = options.logical_ab_output;
   const bool logical_ab_enabled = logical_ab_gemm_plan != nullptr;
-  Bf16GemmPlan* logical_output_gemm_plan =
-      options.logical_output_gemm_plan;
   if (bucket_tokens == 0 || bucket_tokens > 262144 || tokens == 0 ||
       tokens > bucket_tokens ||
       comparison_tokens == 0 || comparison_tokens > tokens ||
@@ -235,10 +233,6 @@ probe_native_q8192_linear_prefill_layer0_oracle(
        (logical_ab_gemm_plan->m() != comparison_tokens ||
         logical_ab_gemm_plan->n() != 2 * kLinearHeads ||
         logical_ab_gemm_plan->k() != kHidden)) ||
-      (logical_output_gemm_plan != nullptr &&
-       (logical_output_gemm_plan->m() != comparison_tokens ||
-        logical_output_gemm_plan->n() != kHidden ||
-        logical_output_gemm_plan->k() != kLinearValue)) ||
       (tokens != bucket_tokens && options.collect_oracle_comparisons) ||
       (bucket_tokens != 8192 && options.collect_oracle_comparisons)) {
     throw std::invalid_argument(
@@ -256,11 +250,6 @@ probe_native_q8192_linear_prefill_layer0_oracle(
   if (logical_ab_enabled && split_projections) {
     throw std::invalid_argument(
         "native logical A/B GEMM requires the direct q1024 projection");
-  }
-  if (logical_output_gemm_plan != nullptr && split_projections) {
-    throw std::invalid_argument(
-        "native logical linear-output GEMM requires the direct q1024 "
-        "projection");
   }
   const std::size_t linear_launches = q8192_schedule ? 13 : 12;
   const std::size_t attention_launches = q8192_schedule ? 11 : 10;
@@ -615,10 +604,7 @@ probe_native_q8192_linear_prefill_layer0_oracle(
   } else {
     fused_plan = &gemm_plans->linear_fused_input();
   }
-  Bf16GemmPlan& output_plan =
-      logical_output_gemm_plan == nullptr
-          ? gemm_plans->linear_output()
-          : *logical_output_gemm_plan;
+  Bf16GemmPlan& output_plan = gemm_plans->linear_output();
   result.layer.gemm_workspace_bytes = output_plan.workspace_bytes() +
       (split_projections
            ? qkv_plan->workspace_bytes() + z_plan->workspace_bytes() +
@@ -1038,12 +1024,6 @@ probe_native_q8192_linear_prefill_layer0_oracle(
           "linear_gated_output", "bfloat16", gated,
           tokens * kLinearValue * sizeof(std::uint16_t),
           oracle_file("launch-009-out"));
-  }
-  if (logical_output_gemm_plan != nullptr) {
-    check_hip(hipMemsetAsync(
-                  attention_output, 0,
-                  tokens * kHidden * sizeof(std::uint16_t), nullptr),
-              "hipMemset padded logical linear-attention output");
   }
   output_plan.launch(gated, output_weight.device_pointer, attention_output);
   ++result.layer.dense_gemm_launches;

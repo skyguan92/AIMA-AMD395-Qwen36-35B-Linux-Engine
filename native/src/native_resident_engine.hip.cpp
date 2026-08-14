@@ -1556,8 +1556,6 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
                 impl_->vl_logical_projections.ab_weight(layer_index);
             attention_options.logical_ab_output =
                 impl_->vl_logical_projections.ab_output();
-            attention_options.logical_output_gemm_plan =
-                &impl_->vl_logical_projections.linear_output_plan();
           }
           attention_options.bindings = &impl_->bindings;
           if (focused_tail_oracle) {

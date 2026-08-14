@@ -80,10 +80,6 @@ struct NativeLinearPrefillOracleOptions {
   Bf16GemmPlan* logical_ab_gemm_plan = nullptr;
   const void* logical_ab_weight = nullptr;
   void* logical_ab_output = nullptr;
-  // The output projection is also hipBLASLt shape-sensitive.  A padded VL
-  // request can project only its logical prefix into the existing padded
-  // output owner; the untouched tail is zeroed before the residual update.
-  Bf16GemmPlan* logical_output_gemm_plan = nullptr;
   // Required by q32768 to consume the resident derived fused input weight.
   const NativeDecodeBindings* bindings = nullptr;
   // Multi-layer fixtures prefix local AOT labels with layer-XXX-.
