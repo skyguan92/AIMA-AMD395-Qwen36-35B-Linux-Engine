@@ -515,6 +515,15 @@ class NativeRuntimeContractTest(unittest.TestCase):
         self.assertIn("native_decode_invocation.cpp", script)
         self.assertIn("native_decode_workspace.hip.cpp", script)
         self.assertIn("native_lm_head.hip.cpp", script)
+        self.assertIn("native_vl_request.cpp", script)
+        self.assertIn("native_vision_aot_block_stack.hip.cpp", script)
+        self.assertIn("native_vision_merger.hip.cpp", script)
+        self.assertIn("native_vision_pipeline.hip.cpp", script)
+        self.assertIn("aima-vision-attention.hsaco", script)
+        self.assertIn(
+            "b709a058a77d61e14db73c1ff7d7f4c20859d997bec811cad7339d3e59223d00",
+            script,
+        )
         self.assertIn("native_doctor.cpp", script)
         self.assertIn("AIMA_SOURCE_COMMIT", script)
         self.assertIn("portable_launcher.c", script)
@@ -579,6 +588,7 @@ class NativeRuntimeContractTest(unittest.TestCase):
             "libaima-fmha-ck.so",
             "libaima-fmha-q16384-hybrid.so",
             "libaotriton_v2.so.0.11.1",
+            "aima-vision-attention.hsaco",
             "product-contract.json",
             "aima-engine.service",
         ):
@@ -608,6 +618,7 @@ class NativeRuntimeContractTest(unittest.TestCase):
             "q16384_hybrid_fmha_provider",
             "aotriton_runtime",
             "aotriton_gfx1151_image",
+            "vision_attention_image",
         ):
             self.assertIn(f'--component "{component}=', package)
         product_generator = (
@@ -663,6 +674,13 @@ class NativeRuntimeContractTest(unittest.TestCase):
             "--request-timeout-ms",
             "--disable-http-shutdown",
             "--allow-insecure-remote",
+            "--allowed-local-media-path",
+            "--allowed-media-domain",
+            "--allowed-private-media-domain",
+            "--remote-tls-ca-bundle",
+            "--vision-attention-image",
+            "--disable-media-cache",
+            "--media-cache-capacity-bytes",
             "WWW-Authenticate: Bearer",
             "O_NOFOLLOW",
             "::fstat",

@@ -16,6 +16,8 @@ fi
 ROCM_ROOT="$(readlink -f "${ROCM_ROOT:-/opt/rocm}")"
 BINARY="${BINARY:-${ROOT}/build/native/aima-engine-native}"
 LAUNCHER="${LAUNCHER:-${ROOT}/build/native/aima-engine-launcher}"
+VISION_ATTENTION_IMAGE="${VISION_ATTENTION_IMAGE:-$(dirname "${BINARY}")/aima-vision-attention.hsaco}"
+VISION_ATTENTION_IMAGE_SHA256="b709a058a77d61e14db73c1ff7d7f4c20859d997bec811cad7339d3e59223d00"
 FMHA_AOTRITON_PROVIDER="${FMHA_AOTRITON_PROVIDER:-${ROOT}/build/native/libaima-fmha-aotriton.so}"
 FMHA_CK_PROVIDER="${FMHA_CK_PROVIDER:-${ROOT}/build/native/libaima-fmha-ck.so}"
 FMHA_HYBRID_PROVIDER="${FMHA_HYBRID_PROVIDER:-${ROOT}/build/native/libaima-fmha-q16384-hybrid.so}"
@@ -154,6 +156,7 @@ fi
 for artifact in "${FMHA_AOTRITON_PROVIDER}" "${FMHA_CK_PROVIDER}" \
                 "${FMHA_HYBRID_PROVIDER}" \
                 "${AOTRITON_LIBRARY}" "${AOTRITON_IMAGE}" \
+                "${VISION_ATTENTION_IMAGE}" \
                 "${AOTRITON_LICENSE}" "${AOTRITON_NOTICE}" \
                 "${FFMPEG_ROOT}/lib/libavformat.so.60" \
                 "${FFMPEG_ROOT}/lib/libavcodec.so.60" \
@@ -187,6 +190,11 @@ if [[ "$(sha256sum "${AOTRITON_IMAGE}" | awk '{print $1}')" != \
   echo "qualified AOTriton gfx1151 image SHA-256 mismatch" >&2
   exit 1
 fi
+if [[ "$(sha256sum "${VISION_ATTENTION_IMAGE}" | awk '{print $1}')" != \
+      "${VISION_ATTENTION_IMAGE_SHA256}" ]]; then
+  echo "qualified vision-attention image SHA-256 mismatch" >&2
+  exit 1
+fi
 python3 "${ROOT}/scripts/verify-native-package-inputs.py" \
   --qualification "${QUALIFICATION_RECORD}" \
   --release "${RELEASE_VERSION}" \
@@ -199,11 +207,13 @@ python3 "${ROOT}/scripts/verify-native-package-inputs.py" \
   --component "ck_fmha_provider=${FMHA_CK_PROVIDER}" \
   --component "q16384_hybrid_fmha_provider=${FMHA_HYBRID_PROVIDER}" \
   --component "aotriton_runtime=${AOTRITON_LIBRARY}" \
-  --component "aotriton_gfx1151_image=${AOTRITON_IMAGE}"
+  --component "aotriton_gfx1151_image=${AOTRITON_IMAGE}" \
+  --component "vision_attention_image=${VISION_ATTENTION_IMAGE}"
 BUNDLE_ID="$(sha256sum "${BINARY}" "${LAUNCHER}" \
   "${FMHA_AOTRITON_PROVIDER}" "${FMHA_CK_PROVIDER}" \
   "${FMHA_HYBRID_PROVIDER}" \
   "${AOTRITON_LIBRARY}" "${AOTRITON_IMAGE}" \
+  "${VISION_ATTENTION_IMAGE}" \
   "${FFMPEG_ROOT}/SHA256SUMS" \
   "${CURL_ROOT}/SHA256SUMS" \
   "${ROOT}/scripts/package-native-foundation.sh" \
@@ -247,6 +257,8 @@ install -Dm644 "${AOTRITON_LIBRARY}" \
   "${STAGING}/lib/${AOTRITON_SONAME}"
 install -Dm644 "${AOTRITON_IMAGE}" \
   "${STAGING}/lib/aotriton.images/${AOTRITON_IMAGE_RELATIVE}"
+install -Dm644 "${VISION_ATTENTION_IMAGE}" \
+  "${STAGING}/lib/aima-vision-attention.hsaco"
 for soname in libavformat.so.60 libavcodec.so.60 libavutil.so.58 \
               libswscale.so.7; do
   install -Dm755 "${FFMPEG_ROOT}/lib/${soname}" \

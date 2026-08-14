@@ -6,6 +6,7 @@
 #include "aima/native_chat_protocol.h"
 #include "aima/native_resident_engine.h"
 #include "aima/native_tokenizer.h"
+#include "aima/native_vl_request.h"
 
 #include <arpa/inet.h>
 #include <fcntl.h>
@@ -31,6 +32,7 @@
 #include <iostream>
 #include <iomanip>
 #include <limits>
+#include <optional>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -441,6 +443,9 @@ void configure_client_timeout(int fd, std::size_t milliseconds) {
 
 struct ServerOptions {
   NativeResidentEngineOptions engine;
+  NativeMediaPolicy media_policy;
+  std::uint64_t media_cache_capacity_bytes =
+      kNativeVlDefaultMediaCacheBytes;
   std::string host = "127.0.0.1";
   int port = 8000;
   std::size_t maximum_requests = 0;
@@ -488,6 +493,9 @@ ServerOptions parse_options(int argc, char** argv) {
       options.engine.secondary_fmha_layers = parse_size_list(
           next("--secondary-fmha-layers"),
           "--secondary-fmha-layers");
+    } else if (argument == "--vision-attention-image") {
+      options.engine.vision_attention_image = std::filesystem::absolute(
+          next("--vision-attention-image"));
     } else if (argument == "--host") {
       options.host = next("--host");
     } else if (argument == "--port") {
@@ -508,6 +516,30 @@ ServerOptions parse_options(int argc, char** argv) {
       options.http_shutdown = false;
     } else if (argument == "--allow-insecure-remote") {
       options.allow_insecure_remote = true;
+    } else if (argument == "--allowed-local-media-path") {
+      options.media_policy.allowed_local_roots.push_back(
+          std::filesystem::absolute(next("--allowed-local-media-path")));
+    } else if (argument == "--allowed-media-domain" ||
+               argument == "--allowed-media-domains") {
+      options.media_policy.allowed_media_domains.push_back(
+          next("--allowed-media-domain"));
+    } else if (argument == "--allowed-private-media-domain") {
+      options.media_policy.allowed_private_media_domains.push_back(
+          next("--allowed-private-media-domain"));
+    } else if (argument == "--remote-tls-ca-bundle") {
+      options.media_policy.remote_tls_ca_bundle =
+          std::filesystem::absolute(next("--remote-tls-ca-bundle"));
+    } else if (argument == "--disable-media-cache") {
+      options.media_cache_capacity_bytes = 0;
+    } else if (argument == "--media-cache-capacity-bytes") {
+      options.media_cache_capacity_bytes =
+          parse_size(next("--media-cache-capacity-bytes"),
+                     "--media-cache-capacity-bytes");
+      if (options.media_cache_capacity_bytes >
+          kNativeVlDefaultMediaCacheBytes) {
+        throw std::runtime_error(
+            "--media-cache-capacity-bytes must not exceed 4294967296");
+      }
     } else if (argument == "--cache-capacity") {
       options.engine.cache_capacity =
           parse_size(next("--cache-capacity"), "--cache-capacity");
@@ -557,7 +589,7 @@ void require_number(const Json& request, const char* field, double expected) {
 }
 
 Json request_metrics_json(const NativeResidentRequestMetrics& metrics) {
-  return {{"runtime", "native-resident-q" +
+  Json result = {{"runtime", "native-resident-q" +
                           std::to_string(metrics.prompt_tokens)},
           {"oracle_tensor_reads", metrics.oracle_tensor_reads},
           {"request_index", metrics.request_index},
@@ -581,6 +613,37 @@ Json request_metrics_json(const NativeResidentRequestMetrics& metrics) {
                      {"full_attention_launches",
                       metrics.mrope_full_attention_launches},
                      {"decode_steps", metrics.mrope_decode_steps}}},
+          {"vl", {{"enabled", metrics.vl_enabled},
+                  {"media_count", metrics.vl_media_count},
+                  {"image_count", metrics.vl_image_count},
+                  {"video_count", metrics.vl_video_count},
+                  {"source_bytes", metrics.vl_source_bytes},
+                  {"vision_patches", metrics.vl_vision_patches},
+                  {"visual_tokens", metrics.vl_visual_tokens},
+                  {"media_cache_hits", metrics.vl_media_cache_hits},
+                  {"media_cache_misses", metrics.vl_media_cache_misses},
+                  {"media_cache_entries", metrics.vl_media_cache_entries},
+                  {"media_cache_resident_bytes",
+                   metrics.vl_media_cache_resident_bytes},
+                  {"vision_plan_cache_hit",
+                   metrics.vl_vision_plan_cache_hit},
+                  {"vision_plan_cache_entries",
+                   metrics.vl_vision_plan_cache_entries},
+                  {"host_to_device_bytes",
+                   metrics.vl_host_to_device_bytes},
+                  {"media_load_decode_wall_ms",
+                   metrics.vl_media_load_decode_wall_ms},
+                  {"media_load_wall_ms",
+                   metrics.vl_media_load_wall_ms},
+                  {"media_decode_wall_ms",
+                   metrics.vl_media_decode_wall_ms},
+                  {"processor_wall_ms", metrics.vl_processor_wall_ms},
+                  {"vision_plan_build_wall_ms",
+                   metrics.vl_vision_plan_build_wall_ms},
+                  {"vision_encode_wall_ms",
+                   metrics.vl_vision_encode_wall_ms},
+                  {"embedding_injection_wall_ms",
+                   metrics.vl_embedding_injection_wall_ms}}},
           {"cold_prompt_decode_tokens", metrics.cold_prompt_decode_tokens},
           {"cold_prompt_decode_wall_ms",
            metrics.cold_prompt_decode_wall_ms},
@@ -603,11 +666,22 @@ Json request_metrics_json(const NativeResidentRequestMetrics& metrics) {
                              metrics.prefix_cache_suffix_native_launches},
                             {"suffix_wall_ms",
                              metrics.prefix_cache_suffix_wall_ms}}}};
+  if (!metrics.prompt_token_ids_sha256.empty()) {
+    result["prompt_token_ids_sha256"] = metrics.prompt_token_ids_sha256;
+  }
+  if (!metrics.output_token_ids_canonical_sha256.empty()) {
+    result["output_token_ids_canonical_sha256"] =
+        metrics.output_token_ids_canonical_sha256;
+  }
+  return result;
 }
 
 struct ParsedCompletionRequest {
   NativePreparedChat chat;
   std::vector<std::uint32_t> prompt;
+  std::string multimodal_cache_namespace;
+  std::optional<NativeMropePlan> mrope_plan;
+  std::optional<NativeResidentVlInput> vl_input;
   std::size_t max_tokens = 16;
   bool stream = false;
   bool include_usage = false;
@@ -628,7 +702,9 @@ std::size_t positive_integer_field(const Json& request, const char* field) {
 }
 
 ParsedCompletionRequest parse_completion_request(
-    NativeTokenizer& tokenizer, const Json& request) {
+    NativeTokenizer& tokenizer, const Json& request,
+    const NativeMediaPolicy& media_policy,
+    NativeVlMediaCache& media_cache, std::size_t context_capacity) {
   if (!request.is_object()) {
     throw std::invalid_argument("request body must be a JSON object");
   }
@@ -667,16 +743,47 @@ ParsedCompletionRequest parse_completion_request(
       parsed.include_usage = options["include_usage"].get<bool>();
     }
   }
+  if (request.contains("max_completion_tokens")) {
+    parsed.max_tokens =
+        positive_integer_field(request, "max_completion_tokens");
+  } else if (request.contains("max_tokens")) {
+    parsed.max_tokens = positive_integer_field(request, "max_tokens");
+  }
+  if (context_capacity == 0 || parsed.max_tokens >= context_capacity) {
+    throw std::invalid_argument(
+        "requested output leaves no room for a prompt");
+  }
   parsed.chat = prepare_native_chat(request);
   if (!parsed.chat.media.empty()) {
     if (request.contains("prompt_token_ids")) {
       throw std::invalid_argument(
           "prompt_token_ids cannot be combined with image or video content");
     }
-    // Keep serving fail-closed until the decoded tensors and ordered media
-    // embeddings are attached to NativeResidentRequestOptions.
-    throw std::invalid_argument(
-        "image and video content requires the native VL media pipeline");
+    NativeVlPreparedRequest vl = prepare_native_vl_request(
+        tokenizer, parsed.chat, media_policy, &media_cache);
+    parsed.prompt = std::move(vl.prompt_token_ids);
+    parsed.multimodal_cache_namespace =
+        std::move(vl.multimodal_cache_namespace);
+    parsed.mrope_plan = std::move(vl.mrope_plan);
+    NativeResidentVlInput resident;
+    resident.grids = std::move(vl.grids);
+    resident.pixel_values_bf16 = std::move(vl.pixel_values_bf16);
+    resident.embedding_spans = std::move(vl.embedding_spans);
+    resident.media_count = vl.metrics.media_count;
+    resident.image_count = vl.metrics.image_count;
+    resident.video_count = vl.metrics.video_count;
+    resident.source_bytes = vl.metrics.source_bytes;
+    resident.media_cache_hits = vl.metrics.media_cache_hits;
+    resident.media_cache_misses = vl.metrics.media_cache_misses;
+    resident.media_cache_entries = vl.metrics.media_cache_entries;
+    resident.media_cache_resident_bytes =
+        vl.metrics.media_cache_resident_bytes;
+    resident.media_load_wall_ms = vl.metrics.media_load_wall_ms;
+    resident.media_decode_wall_ms = vl.metrics.media_decode_wall_ms;
+    resident.media_load_decode_wall_ms =
+        vl.metrics.media_load_decode_wall_ms;
+    resident.processor_wall_ms = vl.metrics.processor_wall_ms;
+    parsed.vl_input = std::move(resident);
   }
   if (request.contains("prompt_token_ids")) {
     if (!request["prompt_token_ids"].is_array() ||
@@ -702,15 +809,9 @@ ParsedCompletionRequest parse_completion_request(
       parsed.prompt.push_back(static_cast<std::uint32_t>(token));
     }
     parsed.raw_prompt_tokens = true;
-  } else {
+  } else if (parsed.chat.media.empty()) {
     parsed.prompt = tokenizer.encode_chat(
         parsed.chat.messages, parsed.chat.prompt_tools, true);
-  }
-  if (request.contains("max_completion_tokens")) {
-    parsed.max_tokens =
-        positive_integer_field(request, "max_completion_tokens");
-  } else if (request.contains("max_tokens")) {
-    parsed.max_tokens = positive_integer_field(request, "max_tokens");
   }
   return parsed;
 }
@@ -784,6 +885,10 @@ Json chat_completion(NativeResidentEngine& engine, NativeTokenizer& tokenizer,
   const bool raw_prompt_tokens = parsed.raw_prompt_tokens;
   NativeResidentRequestOptions native_request;
   native_request.input_token_ids = std::move(parsed.prompt);
+  native_request.multimodal_cache_namespace =
+      std::move(parsed.multimodal_cache_namespace);
+  native_request.mrope_plan = std::move(parsed.mrope_plan);
+  native_request.vl_input = std::move(parsed.vl_input);
   native_request.max_new_tokens = parsed.max_tokens;
   native_request.stop_token_ids = {tokenizer.eos_token_id()};
   const NativeResidentRequestMetrics metrics = engine.run(native_request);
@@ -858,6 +963,10 @@ bool stream_chat_completion(
       parsed.chat.tool_choice == NativeToolChoiceMode::kSpecific;
   NativeResidentRequestOptions native_request;
   native_request.input_token_ids = std::move(parsed.prompt);
+  native_request.multimodal_cache_namespace =
+      std::move(parsed.multimodal_cache_namespace);
+  native_request.mrope_plan = std::move(parsed.mrope_plan);
+  native_request.vl_input = std::move(parsed.vl_input);
   native_request.max_new_tokens = parsed.max_tokens;
   native_request.stop_token_ids = {tokenizer.eos_token_id()};
   native_request.token_callback =
@@ -1024,6 +1133,7 @@ int run_native_http_server(int argc, char** argv) {
   tokenizer.load(options.engine.weights.model_dir);
   NativeResidentEngine engine;
   const NativeResidentLoadMetrics load = engine.load(options.engine);
+  NativeVlMediaCache media_cache(options.media_cache_capacity_bytes);
 
   if (::listen(server.get(), 16) != 0) {
     throw std::runtime_error("listen failed");
@@ -1078,6 +1188,17 @@ int run_native_http_server(int argc, char** argv) {
                      {"resident_prefill_buckets",
                       load.resident_prefill_buckets},
                      {"prefix_cache_entries", load.prefix_cache_entries},
+                     {"native_vl", true},
+                     {"vision_plan_cache_capacity",
+                      load.vision_plan_cache_capacity},
+                     {"allowed_local_media_roots",
+                      options.media_policy.allowed_local_roots.size()},
+                     {"allowed_media_domains",
+                      options.media_policy.allowed_media_domains.size()},
+                     {"media_cache_capacity_bytes",
+                      media_cache.capacity_bytes()},
+                     {"media_cache_capacity_entries",
+                      media_cache.capacity_entries()},
                      {"prompt_token_ids_extension", true},
                      {"runtime_python", false},
                      {"runtime_torch", false},
@@ -1134,6 +1255,16 @@ int run_native_http_server(int argc, char** argv) {
                    {"resident_prefill_buckets",
                     load.resident_prefill_buckets},
                    {"prefix_cache_entries", load.prefix_cache_entries},
+                   {"native_vl", true},
+                   {"vision_plan_cache_capacity",
+                    load.vision_plan_cache_capacity},
+                   {"media_cache_capacity_bytes",
+                    media_cache.capacity_bytes()},
+                   {"media_cache_capacity_entries",
+                    media_cache.capacity_entries()},
+                   {"media_cache_entries", media_cache.entries()},
+                   {"media_cache_resident_bytes",
+                    media_cache.resident_bytes()},
                    {"prompt_token_ids_extension", true}});
       } else if (request.method == "GET" && request.path == "/v1/models") {
         (void)send_json(client.get(), 200,
@@ -1152,7 +1283,9 @@ int run_native_http_server(int argc, char** argv) {
           body = Json::parse(request.body);
           const auto started = std::chrono::steady_clock::now();
           ParsedCompletionRequest parsed =
-              parse_completion_request(tokenizer, body);
+              parse_completion_request(tokenizer, body,
+                                       options.media_policy, media_cache,
+                                       load.cache_capacity);
           if (parsed.stream) {
             if (stream_chat_completion(client.get(), engine, tokenizer,
                                        std::move(parsed), started)) {

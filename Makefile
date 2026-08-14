@@ -45,7 +45,7 @@ check-native-syntax:
 	./build/native_video_decoder_test benchmarks/fixtures/vl-capability-v0.1.0
 	g++ -std=c++17 -O2 -I native/include tests/native_prompt_plan_test.cpp -o build/native_prompt_plan_test
 	./build/native_prompt_plan_test
-	g++ -std=c++17 -D__HIP_PLATFORM_AMD__ -DU_STATIC_IMPLEMENTATION -I /opt/rocm/include -I native/include -I native/generated $$(pkg-config --cflags libcurl) -fsyntax-only native/src/main.cpp native/src/decode_schedule_probe.cpp native/src/sha256.cpp native/src/native_tokenizer.cpp native/src/native_chat_protocol.cpp native/src/native_media.cpp native/src/native_remote_media.cpp native/src/native_multimodal_cache.cpp native/src/native_vl_processor.cpp native/src/native_vl_embedding.cpp native/src/native_mrope.cpp native/src/native_image_decoder.cpp native/src/native_video_decoder.cpp native/src/native_doctor.cpp native/src/native_http_server.cpp
+	g++ -std=c++17 -D__HIP_PLATFORM_AMD__ -DU_STATIC_IMPLEMENTATION -I /opt/rocm/include -I native/include -I native/generated $$(pkg-config --cflags libcurl) -fsyntax-only native/src/main.cpp native/src/decode_schedule_probe.cpp native/src/sha256.cpp native/src/native_tokenizer.cpp native/src/native_chat_protocol.cpp native/src/native_media.cpp native/src/native_remote_media.cpp native/src/native_multimodal_cache.cpp native/src/native_vl_processor.cpp native/src/native_vl_request.cpp native/src/native_vl_embedding.cpp native/src/native_mrope.cpp native/src/native_image_decoder.cpp native/src/native_video_decoder.cpp native/src/native_doctor.cpp native/src/native_http_server.cpp
 
 test:
 	python3 -m unittest discover -s tests -p 'test_*.py'

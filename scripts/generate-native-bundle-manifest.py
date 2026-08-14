@@ -82,6 +82,7 @@ def main() -> int:
         bundle / "lib/libaima-fmha-ck.so",
         bundle / "lib/libaima-fmha-q16384-hybrid.so",
         bundle / "lib/libaotriton_v2.so.0.11.1",
+        bundle / "lib/aima-vision-attention.hsaco",
         bundle
         / "lib/aotriton.images/amd-gfx11xx/flash/attn_fwd/"
         "FONLY__＊bf16@16_256_F_F_3_0___gfx11xx.aks2",
@@ -174,6 +175,7 @@ def main() -> int:
             "lib/libaima-fmha-q16384-hybrid.so",
             "lib/libaotriton_v2.so.0.11.1",
             "one shape-selected gfx1151 AOTriton code object",
+            "one hash-locked gfx1151 vision-attention code object",
         ],
         "statically_linked_components": ["ICU 74.2"],
         "bundled_system_userspace": [

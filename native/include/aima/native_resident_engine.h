@@ -5,6 +5,8 @@
 
 #include "aima/native_layer_oracle.h"
 #include "aima/native_mrope.h"
+#include "aima/native_vl_embedding.h"
+#include "aima/native_vl_processor.h"
 #include "aima/native_weight_store.h"
 
 #include <cstddef>
@@ -30,6 +32,9 @@ struct NativeResidentEngineOptions {
   // correctness-sensitive layers to use a different qualified backend.
   std::filesystem::path secondary_fmha_provider;
   std::vector<std::size_t> secondary_fmha_layers;
+  // Optional hash-locked native vision-attention code object. Empty resolves
+  // the artifact shipped beside the executable (or in the bundle lib dir).
+  std::filesystem::path vision_attention_image;
   // Preferred AOT prefill schedule selected for this resident process.  This
   // is not a mandatory request length; variable prompts fall back to the
   // resident token path around the specialized prefix.
@@ -65,6 +70,8 @@ struct NativeResidentLoadMetrics {
   std::uint64_t vl_logical_projection_weight_bytes = 0;
   std::uint64_t vl_logical_projection_output_scratch_bytes = 0;
   bool vl_logical_projection_weights_loaded = false;
+  std::uint64_t vl_prompt_index_state_bytes = 0;
+  std::size_t vision_plan_cache_capacity = 0;
   std::uint64_t decode_workspace_bytes = 0;
   std::uint64_t attention_state_bytes = 0;
   std::uint64_t exact_prefix_cache_bytes = 0;
@@ -91,6 +98,25 @@ struct NativeResidentLoadMetrics {
   double command_to_ready_wall_ms = 0.0;
 };
 
+struct NativeResidentVlInput {
+  std::vector<NativeVlGrid> grids;
+  // Contiguous processor BF16 bits in [sum(patches),1536] order.
+  std::vector<std::uint16_t> pixel_values_bf16;
+  std::vector<NativeVlEmbeddingSpan> embedding_spans;
+  std::size_t media_count = 0;
+  std::size_t image_count = 0;
+  std::size_t video_count = 0;
+  std::uint64_t source_bytes = 0;
+  std::size_t media_cache_hits = 0;
+  std::size_t media_cache_misses = 0;
+  std::size_t media_cache_entries = 0;
+  std::uint64_t media_cache_resident_bytes = 0;
+  double media_load_wall_ms = 0.0;
+  double media_decode_wall_ms = 0.0;
+  double media_load_decode_wall_ms = 0.0;
+  double processor_wall_ms = 0.0;
+};
+
 struct NativeResidentRequestOptions {
   std::vector<std::uint32_t> input_token_ids;
   // Empty for text-only requests. Native VL supplies a versioned digest of
@@ -101,6 +127,10 @@ struct NativeResidentRequestOptions {
   // request copies them into process-resident device storage; no request-time
   // device allocation is performed. Empty preserves the scalar text path.
   std::optional<NativeMropePlan> mrope_plan;
+  // Empty keeps the text-only embedding path allocation-free. A populated
+  // request is already decoded/processed on the host and is encoded by the
+  // resident visual tower before prompt embeddings enter layer 0.
+  std::optional<NativeResidentVlInput> vl_input;
   std::size_t max_new_tokens = 1;
   std::vector<std::uint32_t> stop_token_ids;
   // Invoked synchronously as soon as each generated token is available.
@@ -128,7 +158,9 @@ struct NativeResidentRequestMetrics {
   std::size_t prompt_tokens = 0;
   std::size_t completion_tokens = 0;
   std::vector<std::uint32_t> output_token_ids;
+  std::string prompt_token_ids_sha256;
   std::string output_token_ids_sha256;
+  std::string output_token_ids_canonical_sha256;
   bool stopped = false;
   bool client_cancelled = false;
   std::uint32_t stop_token_id = 0;
@@ -146,6 +178,27 @@ struct NativeResidentRequestMetrics {
   std::uint64_t vl_logical_projection_workspace_bytes = 0;
   double vl_logical_projection_plan_build_wall_ms = 0.0;
   bool vl_logical_projection_plan_reused = false;
+  bool vl_enabled = false;
+  std::size_t vl_media_count = 0;
+  std::size_t vl_image_count = 0;
+  std::size_t vl_video_count = 0;
+  std::uint64_t vl_source_bytes = 0;
+  std::size_t vl_vision_patches = 0;
+  std::size_t vl_visual_tokens = 0;
+  std::size_t vl_media_cache_hits = 0;
+  std::size_t vl_media_cache_misses = 0;
+  std::size_t vl_media_cache_entries = 0;
+  std::uint64_t vl_media_cache_resident_bytes = 0;
+  bool vl_vision_plan_cache_hit = false;
+  std::size_t vl_vision_plan_cache_entries = 0;
+  std::uint64_t vl_host_to_device_bytes = 0;
+  double vl_media_load_wall_ms = 0.0;
+  double vl_media_decode_wall_ms = 0.0;
+  double vl_media_load_decode_wall_ms = 0.0;
+  double vl_processor_wall_ms = 0.0;
+  double vl_vision_plan_build_wall_ms = 0.0;
+  double vl_vision_encode_wall_ms = 0.0;
+  double vl_embedding_injection_wall_ms = 0.0;
   std::size_t decode_tokens_executed = 0;
   std::size_t decode_aot_launches = 0;
   std::size_t decode_native_launches = 0;

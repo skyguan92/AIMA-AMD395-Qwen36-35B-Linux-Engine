@@ -133,8 +133,10 @@ Authorization: Bearer YOUR_API_KEY
 Supported request fields:
 
 - `model`: if present, must be `aima-amd395-qwen36-35b`;
-- `messages`: text-only `system`, `developer`, `user`, `assistant` and `tool`
-  history; assistant `tool_calls` and matching tool responses are accepted;
+- `messages`: `system`, `developer`, `user`, `assistant` and `tool` history;
+  user messages may contain ordered OpenAI `text`, `image_url` and
+  `video_url` content parts; assistant `tool_calls` and matching tool
+  responses are accepted;
 - `max_tokens` or `max_completion_tokens`: positive integer;
 - `temperature`: exactly `0`;
 - `top_p`: exactly `1`;
@@ -148,15 +150,31 @@ Supported request fields:
 Not supported:
 
 - custom stop values;
-- image, audio or video message parts;
+- audio message parts;
 - deprecated `functions` or structured response formats;
 - stochastic sampling;
 - batching or concurrent execution.
 
-The server applies the model's qualified Qwen tool/chat template with thinking
-disabled. Its native renderer is byte-for-byte and token-for-token checked
-against the checkpoint template for plain, tool and assistant/tool-history
-fixtures.
+The server applies the model's qualified Qwen tool/chat template. Thinking is
+disabled for the frozen text product path and retained for VL requests to
+match the frozen multimodal processor oracle. Its native renderer is
+byte-for-byte and token-for-token checked against the checkpoint template for
+plain, tool, assistant/tool-history and multimodal fixtures.
+
+Media admission is fail-closed. `data:` URIs are bounded by media type. Local
+`file:` URLs require one or more `--allowed-local-media-path` roots and are
+opened descriptor-relative without following symlinks. HTTP/HTTPS URLs require
+exact `--allowed-media-domain` entries; private-address resolution additionally
+requires `--allowed-private-media-domain`. A custom trust store can be supplied
+with `--remote-tls-ca-bundle`. Redirect, byte, decode, frame, dimension and
+deadline limits apply before tensors reach the visual encoder.
+
+Decoded processor results use a 4 GiB, 64-entry content-addressed LRU by
+default. `--media-cache-capacity-bytes` can reduce the byte bound and
+`--disable-media-cache` provides the cold-cache performance surface. The key
+binds source-byte SHA-256, media kind and the fixed processor identity, so a
+changed object behind the same URL or pathname misses while equivalent local
+and data-URI bytes may hit.
 
 After tokenization:
 
@@ -244,6 +262,11 @@ is not exposed as a valid call. A terminal EOS token counts in
 - logical AOT-prefill tokens, scheduled bucket tokens, segment count and
   padding tokens;
 - output-token SHA-256;
+- for VL requests, canonical prompt/output token-array SHA-256 values matching
+  the frozen oracle serialization;
+- VL media/image/video counts, patch and visual-token counts, M-RoPE delta,
+  media/plan cache state, transfer bytes and per-stage media/decode/processor/
+  vision/injection timings;
 - prefix lookup type, matched/suffix token counts, cumulative hits/misses,
   state-transfer bytes, suffix launch counts and suffix wall time.
 

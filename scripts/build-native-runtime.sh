@@ -40,6 +40,8 @@ case ":${AOT_MANIFESTS}:" in
   *":${VL_UNIFIED_ATTENTION_MANIFEST}:"*) ;;
   *) AOT_MANIFESTS="${AOT_MANIFESTS}:${VL_UNIFIED_ATTENTION_MANIFEST}" ;;
 esac
+VISION_ATTENTION_IMAGE="${ROOT}/native/aot/gfx1151/vision-attention-v0.1.0/kernels/e45a4026e641c9f8-_fwd_kernel.hsaco"
+VISION_ATTENTION_IMAGE_SHA256="b709a058a77d61e14db73c1ff7d7f4c20859d997bec811cad7339d3e59223d00"
 AOT_REGISTRY_CPP="${OUT_DIR}/aot_registry.cpp"
 AOT_OBJECT_PLAN="${OUT_DIR}/aot_objects.tsv"
 DECODE_SCHEDULE="${DECODE_SCHEDULE:-${ROOT}/native/aot/gfx1151/q8192-output2/decode-schedule.json}"
@@ -96,7 +98,20 @@ fi
 
 python3 "${ROOT}/scripts/generate-native-layout.py" --check
 python3 "${ROOT}/scripts/generate-native-visual-layout.py" --check
+if [[ ! -f "${VISION_ATTENTION_IMAGE}" ]]; then
+  echo "qualified vision-attention image is missing or changed" >&2
+  exit 1
+fi
+VISION_ATTENTION_ACTUAL_SHA256="$(
+  sha256sum "${VISION_ATTENTION_IMAGE}" | awk '{print $1}'
+)"
+if [[ "${VISION_ATTENTION_ACTUAL_SHA256}" != "${VISION_ATTENTION_IMAGE_SHA256}" ]]; then
+  echo "qualified vision-attention image is missing or changed" >&2
+  exit 1
+fi
 mkdir -p "${OUT_DIR}"
+install -m 0644 "${VISION_ATTENTION_IMAGE}" \
+  "${OUT_DIR}/aima-vision-attention.hsaco"
 IFS=: read -r -a AOT_MANIFEST_PATHS <<< "${AOT_MANIFESTS}"
 AOT_MANIFEST_ARGS=()
 for manifest in "${AOT_MANIFEST_PATHS[@]}"; do
@@ -175,12 +190,19 @@ done < "${AOT_OBJECT_PLAN}"
   "${ROOT}/native/src/native_remote_media.cpp" \
   "${ROOT}/native/src/native_multimodal_cache.cpp" \
   "${ROOT}/native/src/native_vl_processor.cpp" \
+  "${ROOT}/native/src/native_vl_request.cpp" \
   "${ROOT}/native/src/native_vl_embedding.cpp" \
   "${ROOT}/native/src/native_vl_embedding.hip.cpp" \
   "${ROOT}/native/src/native_mrope.cpp" \
   "${ROOT}/native/src/native_image_decoder.cpp" \
   "${ROOT}/native/src/native_video_decoder.cpp" \
   "${ROOT}/native/src/native_vision_encoder.hip.cpp" \
+  "${ROOT}/native/src/native_vision_exact_layer_norm.hip.cpp" \
+  "${ROOT}/native/src/native_vision_aot_attention.hip.cpp" \
+  "${ROOT}/native/src/native_vision_aot_block.hip.cpp" \
+  "${ROOT}/native/src/native_vision_aot_block_stack.hip.cpp" \
+  "${ROOT}/native/src/native_vision_merger.hip.cpp" \
+  "${ROOT}/native/src/native_vision_pipeline.hip.cpp" \
   "${ROOT}/native/src/native_vision_block.hip.cpp" \
   "${ROOT}/native/src/native_vision_block_prefix.hip.cpp" \
   "${ROOT}/native/src/native_vision_block_suffix.hip.cpp" \

@@ -4,7 +4,7 @@
 >
 > Frozen text baseline: `v1.5.1` (`6f3e669`)
 >
-> Current phase: Phase 1 — native VL compute and language integration
+> Current phase: Phase 2 — resident serving and product qualification
 
 This file is a live requirement-to-evidence index. A status of `in progress`
 or `implemented` is not a release claim. Only evidence that satisfies every
@@ -14,11 +14,11 @@ blocking condition in the governing goal can move a gate to `passed`.
 
 | Gate | Current state | Evidence required to pass | Next blocking action |
 |---|---|---|---|
-| G1 full VL functional parity | ordered chat media parts, bounded local/data/HTTP/HTTPS admission, image/video processors, resident visual weights, the complete pixel-to-visual-embedding path, media embedding injection, M-RoPE planning, layer 0 and isolated layer-3 M-RoPE table/Q/K consumption are implemented; resident position wiring, complete layer 3, the remaining language stack and serving remain incomplete | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | bind the exact three-axis positions in the resident q1024 layer-3 path, then compose the complete language and serving path |
-| G2 VL correctness parity | reference processor/boundary/logits/generation oracles frozen; the visual tower, injected embeddings, positions/delta, q1024 layer 0 and isolated layer-3 table/head-RMSNorm/rotary Q/K are exact on all five blocking shapes | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | compose layers 0 through 3 and qualify complete layer-3 attention/MoE, then final norm, lm_head and full-vocabulary logits |
+| G1 full VL functional parity | the native HTTP process now composes ordered media admission, processor, complete visual tower, injection, M-RoPE and all 40 language layers for image/video/multi-image/multi-video/mixed requests; full conversation/tools/stream/transport/error and boundary conformance remains open | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | run the frozen 30-case API capability matrix and extend it through boundary/media-reuse cases |
+| G2 VL correctness parity | all five processor-to-logits boundaries were qualified independently; an exploratory resident HTTP run now matches all five frozen prompt lengths and 8-token greedy outputs exactly, but clean hash-bound serving evidence and task/error suites remain open | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | run `qualify-native-vl-serving.py` from a clean exact-commit build, then add task-quality and error-parity evidence |
 | G3 text product no regression | frozen baseline identified; the shared pointwise source changed, while exact-commit layer-0 requalification retained every prior output hash and numerical metric; the complete paired release matrix has not run | paired 19-cell, maximum-window, correctness, MMLU, API, cache, startup and memory requalification | retain `v1.5.1` as an immutable paired binary and run the complete paired matrix after language integration stabilizes |
 | G4 native VL performance | not started | paired per-cell stage timings and memory records against the fixed VL-enabled vLLM | generate matrix cells from the capability manifest |
-| G5 native release product | an exact-commit full runtime build and its 59-image AOT closure compile and probe successfully without Python inference dependencies; portable packaging and release qualification have not run | native-only package, security, isolated bundle, second-host, soak and rollback evidence | keep Python tooling qualification-only and qualify the final portable product only after the complete VL path exists |
+| G5 native release product | the full runtime now includes all qualified vision sources and loads the 333 visual tensors in the same resident process; the external vision-attention code object is hash-checked and wired into the portable package contract, but final package qualification has not run | native-only package, security, isolated bundle, second-host, soak and rollback evidence | generate a clean product qualification containing the vision code object, then run isolated bundle, second-host, soak and rollback gates |
 
 ## Phase 0 invariants
 
@@ -527,3 +527,48 @@ text qualification and G4 serving performance also remain blocking.
 `native_media_test` and `native_chat_protocol_test` both compile with strict
 warnings and pass on `amd395`. This is implementation progress, not G1 or G2
 acceptance evidence.
+
+The resident serving boundary is now implemented. A host request object loads
+and processes every ordered media part, expands placeholders at token-segment
+boundaries, derives injection spans, builds the exact M-RoPE plan and seals the
+multimodal prefix identity. Segment-preserving expansion matters for video:
+encoding one concatenated string merges the user's terminal `.` with the
+leading timestamp `<`, while the fixed vLLM processor retains separate tokens.
+The native path now reproduces the frozen prompt-token vectors instead of only
+their lengths.
+
+Inside the already resident engine, the request selects a bounded four-entry
+LRU of shape-specific visual plans, uploads processor BF16 pixels, executes the
+qualified patch-to-merger pipeline, scatters the resulting 2048-wide visual
+rows into the normal prompt embedding store and continues through the existing
+40-layer language fast path and lm_head. The same M-RoPE positions are uploaded
+for prefill and their delta drives decode continuation. Text-only requests do
+not enter media processing, visual planning, pixel upload or embedding scatter.
+
+An exploratory dirty-source target build served the five frozen numerical
+cases through real `/v1/chat/completions` requests in one process. Image,
+video, multi-image, multi-video and mixed image/video each matched the frozen
+prompt-token count, canonical prompt identity, 8-token greedy output and text
+SHA-256. This run found and corrected the video token-boundary issue above. It
+is not clean exact-commit evidence and therefore does not advance G1 or G2.
+The new `scripts/qualify-native-vl-serving.py` converts this check into a
+fail-closed exact-commit qualification and also covers cache semantics.
+
+Processor results now use a 4 GiB/64-entry content-addressed LRU owned by the
+resident server. Every request still loads and hashes current source bytes;
+only matching processor identity, media kind and content digest can reuse the
+decoded grid and BF16 pixels. A target A/B/A probe changed bytes behind one
+pathname, restored A at that pathname, then supplied identical A through a
+data URI. It confirmed conservative B miss, A recovery, transport-equivalent
+hit, zero decode/processor work on hits and unchanged output. An exact prefix
+hit additionally skipped vision execution and pixel upload, while a changed
+text prompt reused only the safe media and shape plans and re-executed
+vision/language normally.
+
+The runtime build installs the fixed vision-attention code object beside the
+build binary and verifies its SHA-256 before model load. The portable package
+contract now requires the same artifact as an independently qualified
+component, installs it under `lib/`, includes it in the deterministic bundle
+identity and fails manifest generation if it is missing. A final clean product
+record, archive build and isolated qualification are still required; G5
+remains false.

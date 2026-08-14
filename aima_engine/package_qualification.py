@@ -16,6 +16,7 @@ REQUIRED_COMPONENTS = (
     "q16384_hybrid_fmha_provider",
     "aotriton_runtime",
     "aotriton_gfx1151_image",
+    "vision_attention_image",
 )
 
 

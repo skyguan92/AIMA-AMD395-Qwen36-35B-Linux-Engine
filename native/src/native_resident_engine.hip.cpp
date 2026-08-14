@@ -23,6 +23,8 @@
 #include "aima/native_vl_unified_attention.h"
 #include "aima/native_vl_logical_projections.h"
 #include "aima/sha256.h"
+#include "aima/native_vision_pipeline.h"
+#include "aima/native_vl_embedding.h"
 
 #include <hip/hip_runtime.h>
 
@@ -33,10 +35,12 @@
 #include <cstring>
 #include <iomanip>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 #include <string>
 #include <sstream>
 #include <utility>
+#include <vector>
 
 namespace aima {
 namespace {
@@ -45,6 +49,12 @@ constexpr std::size_t kHidden = 2048;
 constexpr std::size_t kVocabulary = 248320;
 constexpr std::size_t kLongContextChunkTokens = 8192;
 constexpr std::size_t kPrefixCacheEntries = 4;
+constexpr std::size_t kVisionPlanCacheEntries = 4;
+constexpr std::size_t kVisionPixelColumns = 1536;
+constexpr char kVisionAttentionImageFilename[] =
+    "aima-vision-attention.hsaco";
+constexpr char kVisionAttentionImageSha256[] =
+    "b709a058a77d61e14db73c1ff7d7f4c20859d997bec811cad7339d3e59223d00";
 
 bool admitted_long_context(std::size_t context_tokens) {
   if (context_tokens <= 32768 || context_tokens > 262143) return false;
@@ -312,6 +322,25 @@ struct NativeResidentPrefillOwner {
   std::size_t start_sequence = 0;
 };
 
+struct NativeResidentVisionPlanEntry {
+  std::vector<NativeVlGrid> grids;
+  std::unique_ptr<NativeVisionPipelinePlan> pipeline;
+  std::uint64_t use = 0;
+};
+
+bool same_vision_grids(const std::vector<NativeVlGrid>& left,
+                       const std::vector<NativeVlGrid>& right) {
+  if (left.size() != right.size()) return false;
+  for (std::size_t index = 0; index < left.size(); ++index) {
+    if (left[index].temporal != right[index].temporal ||
+        left[index].height != right[index].height ||
+        left[index].width != right[index].width) {
+      return false;
+    }
+  }
+  return true;
+}
+
 struct NativeResidentEngine::Impl {
   NativeWeightStore weights;
   NativeDerivedWeightStore derived;
@@ -351,6 +380,19 @@ struct NativeResidentEngine::Impl {
   void* mrope_positions = nullptr;
   std::uint64_t mrope_position_state_bytes = 0;
   std::size_t mrope_position_row_stride = 0;
+  void* vl_prompt_index_state = nullptr;
+  std::uint64_t vl_prompt_index_state_bytes = 0;
+  void* vl_prompt_token_ids = nullptr;
+  void* vl_scatter_indices = nullptr;
+  void* vision_pixel_values = nullptr;
+  std::uint64_t vision_pixel_capacity_bytes = 0;
+  void* vision_embeddings = nullptr;
+  std::uint64_t vision_embedding_capacity_bytes = 0;
+  void* vision_temporary = nullptr;
+  std::uint64_t vision_temporary_capacity_bytes = 0;
+  std::vector<NativeResidentVisionPlanEntry> vision_plans;
+  std::uint64_t vision_plan_clock = 0;
+  std::filesystem::path vision_attention_image;
   std::size_t prefill_start_sequence = 0;
   std::size_t tail_prefill_start_sequence = 0;
   std::vector<std::size_t> resident_prefill_buckets;
@@ -388,6 +430,62 @@ struct NativeResidentEngine::Impl {
         "native resident prefill bucket owner is unavailable");
   }
 
+  void ensure_vision_allocation(void** pointer, std::uint64_t* capacity,
+                                std::uint64_t required,
+                                const char* operation) {
+    if (required == 0 || pointer == nullptr || capacity == nullptr) {
+      throw std::invalid_argument(
+          "native resident vision allocation request is invalid");
+    }
+    if (*pointer != nullptr && *capacity >= required) return;
+    void* replacement = nullptr;
+    check_hip(hipMalloc(&replacement, required), operation);
+    if (*pointer != nullptr) {
+      const hipError_t released = hipFree(*pointer);
+      if (released != hipSuccess) {
+        (void)hipFree(replacement);
+        check_hip(released, "hipFree replaced native vision allocation");
+      }
+    }
+    *pointer = replacement;
+    *capacity = required;
+  }
+
+  NativeVisionPipelinePlan& vision_plan(
+      const std::vector<NativeVlGrid>& grids, bool* cache_hit,
+      double* build_wall_ms) {
+    if (cache_hit == nullptr || build_wall_ms == nullptr || grids.empty()) {
+      throw std::invalid_argument(
+          "native resident vision plan lookup is invalid");
+    }
+    for (NativeResidentVisionPlanEntry& entry : vision_plans) {
+      if (!same_vision_grids(entry.grids, grids)) continue;
+      entry.use = ++vision_plan_clock;
+      *cache_hit = true;
+      *build_wall_ms = 0.0;
+      return *entry.pipeline;
+    }
+    const auto started = std::chrono::steady_clock::now();
+    auto pipeline = std::make_unique<NativeVisionPipelinePlan>(
+        weights, vision_attention_image, grids);
+    *build_wall_ms = elapsed_ms(started);
+    *cache_hit = false;
+    NativeResidentVisionPlanEntry candidate{
+        grids, std::move(pipeline), ++vision_plan_clock};
+    if (vision_plans.size() < kVisionPlanCacheEntries) {
+      vision_plans.push_back(std::move(candidate));
+      return *vision_plans.back().pipeline;
+    }
+    auto oldest = std::min_element(
+        vision_plans.begin(), vision_plans.end(),
+        [](const NativeResidentVisionPlanEntry& left,
+           const NativeResidentVisionPlanEntry& right) {
+          return left.use < right.use;
+        });
+    *oldest = std::move(candidate);
+    return *oldest->pipeline;
+  }
+
   ~Impl() {
     if (chunked_hidden != nullptr) {
       (void)hipSetDevice(device);
@@ -400,6 +498,22 @@ struct NativeResidentEngine::Impl {
     if (mrope_positions != nullptr) {
       (void)hipSetDevice(device);
       (void)hipFree(mrope_positions);
+    }
+    if (vl_prompt_index_state != nullptr) {
+      (void)hipSetDevice(device);
+      (void)hipFree(vl_prompt_index_state);
+    }
+    if (vision_pixel_values != nullptr) {
+      (void)hipSetDevice(device);
+      (void)hipFree(vision_pixel_values);
+    }
+    if (vision_embeddings != nullptr) {
+      (void)hipSetDevice(device);
+      (void)hipFree(vision_embeddings);
+    }
+    if (vision_temporary != nullptr) {
+      (void)hipSetDevice(device);
+      (void)hipFree(vision_temporary);
     }
   }
 };
@@ -457,6 +571,15 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
     impl_->secondary_fmha_layers[layer] = true;
   }
   const auto started = std::chrono::steady_clock::now();
+  impl_->vision_attention_image =
+      options.vision_attention_image.empty()
+          ? native_library_path(kVisionAttentionImageFilename)
+          : std::filesystem::absolute(options.vision_attention_image);
+  if (sha256_file(impl_->vision_attention_image) !=
+      kVisionAttentionImageSha256) {
+    throw std::runtime_error(
+        "native resident vision attention image is missing or changed");
+  }
   impl_->device = options.weights.device;
   impl_->prompt_tokens = options.prompt_tokens;
   impl_->prefill_tokens = impl_->prompt_tokens > 32768
@@ -488,6 +611,12 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
   impl_->mrope_position_row_stride = options.cache_capacity;
   impl_->mrope_position_state_bytes =
       3ULL * options.cache_capacity * sizeof(std::int64_t);
+  const std::uint64_t vl_prompt_token_id_bytes =
+      options.cache_capacity * sizeof(std::uint32_t);
+  const std::uint64_t vl_scatter_index_bytes =
+      2ULL * kNativeVlAggregateTokenLimit * sizeof(std::uint32_t);
+  impl_->vl_prompt_index_state_bytes =
+      vl_prompt_token_id_bytes + vl_scatter_index_bytes;
   check_hip(hipSetDevice(impl_->device),
             "hipSetDevice composed prefill state");
   check_hip(hipMalloc(&impl_->chunked_hidden,
@@ -499,6 +628,13 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
   check_hip(hipMalloc(&impl_->mrope_positions,
                       impl_->mrope_position_state_bytes),
             "hipMalloc resident M-RoPE positions");
+  check_hip(hipMalloc(&impl_->vl_prompt_index_state,
+                      impl_->vl_prompt_index_state_bytes),
+            "hipMalloc resident VL prompt/index state");
+  impl_->vl_prompt_token_ids = impl_->vl_prompt_index_state;
+  impl_->vl_scatter_indices =
+      static_cast<unsigned char*>(impl_->vl_prompt_index_state) +
+      vl_prompt_token_id_bytes;
   impl_->prefill_gemm_plans =
       std::make_unique<NativeQ8192PrefillGemmPlans>(impl_->prefill_tokens);
   if (impl_->tail_prefill_tokens != 0) {
@@ -723,6 +859,10 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
       vl_logical_load_metrics.output_scratch_bytes;
   impl_->metrics.vl_logical_projection_weights_loaded =
       vl_logical_load_metrics.loaded;
+  impl_->metrics.vl_prompt_index_state_bytes =
+      impl_->vl_prompt_index_state_bytes;
+  impl_->metrics.vision_plan_cache_capacity =
+      kVisionPlanCacheEntries;
   impl_->metrics.decode_workspace_bytes =
       decode_workspace_metrics.allocation_bytes;
   impl_->metrics.attention_state_bytes = attention_metrics.allocation_bytes;
@@ -809,6 +949,56 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
       }
     }
   }
+  const NativeResidentVlInput* vl_input =
+      request.vl_input.has_value() ? &request.vl_input.value() : nullptr;
+  std::optional<NativeVlEmbeddingPlan> vl_embedding_plan;
+  std::size_t vl_vision_patches = 0;
+  std::size_t vl_visual_tokens = 0;
+  if (vl_input != nullptr) {
+    if (mrope_plan == nullptr || request.multimodal_cache_namespace.empty() ||
+        vl_input->grids.empty() ||
+        vl_input->grids.size() != vl_input->embedding_spans.size() ||
+        vl_input->media_count != vl_input->grids.size() ||
+        vl_input->image_count + vl_input->video_count !=
+            vl_input->media_count) {
+      throw std::invalid_argument(
+          "native resident VL request contract is incomplete");
+    }
+    std::size_t derived_images = 0;
+    std::size_t derived_videos = 0;
+    for (std::size_t index = 0; index < vl_input->grids.size(); ++index) {
+      const NativeVlGrid& grid = vl_input->grids[index];
+      const NativeVlEmbeddingSpan& span = vl_input->embedding_spans[index];
+      const std::size_t patches = grid.patch_count();
+      const std::size_t visual_tokens = grid.language_token_count();
+      if (patches > 4 * kNativeVlAggregateTokenLimit - vl_vision_patches ||
+          visual_tokens >
+              kNativeVlAggregateTokenLimit - vl_visual_tokens ||
+          span.visual_embedding_count != visual_tokens) {
+        throw std::invalid_argument(
+            "native resident VL grid/span budget is invalid");
+      }
+      vl_vision_patches += patches;
+      vl_visual_tokens += visual_tokens;
+      if (span.kind == NativeMediaKind::kImage) {
+        ++derived_images;
+      } else {
+        ++derived_videos;
+      }
+    }
+    if (derived_images != vl_input->image_count ||
+        derived_videos != vl_input->video_count ||
+        vl_vision_patches >
+            std::numeric_limits<std::size_t>::max() / kVisionPixelColumns ||
+        vl_input->pixel_values_bf16.size() !=
+            vl_vision_patches * kVisionPixelColumns) {
+      throw std::invalid_argument(
+          "native resident VL pixel/media shape is invalid");
+    }
+    vl_embedding_plan = build_native_vl_embedding_plan(
+        request.input_token_ids, vl_input->embedding_spans,
+        vl_visual_tokens);
+  }
   std::size_t matched_prefix_tokens = 0;
   std::size_t matched_prefix_cache_index = impl_->prefix_cache_entries;
   if (!request.disable_prefix_cache) {
@@ -871,6 +1061,20 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
   NativeResidentRequestMetrics metrics;
   metrics.request_index = ++impl_->request_count;
   metrics.prompt_tokens = request.input_token_ids.size();
+  if (vl_input != nullptr) {
+    std::ostringstream prompt_token_payload;
+    prompt_token_payload << '[';
+    for (std::size_t index = 0; index < request.input_token_ids.size();
+         ++index) {
+      if (index != 0) prompt_token_payload << ',';
+      prompt_token_payload << request.input_token_ids[index];
+    }
+    prompt_token_payload << ']';
+    const std::string prompt_token_payload_value =
+        prompt_token_payload.str();
+    metrics.prompt_token_ids_sha256 = sha256_bytes(
+        prompt_token_payload_value.data(), prompt_token_payload_value.size());
+  }
   metrics.model_loads = 1;
   metrics.oracle_tensor_reads = 0;
   metrics.state_orientation_resets =
@@ -888,6 +1092,26 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
   metrics.padded_prefill_tokens =
       prompt_plan.aot_bucket_tokens - prompt_plan.cold_aot_tokens;
   metrics.mrope_enabled = mrope_plan != nullptr;
+  metrics.vl_enabled = vl_input != nullptr;
+  if (vl_input != nullptr) {
+    metrics.vl_media_count = vl_input->media_count;
+    metrics.vl_image_count = vl_input->image_count;
+    metrics.vl_video_count = vl_input->video_count;
+    metrics.vl_source_bytes = vl_input->source_bytes;
+    metrics.vl_vision_patches = vl_vision_patches;
+    metrics.vl_visual_tokens = vl_visual_tokens;
+    metrics.vl_media_cache_hits = vl_input->media_cache_hits;
+    metrics.vl_media_cache_misses = vl_input->media_cache_misses;
+    metrics.vl_media_cache_entries = vl_input->media_cache_entries;
+    metrics.vl_media_cache_resident_bytes =
+        vl_input->media_cache_resident_bytes;
+    metrics.vl_media_load_wall_ms = vl_input->media_load_wall_ms;
+    metrics.vl_media_decode_wall_ms = vl_input->media_decode_wall_ms;
+    metrics.vl_media_load_decode_wall_ms =
+        vl_input->media_load_decode_wall_ms;
+    metrics.vl_processor_wall_ms = vl_input->processor_wall_ms;
+    metrics.vl_vision_plan_cache_entries = impl_->vision_plans.size();
+  }
   if (mrope_plan != nullptr) {
     metrics.mrope_position_delta = mrope_plan->position_delta();
   }
@@ -1011,27 +1235,109 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
                 "hipDeviceSynchronize before prefill timeline");
     }
     const auto embedding_started = std::chrono::steady_clock::now();
-    for (const NativePromptAotSegment& segment : prompt_plan.aot_segments) {
-      const NativeResidentPrefillOwner owner =
-          impl_->prefill_owner(segment.bucket_tokens);
-      const NativePrefillWorkspaceView* token_ids =
-          owner.workspace->find("native.prompt_token_ids");
-      if (token_ids == nullptr || token_ids->device_pointer == nullptr) {
+    if (vl_input != nullptr && !prefix_hit) {
+      if (!vl_embedding_plan.has_value() ||
+          matched_prefix_tokens != 0 ||
+          impl_->vl_prompt_token_ids == nullptr ||
+          impl_->vl_scatter_indices == nullptr) {
         throw std::runtime_error(
-            "native resident composed-prefill token owner is missing");
+            "native resident VL embedding owner is incomplete");
       }
-      const std::size_t hidden_offset =
-          segment.input_offset - matched_prefix_tokens;
+      bool vision_plan_cache_hit = false;
+      double vision_plan_build_wall_ms = 0.0;
+      NativeVisionPipelinePlan& pipeline = impl_->vision_plan(
+          vl_input->grids, &vision_plan_cache_hit,
+          &vision_plan_build_wall_ms);
+      if (pipeline.patch_count() != vl_vision_patches ||
+          pipeline.merged_token_count() != vl_visual_tokens) {
+        throw std::runtime_error(
+            "native resident vision plan shape is inconsistent");
+      }
+      const std::uint64_t pixel_bytes =
+          vl_input->pixel_values_bf16.size() * sizeof(std::uint16_t);
+      const std::uint64_t embedding_bytes =
+          vl_visual_tokens * kHidden * sizeof(std::uint16_t);
+      impl_->ensure_vision_allocation(
+          &impl_->vision_pixel_values,
+          &impl_->vision_pixel_capacity_bytes, pixel_bytes,
+          "hipMalloc resident vision pixel input");
+      impl_->ensure_vision_allocation(
+          &impl_->vision_embeddings,
+          &impl_->vision_embedding_capacity_bytes, embedding_bytes,
+          "hipMalloc resident vision embeddings");
+      impl_->ensure_vision_allocation(
+          &impl_->vision_temporary,
+          &impl_->vision_temporary_capacity_bytes,
+          pipeline.temporary_bytes(),
+          "hipMalloc resident vision temporary arena");
+      metrics.vl_vision_plan_cache_hit = vision_plan_cache_hit;
+      metrics.vl_vision_plan_build_wall_ms =
+          vision_plan_build_wall_ms;
+      metrics.vl_vision_plan_cache_entries = impl_->vision_plans.size();
+      check_hip(
+          hipMemcpyAsync(impl_->vision_pixel_values,
+                         vl_input->pixel_values_bf16.data(), pixel_bytes,
+                         hipMemcpyHostToDevice, nullptr),
+          "hipMemcpyAsync resident vision pixels");
+      const auto vision_started = std::chrono::steady_clock::now();
+      pipeline.launch(impl_->vision_pixel_values,
+                      impl_->vision_embeddings,
+                      impl_->vision_temporary,
+                      impl_->vision_temporary_capacity_bytes);
+      check_hip(hipDeviceSynchronize(),
+                "hipDeviceSynchronize resident vision pipeline");
+      metrics.vl_vision_encode_wall_ms = elapsed_ms(vision_started);
+
+      const NativePromptAotSegment& first_segment =
+          prompt_plan.aot_segments.front();
+      const NativeResidentPrefillOwner first_owner =
+          impl_->prefill_owner(first_segment.bucket_tokens);
       void* embedding_output =
           composed_prefill
-              ? static_cast<unsigned char*>(impl_->chunked_hidden) +
-                    hidden_offset * kHidden * sizeof(std::uint16_t)
-              : owner.invocations->tensor_pointer(owner.start_sequence, "x");
-      launch_prompt_embeddings(
-          embedding->device_pointer,
-          request.input_token_ids.data() + segment.input_offset,
-          token_ids->device_pointer, embedding_output, segment.input_tokens);
-      ++metrics.prefill_native_pointwise_launches;
+              ? impl_->chunked_hidden
+              : first_owner.invocations->tensor_pointer(
+                    first_owner.start_sequence, "x");
+      const auto injection_started = std::chrono::steady_clock::now();
+      launch_native_vl_embeddings(
+          embedding->device_pointer, request.input_token_ids.data(),
+          vl_embedding_plan.value(), impl_->vision_embeddings,
+          impl_->vl_prompt_token_ids, impl_->vl_scatter_indices,
+          embedding_output);
+      check_hip(hipDeviceSynchronize(),
+                "hipDeviceSynchronize resident VL embedding injection");
+      metrics.vl_embedding_injection_wall_ms =
+          elapsed_ms(injection_started);
+      metrics.vl_host_to_device_bytes =
+          pixel_bytes +
+          request.input_token_ids.size() * sizeof(std::uint32_t) +
+          vl_embedding_plan->device_index_bytes();
+      metrics.prefill_native_pointwise_launches += 2;
+    } else {
+      for (const NativePromptAotSegment& segment :
+           prompt_plan.aot_segments) {
+        const NativeResidentPrefillOwner owner =
+            impl_->prefill_owner(segment.bucket_tokens);
+        const NativePrefillWorkspaceView* token_ids =
+            owner.workspace->find("native.prompt_token_ids");
+        if (token_ids == nullptr || token_ids->device_pointer == nullptr) {
+          throw std::runtime_error(
+              "native resident composed-prefill token owner is missing");
+        }
+        const std::size_t hidden_offset =
+            segment.input_offset - matched_prefix_tokens;
+        void* embedding_output =
+            composed_prefill
+                ? static_cast<unsigned char*>(impl_->chunked_hidden) +
+                      hidden_offset * kHidden * sizeof(std::uint16_t)
+                : owner.invocations->tensor_pointer(owner.start_sequence,
+                                                    "x");
+        launch_prompt_embeddings(
+            embedding->device_pointer,
+            request.input_token_ids.data() + segment.input_offset,
+            token_ids->device_pointer, embedding_output,
+            segment.input_tokens);
+        ++metrics.prefill_native_pointwise_launches;
+      }
     }
     if (timeline_enabled) {
       check_hip(hipDeviceSynchronize(),
@@ -1485,6 +1791,13 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
   const std::string token_payload_value = token_payload.str();
   metrics.output_token_ids_sha256 =
       sha256_bytes(token_payload_value.data(), token_payload_value.size());
+  if (metrics.vl_enabled) {
+    const std::string canonical_token_payload =
+        '[' + token_payload_value + ']';
+    metrics.output_token_ids_canonical_sha256 =
+        sha256_bytes(canonical_token_payload.data(),
+                     canonical_token_payload.size());
+  }
   if (metrics.decode_tokens_executed != 0 && metrics.decode_wall_ms > 0.0) {
     metrics.decode_tokens_per_second =
         metrics.decode_tokens_executed * 1000.0 / metrics.decode_wall_ms;

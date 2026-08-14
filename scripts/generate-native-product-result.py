@@ -115,6 +115,11 @@ def main() -> None:
             "FONLY__＊bf16@16_256_F_F_3_0___gfx11xx.aks2"
         ),
     )
+    parser.add_argument(
+        "--vision-attention-image",
+        type=Path,
+        default=Path("build/native/aima-vision-attention.hsaco"),
+    )
     parser.add_argument("--release-tag", required=True)
     parser.add_argument("--release", required=True)
     parser.add_argument("--date-utc", required=True)
@@ -141,6 +146,7 @@ def main() -> None:
     hybrid_provider = cli.hybrid_provider.resolve()
     aotriton_library = cli.aotriton_library.resolve()
     aotriton_image = cli.aotriton_image.resolve()
+    vision_attention_image = cli.vision_attention_image.resolve()
     for path in (
         engine,
         launcher,
@@ -149,6 +155,7 @@ def main() -> None:
         hybrid_provider,
         aotriton_library,
         aotriton_image,
+        vision_attention_image,
     ):
         if not path.is_file():
             raise SystemExit(f"product component is missing: {path}")
@@ -313,6 +320,10 @@ def main() -> None:
                 aotriton_image,
                 "lib/aotriton.images/amd-gfx11xx/flash/attn_fwd/"
                 "FONLY__＊bf16@16_256_F_F_3_0___gfx11xx.aks2",
+            ),
+            "vision_attention_image": component(
+                vision_attention_image,
+                "lib/aima-vision-attention.hsaco",
             ),
         },
         "runtime_dependency_gate": {
