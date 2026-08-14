@@ -213,8 +213,11 @@ cells, runs the processor-only option-conflict cell directly, and executes the
 full encoder-budget cell with a dedicated 16-batch visual-tower probe. It also
 requires one resident model load, contiguous accepted-request indices, exact
 media/token/patch/batch metrics, native-only runtime markers and no oracle
-reads. This paragraph describes the qualification mechanism only; no `amd395`
-execution artifact has yet been accepted.
+reads. The server retains its frozen 600-second request-read/write timeout;
+the qualification client has a separate 3,600-second response wait so a legal
+multi-batch compute cell is not mistaken for a socket-policy failure. This
+paragraph describes the qualification mechanism only; no `amd395` execution
+artifact has yet been accepted.
 
 The native processor now also performs the exact fused normalization, odd-frame
 repeat and Qwen temporal/spatial patch permutation into contiguous

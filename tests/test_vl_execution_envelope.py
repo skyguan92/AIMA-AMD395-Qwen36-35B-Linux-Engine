@@ -78,6 +78,8 @@ class VlExecutionEnvelopeTest(unittest.TestCase):
         self.assertIn("validate_http_observation", qualifier)
         self.assertIn('"262143"', qualifier)
         self.assertIn('"262144"', qualifier)
+        self.assertIn("--client-timeout-seconds", qualifier)
+        self.assertIn("timeout=args.client_timeout_seconds", qualifier)
         self.assertIn("native_execution_qualification_complete", qualifier)
 
     def test_http_plan_has_exact_success_error_and_boundary_counts(self) -> None:

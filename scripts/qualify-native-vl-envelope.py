@@ -255,6 +255,7 @@ def main() -> int:
     parser.add_argument("--port", type=int, default=18150)
     parser.add_argument("--ready-timeout-seconds", type=float, default=180.0)
     parser.add_argument("--request-timeout-seconds", type=float, default=600.0)
+    parser.add_argument("--client-timeout-seconds", type=float, default=3600.0)
     parser.add_argument("--vision-timeout-seconds", type=float, default=3600.0)
     args = parser.parse_args()
 
@@ -288,6 +289,14 @@ def main() -> int:
         raise SystemExit("qualification output and raw directory must not exist")
     if args.request_timeout_seconds > 600.0:
         raise SystemExit("native HTTP request timeout cannot exceed 600 seconds")
+    if (
+        args.client_timeout_seconds < args.request_timeout_seconds
+        or args.client_timeout_seconds > 7200.0
+    ):
+        raise SystemExit(
+            "qualification client timeout must cover the server timeout and "
+            "cannot exceed 7200 seconds"
+        )
 
     source = git_identity(ROOT)
     if source["dirty"]:
@@ -396,7 +405,7 @@ def main() -> int:
                     expected_accept=spec["expected_accept"],
                     payload=spec["payload"],
                     replacements=spec["replacements"],
-                    timeout=args.request_timeout_seconds,
+                    timeout=args.client_timeout_seconds,
                     response_redactions={
                         str(fixture_root): "${AIMA_VL_ENVELOPE_FIXTURE_ROOT}"
                     },
@@ -522,6 +531,7 @@ def main() -> int:
         "execution_plan": {
             "cells": len(coverage),
             "http_observations": len(specs),
+            "client_timeout_seconds": args.client_timeout_seconds,
             "modes": coverage,
             "non_http_modes": NON_HTTP_CELL_MODES,
         },
