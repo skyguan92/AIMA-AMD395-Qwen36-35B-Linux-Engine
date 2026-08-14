@@ -78,18 +78,56 @@ std::string media_source(const NativeOrderedJson& part,
                               " content part requires a non-empty URL");
 }
 
-std::string content_text(const NativeOrderedJson& message,
-                         std::string_view role,
-                         std::size_t message_index,
-                         NativePreparedChat* prepared) {
+struct ParsedMessageContent {
+  std::string baseline;
+  std::string vl;
+};
+
+std::size_t count_nonoverlapping(std::string_view value,
+                                 std::string_view needle) {
+  std::size_t count = 0;
+  std::size_t cursor = 0;
+  while (cursor <= value.size()) {
+    const std::size_t found = value.find(needle, cursor);
+    if (found == std::string_view::npos) break;
+    ++count;
+    cursor = found + needle.size();
+  }
+  return count;
+}
+
+std::string join_with_newlines(const std::vector<std::string>& parts) {
+  std::string result;
+  for (std::size_t index = 0; index < parts.size(); ++index) {
+    if (index != 0) result += '\n';
+    result += parts[index];
+  }
+  return result;
+}
+
+std::string_view media_placeholder(NativeMediaKind kind) {
+  return kind == NativeMediaKind::kImage ? kImagePlaceholder
+                                         : kVideoPlaceholder;
+}
+
+ParsedMessageContent parse_message_content(
+    const NativeOrderedJson& message, std::string_view role,
+    std::size_t message_index, NativePreparedChat* prepared) {
   if (!message.contains("content") || message["content"].is_null()) return {};
   const NativeOrderedJson& content = message["content"];
-  if (content.is_string()) return content.get<std::string>();
+  if (content.is_string()) {
+    const std::string value = content.get<std::string>();
+    return {value, value};
+  }
   if (!content.is_array()) {
     throw std::invalid_argument(
         "message content must be a string, null, or a text-part array");
   }
-  std::string result;
+
+  ParsedMessageContent result;
+  std::vector<std::string> text_parts;
+  std::vector<NativeMediaPart> message_media;
+  std::vector<NativeMediaKind> modality_order;
   for (std::size_t part_index = 0; part_index < content.size(); ++part_index) {
     const NativeOrderedJson& part = content[part_index];
     if (!part.is_object() || !part.contains("type") ||
@@ -102,20 +140,19 @@ std::string content_text(const NativeOrderedJson& message,
       if (!part.contains("text") || !part["text"].is_string()) {
         throw std::invalid_argument("text content part requires string text");
       }
-      result += part["text"].get<std::string>();
+      const std::string text = part["text"].get<std::string>();
+      result.baseline += text;
+      text_parts.push_back(text);
       continue;
     }
     NativeMediaKind kind;
     std::string_view field;
-    std::string_view placeholder;
     if (type == "image_url") {
       kind = NativeMediaKind::kImage;
       field = "image_url";
-      placeholder = kImagePlaceholder;
     } else if (type == "video_url") {
       kind = NativeMediaKind::kVideo;
       field = "video_url";
-      placeholder = kVideoPlaceholder;
     } else {
       throw std::invalid_argument("unsupported message content part type");
     }
@@ -128,9 +165,71 @@ std::string content_text(const NativeOrderedJson& message,
     media.source = media_source(part, field);
     media.message_index = message_index;
     media.content_part_index = part_index;
+    message_media.push_back(std::move(media));
+    if (std::find(modality_order.begin(), modality_order.end(), kind) ==
+        modality_order.end()) {
+      modality_order.push_back(kind);
+    }
+    result.baseline += media_placeholder(kind);
+  }
+
+  const std::string text_prompt = join_with_newlines(text_parts);
+  std::vector<std::string> vl_parts;
+  for (NativeMediaKind kind : modality_order) {
+    const std::string_view placeholder = media_placeholder(kind);
+    const std::size_t media_count = static_cast<std::size_t>(std::count_if(
+        message_media.begin(), message_media.end(),
+        [kind](const NativeMediaPart& media) { return media.kind == kind; }));
+    const std::size_t existing = count_nonoverlapping(text_prompt, placeholder);
+    if (existing > media_count) {
+      throw std::invalid_argument(
+          "message text contains more media placeholders than media items");
+    }
+    for (std::size_t index = existing; index < media_count; ++index) {
+      vl_parts.emplace_back(placeholder);
+    }
+  }
+  if (!text_prompt.empty()) vl_parts.push_back(text_prompt);
+  result.vl = join_with_newlines(vl_parts);
+
+  // vLLM stores media per modality, then binds each modality's items to that
+  // modality's placeholder occurrences. Flatten into prompt occurrence order
+  // so the native sequential expander preserves the same association even
+  // when a caller supplied a valid placeholder explicitly in a text part.
+  std::vector<std::size_t> image_indices;
+  std::vector<std::size_t> video_indices;
+  for (std::size_t index = 0; index < message_media.size(); ++index) {
+    (message_media[index].kind == NativeMediaKind::kImage ? image_indices
+                                                          : video_indices)
+        .push_back(index);
+  }
+  std::size_t next_image = 0;
+  std::size_t next_video = 0;
+  std::size_t cursor = 0;
+  while (next_image + next_video < message_media.size()) {
+    const std::size_t image_position =
+        next_image < image_indices.size()
+            ? result.vl.find(kImagePlaceholder, cursor)
+            : std::string::npos;
+    const std::size_t video_position =
+        next_video < video_indices.size()
+            ? result.vl.find(kVideoPlaceholder, cursor)
+            : std::string::npos;
+    const bool use_image = image_position < video_position;
+    const std::size_t position = use_image ? image_position : video_position;
+    if (position == std::string::npos) {
+      throw std::logic_error(
+          "VL media placeholder association could not be constructed");
+    }
+    const std::size_t media_index =
+        use_image ? image_indices[next_image++] : video_indices[next_video++];
+    NativeMediaPart& media = message_media[media_index];
     media.media_index = prepared->media.size();
     prepared->media.push_back(std::move(media));
-    result += placeholder;
+    cursor = position + media_placeholder(
+                            use_image ? NativeMediaKind::kImage
+                                      : NativeMediaKind::kVideo)
+                            .size();
   }
   return result;
 }
@@ -441,6 +540,7 @@ NativePreparedChat prepare_native_chat(const NativeOrderedJson& request) {
   }
 
   std::string leading_system;
+  std::string leading_system_vl;
   bool left_leading_system = false;
   bool saw_user = false;
   std::unordered_set<std::string> known_call_ids;
@@ -457,21 +557,31 @@ NativePreparedChat prepare_native_chat(const NativeOrderedJson& request) {
         throw std::invalid_argument(
             "system and developer messages must precede conversation messages");
       }
-      const std::string content = content_text(
+      const ParsedMessageContent content = parse_message_content(
           source, role, message_index, &prepared);
-      if (!leading_system.empty() && !content.empty()) leading_system += '\n';
-      leading_system += content;
+      if (!leading_system.empty() && !content.baseline.empty()) {
+        leading_system += '\n';
+      }
+      if (!leading_system_vl.empty() && !content.vl.empty()) {
+        leading_system_vl += '\n';
+      }
+      leading_system += content.baseline;
+      leading_system_vl += content.vl;
       continue;
     }
     left_leading_system = true;
     if (prepared.messages.empty() && !leading_system.empty()) {
       prepared.messages.push_back(
           {"system", leading_system, false, std::string(), {}});
+      prepared.vl_prompt_messages.push_back(
+          {"system", leading_system_vl, false, std::string(), {}});
     }
 
     NativeChatMessage message;
     message.role = role;
-    message.content = content_text(source, role, message_index, &prepared);
+    const ParsedMessageContent content = parse_message_content(
+        source, role, message_index, &prepared);
+    message.content = content.baseline;
     if (role == "user") {
       saw_user = true;
     } else if (role == "assistant") {
@@ -562,11 +672,16 @@ NativePreparedChat prepare_native_chat(const NativeOrderedJson& request) {
       throw std::invalid_argument(
           "message role must be system, developer, user, assistant, or tool");
     }
+    NativeChatMessage vl_message = message;
+    vl_message.content = content.vl;
     prepared.messages.push_back(std::move(message));
+    prepared.vl_prompt_messages.push_back(std::move(vl_message));
   }
   if (prepared.messages.empty() && !leading_system.empty()) {
     prepared.messages.push_back(
         {"system", leading_system, false, std::string(), {}});
+    prepared.vl_prompt_messages.push_back(
+        {"system", leading_system_vl, false, std::string(), {}});
   }
   if (!saw_user) {
     throw std::invalid_argument("at least one user message is required");
@@ -584,7 +699,6 @@ NativePreparedChat prepare_native_chat(const NativeOrderedJson& request) {
     throw std::invalid_argument("video count exceeds the fixed limit of 21");
   }
 
-  prepared.vl_prompt_messages = prepared.messages;
   prepared.vl_prompt_tools.reserve(prepared.function_tools.size());
   for (const NativeFunctionTool& tool : prepared.function_tools) {
     prepared.vl_prompt_tools.push_back(

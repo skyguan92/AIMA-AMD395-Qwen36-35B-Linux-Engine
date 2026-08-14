@@ -30,9 +30,11 @@ enum class NativeToolChoiceMode {
 
 struct NativePreparedChat {
   // Baseline text serving retains its established synthetic tool-choice
-  // directives in messages/prompt_tools. VL rendering uses the unmodified
-  // messages and vLLM/Pydantic-normalized tools to match the frozen reference
-  // prompt: vLLM exposes every supplied tool and injects no tool_choice prose.
+  // directives and content-array concatenation in messages/prompt_tools. VL
+  // rendering uses vLLM's auto-resolved string content layout and
+  // Pydantic-normalized tools: supplied media markers are grouped and prepended
+  // per message, text parts are newline-joined, every tool stays visible, and
+  // no tool_choice prose is injected.
   std::vector<NativeChatMessage> vl_prompt_messages;
   std::vector<NativeChatTool> vl_prompt_tools;
   std::vector<NativeChatMessage> messages;

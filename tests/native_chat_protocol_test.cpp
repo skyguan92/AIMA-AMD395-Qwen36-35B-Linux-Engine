@@ -241,11 +241,20 @@ int main() {
                     {"video_url", "data:video/mp4;base64,AAAA"}},
                    {{"type", "text"}, {"text", " done"}}})}}})}};
   const auto media = aima::prepare_native_chat(media_request);
+  const std::string image_placeholder =
+      "<|vision_start|><|image_pad|><|vision_end|>";
+  const std::string video_placeholder =
+      "<|vision_start|><|video_pad|><|vision_end|>";
   require(
       media.messages[0].content ==
           "First:<|vision_start|><|image_pad|><|vision_end|> then "
           "<|vision_start|><|video_pad|><|vision_end|> done",
-      "ordered media placeholders changed");
+      "baseline ordered media placeholders changed");
+  require(
+      media.vl_prompt_messages[0].content ==
+          image_placeholder + "\n" + video_placeholder +
+              "\nFirst:\n then \n done",
+      "VL content did not match vLLM string rendering");
   require(media.media.size() == 2,
           "image/video parts were not retained");
   require(media.media[0].kind == aima::NativeMediaKind::kImage &&
@@ -258,6 +267,84 @@ int main() {
               media.media[1].content_part_index == 3 &&
               media.media[1].media_index == 1,
           "video part metadata changed");
+
+  const NativeOrderedJson alternating_request = {
+      {"messages",
+       NativeOrderedJson::array(
+           {{{"role", "user"},
+             {"content",
+              NativeOrderedJson::array(
+                  {{{"type", "text"}, {"text", "Start"}},
+                   {{"type", "image_url"},
+                    {"image_url", {{"url", "file:///media/first.png"}}}},
+                   {{"type", "video_url"},
+                    {"video_url", {{"url", "file:///media/middle.mp4"}}}},
+                   {{"type", "image_url"},
+                    {"image_url", {{"url", "file:///media/second.png"}}}},
+                   {{"type", "text"}, {"text", "End"}}})}}})}};
+  const auto alternating = aima::prepare_native_chat(alternating_request);
+  require(
+      alternating.vl_prompt_messages[0].content ==
+          image_placeholder + "\n" + image_placeholder + "\n" +
+              video_placeholder + "\nStart\nEnd",
+      "VL media placeholders were not grouped by first-seen modality");
+  require(
+      alternating.media.size() == 3 &&
+          alternating.media[0].kind == aima::NativeMediaKind::kImage &&
+          alternating.media[0].content_part_index == 1 &&
+          alternating.media[0].media_index == 0 &&
+          alternating.media[1].kind == aima::NativeMediaKind::kImage &&
+          alternating.media[1].content_part_index == 3 &&
+          alternating.media[1].media_index == 1 &&
+          alternating.media[2].kind == aima::NativeMediaKind::kVideo &&
+          alternating.media[2].content_part_index == 2 &&
+          alternating.media[2].media_index == 2,
+      "VL media objects did not follow grouped placeholder association");
+
+  const NativeOrderedJson array_text_request = {
+      {"messages",
+       NativeOrderedJson::array(
+           {{{"role", "system"},
+             {"content",
+              NativeOrderedJson::array(
+                  {{{"type", "text"}, {"text", "System A"}},
+                   {{"type", "text"}, {"text", "System B"}}})}},
+            {{"role", "user"},
+             {"content",
+              NativeOrderedJson::array(
+                  {{{"type", "text"}, {"text", "Question"}},
+                   {{"type", "image_url"},
+                    {"image_url", {{"url", "file:///media/a.png"}}}})}}})}};
+  const auto array_text = aima::prepare_native_chat(array_text_request);
+  require(array_text.messages[0].content == "System ASystem B" &&
+              array_text.vl_prompt_messages[0].content ==
+                  "System A\nSystem B",
+          "VL-only text-part separators changed the baseline path");
+  require(array_text.messages[1].content ==
+              "Question" + image_placeholder &&
+              array_text.vl_prompt_messages[1].content ==
+                  image_placeholder + "\nQuestion",
+          "VL content-array layout did not prepend media");
+
+  NativeOrderedJson manual_placeholder_request = media_request;
+  manual_placeholder_request["messages"][0]["content"] =
+      NativeOrderedJson::array(
+          {{{"type", "text"},
+            {"text", image_placeholder + "placed explicitly"}},
+           {{"type", "image_url"},
+            {"image_url", {{"url", "file:///media/a.png"}}}}});
+  const auto manual_placeholder =
+      aima::prepare_native_chat(manual_placeholder_request);
+  require(manual_placeholder.vl_prompt_messages[0].content ==
+              image_placeholder + "placed explicitly",
+          "existing media placeholder was duplicated");
+  manual_placeholder_request["messages"][0]["content"][0]["text"] =
+      image_placeholder + image_placeholder;
+  require_invalid(
+      [&]() {
+        (void)aima::prepare_native_chat(manual_placeholder_request);
+      },
+      "excess manual media placeholder was admitted");
 
   NativeOrderedJson assistant_media = media_request;
   assistant_media["messages"][0]["role"] = "assistant";
