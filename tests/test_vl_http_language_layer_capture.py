@@ -13,6 +13,7 @@ NATIVE_DIAGNOSTIC = (
 NATIVE_DIAGNOSTIC_BUILD = (
     ROOT / "scripts/build-native-vl-http-language-diagnostic-probe.sh"
 )
+RECOMPUTE_AOT_TRACE = ROOT / "scripts/trace-vllm-vl-recompute-w-u-aot.py"
 
 
 class VlHttpLanguageLayerCaptureTest(unittest.TestCase):
@@ -67,6 +68,16 @@ class VlHttpLanguageLayerCaptureTest(unittest.TestCase):
         ).read_text(encoding="utf-8")
         self.assertIn("compare_optional_sequence_storage", linear_prefill)
         self.assertIn('"diagnostic-final-state"', linear_prefill)
+
+    def test_recompute_aot_trace_is_http_oracle_bound(self) -> None:
+        source = RECOMPUTE_AOT_TRACE.read_text(encoding="utf-8")
+        self.assertIn("vl-recompute-w-u-aot-trace/v1", source)
+        self.assertIn('CASE_ID = "multi_video"', source)
+        self.assertIn("source_http_language_diagnostic_sha256", source)
+        self.assertIn("autotuner.cache.clear()", source)
+        self.assertIn('"num_warps": 4', source)
+        self.assertIn('"num_stages": 2', source)
+        self.assertIn("short-VL recompute-W/U output differs", source)
 
 
 if __name__ == "__main__":
