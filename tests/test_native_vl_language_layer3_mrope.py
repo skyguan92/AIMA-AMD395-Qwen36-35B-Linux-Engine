@@ -131,6 +131,9 @@ class NativeVlLanguageLayer3MropeTest(unittest.TestCase):
         self.assertIn("full_options.mrope_positions_i64", probe)
         self.assertIn("full_options.comparison_tokens = prompt_tokens", probe)
         self.assertIn("moe_options.chain_output_oracle_label", probe)
+        self.assertIn(
+            "moe_options.chain_output_oracle_dir = prefix_oracle_dir", probe
+        )
         self.assertIn('"same_request_layer_output"', probe)
         self.assertIn("layer1_exact_input_moe_diagnostic", probe)
         self.assertIn("layer1_exact_input_attention_diagnostic", probe)

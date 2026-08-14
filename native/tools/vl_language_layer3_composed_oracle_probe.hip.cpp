@@ -329,8 +329,8 @@ Execution execute_layers_0_through_3(
   moe_options.run_routing_diagnostic = false;
   moe_options.collect_oracle_comparisons = false;
   moe_options.gemm_plans = &gemm_plans;
-  if (!layer3_oracle_dir.empty()) {
-    moe_options.chain_output_oracle_dir = layer3_oracle_dir;
+  if (!prefix_oracle_dir.empty()) {
+    moe_options.chain_output_oracle_dir = prefix_oracle_dir;
     moe_options.chain_output_oracle_label =
         "layer-003-return-layer_body-output";
   }
