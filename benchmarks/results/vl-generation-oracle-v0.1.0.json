@@ -1,0 +1,1350 @@
+{
+  "bindings": {
+    "api_render_manifest": {
+      "bytes": 86397,
+      "path": "benchmarks/results/vl-api-render-manifest-v0.1.0.json",
+      "sha256": "a80e9977678606b0148f45008e2f389434618c8c9011d45af3415f61e71a54ca"
+    },
+    "capability_manifest": {
+      "bytes": 86659,
+      "path": "benchmarks/results/vl-capability-manifest.json",
+      "sha256": "72e64b8d5cb0c1de8a355617676c46c98c1e0f05cec7a6e3a7df79dd36560d7a"
+    },
+    "launch_config": {
+      "bytes": 3061,
+      "path": "benchmarks/results/vl-reference-launch.json",
+      "sha256": "37eb1ea904b010a06c48095e5dc6acf0561aa129ede1f14251b1b82d2d2ebe8b"
+    },
+    "processor_probe": {
+      "bytes": 39849,
+      "path": "benchmarks/results/vl-processor-capability-v0.1.0.json",
+      "sha256": "a3aa0ce74cd522ffd4d6c9ec2188b5e340c7dfc7fbe4509e146c18cdeb343589"
+    },
+    "reference_manifest": {
+      "bytes": 22516,
+      "path": "benchmarks/results/vl-reference-manifest.json",
+      "sha256": "8f03e939a9b15f58c2e623541d48be88c328ff19adac9eb52210e171766e9a00"
+    }
+  },
+  "capture_control_plane": {
+    "product_runtime_dependency": false,
+    "scope": "isolated-offline-qualification-hook-rpc-only",
+    "skip_mm_profiling": true,
+    "vllm_allow_insecure_serialization": true
+  },
+  "captured_at": "2026-08-15T12:37:36+00:00",
+  "cases": [
+    {
+      "case_id": "tool_forced_image",
+      "divergence_output_index": 14,
+      "generation": {
+        "completion_tokens": 28,
+        "finish_reason": "stop",
+        "output_token_ids": [
+          4754,
+          1448,
+          763,
+          328,
+          32,
+          32746,
+          5215,
+          314,
+          36004,
+          52850,
+          303,
+          5090,
+          9613,
+          7736,
+          1040,
+          17676,
+          11,
+          6105,
+          11,
+          5983,
+          11,
+          13358,
+          11,
+          321,
+          24142,
+          1149,
+          92,
+          248046
+        ],
+        "output_token_ids_sha256": "4a66d37fbf7490d4c2f05c51bbed47c18444116955ef6f13f77d135765552490",
+        "sampling": {
+          "max_tokens": 64,
+          "prompt_logprobs": 1,
+          "seed": 0,
+          "structured": true,
+          "temperature": 0
+        },
+        "stop_reason": null
+      },
+      "passed": true,
+      "prompt_token_ids_sha256": "c00ccaf4063b7a0eb5f30ca053d3484cd2658aac57d1ef7ee79d38287d940566",
+      "prompt_tokens": 349,
+      "reference_logits": {
+        "call_shapes": [
+          [
+            1,
+            248320
+          ],
+          [
+            348,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ]
+        ],
+        "captured_output_index": 14,
+        "component": {
+          "bytes": 993280,
+          "dtype": "torch.float32",
+          "element_size": 4,
+          "path": "tool_forced_image/divergence-logits.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "54a1e46d96321169930269a29c363a44a28463fac4ab9c55f729074d1e4ca0ab",
+          "shape": [
+            248320
+          ]
+        },
+        "decode_calls": 28,
+        "prefill_calls": 1,
+        "raw_top_tokens": [
+          {
+            "logit": 21.875,
+            "rank": 1,
+            "token_id": 1040
+          },
+          {
+            "logit": 21.125,
+            "rank": 2,
+            "token_id": 2583
+          },
+          {
+            "logit": 21.125,
+            "rank": 3,
+            "token_id": 1149
+          },
+          {
+            "logit": 19.5,
+            "rank": 4,
+            "token_id": 11
+          },
+          {
+            "logit": 19.25,
+            "rank": 5,
+            "token_id": 1680
+          },
+          {
+            "logit": 18.5,
+            "rank": 6,
+            "token_id": 8934
+          },
+          {
+            "logit": 17.625,
+            "rank": 7,
+            "token_id": 321
+          },
+          {
+            "logit": 16.875,
+            "rank": 8,
+            "token_id": 383
+          },
+          {
+            "logit": 16.75,
+            "rank": 9,
+            "token_id": 26899
+          },
+          {
+            "logit": 16.625,
+            "rank": 10,
+            "token_id": 2272
+          },
+          {
+            "logit": 16.25,
+            "rank": 11,
+            "token_id": 13
+          },
+          {
+            "logit": 15.9375,
+            "rank": 12,
+            "token_id": 6611
+          },
+          {
+            "logit": 15.875,
+            "rank": 13,
+            "token_id": 3158
+          },
+          {
+            "logit": 15.75,
+            "rank": 14,
+            "token_id": 28115
+          },
+          {
+            "logit": 15.3125,
+            "rank": 15,
+            "token_id": 318
+          },
+          {
+            "logit": 15.3125,
+            "rank": 16,
+            "token_id": 4162
+          },
+          {
+            "logit": 15.1875,
+            "rank": 17,
+            "token_id": 440
+          },
+          {
+            "logit": 15.125,
+            "rank": 18,
+            "token_id": 23245
+          },
+          {
+            "logit": 14.875,
+            "rank": 19,
+            "token_id": 68219
+          },
+          {
+            "logit": 14.875,
+            "rank": 20,
+            "token_id": 48142
+          }
+        ],
+        "selected_token_id": 1040,
+        "selected_token_logit": 21.875,
+        "selected_token_raw_rank": 1
+      },
+      "request": {
+        "max_tokens": 64,
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "Call inspect_visual for this image.",
+                "type": "text"
+              },
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 5467,
+                    "fixture": "image-rgb-256.png",
+                    "mime": "image/png",
+                    "sha256": "dc486687ceead3b9a14953b32ff5f7ee3b6125f52de11fb1b76db378d62dd0c8",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "qwen36-vl-reference",
+        "parallel_tool_calls": false,
+        "stream": false,
+        "temperature": 0,
+        "tool_choice": {
+          "function": {
+            "name": "inspect_visual"
+          },
+          "type": "function"
+        },
+        "tools": [
+          {
+            "function": {
+              "description": "Record a short label for visual content.",
+              "name": "inspect_visual",
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "label": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "label"
+                ],
+                "type": "object"
+              }
+            },
+            "type": "function"
+          }
+        ]
+      },
+      "request_sha256": "61d42671f59002e8d2f3b766a5cb13c8da7f9e03695457977c20c0f29062e4e2",
+      "shared_reference_prefix_token_ids_sha256": "7da0b274e031aaafcfe3173323062efd43c6a1c3e9d4502fa666a105f9d60017"
+    },
+    {
+      "case_id": "tool_auto_image",
+      "divergence_output_index": 93,
+      "generation": {
+        "completion_tokens": 139,
+        "finish_reason": "stop",
+        "output_token_ids": [
+          760,
+          1156,
+          6587,
+          264,
+          2716,
+          2306,
+          364,
+          279,
+          3766,
+          2099,
+          13,
+          198,
+          16,
+          13,
+          220,
+          2972,
+          2014,
+          53983,
+          279,
+          2099,
+          64700,
+          561,
+          2099,
+          16661,
+          314,
+          1599,
+          36004,
+          52850,
+          314,
+          5090,
+          7736,
+          318,
+          61114,
+          11,
+          6105,
+          11,
+          5983,
+          11,
+          13358,
+          11,
+          4831,
+          5946,
+          4162,
+          494,
+          279,
+          1844,
+          7699,
+          310,
+          279,
+          5445,
+          6491,
+          13,
+          198,
+          17,
+          13,
+          220,
+          2972,
+          27382,
+          1386,
+          279,
+          5215,
+          64700,
+          1049,
+          579,
+          264,
+          38495,
+          5215,
+          314,
+          32746,
+          36004,
+          4965,
+          13,
+          198,
+          18,
+          13,
+          220,
+          2972,
+          1774,
+          6134,
+          264,
+          2306,
+          64700,
+          328,
+          1579,
+          1218,
+          36004,
+          52850,
+          1,
+          466,
+          328,
+          57044,
+          14987,
+          36004,
+          52850,
+          1,
+          4816,
+          8053,
+          13,
+          353,
+          668,
+          4992,
+          328,
+          1579,
+          1218,
+          36004,
+          52850,
+          3158,
+          198,
+          248069,
+          271,
+          248058,
+          198,
+          27,
+          1628,
+          28,
+          79221,
+          62447,
+          29,
+          198,
+          27,
+          15704,
+          95277,
+          29,
+          198,
+          1579,
+          1218,
+          36004,
+          52850,
+          198,
+          510,
+          15704,
+          29,
+          198,
+          510,
+          1628,
+          29,
+          198,
+          248059,
+          248046
+        ],
+        "output_token_ids_sha256": "83e5dbb3ffb5d026b21991407bd07e06d92fecc840061ae4e17abc9e84447b41",
+        "sampling": {
+          "max_tokens": 192,
+          "prompt_logprobs": 1,
+          "seed": 0,
+          "structured": false,
+          "temperature": 0
+        },
+        "stop_reason": null
+      },
+      "passed": true,
+      "prompt_token_ids_sha256": "36946ec2e298a02ef43f7c7d33f01d04a26479a2944ef8b0b55148838f77867b",
+      "prompt_tokens": 352,
+      "reference_logits": {
+        "call_shapes": [
+          [
+            1,
+            248320
+          ],
+          [
+            351,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ],
+          [
+            1,
+            248320
+          ]
+        ],
+        "captured_output_index": 93,
+        "component": {
+          "bytes": 993280,
+          "dtype": "torch.float32",
+          "element_size": 4,
+          "path": "tool_auto_image/divergence-logits.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "fe4a45200fddffb63a8aa9ebc7e2a45f20a906ed418292587434f8f3a4e7877e",
+          "shape": [
+            248320
+          ]
+        },
+        "decode_calls": 139,
+        "prefill_calls": 1,
+        "raw_top_tokens": [
+          {
+            "logit": 25.875,
+            "rank": 1,
+            "token_id": 52850
+          },
+          {
+            "logit": 25.75,
+            "rank": 2,
+            "token_id": 4965
+          },
+          {
+            "logit": 25.5,
+            "rank": 3,
+            "token_id": 5215
+          },
+          {
+            "logit": 20.75,
+            "rank": 4,
+            "token_id": 3870
+          },
+          {
+            "logit": 20.5,
+            "rank": 5,
+            "token_id": 12261
+          },
+          {
+            "logit": 20.375,
+            "rank": 6,
+            "token_id": 44025
+          },
+          {
+            "logit": 19.75,
+            "rank": 7,
+            "token_id": 65311
+          },
+          {
+            "logit": 18.875,
+            "rank": 8,
+            "token_id": 1500
+          },
+          {
+            "logit": 17.5,
+            "rank": 9,
+            "token_id": 15436
+          },
+          {
+            "logit": 17.5,
+            "rank": 10,
+            "token_id": 28945
+          },
+          {
+            "logit": 17.375,
+            "rank": 11,
+            "token_id": 20254
+          },
+          {
+            "logit": 17.25,
+            "rank": 12,
+            "token_id": 28259
+          },
+          {
+            "logit": 16.75,
+            "rank": 13,
+            "token_id": 12931
+          },
+          {
+            "logit": 16.25,
+            "rank": 14,
+            "token_id": 10124
+          },
+          {
+            "logit": 16.125,
+            "rank": 15,
+            "token_id": 304
+          },
+          {
+            "logit": 15.875,
+            "rank": 16,
+            "token_id": 36004
+          },
+          {
+            "logit": 15.8125,
+            "rank": 17,
+            "token_id": 42144
+          },
+          {
+            "logit": 15.75,
+            "rank": 18,
+            "token_id": 123204
+          },
+          {
+            "logit": 15.625,
+            "rank": 19,
+            "token_id": 19556
+          },
+          {
+            "logit": 14.9375,
+            "rank": 20,
+            "token_id": 16382
+          }
+        ],
+        "selected_token_id": 52850,
+        "selected_token_logit": 25.875,
+        "selected_token_raw_rank": 1
+      },
+      "request": {
+        "max_tokens": 192,
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "You must call inspect_visual with a short label.",
+                "type": "text"
+              },
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 5467,
+                    "fixture": "image-rgb-256.png",
+                    "mime": "image/png",
+                    "sha256": "dc486687ceead3b9a14953b32ff5f7ee3b6125f52de11fb1b76db378d62dd0c8",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "qwen36-vl-reference",
+        "parallel_tool_calls": false,
+        "stream": false,
+        "temperature": 0,
+        "tool_choice": "auto",
+        "tools": [
+          {
+            "function": {
+              "description": "Record a short label for visual content.",
+              "name": "inspect_visual",
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "label": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "label"
+                ],
+                "type": "object"
+              }
+            },
+            "type": "function"
+          }
+        ]
+      },
+      "request_sha256": "fc82dfd09407b6fd62bc4f3adbd41f366253f40590dc55cdd5b2941edfaab5d0",
+      "shared_reference_prefix_token_ids_sha256": "c0f97430a1367571fcae285aef25e40af32fa1c9158422de7bbd3eabc7f53da9"
+    }
+  ],
+  "complete": true,
+  "decision": {
+    "g1_passed": false,
+    "g2_passed": false,
+    "g3_passed": false,
+    "g4_passed": false,
+    "g5_passed": false,
+    "two_divergence_logits_captured": true,
+    "two_prompt_vectors_exact": true,
+    "two_tool_generations_exact": true
+  },
+  "host": {
+    "hostname": "quings",
+    "label": "amd395"
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "canonical_payload_sha256": "09a59782d6e59632454183b3163b115028eebac948fcd995ec83f02bb0f03e20"
+  },
+  "model": {
+    "dtype": "bfloat16",
+    "repository": "Qwen/Qwen3.6-35B-A3B",
+    "revision": "995ad96eacd98c81ed38be0c5b274b04031597b0"
+  },
+  "oracle_root": "benchmarks/oracles/vl-generation-v0.1.0",
+  "qualified_for_native_generation_comparison": true,
+  "runtime": {
+    "packages": {
+      "numpy": "2.1.3",
+      "opencv-python-headless": "4.13.0.92",
+      "pillow": "12.2.0",
+      "torch": "2.10.0+git8514f05",
+      "transformers": "4.57.6",
+      "vllm": "0.19.1rc1.dev300+g29e5d1020.rocm721"
+    },
+    "python_version": "3.12.3"
+  },
+  "schema": "aima-amd395-qwen36/vl-generation-divergence-oracle/v1",
+  "scope": "two-fixed-vllm-vl-tool-generations-and-first-divergence-logits",
+  "source": {
+    "commit": "f5d6655c8fe7f2ebbfa53788644f40d792c13a74",
+    "dirty": false,
+    "files": [
+      {
+        "bytes": 22674,
+        "path": "scripts/capture-vllm-vl-generation-oracles.py",
+        "sha256": "96f385f5ce8343bf6b77caed8a7361ea9c2e735aa40645209a6d1bf6761f1dfb"
+      },
+      {
+        "bytes": 6601,
+        "path": "aima_engine/vl_generation_oracle.py",
+        "sha256": "3783f0e103c045f424b0fd2ec6c16c7214f15cbe74c308dd07a10acd0c00fda1"
+      },
+      {
+        "bytes": 34310,
+        "path": "scripts/capture-vllm-vl-oracles.py",
+        "sha256": "b4077b032d81c2bccc91a2501024491b440aec5f451062a4d5e7862f4745dc01"
+      },
+      {
+        "bytes": 23168,
+        "path": "scripts/probe-vllm-vl-api-capabilities.py",
+        "sha256": "2762c30b98119dbe87fe93f11db39523d26a4d43f2144f74b2479050aa90ebd1"
+      }
+    ],
+    "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}
