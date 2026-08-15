@@ -794,6 +794,9 @@ ParsedCompletionRequest parse_completion_request(
           "prompt_token_ids cannot be combined with image or video content");
     }
     NativeMediaPolicy effective_media_policy = media_policy;
+    if (parsed.chat.image_io_override.has_value()) {
+      effective_media_policy.image_io = *parsed.chat.image_io_override;
+    }
     if (parsed.chat.video_io_override.has_value()) {
       effective_media_policy.video_io = *parsed.chat.video_io_override;
     }

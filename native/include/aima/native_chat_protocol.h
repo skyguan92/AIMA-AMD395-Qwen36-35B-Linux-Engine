@@ -43,9 +43,10 @@ struct NativePreparedChat {
   std::vector<NativeChatTool> prompt_tools;
   std::vector<NativeFunctionTool> function_tools;
   std::vector<NativeMediaPart> media;
-  // A non-empty request-level media_io_kwargs object replaces the frozen
-  // launch-level media IO mapping in vLLM. Empty/absent objects retain the
-  // launch default and therefore leave this override unset.
+  // Request-level media_io_kwargs are merged per modality with the frozen
+  // launch mapping. Empty modality objects are no-ops; fps and num_frames use
+  // vLLM's cross-field clearing rule.
+  std::optional<NativeImageIoPolicy> image_io_override;
   std::optional<NativeVideoIoPolicy> video_io_override;
   NativeToolChoiceMode tool_choice = NativeToolChoiceMode::kAuto;
   std::string required_function_name;

@@ -7,7 +7,7 @@
 namespace aima {
 
 // Decodes the frozen PNG/JPEG/WebP image surface directly from admitted
-// bytes. Alpha is discarded exactly like PIL Image.convert("RGB").
+// bytes. RGBA inputs use ImageMediaIO's request-effective RGB background.
 NativeRgbFrame decode_native_image(const NativeMediaPayload& payload,
                                    const NativeMediaPolicy& policy);
 

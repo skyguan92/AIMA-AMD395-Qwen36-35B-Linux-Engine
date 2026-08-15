@@ -4,6 +4,7 @@
 
 #include "aima/sha256.h"
 
+#include <cmath>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -54,9 +55,13 @@ int main(int argc, char **argv) {
     return 2;
   }
   const std::filesystem::path root(argv[1]);
+  const std::filesystem::path error_root =
+      root.parent_path() / "vl-error-v0.1.0";
   const aima::NativeMediaPolicy policy;
   require(policy.maximum_decoded_video_pixels == 768ULL * 256ULL * 256ULL,
           "maximum sampling source-pixel policy drifted");
+  require(policy.maximum_video_duration_seconds == 0.0,
+          "default product-specific video duration cap was restored");
 
   const aima::NativeDecodedVideo mp4 = aima::decode_native_video(
       payload(root, "video-8f-4fps-128.mp4", "video/mp4"), policy);
@@ -109,6 +114,20 @@ int main(int argc, char **argv) {
                   "9e9efee715d55eeaa2d06458d9c2425fe9e9923920c0f4bdf2a1b0479f96"
                   "0b1e",
           "AVI decode-to-BF16 processor oracle drifted");
+
+  const aima::NativeDecodedVideo long_duration = aima::decode_native_video(
+      payload(error_root, "video-12f-0.002fps-192x128.avi",
+              "video/x-msvideo"),
+      policy);
+  require(long_duration.total_frames == 12 &&
+              std::abs(long_duration.source_fps - 0.002) < 1e-12 &&
+              std::abs(long_duration.duration_seconds - 6000.0) < 1e-6 &&
+              long_duration.frame_indices ==
+                  std::vector<std::size_t>(
+                      {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}) &&
+              decoded_sha256(long_duration) ==
+                  "6ed552ed698788b0128b20194d9b9ab686c175232446281877f534ec15e6e967",
+          "low-fps long-duration OpenCV-compatible decode oracle drifted");
 
   aima::NativeMediaPolicy fps_one = policy;
   fps_one.video_io.fps = 1.0;

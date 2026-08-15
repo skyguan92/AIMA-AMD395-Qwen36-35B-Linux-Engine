@@ -127,9 +127,10 @@ std::string native_qwen36_expand_media_prompt(
     std::string prompt, const std::vector<NativeVlPromptMedia>& media);
 
 // Versioned identity of all effective fixed processor parameters, the
-// request-effective video loader sampling policy and the frozen
+// request-effective image/video IO policies and the frozen
 // processor/config/chat-template inputs. Used by media cache keys.
 std::string native_qwen36_processor_config_sha256(
-    const NativeVideoIoPolicy& video_io = {});
+    const NativeVideoIoPolicy& video_io = {},
+    const NativeImageIoPolicy& image_io = {});
 
 }  // namespace aima

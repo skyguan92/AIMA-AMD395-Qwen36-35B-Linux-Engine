@@ -754,7 +754,8 @@ std::string native_qwen36_expand_media_prompt(
 }
 
 std::string native_qwen36_processor_config_sha256(
-    const NativeVideoIoPolicy& video_io) {
+    const NativeVideoIoPolicy& video_io,
+    const NativeImageIoPolicy& image_io) {
   if (video_io.video_backend != "opencv" ||
       !std::isfinite(video_io.fps)) {
     throw std::invalid_argument("video IO policy is invalid");
@@ -762,7 +763,7 @@ std::string native_qwen36_processor_config_sha256(
   std::ostringstream canonical;
   canonical.imbue(std::locale::classic());
   canonical << std::setprecision(std::numeric_limits<double>::max_digits10)
-      << "aima-amd395-qwen36/native-vl-processor/v2\n"
+      << "aima-amd395-qwen36/native-vl-processor/v3\n"
       "preprocessor_config_sha256=27225450ac9c6529872ee1924fcb0962ff5634834f817040f444118116f4e516\n"
       "video_preprocessor_config_sha256=7768af27c1fafa9cc9011c1dc20067e03f8915e03b63504550e11d5066986d13\n"
       "chat_template_sha256=e84f32a23fdda27689f868aa4a1a5621f41133e51a48d7f3efcbea2839574259\n"
@@ -780,6 +781,10 @@ std::string native_qwen36_processor_config_sha256(
       "video_io_num_frames=" << video_io.num_frames << '\n'
       << "video_io_fps=" << video_io.fps << '\n'
       << "video_io_backend=" << video_io.video_backend << '\n'
+      << "image_io_rgba_background="
+      << static_cast<unsigned int>(image_io.rgba_background_color[0]) << ','
+      << static_cast<unsigned int>(image_io.rgba_background_color[1]) << ','
+      << static_cast<unsigned int>(image_io.rgba_background_color[2]) << '\n'
       <<
       "resample=bicubic-antialias\n"
       "rescale_factor=1/255\n"

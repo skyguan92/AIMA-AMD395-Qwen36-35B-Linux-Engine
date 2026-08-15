@@ -312,7 +312,8 @@ int main() {
               media.media[1].content_part_index == 3 &&
               media.media[1].media_index == 1,
           "video part metadata changed");
-  require(!media.video_io_override.has_value(),
+  require(!media.image_io_override.has_value() &&
+              !media.video_io_override.has_value(),
           "absent media_io_kwargs changed the frozen launch policy");
 
   NativeOrderedJson video_fps_request = media_request;
@@ -335,6 +336,26 @@ int main() {
               video_frames.video_io_override->fps == -1.0,
           "request-level video frame-count override changed");
 
+  NativeOrderedJson combined_video_request = media_request;
+  combined_video_request["media_io_kwargs"] = {
+      {"video", {{"num_frames", 6}, {"fps", 1.0}}}};
+  const auto combined_video =
+      aima::prepare_native_chat(combined_video_request);
+  require(combined_video.video_io_override.has_value() &&
+              combined_video.video_io_override->num_frames == 6 &&
+              combined_video.video_io_override->fps == 1.0,
+          "combined request-level video sampling override changed");
+
+  NativeOrderedJson backend_only_request = media_request;
+  backend_only_request["media_io_kwargs"] = {
+      {"video", {{"video_backend", "opencv"}}}};
+  const auto backend_only =
+      aima::prepare_native_chat(backend_only_request);
+  require(backend_only.video_io_override.has_value() &&
+              backend_only.video_io_override->num_frames == 32 &&
+              backend_only.video_io_override->fps == 2.0,
+          "video backend-only override did not retain launch sampling");
+
   NativeOrderedJson empty_runtime_mapping = media_request;
   empty_runtime_mapping["media_io_kwargs"] = NativeOrderedJson::object();
   require(!aima::prepare_native_chat(empty_runtime_mapping)
@@ -344,10 +365,20 @@ int main() {
       {"video", NativeOrderedJson::object()}};
   const auto empty_video_mapping =
       aima::prepare_native_chat(empty_runtime_mapping);
-  require(empty_video_mapping.video_io_override.has_value() &&
-              empty_video_mapping.video_io_override->num_frames == 32 &&
-              empty_video_mapping.video_io_override->fps == -1.0,
-          "non-empty runtime mapping did not replace launch fps");
+  require(!empty_video_mapping.video_io_override.has_value(),
+          "empty video mapping changed the launch sampling policy");
+
+  NativeOrderedJson image_background_request = media_request;
+  image_background_request["media_io_kwargs"] = {
+      {"image", {{"rgba_background_color", {17, 33, 65}}}},
+      {"video", NativeOrderedJson::object()}};
+  const auto image_background =
+      aima::prepare_native_chat(image_background_request);
+  require(image_background.image_io_override.has_value() &&
+              image_background.image_io_override->rgba_background_color ==
+                  std::array<std::uint8_t, 3>({17, 33, 65}) &&
+              !image_background.video_io_override.has_value(),
+          "request-level RGBA background override changed");
 
   for (const NativeOrderedJson& invalid_media_io :
        std::vector<NativeOrderedJson>{
@@ -357,6 +388,9 @@ int main() {
            {{"video", {{"num_frames", 1.5}}}},
            {{"video", {{"video_backend", "decord"}}}},
            {{"video", {{"unknown", 1}}}},
+           {{"image", {{"rgba_background_color", {1, 2}}}}},
+           {{"image", {{"rgba_background_color", {1, 2, 256}}}}},
+           {{"image", {{"rgba_background_color", {1, 2, 3.5}}}}},
            {{"image", {{"mode", "RGBA"}}}},
            {{"audio", NativeOrderedJson::object()}},
        }) {

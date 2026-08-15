@@ -1,0 +1,54 @@
+{
+  "complete": true,
+  "fixtures": [
+    {
+      "boundary": "duration_beyond_removed_native_768_second_cap",
+      "bytes": 169626,
+      "derivation": {
+        "method": "riff_header_patch_no_frame_reencode",
+        "microseconds_per_frame": 500000000,
+        "rate": 1,
+        "scale": 500
+      },
+      "duration_seconds": 6000.0,
+      "fixture_id": "video_long_duration_low_fps",
+      "format": "avi",
+      "fps": 0.002,
+      "frame_count": 12,
+      "height": 128,
+      "modality": "video",
+      "path": "benchmarks/fixtures/vl-error-v0.1.0/video-12f-0.002fps-192x128.avi",
+      "sha256": "00ce5c84c5c16b5a787336fac4142d84bfd70486f14a89dc1a5d9537b0cc7c68",
+      "width": 192
+    }
+  ],
+  "generator": {
+    "bytes": 6739,
+    "path": "scripts/generate-vl-error-fixtures.py",
+    "sha256": "175a238f349d5875107a77f37839f815174e011184caacf71ccd3e197cc3ad7b"
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "canonical_payload_sha256": "383bd0bdba3a0a5b165d163911c3ff5e32b0810d6e4759ecb92484277951b6b0"
+  },
+  "schema": "aima-amd395-qwen36/vl-error-fixtures/v1",
+  "source": {
+    "fixture": {
+      "bytes": 169626,
+      "path": "benchmarks/fixtures/vl-capability-v0.1.0/video-12f-6fps-192x128.avi",
+      "sha256": "91f394f27c25a34fcbd279746aa7b2365c19c192e692df04a36b52edff701076"
+    },
+    "header": {
+      "fps": 6.0,
+      "frame_count": 12,
+      "microseconds_per_frame": 166666,
+      "rate": 6,
+      "scale": 1
+    },
+    "manifest": {
+      "bytes": 2691,
+      "path": "benchmarks/fixtures/vl-capability-v0.1.0/fixtures-manifest.json",
+      "sha256": "07d3e6aa54cd80707d77d2f8f406788dabb219a5b98225cf6a7b63602a009028"
+    }
+  }
+}

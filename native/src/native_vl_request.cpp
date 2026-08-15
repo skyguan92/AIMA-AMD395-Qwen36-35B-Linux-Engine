@@ -312,7 +312,7 @@ NativeVlPreparedRequest prepare_native_vl_request(
   NativeVlPreparedRequest result;
   result.metrics.media_count = chat.media.size();
   const std::string processor_identity =
-      native_qwen36_processor_config_sha256(policy.video_io);
+      native_qwen36_processor_config_sha256(policy.video_io, policy.image_io);
   std::vector<std::shared_ptr<const ProcessedMedia>> processed;
   processed.reserve(chat.media.size());
   std::vector<NativeVlPromptMedia> prompt_media;

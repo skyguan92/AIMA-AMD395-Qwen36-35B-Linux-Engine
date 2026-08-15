@@ -46,21 +46,19 @@ std::int64_t media_io_integer(const NativeOrderedJson& value,
   throw std::invalid_argument(std::string(field) + " must be an integer");
 }
 
-std::optional<NativeVideoIoPolicy> parse_media_io_kwargs(
-    const NativeOrderedJson& request) {
-  if (!request.contains("media_io_kwargs")) return std::nullopt;
+void parse_media_io_kwargs(const NativeOrderedJson& request,
+                           NativePreparedChat* prepared) {
+  if (prepared == nullptr) {
+    throw std::invalid_argument("media_io_kwargs output is null");
+  }
+  if (!request.contains("media_io_kwargs")) return;
   const NativeOrderedJson& mapping = request["media_io_kwargs"];
   if (!mapping.is_object()) {
     throw std::invalid_argument("media_io_kwargs must be an object");
   }
   // vLLM falls back to the engine-level mapping for an empty runtime mapping.
-  if (mapping.empty()) return std::nullopt;
+  if (mapping.empty()) return;
 
-  NativeVideoIoPolicy effective;
-  // A non-empty runtime mapping replaces the engine-level mapping. The
-  // VideoMediaIO constructor still supplies its 32-frame default, while an
-  // absent fps means that the OpenCV rate limiter is disabled.
-  effective.fps = -1.0;
   for (auto item = mapping.begin(); item != mapping.end(); ++item) {
     if (item.key() != "image" && item.key() != "video") {
       throw std::invalid_argument(
@@ -70,17 +68,45 @@ std::optional<NativeVideoIoPolicy> parse_media_io_kwargs(
       throw std::invalid_argument(
           "media_io_kwargs modality values must be objects");
     }
-    if (item.key() == "image" && !item.value().empty()) {
-      throw std::invalid_argument(
-          "request-level image media_io_kwargs are not supported");
-    }
   }
+
+  const auto image = mapping.find("image");
+  if (image != mapping.end() && !image->empty()) {
+    NativeImageIoPolicy effective;
+    for (auto item = image->begin(); item != image->end(); ++item) {
+      if (item.key() != "rgba_background_color") {
+        throw std::invalid_argument(
+            "unsupported media_io_kwargs.image field: " + item.key());
+      }
+      if (!item.value().is_array() || item.value().size() != 3) {
+        throw std::invalid_argument(
+            "media_io_kwargs.image.rgba_background_color must contain three integers");
+      }
+      for (std::size_t channel = 0; channel < 3; ++channel) {
+        const NativeOrderedJson& value = item.value()[channel];
+        const std::int64_t parsed = media_io_integer(
+            value, "media_io_kwargs.image.rgba_background_color");
+        if (parsed < 0 || parsed > 255) {
+          throw std::invalid_argument(
+              "media_io_kwargs.image.rgba_background_color channels must be in [0,255]");
+        }
+        effective.rgba_background_color[channel] =
+            static_cast<std::uint8_t>(parsed);
+      }
+    }
+    prepared->image_io_override = effective;
+  }
+
   const auto video = mapping.find("video");
-  if (video == mapping.end()) return effective;
+  if (video == mapping.end() || video->empty()) return;
+  NativeVideoIoPolicy effective;
+  bool has_num_frames = false;
+  bool has_fps = false;
   for (auto item = video->begin(); item != video->end(); ++item) {
     if (item.key() == "num_frames") {
       effective.num_frames =
           media_io_integer(item.value(), "media_io_kwargs.video.num_frames");
+      has_num_frames = true;
     } else if (item.key() == "fps") {
       if (!item.value().is_number()) {
         throw std::invalid_argument(
@@ -91,6 +117,7 @@ std::optional<NativeVideoIoPolicy> parse_media_io_kwargs(
         throw std::invalid_argument(
             "media_io_kwargs.video.fps must be finite");
       }
+      has_fps = true;
     } else if (item.key() == "video_backend") {
       if (!item.value().is_string() ||
           item.value().get<std::string>() != "opencv") {
@@ -102,7 +129,12 @@ std::optional<NativeVideoIoPolicy> parse_media_io_kwargs(
           "unsupported media_io_kwargs.video field: " + item.key());
     }
   }
-  return effective;
+  // VideoMediaIO shallow-merges request fields with the launch mapping, then
+  // clears the other sampling field when exactly one is supplied. num_frames
+  // is a constructor default rather than a launch-mapping field, so an fps
+  // override still retains the 32-frame cap.
+  if (has_num_frames && !has_fps) effective.fps = -1.0;
+  prepared->video_io_override = effective;
 }
 
 std::string trim_ascii_copy(std::string_view input) {
@@ -823,7 +855,7 @@ NativePreparedChat prepare_native_chat(const NativeOrderedJson& request) {
   }
 
   NativePreparedChat prepared;
-  prepared.video_io_override = parse_media_io_kwargs(request);
+  parse_media_io_kwargs(request, &prepared);
   std::unordered_set<std::string> tool_names;
   if (request.contains("tools")) {
     if (!request["tools"].is_array()) {

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
@@ -30,6 +31,12 @@ struct NativeVideoIoPolicy {
   std::int64_t num_frames = 32;
   double fps = 2.0;
   std::string video_backend = "opencv";
+};
+
+// ImageMediaIO composites RGBA inputs onto white by default and permits the
+// same request-level RGB background override as the frozen vLLM runtime.
+struct NativeImageIoPolicy {
+  std::array<std::uint8_t, 3> rgba_background_color = {255, 255, 255};
 };
 
 // An ordered OpenAI content part. The source is retained only for the native
@@ -70,8 +77,12 @@ struct NativeMediaPolicy {
   std::uint32_t maximum_decoded_video_dimension = 8192;
   std::uint32_t maximum_video_source_frames = 18432;
   std::uint32_t maximum_video_sampled_frames = 768;
-  double maximum_video_duration_seconds = 768.0;
+  // Zero disables a product-specific duration cap. The frozen OpenCV backend
+  // accepts finite low-fps videos beyond the old 768-second native limit; its
+  // selected-frame, source-frame, pixel and wall-clock bounds remain active.
+  double maximum_video_duration_seconds = 0.0;
   std::uint32_t maximum_video_decode_milliseconds = 30000;
+  NativeImageIoPolicy image_io;
   NativeVideoIoPolicy video_io;
   bool allow_data_uri = true;
 };

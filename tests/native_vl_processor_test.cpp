@@ -326,7 +326,7 @@ int main() {
   const std::string default_processor_identity =
       aima::native_qwen36_processor_config_sha256();
   require(default_processor_identity ==
-              "d5c32c48a557b75c8192a824de0992464bb307890cac0cc01f0890cfccd874d2",
+              "9be676b2d0cefbe030d61e1d89776df6c7ba28d0d86ca752c60eca3ec60a9280",
           "processor configuration identity is malformed");
   aima::NativeVideoIoPolicy fps_one_identity;
   fps_one_identity.fps = 1.0;
@@ -343,6 +343,11 @@ int main() {
                   aima::native_qwen36_processor_config_sha256(
                       fps_one_identity),
           "video frame count was omitted from processor cache identity");
+  aima::NativeImageIoPolicy red_background_identity;
+  red_background_identity.rgba_background_color = {255, 0, 0};
+  require(aima::native_qwen36_processor_config_sha256(
+              {}, red_background_identity) != default_processor_identity,
+          "RGBA background was omitted from processor cache identity");
   std::cout << "native_vl_processor_test: PASS\n";
   return 0;
 }

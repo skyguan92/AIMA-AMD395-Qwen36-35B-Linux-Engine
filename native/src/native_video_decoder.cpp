@@ -386,7 +386,7 @@ void require_video_policy(const NativeMediaPayload &payload,
       policy.maximum_video_sampled_frames == 0 ||
       policy.maximum_video_decode_milliseconds == 0 ||
       !std::isfinite(policy.maximum_video_duration_seconds) ||
-      policy.maximum_video_duration_seconds <= 0.0) {
+      policy.maximum_video_duration_seconds < 0.0) {
     throw std::invalid_argument("native video policy is invalid");
   }
 }
@@ -468,7 +468,8 @@ NativeDecodedVideo decode_native_video(const NativeMediaPayload &payload,
   const double duration =
       static_cast<double>(total_frames) / probe.source_fps();
   if (!std::isfinite(duration) ||
-      duration > policy.maximum_video_duration_seconds) {
+      (policy.maximum_video_duration_seconds > 0.0 &&
+       duration > policy.maximum_video_duration_seconds)) {
     throw std::invalid_argument("video duration exceeds the limit");
   }
   const std::vector<std::size_t> indices =

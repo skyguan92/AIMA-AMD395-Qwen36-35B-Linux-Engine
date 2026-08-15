@@ -49,7 +49,8 @@ std::size_t decoded_bytes(std::uint64_t width, std::uint64_t height,
 
 NativeRgbFrame rgba_to_rgb(std::size_t width, std::size_t height,
                            const unsigned char* rgba,
-                           std::size_t rgba_bytes) {
+                           std::size_t rgba_bytes,
+                           const NativeImageIoPolicy& image_io) {
   if (rgba == nullptr || rgba_bytes != width * height * 4) {
     throw std::runtime_error("decoded RGBA image has invalid geometry");
   }
@@ -58,9 +59,14 @@ NativeRgbFrame rgba_to_rgb(std::size_t width, std::size_t height,
   frame.height = height;
   frame.pixels.resize(width * height * 3);
   for (std::size_t pixel = 0; pixel < width * height; ++pixel) {
-    frame.pixels[pixel * 3] = rgba[pixel * 4];
-    frame.pixels[pixel * 3 + 1] = rgba[pixel * 4 + 1];
-    frame.pixels[pixel * 3 + 2] = rgba[pixel * 4 + 2];
+    const std::uint32_t alpha = rgba[pixel * 4 + 3];
+    for (std::size_t channel = 0; channel < 3; ++channel) {
+      const std::uint32_t source = rgba[pixel * 4 + channel];
+      const std::uint32_t background =
+          image_io.rgba_background_color[channel];
+      frame.pixels[pixel * 3 + channel] = static_cast<unsigned char>(
+          (source * alpha + background * (255U - alpha) + 127U) / 255U);
+    }
   }
   return frame;
 }
@@ -84,7 +90,8 @@ NativeRgbFrame decode_png(const NativeMediaPayload& payload,
       throw std::invalid_argument("PNG image payload is corrupt");
     }
     png_image_free(&image);
-    return rgba_to_rgb(width, height, rgba.data(), rgba.size());
+    return rgba_to_rgb(width, height, rgba.data(), rgba.size(),
+                       policy.image_io);
   } catch (...) {
     png_image_free(&image);
     throw;
@@ -108,7 +115,7 @@ NativeRgbFrame decode_webp(const NativeMediaPayload& payload,
   }
   return rgba_to_rgb(static_cast<std::size_t>(features.width),
                      static_cast<std::size_t>(features.height), rgba.data(),
-                     rgba.size());
+                     rgba.size(), policy.image_io);
 }
 
 struct JpegErrorState {

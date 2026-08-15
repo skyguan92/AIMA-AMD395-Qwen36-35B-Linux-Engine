@@ -60,7 +60,7 @@ int main(int argc, char** argv) {
       "749727157d96fd1516956d32f612e55541eff1380a86c27d940ad5d7b35c229f");
   require_fixture(
       root, "image-transparent-160x320.png", "image/png", 160, 320,
-      "36c7b22d4f186e88d12b44ee170c7a468cd7ef37be0f1ea0aeb6614785dde222");
+      "c779b79d2b3dc97c964b1f931bb9056602fba3b40eee297131e247680e36104e");
   require_fixture(
       root, "image-portrait-192x512.webp", "image/webp", 192, 512,
       "824badf1c9a15777d77c544dad0da03ab67ddd310767eba4c9a409a5edba7bda");
@@ -81,7 +81,7 @@ int main(int argc, char** argv) {
               resized_transparent.width == 192 &&
               aima::sha256_bytes(resized_transparent.pixels.data(),
                                  resized_transparent.pixels.size()) ==
-                  "d34742d3899ae42a769b80fde2e1da59a9158da72caf2a5f0dca014d58955857",
+                  "ebe9d2d64be2719106ee59909da4ffc35772c2e0fea618dfd4dec5baf6282e4a",
           "torchvision v2 uint8 bicubic resize oracle drifted");
   const aima::NativeVlPixelTensor processed_transparent =
       aima::native_qwen36_process_rgb({decoded_transparent},
@@ -92,8 +92,17 @@ int main(int argc, char** argv) {
                   processed_transparent.values.data(),
                   processed_transparent.values.size() *
                       sizeof(processed_transparent.values[0])) ==
-                  "dd3835f0d61fc4f17576fd09a22759e79671e6bca09cbc014efd282b8dd0fbce",
+                  "d3ae97c0ca3700635dcf61614fc5929a8e66646073cc10f2874420c53881e609",
           "resized image BF16 processor oracle drifted");
+
+  aima::NativeMediaPolicy red_background;
+  red_background.image_io.rgba_background_color = {255, 0, 0};
+  const aima::NativeRgbFrame decoded_red_background =
+      aima::decode_native_image(transparent, red_background);
+  require(aima::sha256_bytes(decoded_red_background.pixels.data(),
+                             decoded_red_background.pixels.size()) ==
+              "debb77f47c8594a633976b272b192ac42db5f396de52c4ee8789a57854f176ef",
+          "request-level RGBA background compositing drifted");
 
   aima::NativeMediaPayload png;
   png.kind = aima::NativeMediaKind::kImage;
