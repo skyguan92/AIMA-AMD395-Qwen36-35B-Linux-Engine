@@ -37,6 +37,7 @@ AOT_MANIFEST_Q8192="$(prefill_closure_dir 8192)/manifest.json"
 AOT_MANIFESTS="${AOT_MANIFESTS:-${DEFAULT_AOT_MANIFESTS}}"
 VL_UNIFIED_ATTENTION_MANIFEST="${ROOT}/native/aot/gfx1151/vl-unified-attention-v0.1.0/manifest.json"
 VL_RECOMPUTE_WU_MANIFEST="${ROOT}/native/aot/gfx1151/vl-recompute-w-u-q131-v0.1.0/manifest.json"
+PACKED_LINEAR_DECODE_MANIFEST="${ROOT}/native/aot/gfx1151/packed-linear-decode-v0.1.0/manifest.json"
 case ":${AOT_MANIFESTS}:" in
   *":${VL_UNIFIED_ATTENTION_MANIFEST}:"*) ;;
   *) AOT_MANIFESTS="${AOT_MANIFESTS}:${VL_UNIFIED_ATTENTION_MANIFEST}" ;;
@@ -44,6 +45,10 @@ esac
 case ":${AOT_MANIFESTS}:" in
   *":${VL_RECOMPUTE_WU_MANIFEST}:"*) ;;
   *) AOT_MANIFESTS="${AOT_MANIFESTS}:${VL_RECOMPUTE_WU_MANIFEST}" ;;
+esac
+case ":${AOT_MANIFESTS}:" in
+  *":${PACKED_LINEAR_DECODE_MANIFEST}:"*) ;;
+  *) AOT_MANIFESTS="${AOT_MANIFESTS}:${PACKED_LINEAR_DECODE_MANIFEST}" ;;
 esac
 VISION_ATTENTION_IMAGE="${ROOT}/native/aot/gfx1151/vision-attention-v0.1.0/kernels/e45a4026e641c9f8-_fwd_kernel.hsaco"
 VISION_ATTENTION_IMAGE_SHA256="b709a058a77d61e14db73c1ff7d7f4c20859d997bec811cad7339d3e59223d00"

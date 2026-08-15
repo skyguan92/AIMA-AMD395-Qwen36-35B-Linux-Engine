@@ -15,7 +15,7 @@ NativeDecodeInvocationMetrics NativeDecodeInvocations::build(
   if (!launches_.empty() || !workspace.built()) {
     throw std::runtime_error("native decode invocations require fresh complete owners");
   }
-  linear_state_buffers_swapped_ = false;
+  linear_conv_state_buffers_swapped_ = false;
   NativeDecodeInvocationMetrics metrics;
   std::size_t launch_count = 0;
   const DecodeLaunch* schedule = native_decode_schedule(&launch_count);
@@ -115,7 +115,7 @@ void* NativeDecodeInvocations::tensor_pointer(
                            std::string(argument_name));
 }
 
-std::size_t NativeDecodeInvocations::swap_linear_decode_state_buffers() {
+std::size_t NativeDecodeInvocations::swap_linear_decode_conv_state_buffers() {
   if (launches_.size() != 402) {
     throw std::runtime_error("native decode state swap requires 402 launches");
   }
@@ -147,19 +147,19 @@ std::size_t NativeDecodeInvocations::swap_linear_decode_state_buffers() {
       continue;
     }
     swap_named(launches_[base + 1], "state_in", "state_out");
-    swap_named(launches_[base + 2], "h0", "ht");
-    swaps += 2;
+    ++swaps;
   }
-  if (swaps != 60) {
-    throw std::runtime_error("native decode state swap closure is incomplete");
+  if (swaps != 30) {
+    throw std::runtime_error(
+        "native decode convolution state swap closure is incomplete");
   }
-  linear_state_buffers_swapped_ = !linear_state_buffers_swapped_;
+  linear_conv_state_buffers_swapped_ = !linear_conv_state_buffers_swapped_;
   return swaps;
 }
 
-std::size_t NativeDecodeInvocations::reset_linear_decode_state_buffers() {
-  return linear_state_buffers_swapped_
-             ? swap_linear_decode_state_buffers()
+std::size_t NativeDecodeInvocations::reset_linear_decode_conv_state_buffers() {
+  return linear_conv_state_buffers_swapped_
+             ? swap_linear_decode_conv_state_buffers()
              : 0;
 }
 

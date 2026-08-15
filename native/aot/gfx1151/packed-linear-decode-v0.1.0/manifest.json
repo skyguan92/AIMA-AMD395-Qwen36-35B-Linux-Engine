@@ -1,0 +1,373 @@
+{
+  "abi": {
+    "hidden_argument_values": [
+      0,
+      0
+    ],
+    "hidden_arguments": [
+      "global_scratch",
+      "profile_scratch"
+    ],
+    "launch": "hipModuleLaunchKernel"
+  },
+  "coverage": {
+    "cache_state": "warm_compilation_cache_cold_prefix_request",
+    "completion_tokens": 1,
+    "context_tokens": 1,
+    "full_matrix_complete": false
+  },
+  "kernel_count": 1,
+  "kernel_symbol_count": 1,
+  "kernels": [
+    {
+      "audit_artifacts": [
+        {
+          "bytes": 173569,
+          "name": "fused_recurrent_gated_delta_rule_packed_decode_kernel.llir",
+          "sha256": "125aa5e0bddbc0a79195f2a08a47ea0cda55c249a7aed3f9a4eb081c7fb55c27"
+        },
+        {
+          "bytes": 1166,
+          "name": "fused_recurrent_gated_delta_rule_packed_decode_kernel.json",
+          "sha256": "6c90c9033dca21471445c374a9b4353bb7e7a0ed6a8842158a580d980f204cda"
+        },
+        {
+          "bytes": 59016,
+          "name": "fused_recurrent_gated_delta_rule_packed_decode_kernel.source",
+          "sha256": "74223d49bc3542678f47b21e072c40e925eca63ec7a15f6724bf622d80186bee"
+        },
+        {
+          "bytes": 34787,
+          "name": "fused_recurrent_gated_delta_rule_packed_decode_kernel.ttir",
+          "sha256": "7e71c0b656f261a95c108ee2e8cded42c465316c13fe6433aab1fbe3cf750d11"
+        },
+        {
+          "bytes": 243950,
+          "name": "fused_recurrent_gated_delta_rule_packed_decode_kernel.amdgcn",
+          "sha256": "c4a1b197049ae67bcba70adc87224775cf608a0f47f9fcf66b8877f417026063"
+        },
+        {
+          "bytes": 34721,
+          "name": "fused_recurrent_gated_delta_rule_packed_decode_kernel.ttgir",
+          "sha256": "f673b89f3cc5ede0ac65132e8bc2d848814e03173b56e1482bd89aa5162c2aca"
+        },
+        {
+          "bytes": 34872,
+          "name": "fused_recurrent_gated_delta_rule_packed_decode_kernel.hsaco",
+          "sha256": "fd75ef4f03c14290953221fb4b17891206d70c54c33b9ab6aa46287028178041"
+        }
+      ],
+      "compile_constants": {
+        "BK": 128,
+        "BV": 32,
+        "H": 16,
+        "HV": 32,
+        "K": 128,
+        "SOFTPLUS_THRESHOLD": 20.0,
+        "USE_QK_L2NORM_IN_KERNEL": true,
+        "V": 128,
+        "stride_a_tok": 32,
+        "stride_b_tok": 32,
+        "stride_final_state_token": 524288,
+        "stride_indices_seq": 1,
+        "stride_init_state_token": 524288,
+        "stride_mixed_qkv_tok": 8192
+      },
+      "image": {
+        "bytes": 17128,
+        "path": "kernels/361b24af7b3fc502-fused_recurrent_gated_delta_rule_packed_decode_kernel.hsaco",
+        "raw_bytes": 34872,
+        "raw_sha256": "fd75ef4f03c14290953221fb4b17891206d70c54c33b9ab6aa46287028178041",
+        "sha256": "cbd56ae7aef6ff24d548d5b60973981ccdcf8f764b97a88f931b568ee20a2fb5",
+        "transformation": "llvm-strip --strip-debug"
+      },
+      "kernel_hash": "361b24af7b3fc502598ffb5fd1e191c9b82afc437361f92f4056bf8772a960dc",
+      "launch_variants": [
+        {
+          "arguments": [
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "mixed_qkv",
+              "shape": [
+                1,
+                8192
+              ],
+              "stride": [
+                8192,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "a",
+              "shape": [
+                1,
+                32
+              ],
+              "stride": [
+                32,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "b",
+              "shape": [
+                1,
+                32
+              ],
+              "stride": [
+                32,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "A_log",
+              "shape": [
+                32
+              ],
+              "stride": [
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "dt_bias",
+              "shape": [
+                32
+              ],
+              "stride": [
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "o",
+              "shape": [
+                1,
+                1,
+                32,
+                128
+              ],
+              "stride": [
+                4096,
+                4096,
+                128,
+                1
+              ]
+            },
+            {
+              "abi_type": "*fp32",
+              "dtype": "torch.float32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "h0",
+              "shape": [
+                2,
+                32,
+                128,
+                128
+              ],
+              "stride": [
+                524288,
+                16384,
+                128,
+                1
+              ]
+            },
+            {
+              "abi_type": "*fp32",
+              "dtype": "torch.float32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "ht",
+              "shape": [
+                2,
+                32,
+                128,
+                128
+              ],
+              "stride": [
+                524288,
+                16384,
+                128,
+                1
+              ]
+            },
+            {
+              "abi_type": "*i32",
+              "dtype": "torch.int32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "ssm_state_indices",
+              "shape": [
+                1
+              ],
+              "stride": [
+                1
+              ]
+            },
+            {
+              "abi_type": "fp32",
+              "kind": "scalar",
+              "name": "scale",
+              "value": 0.08838834764831845
+            }
+          ],
+          "grid": [
+            4,
+            32,
+            1
+          ]
+        }
+      ],
+      "metadata": {
+        "launch_cooperative_grid": false,
+        "name": "fused_recurrent_gated_delta_rule_packed_decode_kernel",
+        "num_ctas": 1,
+        "num_stages": 3,
+        "num_warps": 1,
+        "shared": 64,
+        "target": {
+          "arch": "gfx1151",
+          "backend": "hip",
+          "warp_size": 32
+        },
+        "warp_size": 32
+      },
+      "regular_abi": [
+        {
+          "name": "mixed_qkv",
+          "type": "*bf16"
+        },
+        {
+          "name": "a",
+          "type": "*bf16"
+        },
+        {
+          "name": "b",
+          "type": "*bf16"
+        },
+        {
+          "name": "A_log",
+          "type": "*bf16"
+        },
+        {
+          "name": "dt_bias",
+          "type": "*bf16"
+        },
+        {
+          "name": "o",
+          "type": "*bf16"
+        },
+        {
+          "name": "h0",
+          "type": "*fp32"
+        },
+        {
+          "name": "ht",
+          "type": "*fp32"
+        },
+        {
+          "name": "ssm_state_indices",
+          "type": "*i32"
+        },
+        {
+          "name": "scale",
+          "type": "fp32"
+        }
+      ],
+      "signature": {
+        "A_log": "*bf16",
+        "BK": "constexpr",
+        "BV": "constexpr",
+        "H": "constexpr",
+        "HV": "constexpr",
+        "K": "constexpr",
+        "SOFTPLUS_THRESHOLD": "constexpr",
+        "USE_QK_L2NORM_IN_KERNEL": "constexpr",
+        "V": "constexpr",
+        "a": "*bf16",
+        "b": "*bf16",
+        "dt_bias": "*bf16",
+        "h0": "*fp32",
+        "ht": "*fp32",
+        "mixed_qkv": "*bf16",
+        "o": "*bf16",
+        "scale": "fp32",
+        "ssm_state_indices": "*i32",
+        "stride_a_tok": "constexpr",
+        "stride_b_tok": "constexpr",
+        "stride_final_state_token": "constexpr",
+        "stride_indices_seq": "constexpr",
+        "stride_init_state_token": "constexpr",
+        "stride_mixed_qkv_tok": "constexpr"
+      },
+      "source_provenance": [
+        {
+          "license": "MIT",
+          "owner": "Triton",
+          "path": "triton/language/standard.py"
+        },
+        {
+          "license": "Apache-2.0",
+          "owner": "vLLM",
+          "path": "vllm/model_executor/layers/fla/ops/fused_recurrent.py"
+        }
+      ],
+      "symbol": "fused_recurrent_gated_delta_rule_packed_decode_kernel"
+    }
+  ],
+  "launch_variant_count": 1,
+  "non_claims": [
+    "not_yet_a_complete_native_model_executor",
+    "not_yet_full_context_matrix_coverage",
+    "not_yet_a_correctness_or_performance_promotion"
+  ],
+  "packaged_hsaco_bytes": 17128,
+  "raw_hsaco_bytes": 34872,
+  "schema": "aima-amd395-qwen36/native-aot-closure/v1",
+  "source": {
+    "commit": "83f337566ea978cf22923fcad1526b788b040e60",
+    "compiler": {
+      "license": "MIT",
+      "name": "Triton",
+      "version": "3.6.0"
+    },
+    "engine_sha256": "300389200fc15f4b632ae5900008dd2b48f6a34421f318cd0c5b7137dce2a702",
+    "traces": [
+      {
+        "bytes": 6096,
+        "records": 2,
+        "sha256": "4d8340771bcf23a77be7d5eeee0867aa951b4402c5f68000077cf4a8f66227bd"
+      }
+    ],
+    "vllm_license": "Apache-2.0",
+    "vllm_version": "0.19.1rc1.dev300+g29e5d1020.rocm721"
+  },
+  "status": "bounded_q1_output1_executor_migration_evidence",
+  "target": {
+    "arch": "gfx1151",
+    "backend": "HIP",
+    "warp_size": 32
+  }
+}

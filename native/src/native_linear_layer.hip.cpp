@@ -10,8 +10,10 @@
 #include <hip/hip_runtime.h>
 
 #include <chrono>
+#include <cstdint>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 namespace aima {
 namespace {
@@ -19,6 +21,13 @@ namespace {
 constexpr std::size_t kHidden = 2048;
 constexpr std::size_t kLinearValue = 4096;
 constexpr std::size_t kSharedIntermediate = 512;
+constexpr std::size_t kRecurrentStateBytes =
+    32ULL * 128ULL * 128ULL * sizeof(float);
+constexpr char kPackedRecurrentKernelHash[] =
+    "361b24af7b3fc502598ffb5fd1e191c9b82afc437361f92f4056bf8772a960dc";
+constexpr AotLaunchConfig kPackedRecurrentLaunchConfig{
+    4, 32, 1, 1, 32, 64};
+constexpr float kLinearAttentionScale = 0.08838834764831845f;
 
 void check_hip(hipError_t status, const char* operation) {
   if (status != hipSuccess) {
@@ -34,6 +43,17 @@ const NativeDecodeWorkspaceView& require_workspace(
   if (view == nullptr || view->device_pointer == nullptr ||
       view->payload_bytes < minimum_bytes ||
       view->dtype != DecodeTensorDtype::kBfloat16) {
+    throw std::runtime_error("native linear layer workspace mismatch: " + name);
+  }
+  return *view;
+}
+
+const NativeDecodeWorkspaceView& require_typed_workspace(
+    const NativeDecodeWorkspace& workspace, const std::string& name,
+    std::uint64_t expected_bytes, DecodeTensorDtype dtype) {
+  const NativeDecodeWorkspaceView* view = workspace.find(name);
+  if (view == nullptr || view->device_pointer == nullptr ||
+      view->payload_bytes != expected_bytes || view->dtype != dtype) {
     throw std::runtime_error("native linear layer workspace mismatch: " + name);
   }
   return *view;
@@ -65,6 +85,55 @@ const char* require_argument_binding(const PreparedDecodeInvocation& invocation,
   throw std::runtime_error(
       "native linear layer schedule argument is missing: " +
       std::string(argument_name));
+}
+
+void launch_packed_recurrent(
+    std::size_t layer_index, const NativeDecodeWorkspace& workspace,
+    const NativeDecodeInvocations& invocations, NativeDecodeExecutor& executor,
+    hipStream_t stream) {
+  if (layer_index >= 40 || layer_index % 4 == 3) {
+    throw std::invalid_argument("packed recurrent layer index is invalid");
+  }
+  const std::size_t schedule_index = layer_index * 10 + 2;
+  const std::size_t state_index = layer_index - layer_index / 4 + 1;
+  const auto& state_base = require_typed_workspace(
+      workspace, "native.linear.packed_ssm_state_base", kRecurrentStateBytes,
+      DecodeTensorDtype::kFloat32);
+  const auto& state_indices = require_typed_workspace(
+      workspace, "native.linear.packed_ssm_state_indices",
+      40 * sizeof(std::int32_t), DecodeTensorDtype::kInt32);
+  void* canonical_state = invocations.tensor_pointer(schedule_index, "h0");
+  void* expected_state =
+      static_cast<unsigned char*>(state_base.device_pointer) +
+      state_index * kRecurrentStateBytes;
+  if (canonical_state != expected_state) {
+    throw std::runtime_error(
+        "native packed recurrent state layout is not contiguous");
+  }
+
+  // The frozen schedule records the prior out-of-place FLA kernel. The current
+  // vLLM implementation consumes the same projection slices but normalizes Q/K
+  // and rounds sigmoid(beta) in this packed, in-place kernel. Keep the schedule
+  // as historical evidence and replace only this launch at execution time.
+  void* mixed_qkv = invocations.tensor_pointer(schedule_index, "q");
+  void* a = invocations.tensor_pointer(schedule_index, "a");
+  void* b = invocations.tensor_pointer(schedule_index, "b");
+  void* a_log = invocations.tensor_pointer(schedule_index, "A_log");
+  void* dt_bias = invocations.tensor_pointer(schedule_index, "dt_bias");
+  void* output = invocations.tensor_pointer(schedule_index, "o");
+  void* initial_state = state_base.device_pointer;
+  void* final_state = state_base.device_pointer;
+  void* selected_state_index =
+      static_cast<unsigned char*>(state_indices.device_pointer) +
+      layer_index * sizeof(std::int32_t);
+  float scale = kLinearAttentionScale;
+  const std::vector<void*> parameters = {
+      &mixed_qkv, &a,          &b,           &a_log, &dt_bias,
+      &output,    &initial_state, &final_state, &selected_state_index,
+      &scale,
+  };
+  executor.launch_embedded(kPackedRecurrentKernelHash,
+                           kPackedRecurrentLaunchConfig, parameters, stream);
 }
 
 }  // namespace
@@ -148,10 +217,11 @@ NativeLinearLayerMetrics run_native_linear_layer(
   hipStream_t stream = static_cast<hipStream_t>(stream_value);
   NativeLinearLayerMetrics metrics;
   metrics.layer_index = layer_index;
-  for (std::size_t offset = 0; offset < 4; ++offset) {
-    executor.launch(launches[base + offset], stream);
-    ++metrics.aot_launches;
-  }
+  executor.launch(launches[base], stream);
+  executor.launch(launches[base + 1], stream);
+  launch_packed_recurrent(layer_index, workspace, invocations, executor, stream);
+  executor.launch(launches[base + 3], stream);
+  metrics.aot_launches += 4;
   launch_bf16_wvsplitk(
       output_weight.device_pointer, gated.device_pointer, nullptr,
       attention_output.device_pointer, kHidden, kLinearValue, cu_count, stream);

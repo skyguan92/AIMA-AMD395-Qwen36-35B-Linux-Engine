@@ -1177,7 +1177,7 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
         impl_->structured_token_mask);
   };
   metrics.state_orientation_resets =
-      impl_->decode_invocations.reset_linear_decode_state_buffers();
+      impl_->decode_invocations.reset_linear_decode_conv_state_buffers();
   metrics.request_state_reset_bytes =
       impl_->attention_state.clear_request_scratch();
   if (!prefix_hit && prompt_plan.aot_segments.empty()) {
