@@ -17,7 +17,15 @@ import sys
 from typing import Any
 
 
-SHAPES = ((2048, 512), (2048, 4096))
+# Keep the two previously qualified decode consumers and cover every unique
+# [M, K] shape used by current vLLM's split linear-attention projections.
+SHAPES = (
+    (2048, 512),
+    (2048, 4096),
+    (8192, 2048),
+    (4096, 2048),
+    (32, 2048),
+)
 LAUNCHES_PER_SAMPLE = 200
 
 
@@ -141,7 +149,7 @@ def main() -> int:
             }
         )
     result = {
-        "schema": "aima-amd395-qwen36/native-wvsplitk-paired-parity/v1",
+        "schema": "aima-amd395-qwen36/native-wvsplitk-paired-parity/v2",
         "complete": True,
         "scope": "decode_projection_provider_boundary_only",
         "native": native,

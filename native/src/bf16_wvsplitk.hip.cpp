@@ -378,6 +378,9 @@ Bf16WvSplitKProbeResult probe_bf16_wvsplitk() {
   const int cu_count = properties.multiProcessorCount;
   result.cases.push_back(probe_case(2048, 512, cu_count));
   result.cases.push_back(probe_case(2048, 4096, cu_count));
+  result.cases.push_back(probe_case(8192, 2048, cu_count));
+  result.cases.push_back(probe_case(4096, 2048, cu_count));
+  result.cases.push_back(probe_case(32, 2048, cu_count));
   return result;
 }
 

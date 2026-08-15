@@ -434,7 +434,7 @@ int run_bf16_wvsplitk_probe() {
   const aima::Bf16WvSplitKProbeResult result = aima::probe_bf16_wvsplitk();
   std::cout << std::setprecision(17)
             << "{\n"
-            << "  \"schema\": \"aima-amd395-qwen36/native-bf16-wvsplitk-probe/v1\",\n"
+            << "  \"schema\": \"aima-amd395-qwen36/native-bf16-wvsplitk-probe/v2\",\n"
             << "  \"complete\": true,\n"
             << "  \"runtime_python\": false,\n"
             << "  \"runtime_torch\": false,\n"

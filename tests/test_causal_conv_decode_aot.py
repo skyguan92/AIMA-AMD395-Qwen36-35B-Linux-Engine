@@ -86,6 +86,12 @@ class CausalConvDecodeAotTests(unittest.TestCase):
         runtime = (ROOT / "native/src/native_linear_layer.hip.cpp").read_text(
             encoding="utf-8"
         )
+        provider = (ROOT / "native/src/bf16_wvsplitk.hip.cpp").read_text(
+            encoding="utf-8"
+        )
+        parity = (ROOT / "scripts/check-native-wvsplitk-parity.py").read_text(
+            encoding="utf-8"
+        )
         self.assertIn(KERNEL_HASH, runtime)
         self.assertIn("launch_current_causal_conv", runtime)
         self.assertIn("in_proj_qkv.weight", runtime)
@@ -93,6 +99,9 @@ class CausalConvDecodeAotTests(unittest.TestCase):
         self.assertIn("in_proj_a.weight", runtime)
         self.assertIn("in_proj_b.weight", runtime)
         self.assertNotIn("executor.launch(launches[base + 1]", runtime)
+        for m in (8192, 4096, 32):
+            self.assertIn(f"probe_case({m}, 2048, cu_count)", provider)
+            self.assertIn(f"({m}, 2048)", parity)
 
     def test_default_build_embeds_causal_conv_manifest(self) -> None:
         build = (ROOT / "scripts/build-native-runtime.sh").read_text(
