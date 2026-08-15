@@ -17,15 +17,6 @@
     },
     {
       "gaps": [
-        "empty image and empty video categories are not frozen",
-        "remote timeout and unreachable-media categories are not frozen",
-        "compressed-byte, decoded-pixel and duration over-limit categories are not frozen",
-        "error-category compatibility is not sealed separately from HTTP status"
-      ],
-      "requirement_id": "G1.2.2.error_parity"
-    },
-    {
-      "gaps": [
         "the complete G3 text and release no-regression protocol has not run"
       ],
       "requirement_id": "G1.2.3.product_preservation"
@@ -34,9 +25,9 @@
   "complete": true,
   "coverage": {
     "counts": {
-      "covered": 10,
+      "covered": 11,
       "missing": 0,
-      "partial": 4
+      "partial": 3
     },
     "items": [
       {
@@ -66,6 +57,24 @@
               "image_near_window_maximum"
             ],
             "note": "min/typical/max, aspect, clamp, count and near-window execution"
+          },
+          {
+            "artifact": "media_io_reference",
+            "case_ids": [
+              "default_white",
+              "red"
+            ],
+            "note": "fixed vLLM white/default and request-red RGBA compositing"
+          },
+          {
+            "artifact": "error_limits_native",
+            "case_ids": [
+              "rgba_default_cold",
+              "rgba_red_miss",
+              "rgba_default_restored",
+              "rgba_red_after_errors"
+            ],
+            "note": "resident native RGBA request semantics and A/B/A identity"
           }
         ],
         "gaps": [],
@@ -100,6 +109,25 @@
               "video_full_item_budget"
             ],
             "note": "sampling, feature, count and full-budget execution"
+          },
+          {
+            "artifact": "error_limits_reference",
+            "case_ids": [
+              "video_sampling_default",
+              "video_sampling_empty_mapping",
+              "video_long_duration"
+            ],
+            "note": "fixed vLLM merge semantics and 6000-second sparse video acceptance"
+          },
+          {
+            "artifact": "error_limits_native",
+            "case_ids": [
+              "video_default_cold",
+              "video_empty_mapping_exact",
+              "video_default_restored",
+              "video_long_duration"
+            ],
+            "note": "resident native replay is reference-exact across merge and duration"
           }
         ],
         "gaps": [],
@@ -373,16 +401,33 @@
               "video_content_error_disabled"
             ],
             "note": "corrupt-video status is reference-exact and invariant to cache mode"
+          },
+          {
+            "artifact": "error_limits_reference",
+            "case_ids": [
+              "empty_image_remote",
+              "empty_video_remote",
+              "unreachable_image_remote",
+              "oversize_image_remote",
+              "timeout_image_remote"
+            ],
+            "note": "fixed vLLM freezes empty, inaccessible, byte-limit and timeout status/type contracts"
+          },
+          {
+            "artifact": "error_limits_native",
+            "case_ids": [
+              "empty_image_remote",
+              "empty_video_remote",
+              "unreachable_image_remote",
+              "oversize_image_remote",
+              "timeout_image_remote"
+            ],
+            "note": "native preserves the fail-closed product error shape with explicit compatible-category checks"
           }
         ],
-        "gaps": [
-          "empty image and empty video categories are not frozen",
-          "remote timeout and unreachable-media categories are not frozen",
-          "compressed-byte, decoded-pixel and duration over-limit categories are not frozen",
-          "error-category compatibility is not sealed separately from HTTP status"
-        ],
+        "gaps": [],
         "requirement_id": "G1.2.2.error_parity",
-        "status": "partial",
+        "status": "covered",
         "title": "Invalid media status and error-category parity"
       },
       {
@@ -434,6 +479,19 @@
               "mixed_image_video_restored"
             ],
             "note": "live A/B/A covers video bytes, sampling policy, mixed order and media mutation"
+          },
+          {
+            "artifact": "error_limits_native",
+            "case_ids": [
+              "rgba_default_cold",
+              "rgba_red_miss",
+              "rgba_default_restored",
+              "rgba_red_after_errors",
+              "video_default_cold",
+              "video_empty_mapping_exact",
+              "video_default_restored"
+            ],
+            "note": "processor identity v3 binds RGBA background and shallow-merged video sampling policy"
           }
         ],
         "gaps": [],
@@ -460,6 +518,18 @@
               "mixed_image_video_disabled_2"
             ],
             "note": "8-token output and usage equality, all-miss disabled mode, and error status/payload invariance are live-qualified"
+          },
+          {
+            "artifact": "error_limits_native",
+            "case_ids": [
+              "empty_image_remote",
+              "empty_video_remote",
+              "unreachable_image_remote",
+              "oversize_image_remote",
+              "timeout_image_remote",
+              "rgba_red_after_errors"
+            ],
+            "note": "five errors do not pollute media identity or later resident reuse"
           }
         ],
         "gaps": [],
@@ -487,15 +557,30 @@
       "path": "tests/native_multimodal_cache_test.cpp",
       "sha256": "764494533015aa046071424304eb7127b0f86ab0e0ac21da35d668d5d90554a2"
     },
+    "error_limits_contract": {
+      "bytes": 7537,
+      "path": "aima_engine/vl_error_limits.py",
+      "sha256": "55e61d9060e67d8a67c7eea72480b7b66cc1466c7da393c45507b1591cb99028"
+    },
+    "error_limits_native": {
+      "bytes": 77812,
+      "path": "benchmarks/results/native-vl-error-limits-v0.1.0.json",
+      "sha256": "5bc0b2880ce0ccc8e1f08b9cd3d2421d86e27b52f4444b33367ad5bb27b2682f"
+    },
+    "error_limits_reference": {
+      "bytes": 43853,
+      "path": "benchmarks/results/vl-error-limits-reference-v0.1.0.json",
+      "sha256": "36ca8fe48ce785a52a8123d72be2d9271e3a29731222672bc30989250f2e56f1"
+    },
     "execution_envelope": {
       "bytes": 184268,
       "path": "benchmarks/results/native-vl-envelope-v0.1.0.json",
       "sha256": "4f1bb7f0349b9c6b70bd0af876fa70c4b6be3b81f7b3750f45a24eb0d609b910"
     },
     "generator": {
-      "bytes": 29685,
+      "bytes": 35880,
       "path": "scripts/generate-native-vl-g1-coverage-audit.py",
-      "sha256": "de9cc5ac9712eb1d1fcb6723e075ad00de969d9f9d34977f415ac93427c0af06"
+      "sha256": "50acba447c40b3e3ea50ac971c430a6a82e58fdbdb27d1005202775321fad6ae"
     },
     "goal": {
       "bytes": 17981,
@@ -506,6 +591,11 @@
       "bytes": 17611,
       "path": "benchmarks/results/native-vl-language-full-v0.2.0.json",
       "sha256": "6de4f46b10a659c358350b1c42dec6e1d361f81c01926bf628b44b892fffb636"
+    },
+    "media_io_reference": {
+      "bytes": 2395,
+      "path": "benchmarks/results/vl-media-io-reference-v0.1.0.json",
+      "sha256": "56dff264132bdb49a470bd0af863df6ddca0e22f83da43143ad85267c0a30e98"
     },
     "mixed_conversation_native": {
       "bytes": 43458,
@@ -550,23 +640,9 @@
   },
   "integrity": {
     "algorithm": "sha256",
-    "canonical_payload_sha256": "adc41b25308d425c2cab940cc3447a725bd527fa6d40cc6ef7092174bc311f40"
+    "canonical_payload_sha256": "2e51bdf5d595807874dc88809abaa8903e2e0bb2f923772ae01c786c120aa583"
   },
   "next_evidence": [
-    {
-      "cases": [
-        "error_empty_image",
-        "error_empty_video",
-        "error_remote_timeout",
-        "error_remote_unreachable",
-        "error_media_bytes_over_limit",
-        "error_video_duration_over_limit"
-      ],
-      "evidence_id": "g1-error-extension",
-      "requirement_ids": [
-        "G1.2.2.error_parity"
-      ]
-    },
     {
       "cases": [
         "resolve_four_usage_completion_differences",

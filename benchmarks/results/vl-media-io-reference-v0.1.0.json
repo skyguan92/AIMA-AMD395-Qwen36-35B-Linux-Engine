@@ -1,0 +1,83 @@
+{
+  "captured_at": "2026-08-15T06:56:55+00:00",
+  "cases": [
+    {
+      "case_id": "default_white",
+      "expected_rgb_sha256": "c779b79d2b3dc97c964b1f931bb9056602fba3b40eee297131e247680e36104e",
+      "height": 320,
+      "mode": "RGB",
+      "qualified": true,
+      "rgb_bytes": 153600,
+      "rgb_sha256": "c779b79d2b3dc97c964b1f931bb9056602fba3b40eee297131e247680e36104e",
+      "rgba_background_color": [
+        255,
+        255,
+        255
+      ],
+      "width": 160
+    },
+    {
+      "case_id": "red",
+      "expected_rgb_sha256": "debb77f47c8594a633976b272b192ac42db5f396de52c4ee8789a57854f176ef",
+      "height": 320,
+      "mode": "RGB",
+      "qualified": true,
+      "rgb_bytes": 153600,
+      "rgb_sha256": "debb77f47c8594a633976b272b192ac42db5f396de52c4ee8789a57854f176ef",
+      "rgba_background_color": [
+        255,
+        0,
+        0
+      ],
+      "width": 160
+    }
+  ],
+  "complete": true,
+  "decision": {
+    "background_changes_rgb_bytes": true,
+    "default_white_exact": true,
+    "g1_passed": false,
+    "g2_passed": false,
+    "g3_passed": false,
+    "g4_passed": false,
+    "g5_passed": false,
+    "request_red_exact": true
+  },
+  "fixture": {
+    "bytes": 4993,
+    "path": "benchmarks/fixtures/vl-capability-v0.1.0/image-transparent-160x320.png",
+    "sha256": "72e63cabe9a897fac895e9148fdb203867bb7f8ef95311fdfeaf4cd1026580f9"
+  },
+  "host": {
+    "hostname": "quings",
+    "label": "amd395"
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "canonical_payload_sha256": "e83cd23269bc6962b3dc24b15bc336a3f9771659ad86645f67ad78b21ec3570c"
+  },
+  "qualified": true,
+  "runtime": {
+    "image_media_io_source": {
+      "bytes": 5124,
+      "path": "vllm/multimodal/media/image.py",
+      "sha256": "f1372ef18fa941f007a1debb96dfe8c20722ca0cc4e61a5e6b1fc8e214b89347"
+    },
+    "pillow": "12.2.0",
+    "vllm": "0.19.1rc1.dev300+g29e5d1020"
+  },
+  "schema": "aima-amd395-qwen36/vl-media-io-reference/v1",
+  "scope": "frozen-vllm-image-media-io-rgba-byte-oracle",
+  "source": {
+    "commit": "7642995e772fbdc8ae763bcffb90f2da852987f0",
+    "dirty": false,
+    "files": [
+      {
+        "bytes": 5286,
+        "path": "scripts/capture-vllm-vl-media-io-oracles.py",
+        "sha256": "125d2ee5c1547769e016833c2f8802a62fb0ffab42dad51289353df867a27520"
+      }
+    ],
+    "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

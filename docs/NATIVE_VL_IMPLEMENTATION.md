@@ -14,8 +14,8 @@ blocking condition in the governing goal can move a gate to `passed`.
 
 | Gate | Current state | Evidence required to pass | Next blocking action |
 |---|---|---|---|
-| G1 full VL functional parity | the native HTTP path passes the frozen 30-case status/finish/tool/SSE surface and the corrected deterministic execution envelope passes 23/23 cells; mixed/conversation, verified HTTPS, request-level video sampling and cache identity/invariance now have reference-exact resident evidence; the sealed Goal section 2 audit finds 10 requirements covered, 4 partially covered and none wholly missing | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | execute the remaining error and generation/current-head requalification workstreams from the G1 audit |
-| G2 VL correctness parity | the five private and five independently rendered real-HTTP language prompts pass final norm and 84/84 selected full-vocabulary rows bit-exact; resident serving preserves the five frozen 8-token outputs; the 23-cell execution/error envelope also passes, but task-quality suites and four completion/usage differences remain open | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | freeze and run the image/video task-quality suites, then resolve the remaining completion/usage parity differences |
+| G1 full VL functional parity | the native HTTP path passes the frozen 30-case status/finish/tool/SSE surface and the corrected deterministic execution envelope passes 23/23 cells; mixed/conversation, verified HTTPS, request-level media I/O, error compatibility and cache identity/invariance now have reference-exact resident evidence; the sealed Goal section 2 audit finds 11 requirements covered, 3 partially covered and none wholly missing | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | execute the remaining generation/current-head/G3 requalification workstream from the G1 audit |
+| G2 VL correctness parity | the five private and five independently rendered real-HTTP language prompts pass final norm and 84/84 selected full-vocabulary rows bit-exact; resident serving preserves the five frozen 8-token outputs; the 23-cell envelope and the empty/limit/timeout/access error matrix pass, but task-quality suites and four completion/usage differences remain open | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | freeze and run the image/video task-quality suites, then resolve the remaining completion/usage parity differences |
 | G3 text product no regression | frozen baseline identified; the resident engine and certified lm_head now have an optional mask path that is disabled for ordinary requests, but the complete paired release matrix has not run | paired 19-cell, maximum-window, correctness, MMLU, API, cache, startup and memory requalification | retain `v1.5.1` as an immutable paired binary and run the complete paired matrix after language integration stabilizes |
 | G4 native VL performance | the 23-cell native execution envelope now records per-request stage timings, but it is a single candidate qualification rather than paired performance evidence | paired per-cell stage timings and memory records against the fixed VL-enabled vLLM | run the same frozen cells with the alternating paired vLLM/candidate timing protocol |
 | G5 native release product | the full runtime includes all qualified vision sources, loads the 333 visual tensors in one resident native process and survives the complete execution envelope; the external vision-attention code object is hash-checked and wired into the portable package contract, but final package qualification has not run | native-only package, security, isolated bundle, second-host, soak and rollback evidence | generate a clean product qualification containing the vision code object, then run isolated bundle, second-host, soak and rollback gates |
@@ -24,23 +24,23 @@ blocking condition in the governing goal can move a gate to `passed`.
 
 The first requirement-to-evidence audit is sealed at
 `benchmarks/results/native-vl-g1-coverage-audit-v0.1.0.json`, SHA-256
-`fc7fa1a78ac18a9078a83c2be176d24eb92d4df66ed32a0be84605e6665eaf20`.
+`403b615db3319ec81fd5f48e36953fd11aa3213c03283c294e9fb99bea3eb94c`.
 It binds the governing goal, frozen reference surface, native 30-case surface,
 23-cell execution result, resident-serving/cache evidence, visual pipeline,
 language boundary, the new mixed/conversation reference/native pair,
-the verified-HTTPS/sampling/cache reference/native pair, cache-identity unit
-contract and its generator.
+the verified-HTTPS/sampling/cache reference/native pair, the image-I/O and
+error/limit reference/native evidence, cache-identity unit contract and its
+generator.
 
-The audit deliberately does not promote G1. Ten of fourteen requirement
+The audit deliberately does not promote G1. Eleven of fourteen requirement
 groups are fully covered: image, video, mixed media, conversation, OpenAI API,
-tools, transport, single-process residency, cache identity and cache
-invariance. Four are partial. The concrete missing evidence is grouped into
-two replayable
-workstreams:
+tools, transport, single-process residency, error parity, cache identity and
+cache invariance. Three are partial. The remaining replayable workstream has
+three explicit blockers:
 
-1. empty, timeout, unreachable, byte-limit and duration-limit error categories;
-2. the four completion/usage differences, current-HEAD numerical
-   requalification and the complete G3 text protocol.
+1. the four completion/usage differences and longer image/video greedy corpus;
+2. consolidated current-HEAD processor-to-output numerical requalification;
+3. the complete G3 text and release no-regression protocol.
 
 This replaces the ambiguous instruction to “add more coverage” with named
 cases and preserves every existing passing observation as evidence rather
@@ -778,14 +778,14 @@ promoting G1 or any later gate.
 
 Clean commit `82fc48f7d4a0af1f1b30e9abfd26d78f73780715` then closed the
 request-level video sampling mismatch exposed by the frozen vLLM source. A
-non-empty top-level `media_io_kwargs` mapping now replaces the launch mapping
-for the named modality, while an absent or empty mapping preserves the frozen
-launch defaults. Native accepts the vLLM-compatible OpenCV `fps`, `num_frames`
-and backend fields, rejects unsupported or malformed mappings, and samples by
-the same bounded floor/linspace frame-index rule. Processor identity version 2
-binds the effective per-request video policy, so video bytes, sampling policy,
-media order and placeholder spans all participate in both media and prefix
-cache namespaces. The default processor identity is
+request mapping is shallow-merged within each named modality over the launch
+defaults: absent modalities and empty modality objects are no-ops, while a
+provided key overrides only that key. Native accepts the vLLM-compatible
+OpenCV `fps`, `num_frames` and backend fields, rejects unsupported or malformed
+mappings, and samples by the same bounded floor/linspace frame-index rule.
+Processor identity version 2 binds the effective per-request video policy, so
+video bytes, sampling policy, media order and placeholder spans all participate
+in both media and prefix cache namespaces. Its then-default identity was
 `d5c32c48a557b75c8192a824de0992464bb307890cac0cc01f0890cfccd874d2`.
 
 The fixed vLLM runtime then froze ten transport/cache cases: verified-CA
@@ -812,6 +812,45 @@ reported no Python, Torch, vLLM or Triton runtime. The sealed result is
 This promotes only the transport, cache-identity and cache-invariance audit
 groups; G1 and every later gate remain false.
 
+Clean implementation commit `5339e1d7f71960e175ce17e97012751238057675`
+then completed the frozen image-I/O and merge semantics. RGBA images composite
+onto white by default and accept the fixed vLLM
+`image.rgba_background_color` request field. Processor identity version 3 binds
+that effective background as well as video sampling; its default identity is
+`9be676b2d0cefbe030d61e1d89776df6c7ba28d0d86ca752c60eca3ec60a9280`.
+The old product-specific 768-second duration cap is disabled because the fixed
+OpenCV reference accepts finite sparse videos beyond it; compressed-byte,
+selected/source-frame, decoded-pixel and decode-wall limits remain fail-closed.
+The derived 12-frame, 0.002-fps fixture therefore exercises a 6000-second
+duration without weakening the remaining resource bounds.
+
+Clean evidence commit `7642995e772fbdc8ae763bcffb90f2da852987f0`
+froze the fixed-vLLM image-I/O oracle and ten request cases. The image-I/O
+artifact, SHA-256
+`56dff264132bdb49a470bd0af863df6ddca0e22f83da43143ad85267c0a30e98`,
+proves exact white and red compositing. The API reference, SHA-256
+`36ca8fe48ce785a52a8123d72be2d9271e3a29731222672bc30989250f2e56f1`,
+contains five accepted requests (the two RGBA policies, video default/empty
+mapping and the long sparse video) plus empty image/video, unreachable,
+64-MiB-plus-one and timeout errors. It preserves the raw vLLM contracts:
+empty/oversize are HTTP 400 `BadRequestError`; unreachable/timeout are HTTP
+500 `InternalServerError`.
+
+The exact-commit native binary SHA-256
+`f650ef2061e7a69348c512e55bd0f881a64aa19f8fd390d02418f477b2b95fd5`
+then replayed 13 observations in one resident model load. All eight accepted
+requests were HTTP 200 and reference-exact for request/render/usage; all five
+invalid external-media requests preserved the existing v1.5.1 fail-closed HTTP
+400 `invalid_request_error`/`bad_request` product shape with an explicit
+compatible-category check against the separately frozen vLLM result. The run
+also proved RGBA A/B/A cache recovery, empty-video-mapping reuse, long-duration
+execution and error cache non-pollution. It wrote zero stderr bytes and reported
+no Python, Torch, vLLM or Triton runtime. The sealed native result is
+`benchmarks/results/native-vl-error-limits-v0.1.0.json`, SHA-256
+`5bc0b2880ce0ccc8e1f08b9cd3d2421d86e27b52f4444b33367ad5bb27b2682f`.
+This closes only the error-parity audit group; it does not promote a product
+gate.
+
 Formal binaries must retain the complete default AOT closure. A q1024-only
 diagnostic build embedded 14 kernels from two manifests and correctly failed
 when a longer tool decode referenced a q8192 image; the accepted builds embed
@@ -828,7 +867,7 @@ The runtime build still installs and verifies the fixed vision-attention code
 object, and the portable package contract includes it in the deterministic
 bundle identity. These records now close the frozen API/render,
 deterministic-resident-serving and min/typical/max execution-envelope slices
-only. The four partial G1 coverage groups, image/video task quality, complete
+only. The three partial G1 coverage groups, image/video task quality, complete
 text no-regression, paired performance, portable-package, second-host, soak
 and rollback qualifications remain blocking. Therefore G1 through G5 all
 remain false.

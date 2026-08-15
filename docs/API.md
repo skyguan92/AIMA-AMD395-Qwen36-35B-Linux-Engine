@@ -145,13 +145,15 @@ Supported request fields:
 - `stream_options.include_usage`: boolean when `stream` is true;
 - `tools`: OpenAI function-tool definitions;
 - `tool_choice`: `auto`, `none`, `required`, or a named function object;
-- `parallel_tool_calls`: boolean.
-- `media_io_kwargs`: an optional request-level object matching the frozen
-  vLLM video-loader surface. `video.fps` and `video.num_frames` may be supplied
-  together and the smaller resulting sample count wins;
-  `video.video_backend`, when present, must be `opencv`. An absent or empty
-  top-level object retains the frozen launch defaults (32-frame cap and 2 FPS),
-  while a non-empty mapping replaces the launch mapping as vLLM does.
+- `parallel_tool_calls`: boolean;
+- `media_io_kwargs`: an optional request-level object matching the frozen vLLM
+  image/video loader surface. RGBA images composite onto white by default;
+  `image.rgba_background_color` accepts three integer channels in `[0,255]`.
+  `video.fps` and `video.num_frames` may be supplied together and the smaller
+  resulting sample count wins; `video.video_backend`, when present, must be
+  `opencv`. Request fields shallow-merge within each named modality over the
+  launch defaults. An absent modality, `{}`, or `{"video": {}}` is therefore a
+  no-op and retains the 32-frame cap and 2 FPS.
 
 Not supported:
 
@@ -159,7 +161,8 @@ Not supported:
 - audio message parts;
 - deprecated `functions` or structured response formats;
 - stochastic sampling;
-- request-level image media-I/O overrides or video backends other than OpenCV;
+- unqualified media-I/O fields such as `video.frame_recovery` and
+  `video.max_duration`, or video backends other than OpenCV;
 - batching or concurrent execution.
 
 The server applies the model's qualified Qwen tool/chat template. Thinking is
@@ -174,15 +177,18 @@ opened descriptor-relative without following symlinks. HTTP/HTTPS URLs require
 exact `--allowed-media-domain` entries; private-address resolution additionally
 requires `--allowed-private-media-domain`. A custom trust store can be supplied
 with `--remote-tls-ca-bundle`. Redirect, byte, decode, frame, dimension and
-deadline limits apply before tensors reach the visual encoder.
+deadline limits apply before tensors reach the visual encoder. There is no
+separate duration-only cap: the fixed OpenCV reference accepts finite sparse
+videos beyond the former 768-second product limit, while byte, source/selected
+frame, decoded-pixel and decode-wall bounds remain active.
 
 Decoded processor results use a 4 GiB, 64-entry content-addressed LRU by
 default. `--media-cache-capacity-bytes` can reduce the byte bound and
 `--disable-media-cache` provides the cold-cache performance surface. The key
-binds source-byte SHA-256, media kind and the request-effective processor and
-video-sampling identity, so a changed object behind the same URL or pathname
-or a changed `fps`/`num_frames` policy misses while equivalent local and
-data-URI bytes may hit.
+binds source-byte SHA-256, media kind and the request-effective image/video
+processor identity, so a changed object behind the same URL or pathname, a
+changed RGBA background, or a changed `fps`/`num_frames` policy misses while
+equivalent local and data-URI bytes may hit.
 
 After tokenization:
 

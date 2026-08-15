@@ -1,0 +1,1732 @@
+{
+  "bindings": {
+    "error_fixture_manifest": {
+      "bytes": 1668,
+      "path": "benchmarks/fixtures/vl-error-v0.1.0/fixtures-manifest.json",
+      "sha256": "4a31ed97420e80e53876c8465ed74110cf012430253d5ff5d269bb826736c37c"
+    },
+    "fixture_manifest": {
+      "bytes": 2691,
+      "path": "benchmarks/fixtures/vl-capability-v0.1.0/fixtures-manifest.json",
+      "sha256": "07d3e6aa54cd80707d77d2f8f406788dabb219a5b98225cf6a7b63602a009028"
+    },
+    "media_io_oracle": {
+      "bytes": 2395,
+      "path": "benchmarks/results/vl-media-io-reference-v0.1.0.json",
+      "sha256": "56dff264132bdb49a470bd0af863df6ddca0e22f83da43143ad85267c0a30e98"
+    },
+    "reference_launch": {
+      "bytes": 3061,
+      "path": "benchmarks/results/vl-reference-launch.json",
+      "sha256": "37eb1ea904b010a06c48095e5dc6acf0561aa129ede1f14251b1b82d2d2ebe8b"
+    },
+    "reference_manifest": {
+      "bytes": 22516,
+      "path": "benchmarks/results/vl-reference-manifest.json",
+      "sha256": "8f03e939a9b15f58c2e623541d48be88c328ff19adac9eb52210e171766e9a00"
+    }
+  },
+  "captured_at": "2026-08-15T07:01:54+00:00",
+  "cases": [
+    {
+      "accepted": true,
+      "case_id": "rgba_default_white",
+      "expected_accept": true,
+      "passed": true,
+      "qualification_checks": {
+        "finish_reason_length": true,
+        "generated_content_nonempty": true,
+        "http_200": true,
+        "render_max_tokens_exact": true,
+        "render_prompt_nonempty": true,
+        "surface_accepted": true,
+        "usage_exact": true
+      },
+      "qualified": true,
+      "render": {
+        "max_tokens": 1,
+        "mm_placeholders": {
+          "image": [
+            {
+              "length": 72,
+              "offset": 4,
+              "pad_token_count": 72,
+              "token_ids_sha256": "d1b80f9b11a5ce2e39c8ba43eb54089eb8ec28a058cae3d6384428e3903dde38"
+            }
+          ]
+        },
+        "prompt_token_ids": [
+          248045,
+          846,
+          198,
+          248053,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248054,
+          198,
+          72240,
+          279,
+          2099,
+          25899,
+          13,
+          248046,
+          198,
+          248045,
+          74455,
+          198,
+          248068,
+          198
+        ],
+        "prompt_token_ids_sha256": "0f8a8fae94ba126af282127ad759eb4820bd8e3fb98915dea16e718d3fe84a85",
+        "prompt_tokens": 90
+      },
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": [
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 4993,
+                    "fixture": "image-transparent-160x320.png",
+                    "mime": "image/png",
+                    "sha256": "72e63cabe9a897fac895e9148fdb203867bb7f8ef95311fdfeaf4cd1026580f9",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "text": "Describe the image briefly.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "${AIMA_SERVED_MODEL}",
+        "n": 1,
+        "stream": false,
+        "temperature": 0,
+        "top_p": 1
+      },
+      "request_sha256": "2b742c84e43f51af4391be4a6be96d0104742f7c0e81674d9025f407bfb85504",
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+              "annotations": null,
+              "audio": null,
+              "content": "The",
+              "function_call": null,
+              "reasoning": null,
+              "refusal": null,
+              "role": "assistant",
+              "tool_calls": []
+            },
+            "stop_reason": null,
+            "token_ids": null
+          }
+        ],
+        "kv_transfer_params": null,
+        "model": "qwen36-vl-reference",
+        "object": "chat.completion",
+        "prompt_logprobs": null,
+        "prompt_token_ids": null,
+        "service_tier": null,
+        "usage": {
+          "completion_tokens": 1,
+          "prompt_tokens": 90,
+          "prompt_tokens_details": null,
+          "total_tokens": 91
+        }
+      },
+      "response_bytes": 578,
+      "response_sha256": "60c7eddb2078a0d24e5ccdb5796d4524111e072f6c8f2988711e79ed460b86ab",
+      "status_code": 200,
+      "surfaces": [
+        "image",
+        "rgba",
+        "cache_identity"
+      ],
+      "timings": {
+        "total_seconds": 0.3254713583737612,
+        "ttft_seconds": null
+      },
+      "transport_request_sha256": "590ebf0e6fb0c1663e9665459b2255cb823b85e94c21f68dfed28f2f0e3a19f4"
+    },
+    {
+      "accepted": true,
+      "case_id": "rgba_background_red",
+      "expected_accept": true,
+      "passed": true,
+      "qualification_checks": {
+        "finish_reason_length": true,
+        "generated_content_nonempty": true,
+        "http_200": true,
+        "render_max_tokens_exact": true,
+        "render_prompt_nonempty": true,
+        "surface_accepted": true,
+        "usage_exact": true
+      },
+      "qualified": true,
+      "render": {
+        "max_tokens": 1,
+        "mm_placeholders": {
+          "image": [
+            {
+              "length": 72,
+              "offset": 4,
+              "pad_token_count": 72,
+              "token_ids_sha256": "d1b80f9b11a5ce2e39c8ba43eb54089eb8ec28a058cae3d6384428e3903dde38"
+            }
+          ]
+        },
+        "prompt_token_ids": [
+          248045,
+          846,
+          198,
+          248053,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248054,
+          198,
+          72240,
+          279,
+          2099,
+          25899,
+          13,
+          248046,
+          198,
+          248045,
+          74455,
+          198,
+          248068,
+          198
+        ],
+        "prompt_token_ids_sha256": "0f8a8fae94ba126af282127ad759eb4820bd8e3fb98915dea16e718d3fe84a85",
+        "prompt_tokens": 90
+      },
+      "request": {
+        "max_tokens": 1,
+        "media_io_kwargs": {
+          "image": {
+            "rgba_background_color": [
+              255,
+              0,
+              0
+            ]
+          }
+        },
+        "messages": [
+          {
+            "content": [
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 4993,
+                    "fixture": "image-transparent-160x320.png",
+                    "mime": "image/png",
+                    "sha256": "72e63cabe9a897fac895e9148fdb203867bb7f8ef95311fdfeaf4cd1026580f9",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "text": "Describe the image briefly.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "${AIMA_SERVED_MODEL}",
+        "n": 1,
+        "stream": false,
+        "temperature": 0,
+        "top_p": 1
+      },
+      "request_sha256": "f1c747143a620d9aecfbbd635cb6720a8fb31afb20eb6f88ba85d3ec93c7d760",
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+              "annotations": null,
+              "audio": null,
+              "content": "The",
+              "function_call": null,
+              "reasoning": null,
+              "refusal": null,
+              "role": "assistant",
+              "tool_calls": []
+            },
+            "stop_reason": null,
+            "token_ids": null
+          }
+        ],
+        "kv_transfer_params": null,
+        "model": "qwen36-vl-reference",
+        "object": "chat.completion",
+        "prompt_logprobs": null,
+        "prompt_token_ids": null,
+        "service_tier": null,
+        "usage": {
+          "completion_tokens": 1,
+          "prompt_tokens": 90,
+          "prompt_tokens_details": null,
+          "total_tokens": 91
+        }
+      },
+      "response_bytes": 578,
+      "response_sha256": "bbb1e9ae1b64eb6df5ad8865fd6dfd613af9fa364d83fbea0b817abc063d46bf",
+      "status_code": 200,
+      "surfaces": [
+        "image",
+        "rgba",
+        "cache_identity"
+      ],
+      "timings": {
+        "total_seconds": 0.30865484196692705,
+        "ttft_seconds": null
+      },
+      "transport_request_sha256": "0359272dc4087fd550a2d112e9deb64e99e661ad0fe1e72d684768c7936f02cf"
+    },
+    {
+      "accepted": true,
+      "case_id": "video_sampling_default",
+      "expected_accept": true,
+      "passed": true,
+      "qualification_checks": {
+        "finish_reason_length": true,
+        "generated_content_nonempty": true,
+        "http_200": true,
+        "render_max_tokens_exact": true,
+        "render_prompt_nonempty": true,
+        "surface_accepted": true,
+        "usage_exact": true
+      },
+      "qualified": true,
+      "render": {
+        "max_tokens": 1,
+        "mm_placeholders": {
+          "video": [
+            {
+              "length": 64,
+              "offset": 3,
+              "pad_token_count": 48,
+              "token_ids_sha256": "330dd22da259fa5cbc689112b606c6ff5727c1f441e1e96cbd05f00eab4f87c4"
+            }
+          ]
+        },
+        "prompt_token_ids": [
+          248045,
+          846,
+          198,
+          27,
+          15,
+          13,
+          17,
+          6283,
+          29,
+          248053,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248054,
+          27,
+          16,
+          13,
+          20,
+          6283,
+          29,
+          248053,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248054,
+          198,
+          72240,
+          279,
+          47241,
+          2678,
+          25899,
+          13,
+          248046,
+          198,
+          248045,
+          74455,
+          198,
+          248068,
+          198
+        ],
+        "prompt_token_ids_sha256": "0e8ed982dfc5375a6cb38d9e8a18f624a0b5daffead3008baeb871e811dfd90e",
+        "prompt_tokens": 81
+      },
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": [
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 169626,
+                    "fixture": "video-12f-6fps-192x128.avi",
+                    "mime": "video/x-msvideo",
+                    "sha256": "91f394f27c25a34fcbd279746aa7b2365c19c192e692df04a36b52edff701076",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "text": "Describe the sampled video briefly.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "${AIMA_SERVED_MODEL}",
+        "n": 1,
+        "stream": false,
+        "temperature": 0,
+        "top_p": 1
+      },
+      "request_sha256": "3307a75feac01e723715ca9029b1a6413c4f995585bff678e6567ec65620da48",
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+              "annotations": null,
+              "audio": null,
+              "content": "The",
+              "function_call": null,
+              "reasoning": null,
+              "refusal": null,
+              "role": "assistant",
+              "tool_calls": []
+            },
+            "stop_reason": null,
+            "token_ids": null
+          }
+        ],
+        "kv_transfer_params": null,
+        "model": "qwen36-vl-reference",
+        "object": "chat.completion",
+        "prompt_logprobs": null,
+        "prompt_token_ids": null,
+        "service_tier": null,
+        "usage": {
+          "completion_tokens": 1,
+          "prompt_tokens": 81,
+          "prompt_tokens_details": null,
+          "total_tokens": 82
+        }
+      },
+      "response_bytes": 578,
+      "response_sha256": "2dc830cf5dd67c1b184cf9128009aeb277c4ead2bc16b0856a58be208d6e1493",
+      "status_code": 200,
+      "surfaces": [
+        "video",
+        "sampling",
+        "merge_semantics"
+      ],
+      "timings": {
+        "total_seconds": 0.2993081333115697,
+        "ttft_seconds": null
+      },
+      "transport_request_sha256": "50b2d24533ea7cf51618c0cfdb01fb30437421246f7e26c04f7ffab377814b00"
+    },
+    {
+      "accepted": true,
+      "case_id": "video_sampling_empty_mapping",
+      "expected_accept": true,
+      "passed": true,
+      "qualification_checks": {
+        "finish_reason_length": true,
+        "generated_content_nonempty": true,
+        "http_200": true,
+        "render_max_tokens_exact": true,
+        "render_prompt_nonempty": true,
+        "surface_accepted": true,
+        "usage_exact": true
+      },
+      "qualified": true,
+      "render": {
+        "max_tokens": 1,
+        "mm_placeholders": {
+          "video": [
+            {
+              "length": 64,
+              "offset": 3,
+              "pad_token_count": 48,
+              "token_ids_sha256": "330dd22da259fa5cbc689112b606c6ff5727c1f441e1e96cbd05f00eab4f87c4"
+            }
+          ]
+        },
+        "prompt_token_ids": [
+          248045,
+          846,
+          198,
+          27,
+          15,
+          13,
+          17,
+          6283,
+          29,
+          248053,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248054,
+          27,
+          16,
+          13,
+          20,
+          6283,
+          29,
+          248053,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248054,
+          198,
+          72240,
+          279,
+          47241,
+          2678,
+          25899,
+          13,
+          248046,
+          198,
+          248045,
+          74455,
+          198,
+          248068,
+          198
+        ],
+        "prompt_token_ids_sha256": "0e8ed982dfc5375a6cb38d9e8a18f624a0b5daffead3008baeb871e811dfd90e",
+        "prompt_tokens": 81
+      },
+      "request": {
+        "max_tokens": 1,
+        "media_io_kwargs": {
+          "video": {}
+        },
+        "messages": [
+          {
+            "content": [
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 169626,
+                    "fixture": "video-12f-6fps-192x128.avi",
+                    "mime": "video/x-msvideo",
+                    "sha256": "91f394f27c25a34fcbd279746aa7b2365c19c192e692df04a36b52edff701076",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "text": "Describe the sampled video briefly.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "${AIMA_SERVED_MODEL}",
+        "n": 1,
+        "stream": false,
+        "temperature": 0,
+        "top_p": 1
+      },
+      "request_sha256": "c42ba02410beab4cf9868a7bdf58858e85cf03c1dbf0d4d19d36ecbd4ffced86",
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+              "annotations": null,
+              "audio": null,
+              "content": "The",
+              "function_call": null,
+              "reasoning": null,
+              "refusal": null,
+              "role": "assistant",
+              "tool_calls": []
+            },
+            "stop_reason": null,
+            "token_ids": null
+          }
+        ],
+        "kv_transfer_params": null,
+        "model": "qwen36-vl-reference",
+        "object": "chat.completion",
+        "prompt_logprobs": null,
+        "prompt_token_ids": null,
+        "service_tier": null,
+        "usage": {
+          "completion_tokens": 1,
+          "prompt_tokens": 81,
+          "prompt_tokens_details": null,
+          "total_tokens": 82
+        }
+      },
+      "response_bytes": 578,
+      "response_sha256": "bb13c86077c4598af386eea93896e5d3f2c678adf4d1975ca0c58009c12fd941",
+      "status_code": 200,
+      "surfaces": [
+        "video",
+        "sampling",
+        "merge_semantics"
+      ],
+      "timings": {
+        "total_seconds": 0.2996351346373558,
+        "ttft_seconds": null
+      },
+      "transport_request_sha256": "624ea19474052f0363e4c71cd2e5ab28030ee100f38ab44771e3c952174155cb"
+    },
+    {
+      "accepted": true,
+      "case_id": "video_long_duration",
+      "expected_accept": true,
+      "passed": true,
+      "qualification_checks": {
+        "finish_reason_length": true,
+        "generated_content_nonempty": true,
+        "http_200": true,
+        "render_max_tokens_exact": true,
+        "render_prompt_nonempty": true,
+        "surface_accepted": true,
+        "usage_exact": true
+      },
+      "qualified": true,
+      "render": {
+        "max_tokens": 1,
+        "mm_placeholders": {
+          "video": [
+            {
+              "length": 209,
+              "offset": 3,
+              "pad_token_count": 144,
+              "token_ids_sha256": "413fa974d58721d07b9f0446853a66133a91ff0efa5805c375f8316350e7a322"
+            }
+          ]
+        },
+        "prompt_token_ids": [
+          248045,
+          846,
+          198,
+          27,
+          17,
+          20,
+          15,
+          13,
+          15,
+          6283,
+          29,
+          248053,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248054,
+          27,
+          16,
+          17,
+          20,
+          15,
+          13,
+          15,
+          6283,
+          29,
+          248053,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248054,
+          27,
+          17,
+          17,
+          20,
+          15,
+          13,
+          15,
+          6283,
+          29,
+          248053,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248054,
+          27,
+          18,
+          17,
+          20,
+          15,
+          13,
+          15,
+          6283,
+          29,
+          248053,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248054,
+          27,
+          19,
+          17,
+          20,
+          15,
+          13,
+          15,
+          6283,
+          29,
+          248053,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248054,
+          27,
+          20,
+          17,
+          20,
+          15,
+          13,
+          15,
+          6283,
+          29,
+          248053,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248054,
+          198,
+          72240,
+          279,
+          47241,
+          2678,
+          25899,
+          13,
+          248046,
+          198,
+          248045,
+          74455,
+          198,
+          248068,
+          198
+        ],
+        "prompt_token_ids_sha256": "9e9d889c272d2df44f80f102b764b8cb51b45cb8cb661b6c60caf9b1c17be659",
+        "prompt_tokens": 226
+      },
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": [
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 169626,
+                    "fixture": "video_long_duration_low_fps",
+                    "mime": "video/x-msvideo",
+                    "sha256": "00ce5c84c5c16b5a787336fac4142d84bfd70486f14a89dc1a5d9537b0cc7c68",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "text": "Describe the sampled video briefly.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "${AIMA_SERVED_MODEL}",
+        "n": 1,
+        "stream": false,
+        "temperature": 0,
+        "top_p": 1
+      },
+      "request_sha256": "90c9197aa5671d143a14bbc0b788e4d63755c9a41c91338a8489e605ec804379",
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+              "annotations": null,
+              "audio": null,
+              "content": "The",
+              "function_call": null,
+              "reasoning": null,
+              "refusal": null,
+              "role": "assistant",
+              "tool_calls": []
+            },
+            "stop_reason": null,
+            "token_ids": null
+          }
+        ],
+        "kv_transfer_params": null,
+        "model": "qwen36-vl-reference",
+        "object": "chat.completion",
+        "prompt_logprobs": null,
+        "prompt_token_ids": null,
+        "service_tier": null,
+        "usage": {
+          "completion_tokens": 1,
+          "prompt_tokens": 226,
+          "prompt_tokens_details": null,
+          "total_tokens": 227
+        }
+      },
+      "response_bytes": 580,
+      "response_sha256": "b8a8f82ed5ced116634418a1b653bd5fa834c2d355d6c1d6b3b58b9b664125ca",
+      "status_code": 200,
+      "surfaces": [
+        "video",
+        "duration",
+        "limit"
+      ],
+      "timings": {
+        "total_seconds": 0.4537860304117203,
+        "ttft_seconds": null
+      },
+      "transport_request_sha256": "e4b1dc34febd77fa255da6edcc9e970aed0ba17fd384489f09d308eb83d712d4"
+    },
+    {
+      "accepted": false,
+      "case_id": "empty_image_remote",
+      "expected_accept": false,
+      "passed": true,
+      "qualification_checks": {
+        "error_message_compatible": true,
+        "reference_error_signature_exact": true,
+        "reference_status_exact": true,
+        "surface_rejected": true
+      },
+      "qualified": true,
+      "render": null,
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": [
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 0,
+                    "fixture": "empty_image_remote",
+                    "mime": "image/png",
+                    "transport": "http-loopback"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "text": "Describe briefly.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "${AIMA_SERVED_MODEL}",
+        "n": 1,
+        "stream": false,
+        "temperature": 0,
+        "top_p": 1
+      },
+      "request_sha256": "94afd33bff9f38245d2363df93d9ff1a2402a101caf8ebb00373046c862f1a33",
+      "response": {
+        "error": {
+          "code": 400,
+          "message": "Failed to load image: cannot identify image file <_io.BytesIO object>",
+          "param": null,
+          "type": "BadRequestError"
+        }
+      },
+      "response_bytes": 142,
+      "response_sha256": "d9a52f2474886e3fd1d633bae49c5e237f09b2d6d9248d568357b6224e91c7cf",
+      "status_code": 400,
+      "surfaces": [
+        "image",
+        "transport",
+        "error",
+        "limit"
+      ],
+      "timings": {
+        "total_seconds": 0.004708978347480297,
+        "ttft_seconds": null
+      },
+      "transport_request_sha256": "66d2840e6c94c5de228c16acf601c272fc4976e77025d252d64bb971b301aeec"
+    },
+    {
+      "accepted": false,
+      "case_id": "empty_video_remote",
+      "expected_accept": false,
+      "passed": true,
+      "qualification_checks": {
+        "error_message_compatible": true,
+        "reference_error_signature_exact": true,
+        "reference_status_exact": true,
+        "surface_rejected": true
+      },
+      "qualified": true,
+      "render": null,
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": [
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 0,
+                    "fixture": "empty_video_remote",
+                    "mime": "video/mp4",
+                    "transport": "http-loopback"
+                  }
+                }
+              },
+              {
+                "text": "Describe briefly.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "${AIMA_SERVED_MODEL}",
+        "n": 1,
+        "stream": false,
+        "temperature": 0,
+        "top_p": 1
+      },
+      "request_sha256": "d6415465626ac5626011991697ccecf2b037477ba65b3f75f96138e067f0eab7",
+      "response": {
+        "error": {
+          "code": 400,
+          "message": "Could not open video stream",
+          "param": null,
+          "type": "BadRequestError"
+        }
+      },
+      "response_bytes": 100,
+      "response_sha256": "ac89bd9eca15074391366ec7788e4d6590561492934fbeff10cb016e3661d2e2",
+      "status_code": 400,
+      "surfaces": [
+        "video",
+        "transport",
+        "error",
+        "limit"
+      ],
+      "timings": {
+        "total_seconds": 0.0038271816447377205,
+        "ttft_seconds": null
+      },
+      "transport_request_sha256": "63c8b7326549ba075d8757c393ecc45efd7f03d9aba60b0ba4f9da18da428061"
+    },
+    {
+      "accepted": false,
+      "case_id": "unreachable_image_remote",
+      "expected_accept": false,
+      "passed": true,
+      "qualification_checks": {
+        "error_message_compatible": true,
+        "reference_error_signature_exact": true,
+        "reference_status_exact": true,
+        "surface_rejected": true
+      },
+      "qualified": true,
+      "render": null,
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": [
+              {
+                "image_url": {
+                  "url": {
+                    "fixture": "unreachable_image_remote",
+                    "mime": "image/png",
+                    "transport": "http-loopback"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "text": "Describe briefly.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "${AIMA_SERVED_MODEL}",
+        "n": 1,
+        "stream": false,
+        "temperature": 0,
+        "top_p": 1
+      },
+      "request_sha256": "dca82e333487ea21993df2548c1bcf4472d5d94697866df1013e7985d444242e",
+      "response": {
+        "error": {
+          "code": 500,
+          "message": "Cannot connect to host 127.0.0.1:42081 ssl:default [Connect call failed ('127.0.0.1', 42081)]",
+          "param": null,
+          "type": "InternalServerError"
+        }
+      },
+      "response_bytes": 170,
+      "response_sha256": "d6dd7eb920dbf9881fc099583f4768f4e2c5c26044ceeb4310a3566d131d8242",
+      "status_code": 500,
+      "surfaces": [
+        "image",
+        "transport",
+        "error",
+        "limit"
+      ],
+      "timings": {
+        "total_seconds": 5.012556066736579,
+        "ttft_seconds": null
+      },
+      "transport_request_sha256": "0dfe2a638d3916ffb902bf7565917d7f2044ff5f3dfa8a36bf0f11bfea11069c"
+    },
+    {
+      "accepted": false,
+      "case_id": "oversize_image_remote",
+      "expected_accept": false,
+      "passed": true,
+      "qualification_checks": {
+        "error_message_compatible": true,
+        "reference_error_signature_exact": true,
+        "reference_status_exact": true,
+        "surface_rejected": true
+      },
+      "qualified": true,
+      "render": null,
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": [
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 67108865,
+                    "fixture": "oversize_image_remote",
+                    "mime": "image/png",
+                    "transport": "http-loopback"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "text": "Describe briefly.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "${AIMA_SERVED_MODEL}",
+        "n": 1,
+        "stream": false,
+        "temperature": 0,
+        "top_p": 1
+      },
+      "request_sha256": "7e515b568f4c59b9b5eef2d88498a5171d6e43da9f0c9bea5a44d365e15523ba",
+      "response": {
+        "error": {
+          "code": 400,
+          "message": "Failed to load image: cannot identify image file <_io.BytesIO object>",
+          "param": null,
+          "type": "BadRequestError"
+        }
+      },
+      "response_bytes": 142,
+      "response_sha256": "d9a52f2474886e3fd1d633bae49c5e237f09b2d6d9248d568357b6224e91c7cf",
+      "status_code": 400,
+      "surfaces": [
+        "image",
+        "transport",
+        "error",
+        "limit"
+      ],
+      "timings": {
+        "total_seconds": 0.03303760103881359,
+        "ttft_seconds": null
+      },
+      "transport_request_sha256": "8a6bc6eeea47a19e047a17d055cacd13dc0c51a0eeaa7a3d8c9e00a94a5063c6"
+    },
+    {
+      "accepted": false,
+      "case_id": "timeout_image_remote",
+      "expected_accept": false,
+      "passed": true,
+      "qualification_checks": {
+        "error_message_compatible": true,
+        "reference_error_signature_exact": true,
+        "reference_status_exact": true,
+        "surface_rejected": true
+      },
+      "qualified": true,
+      "render": null,
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": [
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 1,
+                    "fixture": "timeout_image_remote",
+                    "mime": "image/png",
+                    "transport": "http-loopback"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "text": "Describe briefly.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "${AIMA_SERVED_MODEL}",
+        "n": 1,
+        "stream": false,
+        "temperature": 0,
+        "top_p": 1
+      },
+      "request_sha256": "af7fb8a38aeaf5feda62ff46daf9dea340e26baa923ec44ce020cf7e0d2dfacc",
+      "response": {
+        "error": {
+          "code": 500,
+          "message": "",
+          "param": null,
+          "type": "InternalServerError"
+        }
+      },
+      "response_bytes": 77,
+      "response_sha256": "3393dea5ee1eb08f8cf898177688a23fd8fdc85918a814734ad86a614f5cc0ec",
+      "status_code": 500,
+      "surfaces": [
+        "image",
+        "transport",
+        "error",
+        "limit"
+      ],
+      "timings": {
+        "total_seconds": 217.05280376039445,
+        "ttft_seconds": null
+      },
+      "transport_request_sha256": "f901152165c55ff2e2c653c8af376e0dfe7db5608cd1bdae37b297a1a1cf8340"
+    }
+  ],
+  "complete": true,
+  "decision": {
+    "empty_video_mapping_semantics_frozen": true,
+    "error_limit_categories_frozen": true,
+    "g1_passed": false,
+    "g2_passed": false,
+    "g3_passed": false,
+    "g4_passed": false,
+    "g5_passed": false,
+    "long_duration_semantics_frozen": true,
+    "rgba_request_surface_frozen": true,
+    "ten_reference_cases_frozen": true
+  },
+  "host": {
+    "hostname": "quings",
+    "label": "amd395"
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "canonical_payload_sha256": "2a84ad0c36d5fe3be4f4d84f4a80c1cc35930b0010fb3716d0e610d97275a2fc"
+  },
+  "launch": {
+    "argv": [
+      "${AIMA_VLLM_PYTHON}",
+      "-m",
+      "vllm.entrypoints.openai.api_server",
+      "--model",
+      "${AIMA_MODEL_DIR}",
+      "--served-model-name",
+      "qwen36-vl-reference",
+      "--host",
+      "127.0.0.1",
+      "--port",
+      "${AIMA_VL_PORT}",
+      "--trust-remote-code",
+      "--dtype",
+      "bfloat16",
+      "--max-model-len",
+      "262144",
+      "--max-num-seqs",
+      "1",
+      "--max-num-batched-tokens",
+      "16384",
+      "--enable-chunked-prefill",
+      "--gpu-memory-utilization",
+      "0.95",
+      "--attention-backend",
+      "TRITON_ATTN",
+      "--mm-encoder-attn-backend",
+      "TRITON_ATTN",
+      "--gdn-prefill-backend",
+      "triton",
+      "--enforce-eager",
+      "--no-async-scheduling",
+      "--no-enable-prefix-caching",
+      "--enable-auto-tool-choice",
+      "--tool-call-parser",
+      "qwen3_xml",
+      "--no-language-model-only",
+      "--no-skip-mm-profiling",
+      "--limit-mm-per-prompt",
+      "{\"image\":16,\"video\":21}",
+      "--allowed-local-media-path",
+      "${AIMA_ALLOWED_MEDIA_ROOT}",
+      "--allowed-media-domains",
+      "localhost",
+      "127.0.0.1",
+      "--media-io-kwargs",
+      "{\"video\":{\"fps\":2.0,\"video_backend\":\"opencv\"}}",
+      "--mm-processor-kwargs",
+      "{}",
+      "--mm-processor-cache-gb",
+      "4",
+      "--video-pruning-rate",
+      "0",
+      "--load-format",
+      "safetensors",
+      "--tensor-parallel-size",
+      "1"
+    ],
+    "capability_manifest": {
+      "bytes": 86659,
+      "path": "benchmarks/results/vl-capability-manifest.json",
+      "schema": "aima-amd395-qwen36/vl-capability-manifest/v1",
+      "sha256": "72e64b8d5cb0c1de8a355617676c46c98c1e0f05cec7a6e3a7df79dd36560d7a"
+    },
+    "environment_policy": {
+      "inherit": false,
+      "variables": {
+        "HF_HUB_OFFLINE": "1",
+        "HIP_PATH": "/opt/rocm",
+        "LANG": "C.UTF-8",
+        "LD_LIBRARY_PATH": "/opt/rocm/lib:/opt/rocm/lib64",
+        "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+        "PYTHONHASHSEED": "0",
+        "PYTORCH_ALLOC_CONF": "expandable_segments:True",
+        "PYTORCH_ROCM_ARCH": "gfx1151",
+        "ROCM_PATH": "/opt/rocm",
+        "TRANSFORMERS_OFFLINE": "1",
+        "VLLM_IMAGE_FETCH_TIMEOUT": "10",
+        "VLLM_VIDEO_FETCH_TIMEOUT": "30",
+        "VLLM_VIDEO_LOADER_BACKEND": "opencv"
+      }
+    },
+    "measurement_boundary": {
+      "decode": true,
+      "llm_prefill": true,
+      "media_decode": true,
+      "media_fetch": true,
+      "processor": true,
+      "total_latency": true,
+      "ttft": true,
+      "vision_encode": true
+    },
+    "media_policy": {
+      "aggregate_encoder_token_budget": 16384,
+      "allowed_local_media_paths": [
+        "${AIMA_ALLOWED_MEDIA_ROOT}"
+      ],
+      "allowed_media_domains": [
+        "localhost",
+        "127.0.0.1"
+      ],
+      "limits": {
+        "image": 16,
+        "video": 21
+      },
+      "max_tokens_per_item": {
+        "image": 16384,
+        "video": 12288
+      },
+      "media_io_kwargs": {
+        "video": {
+          "fps": 2.0,
+          "video_backend": "opencv"
+        }
+      },
+      "mm_processor_kwargs": {},
+      "processor_cache_gb": 4,
+      "video_pruning_rate": 0
+    },
+    "schema": "aima-amd395-qwen36/vl-reference-launch/v1"
+  },
+  "qualification_checks": {
+    "all_cases_qualified": true,
+    "case_order_exact": true,
+    "empty_video_mapping_preserves_prompt": true,
+    "five_error_contracts_exact": true,
+    "long_duration_video_accepted": true,
+    "oversize_body_fully_fetched": true,
+    "rgba_prompt_shape_stable": true,
+    "rgba_requests_distinct": true,
+    "timeout_retry_path_exercised": true
+  },
+  "qualified": true,
+  "reference_identity": {
+    "model": "Qwen/Qwen3.6-35B-A3B",
+    "revision": "995ad96eacd98c81ed38be0c5b274b04031597b0",
+    "runtime_version": "0.19.1rc1.dev300+g29e5d1020.rocm721"
+  },
+  "runtime": {
+    "endpoint": {
+      "host": "127.0.0.1",
+      "port": 31004,
+      "scheme": "http"
+    },
+    "media_server": {
+      "bytes_sent": {
+        "empty_image": 0,
+        "empty_video": 0,
+        "large_image": 67108865,
+        "slow_image": 0
+      },
+      "requests": {
+        "empty_image": 1,
+        "empty_video": 1,
+        "large_image": 1,
+        "slow_image": 3
+      }
+    },
+    "vllm": "0.19.1rc1.dev300+g29e5d1020"
+  },
+  "schema": "aima-amd395-qwen36/vl-error-limits-reference/v1",
+  "scope": "fixed-vllm-image-io-and-media-error-limit-reference",
+  "source": {
+    "commit": "7642995e772fbdc8ae763bcffb90f2da852987f0",
+    "dirty": false,
+    "files": [
+      {
+        "bytes": 7537,
+        "path": "aima_engine/vl_error_limits.py",
+        "sha256": "55e61d9060e67d8a67c7eea72480b7b66cc1466c7da393c45507b1591cb99028"
+      },
+      {
+        "bytes": 5787,
+        "path": "aima_engine/vl_error_media_server.py",
+        "sha256": "1905cff63011b9331cdd4059d4f4d3a796ca1a49482dd1805c603481c6c89e99"
+      },
+      {
+        "bytes": 33216,
+        "path": "aima_engine/vl_reference.py",
+        "sha256": "000b9713172d507580b723fd99a8cccf39f67d01e0a8164055d5c108de10d5a1"
+      },
+      {
+        "bytes": 10601,
+        "path": "aima_engine/vl_transport_cache.py",
+        "sha256": "fd8504bc401181850e1601341ac9c700af59dee8ff6b6c5a046d8cb758181b87"
+      },
+      {
+        "bytes": 23168,
+        "path": "scripts/probe-vllm-vl-api-capabilities.py",
+        "sha256": "2762c30b98119dbe87fe93f11db39523d26a4d43f2144f74b2479050aa90ebd1"
+      },
+      {
+        "bytes": 20846,
+        "path": "scripts/capture-vllm-vl-api-render.py",
+        "sha256": "7df604bc7842200a49c6c9135e504d75c6dc329ccbd56bb8cd9acea9446dfe31"
+      },
+      {
+        "bytes": 2878,
+        "path": "scripts/run-vllm-vl-error-limits-reference.sh",
+        "sha256": "b5eec15825d85385bd6b1b04bed5d593763e3ec15254942929f7dce59c9e78ac"
+      },
+      {
+        "bytes": 18537,
+        "path": "scripts/capture-vllm-vl-error-limits.py",
+        "sha256": "e7a91e1d9b2e37a73045f18128aed31cbc4635af4c9431b7a8ad5245413c1436"
+      }
+    ],
+    "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

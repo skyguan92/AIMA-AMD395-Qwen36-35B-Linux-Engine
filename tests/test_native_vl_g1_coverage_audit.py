@@ -74,7 +74,7 @@ class NativeVlG1CoverageAuditTest(unittest.TestCase):
         self.assertEqual(coverage["requirements"], 14)
         self.assertEqual(
             coverage["counts"],
-            {"covered": 10, "partial": 4, "missing": 0},
+            {"covered": 11, "partial": 3, "missing": 0},
         )
         items = coverage["items"]
         self.assertEqual(len(items), len({item["requirement_id"] for item in items}))
@@ -84,7 +84,7 @@ class NativeVlG1CoverageAuditTest(unittest.TestCase):
                 for item in items
             )
         )
-        self.assertEqual(len(result["blocking_gaps"]), 4)
+        self.assertEqual(len(result["blocking_gaps"]), 3)
 
     def test_referenced_native_cases_exist_and_are_qualified(self) -> None:
         native = json.loads(
@@ -135,6 +135,33 @@ class NativeVlG1CoverageAuditTest(unittest.TestCase):
             for run in transport["runs"].values()
             for item in run["cases"]
         }
+        case_maps["media_io_reference"] = {
+            item["case_id"]: item
+            for item in json.loads(
+                (
+                    ROOT
+                    / "benchmarks/results/vl-media-io-reference-v0.1.0.json"
+                ).read_text(encoding="utf-8")
+            )["cases"]
+        }
+        case_maps["error_limits_reference"] = {
+            item["case_id"]: item
+            for item in json.loads(
+                (
+                    ROOT
+                    / "benchmarks/results/vl-error-limits-reference-v0.1.0.json"
+                ).read_text(encoding="utf-8")
+            )["cases"]
+        }
+        case_maps["error_limits_native"] = {
+            item["observation_id"]: item
+            for item in json.loads(
+                (
+                    ROOT
+                    / "benchmarks/results/native-vl-error-limits-v0.1.0.json"
+                ).read_text(encoding="utf-8")
+            )["run"]["cases"]
+        }
         for requirement in self.result["coverage"]["items"]:
             for record in requirement["evidence"]:
                 for case_id in record.get("case_ids", []):
@@ -143,7 +170,6 @@ class NativeVlG1CoverageAuditTest(unittest.TestCase):
 
     def test_next_evidence_names_every_blocking_workstream(self) -> None:
         expected = {
-            "g1-error-extension",
             "g1-generation-and-current-head-requalification",
         }
         self.assertEqual(

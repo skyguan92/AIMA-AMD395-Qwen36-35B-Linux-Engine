@@ -17,6 +17,10 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from aima_engine.vl_error_limits import (  # noqa: E402
+    NATIVE_REPLAY as ERROR_LIMITS_NATIVE_REPLAY,
+    REFERENCE_CASE_ORDER as ERROR_LIMITS_REFERENCE_CASE_ORDER,
+)
 from aima_engine.vl_reference import (  # noqa: E402
     atomic_json,
     file_component,
@@ -54,12 +58,22 @@ ARTIFACT_PATHS = {
     "transport_cache_native": (
         ROOT / "benchmarks/results/native-vl-transport-cache-v0.1.0.json"
     ),
+    "media_io_reference": (
+        ROOT / "benchmarks/results/vl-media-io-reference-v0.1.0.json"
+    ),
+    "error_limits_reference": (
+        ROOT / "benchmarks/results/vl-error-limits-reference-v0.1.0.json"
+    ),
+    "error_limits_native": (
+        ROOT / "benchmarks/results/native-vl-error-limits-v0.1.0.json"
+    ),
     "vision_pipeline": (
         ROOT / "benchmarks/results/native-vision-pipeline-v0.1.0.json"
     ),
     "language_boundary": (
         ROOT / "benchmarks/results/native-vl-language-full-v0.2.0.json"
     ),
+    "error_limits_contract": ROOT / "aima_engine/vl_error_limits.py",
     "cache_identity_unit": ROOT / "tests/native_multimodal_cache_test.cpp",
     "generator": Path(__file__).resolve(),
 }
@@ -125,6 +139,20 @@ def build_requirements() -> list[dict[str, Any]]:
                     "image_near_window_maximum",
                     note="min/typical/max, aspect, clamp, count and near-window execution",
                 ),
+                evidence(
+                    "media_io_reference",
+                    "default_white",
+                    "red",
+                    note="fixed vLLM white/default and request-red RGBA compositing",
+                ),
+                evidence(
+                    "error_limits_native",
+                    "rgba_default_cold",
+                    "rgba_red_miss",
+                    "rgba_default_restored",
+                    "rgba_red_after_errors",
+                    note="resident native RGBA request semantics and A/B/A identity",
+                ),
             ],
         ),
         requirement(
@@ -153,6 +181,21 @@ def build_requirements() -> list[dict[str, Any]]:
                     "video_count_over_limit",
                     "video_full_item_budget",
                     note="sampling, feature, count and full-budget execution",
+                ),
+                evidence(
+                    "error_limits_reference",
+                    "video_sampling_default",
+                    "video_sampling_empty_mapping",
+                    "video_long_duration",
+                    note="fixed vLLM merge semantics and 6000-second sparse video acceptance",
+                ),
+                evidence(
+                    "error_limits_native",
+                    "video_default_cold",
+                    "video_empty_mapping_exact",
+                    "video_default_restored",
+                    "video_long_duration",
+                    note="resident native replay is reference-exact across merge and duration",
                 ),
             ],
         ),
@@ -368,7 +411,7 @@ def build_requirements() -> list[dict[str, Any]]:
         requirement(
             "G1.2.2.error_parity",
             "Invalid media status and error-category parity",
-            "partial",
+            "covered",
             [
                 evidence(
                     "native_capability",
@@ -403,12 +446,30 @@ def build_requirements() -> list[dict[str, Any]]:
                         "cache mode"
                     ),
                 ),
-            ],
-            [
-                "empty image and empty video categories are not frozen",
-                "remote timeout and unreachable-media categories are not frozen",
-                "compressed-byte, decoded-pixel and duration over-limit categories are not frozen",
-                "error-category compatibility is not sealed separately from HTTP status",
+                evidence(
+                    "error_limits_reference",
+                    "empty_image_remote",
+                    "empty_video_remote",
+                    "unreachable_image_remote",
+                    "oversize_image_remote",
+                    "timeout_image_remote",
+                    note=(
+                        "fixed vLLM freezes empty, inaccessible, byte-limit and "
+                        "timeout status/type contracts"
+                    ),
+                ),
+                evidence(
+                    "error_limits_native",
+                    "empty_image_remote",
+                    "empty_video_remote",
+                    "unreachable_image_remote",
+                    "oversize_image_remote",
+                    "timeout_image_remote",
+                    note=(
+                        "native preserves the fail-closed product error shape with "
+                        "explicit compatible-category checks"
+                    ),
+                ),
             ],
         ),
         requirement(
@@ -464,6 +525,20 @@ def build_requirements() -> list[dict[str, Any]]:
                         "and media mutation"
                     ),
                 ),
+                evidence(
+                    "error_limits_native",
+                    "rgba_default_cold",
+                    "rgba_red_miss",
+                    "rgba_default_restored",
+                    "rgba_red_after_errors",
+                    "video_default_cold",
+                    "video_empty_mapping_exact",
+                    "video_default_restored",
+                    note=(
+                        "processor identity v3 binds RGBA background and shallow-merged "
+                        "video sampling policy"
+                    ),
+                ),
             ],
         ),
         requirement(
@@ -493,6 +568,16 @@ def build_requirements() -> list[dict[str, Any]]:
                         "and error status/payload invariance are live-qualified"
                     ),
                 ),
+                evidence(
+                    "error_limits_native",
+                    "empty_image_remote",
+                    "empty_video_remote",
+                    "unreachable_image_remote",
+                    "oversize_image_remote",
+                    "timeout_image_remote",
+                    "rgba_red_after_errors",
+                    note="five errors do not pollute media identity or later resident reuse",
+                ),
             ],
         ),
     ]
@@ -517,6 +602,9 @@ def validate_inputs(payloads: dict[str, dict[str, Any]]) -> None:
     extension_native = payloads["mixed_conversation_native"]
     transport_reference = payloads["transport_cache_reference"]
     transport_native = payloads["transport_cache_native"]
+    media_io_reference = payloads["media_io_reference"]
+    error_limits_reference = payloads["error_limits_reference"]
+    error_limits_native = payloads["error_limits_native"]
     vision = payloads["vision_pipeline"]
     language = payloads["language_boundary"]
     for name, payload in (
@@ -527,6 +615,9 @@ def validate_inputs(payloads: dict[str, dict[str, Any]]) -> None:
         ("mixed/conversation native", extension_native),
         ("transport/cache reference", transport_reference),
         ("transport/cache native", transport_native),
+        ("media IO reference", media_io_reference),
+        ("error/limit reference", error_limits_reference),
+        ("error/limit native", error_limits_native),
     ):
         if payload.get("complete") is not True or payload.get("qualified") is not True:
             raise SystemExit(f"{name} evidence is not complete and qualified")
@@ -605,6 +696,53 @@ def validate_inputs(payloads: dict[str, dict[str, Any]]) -> None:
             raise SystemExit(
                 f"transport/cache native evidence is missing: {decision}"
             )
+    if tuple(
+        case["case_id"] for case in error_limits_reference["cases"]
+    ) != ERROR_LIMITS_REFERENCE_CASE_ORDER:
+        raise SystemExit("error/limit reference case order changed")
+    if not all(
+        case.get("qualified") is True
+        and all(case.get("qualification_checks", {}).values())
+        for case in error_limits_reference["cases"]
+    ):
+        raise SystemExit("error/limit reference contains a failed case")
+    if error_limits_native["dependencies"].get("media_io_oracle") != file_component(
+        ARTIFACT_PATHS["media_io_reference"],
+        "benchmarks/results/vl-media-io-reference-v0.1.0.json",
+    ):
+        raise SystemExit("error/limit native media IO binding changed")
+    if error_limits_native["dependencies"].get("reference") != file_component(
+        ARTIFACT_PATHS["error_limits_reference"],
+        "benchmarks/results/vl-error-limits-reference-v0.1.0.json",
+    ):
+        raise SystemExit("error/limit native reference binding changed")
+    if tuple(
+        (case["observation_id"], case["reference_case_id"])
+        for case in error_limits_native["run"]["cases"]
+    ) != ERROR_LIMITS_NATIVE_REPLAY:
+        raise SystemExit("error/limit native replay order changed")
+    if not all(
+        case.get("qualified") is True
+        and all(case.get("qualification_checks", {}).values())
+        for case in error_limits_native["run"]["cases"]
+    ):
+        raise SystemExit("error/limit native contains a failed case")
+    for checks in error_limits_native["qualification_checks"].values():
+        if not all(checks.values()):
+            raise SystemExit("error/limit native contains a failed qualification")
+    for decision in (
+        "empty_video_mapping_qualified",
+        "error_cache_non_pollution_qualified",
+        "error_limit_categories_qualified",
+        "long_duration_video_qualified",
+        "one_resident_model_load",
+        "rgba_background_cache_identity_qualified",
+        "thirteen_observations_reference_exact",
+    ):
+        if error_limits_native["decision"].get(decision) is not True:
+            raise SystemExit(
+                f"error/limit native evidence is missing: {decision}"
+            )
 
 
 def build_payload() -> dict[str, Any]:
@@ -635,6 +773,15 @@ def build_payload() -> dict[str, Any]:
             "observation_id",
         ),
     }
+    media_io_reference_cases = case_map(
+        payloads["media_io_reference"], ("cases",)
+    )
+    error_limits_reference_cases = case_map(
+        payloads["error_limits_reference"], ("cases",)
+    )
+    error_limits_native_cases = case_map(
+        payloads["error_limits_native"], ("run", "cases"), "observation_id"
+    )
     for item in requirements:
         for record in item["evidence"]:
             artifact = record["artifact"]
@@ -652,6 +799,12 @@ def build_payload() -> dict[str, Any]:
                 if artifact == "transport_cache_reference"
                 else transport_native_cases
                 if artifact == "transport_cache_native"
+                else media_io_reference_cases
+                if artifact == "media_io_reference"
+                else error_limits_reference_cases
+                if artifact == "error_limits_reference"
+                else error_limits_native_cases
+                if artifact == "error_limits_native"
                 else None
             )
             if available is None:
@@ -696,18 +849,6 @@ def build_payload() -> dict[str, Any]:
         },
         "blocking_gaps": blockers,
         "next_evidence": [
-            {
-                "evidence_id": "g1-error-extension",
-                "requirement_ids": ["G1.2.2.error_parity"],
-                "cases": [
-                    "error_empty_image",
-                    "error_empty_video",
-                    "error_remote_timeout",
-                    "error_remote_unreachable",
-                    "error_media_bytes_over_limit",
-                    "error_video_duration_over_limit",
-                ],
-            },
             {
                 "evidence_id": "g1-generation-and-current-head-requalification",
                 "requirement_ids": [
