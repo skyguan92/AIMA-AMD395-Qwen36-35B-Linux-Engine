@@ -207,6 +207,8 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
         self.assertIn("first_decode_layer0_tail_captures", source)
         self.assertIn("instrumented_router_select_experts", source)
         self.assertIn("instrumented_apply_moe_activation", source)
+        self.assertIn("modular_moe_module.apply_moe_activation", source)
+        self.assertIn("original_modular_apply_moe_activation", source)
         self.assertIn("instrumented_moe_sum", source)
         self.assertIn('"routed_weighted_expert_outputs"', source)
         self.assertIn('"first-decode-layer0-tail"', source)

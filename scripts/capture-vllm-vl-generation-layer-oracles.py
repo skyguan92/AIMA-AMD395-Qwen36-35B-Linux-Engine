@@ -125,6 +125,11 @@ def _remove_hooks(root: Any, state: dict[str, Any]) -> None:
         fused_moe_module.apply_moe_activation = state[
             "original_apply_moe_activation"
         ]
+    modular_moe_module = state.get("modular_moe_module")
+    if modular_moe_module is not None:
+        modular_moe_module.apply_moe_activation = state[
+            "original_modular_apply_moe_activation"
+        ]
     custom_ops = state.get("custom_ops")
     if custom_ops is not None:
         custom_ops.moe_sum = state["original_moe_sum"]
@@ -188,6 +193,10 @@ class InstallGenerationLayerHooks:
             "vllm.model_executor.layers.fused_moe.fused_moe",
             fromlist=["apply_moe_activation"],
         )
+        modular_moe_module = __import__(
+            "vllm.model_executor.layers.fused_moe.modular_kernel",
+            fromlist=["apply_moe_activation"],
+        )
         custom_ops = __import__("vllm._custom_ops", fromlist=["moe_sum"])
         state.update(
             {
@@ -205,6 +214,10 @@ class InstallGenerationLayerHooks:
                 "fused_moe_module": fused_moe_module,
                 "original_apply_moe_activation": (
                     fused_moe_module.apply_moe_activation
+                ),
+                "modular_moe_module": modular_moe_module,
+                "original_modular_apply_moe_activation": (
+                    modular_moe_module.apply_moe_activation
                 ),
                 "custom_ops": custom_ops,
                 "original_moe_sum": custom_ops.moe_sum,
@@ -498,6 +511,9 @@ class InstallGenerationLayerHooks:
         )
         router.select_experts = instrumented_router_select_experts
         fused_moe_module.apply_moe_activation = (
+            instrumented_apply_moe_activation
+        )
+        modular_moe_module.apply_moe_activation = (
             instrumented_apply_moe_activation
         )
         custom_ops.moe_sum = instrumented_moe_sum
