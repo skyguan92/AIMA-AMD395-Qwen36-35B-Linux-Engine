@@ -118,6 +118,15 @@ struct NativeResidentVlInput {
   double processor_wall_ms = 0.0;
 };
 
+// Qualification-only synchronous observer for the logical prefill state
+// handed to the first decode token. Linear layers expose their normalized
+// convolution cache followed by their recurrent cache. Product requests leave
+// this callback empty and incur no synchronization or host transfer.
+using NativePrefillLinearStateObserver = std::function<void(
+    std::size_t layer_index, const void* conv_state,
+    std::uint64_t conv_state_bytes, const void* recurrent_state,
+    std::uint64_t recurrent_state_bytes)>;
+
 struct NativeResidentRequestOptions {
   std::vector<std::uint32_t> input_token_ids;
   // Empty for text-only requests. Native VL supplies a versioned digest of
@@ -159,6 +168,9 @@ struct NativeResidentRequestOptions {
   // Qualification-only full-sequence attribution for one linear layer.  This
   // is kept separate from tail fixtures because each tensor is 128 MiB.
   std::filesystem::path layer_sequence_oracle_dir;
+  // Qualification-only logical prefill state observer. It runs after padded
+  // state repair and before first-token selection.
+  NativePrefillLinearStateObserver prefill_linear_state_observer;
   // Qualification-only decode boundary observer. Output index 0 is produced
   // by prefill, so the observer target must name a later generated token.
   std::optional<std::size_t> decode_layer_observer_output_index;

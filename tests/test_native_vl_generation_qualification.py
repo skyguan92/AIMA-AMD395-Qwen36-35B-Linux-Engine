@@ -7,6 +7,7 @@ import unittest
 
 from aima_engine.vl_generation_oracle import CASE_CONTRACTS, CASE_ORDER
 from aima_engine.vl_generation_layer_oracle import BOUNDARY_NAMES
+from aima_engine.vl_prefill_state_oracle import STATE_COMPONENT_NAMES
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -177,6 +178,86 @@ class NativeVlGenerationQualificationTest(unittest.TestCase):
             self.assertTrue(checks[f"{case_id}_decode_boundaries_complete"])
             self.assertTrue(checks[f"{case_id}_decode_boundaries_finite"])
             self.assertTrue(checks[f"{case_id}_decode_boundary_rows_bound"])
+
+    def test_prefill_state_checks_bind_all_linear_layer_states(self) -> None:
+        oracle_cases = []
+        state_cases = []
+        probe_cases = []
+        for case_id in CASE_ORDER:
+            contract = CASE_CONTRACTS[case_id]
+            prompt_sha = case_id.ljust(64, "0")[:64]
+            logits_sha = case_id.ljust(64, "1")[:64]
+            components = {
+                name: {"sha256": f"{index:064x}"}
+                for index, name in enumerate(STATE_COMPONENT_NAMES, start=1)
+            }
+            states = [
+                {
+                    "label": name,
+                    "elements": (
+                        32 * 128 * 128
+                        if name.endswith("_recurrent_state")
+                        else 8_192 * 3
+                    ),
+                    "finite_elements": (
+                        32 * 128 * 128
+                        if name.endswith("_recurrent_state")
+                        else 8_192 * 3
+                    ),
+                    "expected_sha256": components[name]["sha256"],
+                }
+                for name in STATE_COMPONENT_NAMES
+            ]
+            oracle_cases.append(
+                {
+                    "case_id": case_id,
+                    "prompt_token_ids_sha256": prompt_sha,
+                    "reference_logits": {"component": {"sha256": logits_sha}},
+                }
+            )
+            state_cases.append({"case_id": case_id, "components": components})
+            probe_cases.append(
+                {
+                    "case_id": case_id,
+                    "prefix_exact": True,
+                    "selected_native_token_id": contract["reference_token_id"],
+                    "native_top1_exact": True,
+                    "prefill_states_complete": True,
+                    "prefill_states_finite": True,
+                    "prefill_states": states,
+                    "request_metrics": {
+                        "prompt_token_ids_sha256": prompt_sha,
+                        "vl": {"enabled": True},
+                        "mrope": {"enabled": True},
+                    },
+                    "reference_logits": {
+                        "expected_sha256": logits_sha,
+                        "reference_top1_token_id": contract[
+                            "reference_token_id"
+                        ],
+                        "elements": self.module.MODEL_VOCABULARY_SIZE,
+                        "finite_elements": self.module.MODEL_VOCABULARY_SIZE,
+                        "top1_match": True,
+                        "kl_divergence": 0.0,
+                    },
+                }
+            )
+        checks = self.module.qualification_checks(
+            {
+                "schema": self.module.PROBE_SCHEMA,
+                "complete": True,
+                "qualified_for_attribution": True,
+                "model_loads": 1,
+                "cases": probe_cases,
+            },
+            {"cases": oracle_cases},
+            None,
+            {"cases": state_cases},
+        )
+        for case_id in CASE_ORDER:
+            self.assertTrue(checks[f"{case_id}_prefill_states_complete"])
+            self.assertTrue(checks[f"{case_id}_prefill_states_finite"])
+            self.assertTrue(checks[f"{case_id}_prefill_state_rows_bound"])
 
 
 if __name__ == "__main__":

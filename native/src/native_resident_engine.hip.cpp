@@ -1789,6 +1789,27 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
           (segment.input_tokens - 1) * kHidden * sizeof(std::uint16_t);
     }
   }
+  if (request.prefill_linear_state_observer) {
+    for (std::size_t layer_index = 0; layer_index < 40; ++layer_index) {
+      if (layer_index % 4 == 3) continue;
+      const std::string layer = std::to_string(layer_index);
+      const NativeDecodeWorkspaceView* conv = impl_->decode_workspace.find(
+          "linear_attention_initial_conv_states." + layer);
+      const NativeDecodeWorkspaceView* recurrent =
+          impl_->decode_workspace.find(
+              "linear_attention_initial_ssm_states_vllm." + layer);
+      if (conv == nullptr || conv->device_pointer == nullptr ||
+          conv->payload_bytes != 8192ULL * 3ULL * sizeof(std::uint16_t) ||
+          recurrent == nullptr || recurrent->device_pointer == nullptr ||
+          recurrent->payload_bytes != 32ULL * 128ULL * 128ULL * sizeof(float)) {
+        throw std::runtime_error(
+            "native prefill state observer binding is incomplete");
+      }
+      request.prefill_linear_state_observer(
+          layer_index, conv->device_pointer, conv->payload_bytes,
+          recurrent->device_pointer, recurrent->payload_bytes);
+    }
+  }
   std::uint32_t first_token_id = 0;
   const void* prompt_terminal_hidden = last_hidden;
   const auto first_token_started = std::chrono::steady_clock::now();

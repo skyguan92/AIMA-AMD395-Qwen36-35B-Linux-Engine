@@ -722,6 +722,18 @@ std::string decode_boundary_label(std::size_t boundary_index) {
   return label.str();
 }
 
+std::string prefill_state_label(std::size_t layer_index,
+                                std::string_view state_kind) {
+  if (layer_index >= 40 || layer_index % 4 == 3 ||
+      (state_kind != "conv_state" && state_kind != "recurrent_state")) {
+    throw std::invalid_argument("native prefill state label is invalid");
+  }
+  std::ostringstream label;
+  label << "layer_" << std::setfill('0') << std::setw(3) << layer_index
+        << '_' << state_kind;
+  return label.str();
+}
+
 struct ParsedCompletionRequest {
   NativePreparedChat chat;
   std::vector<std::uint32_t> prompt;
@@ -1526,6 +1538,7 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
   bool all_reference_rows_bound = true;
   bool all_native_top1_exact = true;
   bool all_decode_boundaries_compared = true;
+  bool all_prefill_states_compared = true;
 
   for (const Json& item : specification["cases"]) {
     if (!item.is_object() || !item.contains("case_id") ||
@@ -1586,6 +1599,35 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
     } else {
       all_decode_boundaries_compared = false;
     }
+    struct ReferencePrefillState {
+      std::size_t layer_index = 0;
+      std::filesystem::path conv;
+      std::filesystem::path recurrent;
+    };
+    std::vector<ReferencePrefillState> reference_prefill_states;
+    if (item.contains("reference_prefill_state_dir")) {
+      if (!item["reference_prefill_state_dir"].is_string() ||
+          item["reference_prefill_state_dir"].get<std::string>().empty()) {
+        throw std::runtime_error(
+            "VL generation prefill state directory is malformed");
+      }
+      const std::filesystem::path state_dir = std::filesystem::absolute(
+          item["reference_prefill_state_dir"].get<std::string>());
+      reference_prefill_states.reserve(30);
+      for (std::size_t layer_index = 0; layer_index < 40; ++layer_index) {
+        if (layer_index % 4 == 3) continue;
+        reference_prefill_states.push_back(
+            {layer_index,
+             find_native_oracle_tensor_file(
+                 state_dir,
+                 prefill_state_label(layer_index, "conv_state")),
+             find_native_oracle_tensor_file(
+                 state_dir,
+                 prefill_state_label(layer_index, "recurrent_state"))});
+      }
+    } else {
+      all_prefill_states_compared = false;
+    }
 
     ParsedCompletionRequest parsed = parse_completion_request(
         tokenizer, item["request"], options.media_policy, media_cache,
@@ -1604,6 +1646,38 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
     request.max_new_tokens = expected_prefix.size() + 1;
     request.stop_token_ids = {tokenizer.eos_token_id()};
     request.disable_prefix_cache = true;
+    std::vector<NativeOracleComparison> prefill_state_comparisons;
+    if (!reference_prefill_states.empty()) {
+      prefill_state_comparisons.reserve(reference_prefill_states.size() * 2);
+      request.prefill_linear_state_observer =
+          [&](std::size_t layer_index, const void* conv_state,
+              std::uint64_t conv_state_bytes, const void* recurrent_state,
+              std::uint64_t recurrent_state_bytes) {
+            const std::size_t state_index =
+                prefill_state_comparisons.size() / 2;
+            if (state_index >= reference_prefill_states.size() ||
+                reference_prefill_states[state_index].layer_index !=
+                    layer_index ||
+                conv_state_bytes != 8192ULL * 3ULL * sizeof(std::uint16_t) ||
+                recurrent_state_bytes !=
+                    32ULL * 128ULL * 128ULL * sizeof(float)) {
+              throw std::runtime_error(
+                  "native VL prefill state observer order changed");
+            }
+            const ReferencePrefillState& expected =
+                reference_prefill_states[state_index];
+            prefill_state_comparisons.push_back(
+                compare_native_oracle_tensor(
+                    prefill_state_label(layer_index, "conv_state"),
+                    "bfloat16", conv_state, conv_state_bytes,
+                    expected.conv));
+            prefill_state_comparisons.push_back(
+                compare_native_oracle_tensor(
+                    prefill_state_label(layer_index, "recurrent_state"),
+                    "float32", recurrent_state, recurrent_state_bytes,
+                    expected.recurrent));
+          };
+    }
     std::vector<NativeOracleComparison> decode_boundary_comparisons;
     if (!reference_decode_boundaries.empty()) {
       decode_boundary_comparisons.reserve(41);
@@ -1634,6 +1708,12 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
     }
 
     const NativeResidentRequestMetrics metrics = engine.run(request);
+    if (!reference_prefill_states.empty() &&
+        prefill_state_comparisons.size() !=
+            reference_prefill_states.size() * 2) {
+      throw std::runtime_error(
+          "native VL generation prefill state capture is incomplete");
+    }
     if (!reference_decode_boundaries.empty() &&
         decode_boundary_comparisons.size() != 41) {
       throw std::runtime_error(
@@ -1679,6 +1759,13 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
           decode_boundaries_finite &&
           boundary.finite_elements == boundary.elements;
     }
+    Json prefill_states = Json::array();
+    bool prefill_states_finite = !prefill_state_comparisons.empty();
+    for (const NativeOracleComparison& state : prefill_state_comparisons) {
+      prefill_states.push_back(oracle_comparison_json(state));
+      prefill_states_finite =
+          prefill_states_finite && state.finite_elements == state.elements;
+    }
 
     results.push_back(
         {{"case_id", case_id},
@@ -1691,6 +1778,10 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
          {"prefix_exact", prefix_exact},
          {"selected_reference_token", selected_reference},
          {"request_metrics", request_metrics_json(metrics)},
+         {"prefill_states_complete",
+          prefill_state_comparisons.size() == 60},
+         {"prefill_states_finite", prefill_states_finite},
+         {"prefill_states", std::move(prefill_states)},
          {"decode_boundaries_complete",
           decode_boundary_comparisons.size() == 41},
          {"decode_boundaries_finite", decode_boundaries_finite},
@@ -1727,6 +1818,8 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
                 {"all_reference_rows_bound", all_reference_rows_bound},
                 {"all_decode_boundaries_compared",
                  all_decode_boundaries_compared},
+                {"all_prefill_states_compared",
+                 all_prefill_states_compared},
                 {"all_native_generation_top1_exact",
                  all_native_top1_exact},
                 {"product_http_oracle_dependency", false}}}})

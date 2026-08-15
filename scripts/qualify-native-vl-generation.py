@@ -29,6 +29,10 @@ from aima_engine.vl_generation_layer_oracle import (  # noqa: E402
     BOUNDARY_NAMES,
     validate_generation_layer_oracle_manifest,
 )
+from aima_engine.vl_prefill_state_oracle import (  # noqa: E402
+    STATE_COMPONENT_NAMES,
+    validate_vl_prefill_state_oracle_manifest,
+)
 from aima_engine.vl_reference import (  # noqa: E402
     atomic_json,
     file_component,
@@ -86,6 +90,8 @@ def build_probe_cases(
     fixture_root: Path,
     layer_oracle: dict[str, Any] | None = None,
     layer_oracle_root: Path | None = None,
+    prefill_state_oracle: dict[str, Any] | None = None,
+    prefill_state_oracle_root: Path | None = None,
 ) -> dict[str, Any]:
     layer_cases = (
         {case["case_id"]: case for case in layer_oracle["cases"]}
@@ -94,6 +100,13 @@ def build_probe_cases(
     )
     if (layer_oracle is None) != (layer_oracle_root is None):
         raise RuntimeError("generation layer oracle inputs must be paired")
+    state_cases = (
+        {case["case_id"]: case for case in prefill_state_oracle["cases"]}
+        if prefill_state_oracle is not None
+        else {}
+    )
+    if (prefill_state_oracle is None) != (prefill_state_oracle_root is None):
+        raise RuntimeError("VL prefill state oracle inputs must be paired")
     cases = []
     for case in oracle["cases"]:
         case_id = case["case_id"]
@@ -120,6 +133,15 @@ def build_probe_cases(
             probe_case["reference_decode_boundary_dir"] = str(
                 (layer_oracle_root / case_id).resolve()
             )
+        if prefill_state_oracle_root is not None:
+            state_case = state_cases.get(case_id)
+            if not isinstance(state_case, dict):
+                raise RuntimeError(
+                    f"VL prefill state oracle case is missing: {case_id}"
+                )
+            probe_case["reference_prefill_state_dir"] = str(
+                (prefill_state_oracle_root / case_id).resolve()
+            )
         cases.append(probe_case)
     if tuple(case["case_id"] for case in cases) != CASE_ORDER:
         raise RuntimeError("generation qualification case order changed")
@@ -130,6 +152,7 @@ def qualification_checks(
     probe: dict[str, Any],
     oracle: dict[str, Any],
     layer_oracle: dict[str, Any] | None = None,
+    prefill_state_oracle: dict[str, Any] | None = None,
 ) -> dict[str, bool]:
     probe_cases = {
         case.get("case_id"): case
@@ -140,6 +163,11 @@ def qualification_checks(
     layer_cases = (
         {case["case_id"]: case for case in layer_oracle["cases"]}
         if layer_oracle is not None
+        else {}
+    )
+    state_cases = (
+        {case["case_id"]: case for case in prefill_state_oracle["cases"]}
+        if prefill_state_oracle is not None
         else {}
     )
     checks = {
@@ -235,6 +263,37 @@ def qualification_checks(
                     for boundary in boundaries
                 )
             )
+        if prefill_state_oracle is not None:
+            state_case = state_cases[case_id]
+            states = observed.get("prefill_states")
+            states_well_formed = (
+                isinstance(states, list)
+                and len(states) == len(STATE_COMPONENT_NAMES)
+                and all(isinstance(state, dict) for state in states)
+            )
+            checks[f"{case_id}_prefill_states_complete"] = (
+                observed.get("prefill_states_complete") is True
+                and states_well_formed
+            )
+            checks[f"{case_id}_prefill_states_finite"] = (
+                observed.get("prefill_states_finite") is True
+                and states_well_formed
+                and all(
+                    state.get("elements") in (8_192 * 3, 32 * 128 * 128)
+                    and state.get("finite_elements") == state.get("elements")
+                    for state in states
+                )
+            )
+            checks[f"{case_id}_prefill_state_rows_bound"] = (
+                states_well_formed
+                and [state.get("label") for state in states]
+                == list(STATE_COMPONENT_NAMES)
+                and all(
+                    state.get("expected_sha256")
+                    == state_case["components"][state["label"]]["sha256"]
+                    for state in states
+                )
+            )
     return checks
 
 
@@ -260,6 +319,23 @@ def qualify(args: argparse.Namespace) -> dict[str, Any]:
         raise SystemExit(
             "--layer-oracle-manifest and --layer-oracle-root must be paired"
         )
+    prefill_state_oracle_path = (
+        args.prefill_state_oracle_manifest.resolve()
+        if args.prefill_state_oracle_manifest is not None
+        else None
+    )
+    prefill_state_oracle_root = (
+        args.prefill_state_oracle_root.resolve()
+        if args.prefill_state_oracle_root is not None
+        else None
+    )
+    if (prefill_state_oracle_path is None) != (
+        prefill_state_oracle_root is None
+    ):
+        raise SystemExit(
+            "--prefill-state-oracle-manifest and --prefill-state-oracle-root "
+            "must be paired"
+        )
     output = args.output.resolve()
     raw_root = output.parent / f"{output.stem}-raw"
     for path in (
@@ -277,6 +353,11 @@ def qualify(args: argparse.Namespace) -> dict[str, Any]:
         not layer_oracle_path.is_file() or not layer_oracle_root.is_dir()
     ):
         raise SystemExit("generation layer oracle input is missing")
+    if prefill_state_oracle_path is not None and (
+        not prefill_state_oracle_path.is_file()
+        or not prefill_state_oracle_root.is_dir()
+    ):
+        raise SystemExit("VL prefill state oracle input is missing")
     if output.exists() or raw_root.exists():
         raise SystemExit("generation qualification output already exists")
 
@@ -320,6 +401,24 @@ def qualify(args: argparse.Namespace) -> dict[str, Any]:
             raise SystemExit(
                 "generation layer oracle is bound to a different logits oracle"
             )
+    prefill_state_oracle = None
+    if prefill_state_oracle_path is not None:
+        prefill_state_oracle = load_json_object(prefill_state_oracle_path)
+        state_errors = validate_vl_prefill_state_oracle_manifest(
+            prefill_state_oracle, oracle_root=prefill_state_oracle_root
+        )
+        if state_errors:
+            raise SystemExit(
+                "invalid VL prefill state oracle:\n- "
+                + "\n- ".join(state_errors)
+            )
+        generation_binding = prefill_state_oracle.get(
+            "generation_oracle", {}
+        )
+        if generation_binding.get("sha256") != sha256_file(oracle_path):
+            raise SystemExit(
+                "VL prefill state oracle is bound to a different logits oracle"
+            )
 
     raw_root.mkdir(parents=True)
     isolated_home = raw_root / "home"
@@ -337,6 +436,8 @@ def qualify(args: argparse.Namespace) -> dict[str, Any]:
                 fixture_root,
                 layer_oracle,
                 layer_oracle_root,
+                prefill_state_oracle,
+                prefill_state_oracle_root,
             ),
         )
         command = [
@@ -377,7 +478,9 @@ def qualify(args: argparse.Namespace) -> dict[str, Any]:
         probe = json.loads(completed.stdout)
     except json.JSONDecodeError as error:
         raise RuntimeError("native generation probe emitted invalid JSON") from error
-    checks = qualification_checks(probe, oracle, layer_oracle)
+    checks = qualification_checks(
+        probe, oracle, layer_oracle, prefill_state_oracle
+    )
     checks["stderr_empty"] = len(completed.stderr) == 0
     exact_checks = [
         value
@@ -408,7 +511,9 @@ def qualify(args: argparse.Namespace) -> dict[str, Any]:
             "complete": all(setup_checks.values()),
             "qualified": qualified,
             "scope": (
-                "current-head-two-vl-tool-generation-divergence-logits-and-layers"
+                "current-head-two-vl-tool-generation-logits-layers-and-prefill-state"
+                if layer_oracle is not None and prefill_state_oracle is not None
+                else "current-head-two-vl-tool-generation-divergence-logits-and-layers"
                 if layer_oracle is not None
                 else "current-head-two-vl-tool-generation-divergence-logits"
             ),
@@ -423,6 +528,7 @@ def qualify(args: argparse.Namespace) -> dict[str, Any]:
                         Path(__file__).resolve(),
                         ROOT / "aima_engine/vl_generation_oracle.py",
                         ROOT / "aima_engine/vl_generation_layer_oracle.py",
+                        ROOT / "aima_engine/vl_prefill_state_oracle.py",
                     )
                 ],
             },
@@ -452,6 +558,17 @@ def qualify(args: argparse.Namespace) -> dict[str, Any]:
                         )
                     }
                     if layer_oracle_path is not None
+                    else {}
+                ),
+                **(
+                    {
+                        "vl_prefill_state_oracle": file_component(
+                            prefill_state_oracle_path,
+                            "benchmarks/results/"
+                            "vl-prefill-state-oracle-v0.1.0.json",
+                        )
+                    }
+                    if prefill_state_oracle_path is not None
                     else {}
                 ),
             },
@@ -510,6 +627,13 @@ def qualify(args: argparse.Namespace) -> dict[str, Any]:
                         for case_id in CASE_ORDER
                     )
                 ),
+                "two_prefill_state_sets_bound": (
+                    prefill_state_oracle is not None
+                    and all(
+                        checks[f"{case_id}_prefill_state_rows_bound"]
+                        for case_id in CASE_ORDER
+                    )
+                ),
                 "two_native_generation_top1_exact": all(exact_checks),
                 "two_generation_logits_kld_under_0_005": all(kld_checks),
                 "g1_generation_closed": qualified,
@@ -536,6 +660,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--oracle-root", type=Path, required=True)
     parser.add_argument("--layer-oracle-manifest", type=Path)
     parser.add_argument("--layer-oracle-root", type=Path)
+    parser.add_argument("--prefill-state-oracle-manifest", type=Path)
+    parser.add_argument("--prefill-state-oracle-root", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--timeout-seconds", type=float, default=900.0)
     return parser.parse_args()
