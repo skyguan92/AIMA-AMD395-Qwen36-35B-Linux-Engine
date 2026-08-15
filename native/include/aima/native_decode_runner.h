@@ -11,8 +11,15 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 
 namespace aima {
+
+// Qualification-only synchronous observer for the accumulated BF16 hidden row
+// after each decode layer (0..39) and the final normalized row (40).  Product
+// execution passes nullptr and pays no device-to-host transfer or synchronization.
+using NativeDecodeLayerObserver =
+    std::function<void(std::size_t boundary_index, const void* device_row)>;
 
 struct NativeDecodeRunMetrics {
   std::size_t layer_count = 0;
@@ -88,6 +95,7 @@ NativeDecodeRunMetrics run_native_decode_token(
     NativeDecodeInvocations& invocations,
     NativeDecodeExecutor& executor, NativeFullAttentionState& attention_state,
     int cu_count, const std::uint8_t* allowed_token_mask = nullptr,
-    void* stream = nullptr);
+    void* stream = nullptr,
+    const NativeDecodeLayerObserver* layer_observer = nullptr);
 
 }  // namespace aima

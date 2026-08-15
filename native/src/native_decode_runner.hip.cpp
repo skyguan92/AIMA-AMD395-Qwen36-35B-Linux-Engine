@@ -185,7 +185,7 @@ NativeDecodeRunMetrics run_native_decode_token(
     NativeDecodeInvocations& invocations,
     NativeDecodeExecutor& executor, NativeFullAttentionState& attention_state,
     int cu_count, const std::uint8_t* allowed_token_mask,
-    void* stream_value) {
+    void* stream_value, const NativeDecodeLayerObserver* layer_observer) {
   const auto& launches = invocations.launches();
   if (launches.size() != 402 || !executor.loaded() || !lm_head.built() ||
       cu_count <= 0 ||
@@ -217,6 +217,10 @@ NativeDecodeRunMetrics run_native_decode_token(
       metrics.native_pointwise_launches += layer.native_pointwise_launches;
     }
     ++metrics.layer_count;
+    if (layer_observer != nullptr) {
+      (*layer_observer)(layer_index,
+                        invocations.tensor_pointer(base + 10, "x"));
+    }
   }
   metrics.layer_submission_ms =
       std::chrono::duration<double, std::milli>(
@@ -227,6 +231,16 @@ NativeDecodeRunMetrics run_native_decode_token(
   const NativeLmHeadTop1Metrics lm_head_result = run_native_lm_head_top1(
       invocations.tensor_pointer(400, "x"), weights, lm_head, workspace,
       invocations, executor, cu_count, allowed_token_mask, stream);
+  if (layer_observer != nullptr) {
+    const NativeDecodeWorkspaceView* final_norm =
+        workspace.find("rmsnorm_final_output");
+    if (final_norm == nullptr || final_norm->device_pointer == nullptr ||
+        final_norm->payload_bytes < kHidden * sizeof(__hip_bfloat16)) {
+      throw std::runtime_error(
+          "native decode final-norm observer binding is incomplete");
+    }
+    (*layer_observer)(40, final_norm->device_pointer);
+  }
   metrics.aot_launches += lm_head_result.aot_launches;
   metrics.native_lm_head_certificate_launches =
       lm_head_result.native_lm_head_certificate_launches;

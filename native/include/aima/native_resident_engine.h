@@ -159,6 +159,10 @@ struct NativeResidentRequestOptions {
   // Qualification-only full-sequence attribution for one linear layer.  This
   // is kept separate from tail fixtures because each tensor is 128 MiB.
   std::filesystem::path layer_sequence_oracle_dir;
+  // Qualification-only decode boundary observer. Output index 0 is produced
+  // by prefill, so the observer target must name a later generated token.
+  std::optional<std::size_t> decode_layer_observer_output_index;
+  NativeDecodeLayerObserver decode_layer_observer;
 };
 
 struct NativeResidentRequestMetrics {

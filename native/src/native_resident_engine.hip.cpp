@@ -970,6 +970,15 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
           "native resident stop token is outside the vocabulary");
     }
   }
+  if (static_cast<bool>(request.decode_layer_observer) !=
+          request.decode_layer_observer_output_index.has_value() ||
+      (request.decode_layer_observer_output_index.has_value() &&
+       (*request.decode_layer_observer_output_index == 0 ||
+        *request.decode_layer_observer_output_index >=
+            request.max_new_tokens))) {
+    throw std::invalid_argument(
+        "native decode layer observer target is invalid");
+  }
   if (!valid_native_multimodal_cache_namespace(
           request.multimodal_cache_namespace)) {
     throw std::invalid_argument(
@@ -1895,10 +1904,17 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
         position, rotary_position, metrics.output_token_ids.back(),
         impl_->weights, impl_->decode_invocations);
     const std::uint8_t* allowed_token_mask = prepare_next_token_mask();
+    const bool observe_decode_layers =
+        request.decode_layer_observer_output_index.has_value() &&
+        *request.decode_layer_observer_output_index ==
+            metrics.output_token_ids.size();
+    const NativeDecodeLayerObserver* layer_observer =
+        observe_decode_layers ? &request.decode_layer_observer : nullptr;
     const NativeDecodeRunMetrics token = run_native_decode_token(
         position, position + 1, impl_->weights, impl_->lm_head,
         impl_->decode_workspace, impl_->decode_invocations, impl_->executor,
-        impl_->attention_state, impl_->cu_count, allowed_token_mask);
+        impl_->attention_state, impl_->cu_count, allowed_token_mask, nullptr,
+        layer_observer);
     ++metrics.decode_tokens_executed;
     metrics.decode_aot_launches += token.aot_launches;
     metrics.decode_native_launches +=

@@ -694,6 +694,34 @@ Json request_metrics_json(const NativeResidentRequestMetrics& metrics) {
   return result;
 }
 
+Json oracle_comparison_json(const NativeOracleComparison& comparison) {
+  return {{"label", comparison.label},
+          {"dtype", comparison.dtype},
+          {"elements", comparison.elements},
+          {"exact_elements", comparison.exact_elements},
+          {"finite_elements", comparison.finite_elements},
+          {"first_mismatch_provided", comparison.first_mismatch_provided},
+          {"first_mismatch_index", comparison.first_mismatch_index},
+          {"first_mismatch_expected", comparison.first_mismatch_expected},
+          {"first_mismatch_actual", comparison.first_mismatch_actual},
+          {"maximum_absolute_error", comparison.maximum_absolute_error},
+          {"relative_l2_error", comparison.relative_l2_error},
+          {"cosine_similarity", comparison.cosine_similarity},
+          {"expected_sha256", comparison.expected_sha256},
+          {"actual_sha256", comparison.actual_sha256}};
+}
+
+std::string decode_boundary_label(std::size_t boundary_index) {
+  if (boundary_index == 40) return "language_final_norm";
+  if (boundary_index >= 40) {
+    throw std::invalid_argument("native decode boundary index is invalid");
+  }
+  std::ostringstream label;
+  label << "layer_" << std::setfill('0') << std::setw(3) << boundary_index
+        << "_output";
+  return label.str();
+}
+
 struct ParsedCompletionRequest {
   NativePreparedChat chat;
   std::vector<std::uint32_t> prompt;
@@ -1497,6 +1525,7 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
   bool all_prefixes_exact = true;
   bool all_reference_rows_bound = true;
   bool all_native_top1_exact = true;
+  bool all_decode_boundaries_compared = true;
 
   for (const Json& item : specification["cases"]) {
     if (!item.is_object() || !item.contains("case_id") ||
@@ -1538,6 +1567,25 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
     const std::filesystem::path reference_logits =
         std::filesystem::absolute(
             item["reference_logits"].get<std::string>());
+    std::vector<std::filesystem::path> reference_decode_boundaries;
+    if (item.contains("reference_decode_boundary_dir")) {
+      if (!item["reference_decode_boundary_dir"].is_string() ||
+          item["reference_decode_boundary_dir"].get<std::string>().empty()) {
+        throw std::runtime_error(
+            "VL generation decode boundary directory is malformed");
+      }
+      const std::filesystem::path boundary_dir = std::filesystem::absolute(
+          item["reference_decode_boundary_dir"].get<std::string>());
+      reference_decode_boundaries.reserve(41);
+      for (std::size_t boundary_index = 0; boundary_index <= 40;
+           ++boundary_index) {
+        reference_decode_boundaries.push_back(
+            find_native_oracle_tensor_file(
+                boundary_dir, decode_boundary_label(boundary_index)));
+      }
+    } else {
+      all_decode_boundaries_compared = false;
+    }
 
     ParsedCompletionRequest parsed = parse_completion_request(
         tokenizer, item["request"], options.media_policy, media_cache,
@@ -1556,6 +1604,26 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
     request.max_new_tokens = expected_prefix.size() + 1;
     request.stop_token_ids = {tokenizer.eos_token_id()};
     request.disable_prefix_cache = true;
+    std::vector<NativeOracleComparison> decode_boundary_comparisons;
+    if (!reference_decode_boundaries.empty()) {
+      decode_boundary_comparisons.reserve(41);
+      request.decode_layer_observer_output_index = expected_prefix.size();
+      request.decode_layer_observer =
+          [&](std::size_t boundary_index, const void* device_row) {
+            if (boundary_index != decode_boundary_comparisons.size() ||
+                boundary_index >= reference_decode_boundaries.size()) {
+              throw std::runtime_error(
+                  "native VL decode boundary observer order changed");
+            }
+            const std::string label =
+                decode_boundary_label(boundary_index);
+            decode_boundary_comparisons.push_back(
+                compare_native_oracle_tensor(
+                    label, "bfloat16", device_row,
+                    2048 * sizeof(std::uint16_t),
+                    reference_decode_boundaries[boundary_index]));
+          };
+    }
     if (parsed.named_tool_json_constraint != nullptr) {
       const auto constraint = parsed.named_tool_json_constraint;
       request.next_token_mask =
@@ -1566,6 +1634,11 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
     }
 
     const NativeResidentRequestMetrics metrics = engine.run(request);
+    if (!reference_decode_boundaries.empty() &&
+        decode_boundary_comparisons.size() != 41) {
+      throw std::runtime_error(
+          "native VL generation decode boundary capture is incomplete");
+    }
     if (metrics.output_token_ids.size() != expected_prefix.size() + 1) {
       throw std::runtime_error(
           "native VL generation ended before the diagnostic token");
@@ -1597,6 +1670,16 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
         all_reference_rows_bound && reference_row_bound;
     all_native_top1_exact = all_native_top1_exact && native_top1_exact;
 
+    Json decode_boundaries = Json::array();
+    bool decode_boundaries_finite = !decode_boundary_comparisons.empty();
+    for (const NativeOracleComparison& boundary :
+         decode_boundary_comparisons) {
+      decode_boundaries.push_back(oracle_comparison_json(boundary));
+      decode_boundaries_finite =
+          decode_boundaries_finite &&
+          boundary.finite_elements == boundary.elements;
+    }
+
     results.push_back(
         {{"case_id", case_id},
          {"complete", true},
@@ -1608,6 +1691,10 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
          {"prefix_exact", prefix_exact},
          {"selected_reference_token", selected_reference},
          {"request_metrics", request_metrics_json(metrics)},
+         {"decode_boundaries_complete",
+          decode_boundary_comparisons.size() == 41},
+         {"decode_boundaries_finite", decode_boundaries_finite},
+         {"decode_boundaries", std::move(decode_boundaries)},
          {"reference_logits",
           {{"elements", comparison.elements},
            {"exact_elements", comparison.exact_elements},
@@ -1638,6 +1725,8 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
               {"decision",
                {{"all_shared_prefixes_exact", all_prefixes_exact},
                 {"all_reference_rows_bound", all_reference_rows_bound},
+                {"all_decode_boundaries_compared",
+                 all_decode_boundaries_compared},
                 {"all_native_generation_top1_exact",
                  all_native_top1_exact},
                 {"product_http_oracle_dependency", false}}}})

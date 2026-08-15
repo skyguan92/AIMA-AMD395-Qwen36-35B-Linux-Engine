@@ -25,6 +25,10 @@ from aima_engine.vl_generation_oracle import (  # noqa: E402
     MODEL_VOCABULARY_SIZE,
     validate_generation_oracle_manifest,
 )
+from aima_engine.vl_generation_layer_oracle import (  # noqa: E402
+    BOUNDARY_NAMES,
+    validate_generation_layer_oracle_manifest,
+)
 from aima_engine.vl_reference import (  # noqa: E402
     atomic_json,
     file_component,
@@ -77,8 +81,19 @@ def materialize_request(value: Any, fixture_root: Path) -> Any:
 
 
 def build_probe_cases(
-    oracle: dict[str, Any], oracle_root: Path, fixture_root: Path
+    oracle: dict[str, Any],
+    oracle_root: Path,
+    fixture_root: Path,
+    layer_oracle: dict[str, Any] | None = None,
+    layer_oracle_root: Path | None = None,
 ) -> dict[str, Any]:
+    layer_cases = (
+        {case["case_id"]: case for case in layer_oracle["cases"]}
+        if layer_oracle is not None
+        else {}
+    )
+    if (layer_oracle is None) != (layer_oracle_root is None):
+        raise RuntimeError("generation layer oracle inputs must be paired")
     cases = []
     for case in oracle["cases"]:
         case_id = case["case_id"]
@@ -87,24 +102,34 @@ def build_probe_cases(
         request = materialize_request(case["request"], fixture_root)
         request["model"] = MODEL_ID
         component = case["reference_logits"]["component"]
-        cases.append(
-            {
-                "case_id": case_id,
-                "request": request,
-                "expected_prefix_token_ids": output_ids[:target],
-                "expected_reference_token_id": output_ids[target],
-                "reference_logits": str(
-                    (oracle_root / component["path"]).resolve()
-                ),
-            }
-        )
+        probe_case = {
+            "case_id": case_id,
+            "request": request,
+            "expected_prefix_token_ids": output_ids[:target],
+            "expected_reference_token_id": output_ids[target],
+            "reference_logits": str(
+                (oracle_root / component["path"]).resolve()
+            ),
+        }
+        if layer_oracle_root is not None:
+            layer_case = layer_cases.get(case_id)
+            if not isinstance(layer_case, dict):
+                raise RuntimeError(
+                    f"generation layer oracle case is missing: {case_id}"
+                )
+            probe_case["reference_decode_boundary_dir"] = str(
+                (layer_oracle_root / case_id).resolve()
+            )
+        cases.append(probe_case)
     if tuple(case["case_id"] for case in cases) != CASE_ORDER:
         raise RuntimeError("generation qualification case order changed")
     return {"cases": cases}
 
 
 def qualification_checks(
-    probe: dict[str, Any], oracle: dict[str, Any]
+    probe: dict[str, Any],
+    oracle: dict[str, Any],
+    layer_oracle: dict[str, Any] | None = None,
 ) -> dict[str, bool]:
     probe_cases = {
         case.get("case_id"): case
@@ -112,6 +137,11 @@ def qualification_checks(
         if isinstance(case, dict)
     }
     oracle_cases = {case["case_id"]: case for case in oracle["cases"]}
+    layer_cases = (
+        {case["case_id"]: case for case in layer_oracle["cases"]}
+        if layer_oracle is not None
+        else {}
+    )
     checks = {
         "probe_schema_exact": probe.get("schema") == PROBE_SCHEMA,
         "probe_complete": probe.get("complete") is True,
@@ -174,6 +204,37 @@ def qualification_checks(
             and isinstance(metrics.get("mrope"), dict)
             and metrics["mrope"].get("enabled") is True
         )
+        if layer_oracle is not None:
+            layer_case = layer_cases[case_id]
+            boundaries = observed.get("decode_boundaries")
+            boundaries_well_formed = (
+                isinstance(boundaries, list)
+                and len(boundaries) == len(BOUNDARY_NAMES)
+                and all(isinstance(boundary, dict) for boundary in boundaries)
+            )
+            checks[f"{case_id}_decode_boundaries_complete"] = (
+                observed.get("decode_boundaries_complete") is True
+                and boundaries_well_formed
+            )
+            checks[f"{case_id}_decode_boundaries_finite"] = (
+                observed.get("decode_boundaries_finite") is True
+                and boundaries_well_formed
+                and all(
+                    boundary.get("elements") == 2_048
+                    and boundary.get("finite_elements") == 2_048
+                    for boundary in boundaries
+                )
+            )
+            checks[f"{case_id}_decode_boundary_rows_bound"] = (
+                boundaries_well_formed
+                and [boundary.get("label") for boundary in boundaries]
+                == list(BOUNDARY_NAMES)
+                and all(
+                    boundary.get("expected_sha256")
+                    == layer_case["components"][boundary["label"]]["sha256"]
+                    for boundary in boundaries
+                )
+            )
     return checks
 
 
@@ -185,6 +246,20 @@ def qualify(args: argparse.Namespace) -> dict[str, Any]:
     fixture_root = args.fixture_root.resolve()
     oracle_path = args.oracle_manifest.resolve()
     oracle_root = args.oracle_root.resolve()
+    layer_oracle_path = (
+        args.layer_oracle_manifest.resolve()
+        if args.layer_oracle_manifest is not None
+        else None
+    )
+    layer_oracle_root = (
+        args.layer_oracle_root.resolve()
+        if args.layer_oracle_root is not None
+        else None
+    )
+    if (layer_oracle_path is None) != (layer_oracle_root is None):
+        raise SystemExit(
+            "--layer-oracle-manifest and --layer-oracle-root must be paired"
+        )
     output = args.output.resolve()
     raw_root = output.parent / f"{output.stem}-raw"
     for path in (
@@ -198,6 +273,10 @@ def qualify(args: argparse.Namespace) -> dict[str, Any]:
             raise SystemExit(f"generation qualification input is missing: {path}")
     if not model_dir.is_dir() or not oracle_root.is_dir():
         raise SystemExit("generation model or oracle directory is missing")
+    if layer_oracle_path is not None and (
+        not layer_oracle_path.is_file() or not layer_oracle_root.is_dir()
+    ):
+        raise SystemExit("generation layer oracle input is missing")
     if output.exists() or raw_root.exists():
         raise SystemExit("generation qualification output already exists")
 
@@ -225,6 +304,22 @@ def qualify(args: argparse.Namespace) -> dict[str, Any]:
         raise SystemExit(
             "invalid generation oracle:\n- " + "\n- ".join(oracle_errors)
         )
+    layer_oracle = None
+    if layer_oracle_path is not None:
+        layer_oracle = load_json_object(layer_oracle_path)
+        layer_errors = validate_generation_layer_oracle_manifest(
+            layer_oracle, oracle_root=layer_oracle_root
+        )
+        if layer_errors:
+            raise SystemExit(
+                "invalid generation layer oracle:\n- "
+                + "\n- ".join(layer_errors)
+            )
+        generation_binding = layer_oracle.get("generation_oracle", {})
+        if generation_binding.get("sha256") != sha256_file(oracle_path):
+            raise SystemExit(
+                "generation layer oracle is bound to a different logits oracle"
+            )
 
     raw_root.mkdir(parents=True)
     isolated_home = raw_root / "home"
@@ -234,7 +329,16 @@ def qualify(args: argparse.Namespace) -> dict[str, Any]:
     stderr_path = raw_root / "probe.stderr.log"
     with tempfile.TemporaryDirectory(prefix="aima-vl-generation-cases-") as tmp:
         cases_path = Path(tmp) / "cases.json"
-        atomic_json(cases_path, build_probe_cases(oracle, oracle_root, fixture_root))
+        atomic_json(
+            cases_path,
+            build_probe_cases(
+                oracle,
+                oracle_root,
+                fixture_root,
+                layer_oracle,
+                layer_oracle_root,
+            ),
+        )
         command = [
             str(binary),
             "vl-generation-logits-probe",
@@ -273,7 +377,7 @@ def qualify(args: argparse.Namespace) -> dict[str, Any]:
         probe = json.loads(completed.stdout)
     except json.JSONDecodeError as error:
         raise RuntimeError("native generation probe emitted invalid JSON") from error
-    checks = qualification_checks(probe, oracle)
+    checks = qualification_checks(probe, oracle, layer_oracle)
     checks["stderr_empty"] = len(completed.stderr) == 0
     exact_checks = [
         value
@@ -303,7 +407,11 @@ def qualify(args: argparse.Namespace) -> dict[str, Any]:
             "captured_at": utc_now(),
             "complete": all(setup_checks.values()),
             "qualified": qualified,
-            "scope": "current-head-two-vl-tool-generation-divergence-logits",
+            "scope": (
+                "current-head-two-vl-tool-generation-divergence-logits-and-layers"
+                if layer_oracle is not None
+                else "current-head-two-vl-tool-generation-divergence-logits"
+            ),
             "source": {
                 **source,
                 "files": [
@@ -314,6 +422,7 @@ def qualify(args: argparse.Namespace) -> dict[str, Any]:
                         ROOT / "native/src/main.cpp",
                         Path(__file__).resolve(),
                         ROOT / "aima_engine/vl_generation_oracle.py",
+                        ROOT / "aima_engine/vl_generation_layer_oracle.py",
                     )
                 ],
             },
@@ -333,6 +442,17 @@ def qualify(args: argparse.Namespace) -> dict[str, Any]:
                 "fixture_manifest": file_component(
                     fixture_root / "fixtures-manifest.json",
                     "benchmarks/fixtures/vl-capability-v0.1.0/fixtures-manifest.json",
+                ),
+                **(
+                    {
+                        "generation_layer_oracle": file_component(
+                            layer_oracle_path,
+                            "benchmarks/results/"
+                            "vl-generation-layer-oracle-v0.1.0.json",
+                        )
+                    }
+                    if layer_oracle_path is not None
+                    else {}
                 ),
             },
             "launch": {
@@ -383,6 +503,13 @@ def qualify(args: argparse.Namespace) -> dict[str, Any]:
                     checks[f"{case_id}_full_vocabulary_finite"]
                     for case_id in CASE_ORDER
                 ),
+                "two_decode_boundary_sets_bound": (
+                    layer_oracle is not None
+                    and all(
+                        checks[f"{case_id}_decode_boundary_rows_bound"]
+                        for case_id in CASE_ORDER
+                    )
+                ),
                 "two_native_generation_top1_exact": all(exact_checks),
                 "two_generation_logits_kld_under_0_005": all(kld_checks),
                 "g1_generation_closed": qualified,
@@ -407,6 +534,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--fixture-root", type=Path, required=True)
     parser.add_argument("--oracle-manifest", type=Path, required=True)
     parser.add_argument("--oracle-root", type=Path, required=True)
+    parser.add_argument("--layer-oracle-manifest", type=Path)
+    parser.add_argument("--layer-oracle-root", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--timeout-seconds", type=float, default=900.0)
     return parser.parse_args()

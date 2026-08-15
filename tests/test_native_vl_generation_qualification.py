@@ -6,6 +6,7 @@ import tempfile
 import unittest
 
 from aima_engine.vl_generation_oracle import CASE_CONTRACTS, CASE_ORDER
+from aima_engine.vl_generation_layer_oracle import BOUNDARY_NAMES
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -103,6 +104,79 @@ class NativeVlGenerationQualificationTest(unittest.TestCase):
         self.assertFalse(checks["tool_auto_image_native_top1_exact"])
         self.assertFalse(checks["tool_forced_image_selected_token_exact"])
         self.assertTrue(checks["tool_auto_image_kld_under_0_005"])
+
+    def test_layer_checks_bind_every_finite_decode_boundary(self) -> None:
+        oracle_cases = []
+        layer_cases = []
+        probe_cases = []
+        for case_id in CASE_ORDER:
+            contract = CASE_CONTRACTS[case_id]
+            prompt_sha = case_id.ljust(64, "0")[:64]
+            logits_sha = case_id.ljust(64, "1")[:64]
+            components = {
+                name: {"sha256": f"{index:064x}"}
+                for index, name in enumerate(BOUNDARY_NAMES, start=1)
+            }
+            boundaries = [
+                {
+                    "label": name,
+                    "elements": 2_048,
+                    "finite_elements": 2_048,
+                    "expected_sha256": components[name]["sha256"],
+                }
+                for name in BOUNDARY_NAMES
+            ]
+            oracle_cases.append(
+                {
+                    "case_id": case_id,
+                    "prompt_token_ids_sha256": prompt_sha,
+                    "reference_logits": {"component": {"sha256": logits_sha}},
+                }
+            )
+            layer_cases.append(
+                {"case_id": case_id, "components": components}
+            )
+            probe_cases.append(
+                {
+                    "case_id": case_id,
+                    "prefix_exact": True,
+                    "selected_native_token_id": contract["reference_token_id"],
+                    "native_top1_exact": True,
+                    "decode_boundaries_complete": True,
+                    "decode_boundaries_finite": True,
+                    "decode_boundaries": boundaries,
+                    "request_metrics": {
+                        "prompt_token_ids_sha256": prompt_sha,
+                        "vl": {"enabled": True},
+                        "mrope": {"enabled": True},
+                    },
+                    "reference_logits": {
+                        "expected_sha256": logits_sha,
+                        "reference_top1_token_id": contract[
+                            "reference_token_id"
+                        ],
+                        "elements": self.module.MODEL_VOCABULARY_SIZE,
+                        "finite_elements": self.module.MODEL_VOCABULARY_SIZE,
+                        "top1_match": True,
+                        "kl_divergence": 0.0,
+                    },
+                }
+            )
+        checks = self.module.qualification_checks(
+            {
+                "schema": self.module.PROBE_SCHEMA,
+                "complete": True,
+                "qualified_for_attribution": True,
+                "model_loads": 1,
+                "cases": probe_cases,
+            },
+            {"cases": oracle_cases},
+            {"cases": layer_cases},
+        )
+        for case_id in CASE_ORDER:
+            self.assertTrue(checks[f"{case_id}_decode_boundaries_complete"])
+            self.assertTrue(checks[f"{case_id}_decode_boundaries_finite"])
+            self.assertTrue(checks[f"{case_id}_decode_boundary_rows_bound"])
 
 
 if __name__ == "__main__":
