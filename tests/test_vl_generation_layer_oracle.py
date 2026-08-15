@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import hashlib
 import json
-from pathlib import Path
+import re
 import tempfile
 import unittest
+from pathlib import Path
 
 from aima_engine.vl_generation_layer_oracle import (
     BOUNDARY_NAMES,
@@ -242,6 +243,13 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
         self.assertIn("decode_layer0_tail_observer", resident)
         self.assertEqual(len(NATIVE_LINEAR_ATTENTION_BOUNDARY_NAMES), 13)
         self.assertEqual(len(LAYER0_TAIL_BOUNDARY_SPECS), 15)
+        tail_contract = http.split(
+            "kDecodeLayer0TailBoundaryContracts{{", 1
+        )[1].split("}};", 1)[0]
+        self.assertEqual(
+            re.findall(r'\{"([^"]+)"', tail_contract),
+            list(LAYER0_TAIL_BOUNDARY_SPECS),
+        )
 
 
 if __name__ == "__main__":

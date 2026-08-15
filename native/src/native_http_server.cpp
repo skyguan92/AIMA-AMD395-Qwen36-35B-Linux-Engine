@@ -773,7 +773,7 @@ constexpr std::array<DecodeLinearBoundaryContract, 13>
          DecodeTensorDtype::kBfloat16},
     }};
 
-constexpr std::array<DecodeLinearBoundaryContract, 10>
+constexpr std::array<DecodeLinearBoundaryContract, 15>
     kDecodeLayer0TailBoundaryContracts{{
         {"attention_residual", "bfloat16", 2048ULL * 2ULL,
          DecodeTensorDtype::kBfloat16},
@@ -789,8 +789,18 @@ constexpr std::array<DecodeLinearBoundaryContract, 10>
          DecodeTensorDtype::kBfloat16},
         {"shared_moe_output", "bfloat16", 2048ULL * 2ULL,
          DecodeTensorDtype::kBfloat16},
+        {"router_logits", "bfloat16", 256ULL * 2ULL,
+         DecodeTensorDtype::kBfloat16},
+        {"router_weights", "float32", 8ULL * 4ULL,
+         DecodeTensorDtype::kFloat32},
         {"router_indices", "int32", 8ULL * 4ULL,
          DecodeTensorDtype::kInt32},
+        {"routed_gate_up_projection", "bfloat16",
+         8ULL * 1024ULL * 2ULL, DecodeTensorDtype::kBfloat16},
+        {"routed_activation", "bfloat16", 8ULL * 512ULL * 2ULL,
+         DecodeTensorDtype::kBfloat16},
+        {"routed_weighted_expert_outputs", "bfloat16",
+         8ULL * 2048ULL * 2ULL, DecodeTensorDtype::kBfloat16},
         {"routed_moe_output", "bfloat16", 2048ULL * 2ULL,
          DecodeTensorDtype::kBfloat16},
         {"combined_moe_output", "bfloat16", 2048ULL * 2ULL,
