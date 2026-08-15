@@ -54,6 +54,9 @@ from aima_engine.vl_reference import (  # noqa: E402
 
 GENERATION_CAPTURE = ROOT / "scripts/capture-vllm-vl-generation-oracles.py"
 STATE_ATTRIBUTE = "_aima_vl_generation_layer_oracle_state"
+GENERATION_LAYER_DIAGNOSTIC_SCHEMA = (
+    "aima-amd395-qwen36/vl-generation-layer-diagnostic/v1"
+)
 
 
 def load_module(path: Path, name: str) -> ModuleType:
@@ -702,7 +705,17 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
                 if not isinstance(schema, dict):
                     raise RuntimeError("forced tool render lost its JSON schema")
                 structured = StructuredOutputsParams(json=schema)
-            target_index = contract["divergence_output_index"]
+            target_index = (
+                args.diagnostic_output_index
+                if args.diagnostic_output_index is not None
+                else contract["divergence_output_index"]
+            )
+            if target_index >= len(
+                generation_case["generation"]["output_token_ids"]
+            ):
+                raise RuntimeError(
+                    f"generation layer diagnostic index exceeds oracle: {case_id}"
+                )
             sampling = SamplingParams(
                 temperature=0,
                 max_tokens=target_index + 1,
@@ -757,19 +770,20 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
                     f"generation layer target prefix changed: {case_id}"
                 )
             record = finalization[0]
-            expected_logits_sha256 = generation_case["reference_logits"][
-                "component"
-            ]["sha256"]
-            if record["target_logits_sha256"] != expected_logits_sha256:
-                raise RuntimeError(
-                    f"generation layer target logits changed: {case_id}"
-                )
-            if record["target_logits_top1_token_id"] != contract[
-                "reference_token_id"
-            ]:
-                raise RuntimeError(
-                    f"generation layer target top1 changed: {case_id}"
-                )
+            if args.diagnostic_output_index is None:
+                expected_logits_sha256 = generation_case[
+                    "reference_logits"
+                ]["component"]["sha256"]
+                if record["target_logits_sha256"] != expected_logits_sha256:
+                    raise RuntimeError(
+                        f"generation layer target logits changed: {case_id}"
+                    )
+                if record["target_logits_top1_token_id"] != contract[
+                    "reference_token_id"
+                ]:
+                    raise RuntimeError(
+                        f"generation layer target top1 changed: {case_id}"
+                    )
             cases.append(
                 {
                     "case_id": case_id,
@@ -803,16 +817,58 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
 
+    diagnostic = args.diagnostic_output_index is not None
+    scope = (
+        "two-fixed-vllm-vl-shared-output-index-layer-and-layer0-linear-"
+        "attention-diagnostic-boundary-sets"
+        if diagnostic
+        else "two-fixed-vllm-vl-target-decode-layer-plus-target-and-first-"
+        "decode-layer0-linear-attention-boundary-sets"
+    )
+    decision = (
+        {
+            "two_diagnostic_prefixes_exact": len(cases) == 2,
+            "two_diagnostic_logits_captured": len(cases) == 2,
+            "two_diagnostic_decode_boundary_sets_captured": len(cases) == 2,
+            "two_diagnostic_layer0_linear_attention_boundary_sets_captured": (
+                len(cases) == 2
+            ),
+            "promotion_oracle": False,
+            "g1_passed": False,
+            "g2_passed": False,
+            "g3_passed": False,
+            "g4_passed": False,
+            "g5_passed": False,
+        }
+        if diagnostic
+        else {
+            "two_target_prefixes_exact": len(cases) == 2,
+            "two_target_logits_bound": len(cases) == 2,
+            "two_decode_boundary_sets_captured": len(cases) == 2,
+            "two_layer0_linear_attention_boundary_sets_captured": (
+                len(cases) == 2
+            ),
+            "two_first_decode_layer0_linear_attention_boundary_sets_captured": (
+                len(cases) == 2
+            ),
+            "g1_passed": False,
+            "g2_passed": False,
+            "g3_passed": False,
+            "g4_passed": False,
+            "g5_passed": False,
+        }
+    )
     manifest = seal_manifest(
         {
-            "schema": GENERATION_LAYER_ORACLE_SCHEMA,
+            "schema": (
+                GENERATION_LAYER_DIAGNOSTIC_SCHEMA
+                if diagnostic
+                else GENERATION_LAYER_ORACLE_SCHEMA
+            ),
             "captured_at": base.utc_now(),
             "complete": True,
             "qualified_for_decode_attribution": True,
-            "scope": (
-                "two-fixed-vllm-vl-target-decode-layer-plus-target-and-first-"
-                "decode-layer0-linear-attention-boundary-sets"
-            ),
+            "scope": scope,
             "source": {
                 **source,
                 "files": [
@@ -844,30 +900,20 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
                 "vllm_allow_insecure_serialization": True,
                 "skip_mm_profiling": True,
                 "maximum_tokens_per_case": "target_output_index_plus_one",
+                "diagnostic_output_index": args.diagnostic_output_index,
                 "product_runtime_dependency": False,
             },
             "oracle_root": args.oracle_root_label,
             "cases": cases,
-            "decision": {
-                "two_target_prefixes_exact": len(cases) == 2,
-                "two_target_logits_bound": len(cases) == 2,
-                "two_decode_boundary_sets_captured": len(cases) == 2,
-                "two_layer0_linear_attention_boundary_sets_captured": (
-                    len(cases) == 2
-                ),
-                "two_first_decode_layer0_linear_attention_boundary_sets_captured": (
-                    len(cases) == 2
-                ),
-                "g1_passed": False,
-                "g2_passed": False,
-                "g3_passed": False,
-                "g4_passed": False,
-                "g5_passed": False,
-            },
+            "decision": decision,
         }
     )
-    errors = validate_generation_layer_oracle_manifest(
-        manifest, oracle_root=output_root
+    errors = (
+        []
+        if diagnostic
+        else validate_generation_layer_oracle_manifest(
+            manifest, oracle_root=output_root
+        )
     )
     if errors:
         raise RuntimeError(
@@ -891,6 +937,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--generation-oracle-root", type=Path, required=True)
     parser.add_argument("--output-root", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--diagnostic-output-index",
+        type=int,
+        choices=range(1, 1024),
+        metavar="1..1023",
+        help="capture a shared non-promotion decode index for attribution",
+    )
     parser.add_argument(
         "--oracle-root-label",
         default="benchmarks/oracles/vl-generation-layer-v0.1.0",
