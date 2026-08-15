@@ -292,6 +292,10 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
     for module in (sys.modules[__name__],):
         cloudpickle.register_pickle_by_value(module)
     llm_kwargs = base._llm_kwargs(args.model_dir.resolve(), fixture_root)
+    # Qualification requests provide real media immediately, so the expensive
+    # synthetic maximum-item profiling pass is unnecessary. Existing HTTP
+    # language diagnostics use the same control and bind it in their manifest.
+    llm_kwargs["skip_mm_profiling"] = True
     llm = LLM(**llm_kwargs)
     print(json.dumps({"event": "engine_ready"}, sort_keys=True), flush=True)
     cases: list[dict[str, Any]] = []
@@ -491,6 +495,7 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
             },
             "capture_control_plane": {
                 "vllm_allow_insecure_serialization": True,
+                "skip_mm_profiling": True,
                 "scope": "isolated-offline-qualification-hook-rpc-only",
                 "product_runtime_dependency": False,
             },
