@@ -448,6 +448,7 @@ def validate_http_observation(
         response.get("aima_amd395") if isinstance(response, Mapping) else None
     )
     vl = native.get("vl") if isinstance(native, Mapping) else None
+    mrope = native.get("mrope") if isinstance(native, Mapping) else None
     usage = response.get("usage") if isinstance(response, Mapping) else None
     choices = response.get("choices") if isinstance(response, Mapping) else None
     media_counts = expected.get("media_counts")
@@ -457,6 +458,23 @@ def validate_http_observation(
     completion_tokens = (
         usage.get("completion_tokens") if isinstance(usage, Mapping) else None
     )
+    aot_segments = (
+        native.get("aot_prefill_segments")
+        if isinstance(native, Mapping)
+        else None
+    )
+    padded_tokens = (
+        native.get("padded_prefill_tokens")
+        if isinstance(native, Mapping)
+        else None
+    )
+    expected_unified_launches = 0
+    if (
+        aot_segments == 1
+        and isinstance(padded_tokens, int)
+        and padded_tokens > 0
+    ):
+        expected_unified_launches = 10
     checks.update(
         {
             "native_runtime": isinstance(native, Mapping)
@@ -471,6 +489,15 @@ def validate_http_observation(
             "model_window_respected": isinstance(prompt_tokens, int)
             and isinstance(completion_tokens, int)
             and prompt_tokens + completion_tokens <= MAX_MODEL_TOKENS,
+            "mrope_dispatch_accounted": isinstance(mrope, Mapping)
+            and isinstance(aot_segments, int)
+            and mrope.get("full_attention_launches") == aot_segments * 10
+            and mrope.get("full_attention_launches")
+            == mrope.get("fmha_launches", -1)
+            + mrope.get("unified_attention_launches", -1),
+            "mrope_initial_padding_only": isinstance(mrope, Mapping)
+            and mrope.get("unified_attention_launches")
+            == expected_unified_launches,
             "vl_enabled": isinstance(vl, Mapping) and vl.get("enabled") is True,
             "media_count_exact": isinstance(vl, Mapping)
             and vl.get("media_count")

@@ -161,6 +161,14 @@ class VlExecutionEnvelopeTest(unittest.TestCase):
                 "aima_amd395": {
                     "runtime": "native-resident-q82",
                     "oracle_tensor_reads": 0,
+                    "aot_prefill_segments": 1,
+                    "padded_prefill_tokens": 942,
+                    "mrope": {
+                        "enabled": True,
+                        "full_attention_launches": 10,
+                        "fmha_launches": 0,
+                        "unified_attention_launches": 10,
+                    },
                     "vl": {
                         "enabled": True,
                         "media_count": 1,
@@ -182,6 +190,13 @@ class VlExecutionEnvelopeTest(unittest.TestCase):
         checks = validate_http_observation(tampered, expected)
         self.assertFalse(checks["visual_tokens_exact"])
         self.assertFalse(all(checks.values()))
+        tampered = copy.deepcopy(observation)
+        tampered["response"]["aima_amd395"]["mrope"][
+            "unified_attention_launches"
+        ] = 0
+        checks = validate_http_observation(tampered, expected)
+        self.assertFalse(checks["mrope_dispatch_accounted"])
+        self.assertFalse(checks["mrope_initial_padding_only"])
 
     def test_non_http_probe_validators_fail_closed(self) -> None:
         processor = validate_processor_probe_observation(
