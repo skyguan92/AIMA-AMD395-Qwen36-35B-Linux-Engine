@@ -1,0 +1,1934 @@
+{
+  "bindings": {
+    "fixture_manifest": {
+      "bytes": 2691,
+      "path": "benchmarks/fixtures/vl-capability-v0.1.0/fixtures-manifest.json",
+      "sha256": "07d3e6aa54cd80707d77d2f8f406788dabb219a5b98225cf6a7b63602a009028"
+    },
+    "reference_launch": {
+      "bytes": 3061,
+      "path": "benchmarks/results/vl-reference-launch.json",
+      "sha256": "37eb1ea904b010a06c48095e5dc6acf0561aa129ede1f14251b1b82d2d2ebe8b"
+    },
+    "reference_manifest": {
+      "bytes": 22516,
+      "path": "benchmarks/results/vl-reference-manifest.json",
+      "sha256": "8f03e939a9b15f58c2e623541d48be88c328ff19adac9eb52210e171766e9a00"
+    }
+  },
+  "captured_at": "2026-08-15T04:25:13+00:00",
+  "cases": [
+    {
+      "accepted": true,
+      "case_id": "mixed_multi_image_video_interleave",
+      "expected_accept": true,
+      "passed": true,
+      "qualification_checks": {
+        "finish_reason_length": true,
+        "generated_content_nonempty": true,
+        "http_200": true,
+        "render_max_tokens_exact": true,
+        "render_prompt_nonempty": true,
+        "stream_complete": true,
+        "surface_accepted": true,
+        "usage_or_stream_contract": true
+      },
+      "qualified": true,
+      "render": {
+        "max_tokens": 1,
+        "mm_placeholders": {
+          "image": [
+            {
+              "length": 64,
+              "offset": 4,
+              "pad_token_count": 64,
+              "token_ids_sha256": "45922ba183516ce4a23c13c38af977b130f0414156b4250ee4b499f071e4e888"
+            },
+            {
+              "length": 96,
+              "offset": 71,
+              "pad_token_count": 96,
+              "token_ids_sha256": "c32396cd3746c570c8592f78500b8272c0343ed03fa94d1b4aa90948099fd8fc"
+            }
+          ],
+          "video": [
+            {
+              "length": 48,
+              "offset": 169,
+              "pad_token_count": 32,
+              "token_ids_sha256": "a8885617d653eb56b0410388cc6a41920ba9365d1c6dc48f7ba29fbd2ee2ab45"
+            }
+          ]
+        },
+        "prompt_token_ids": [
+          248045,
+          846,
+          198,
+          248053,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248054,
+          198,
+          248053,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248054,
+          198,
+          27,
+          15,
+          13,
+          17,
+          6283,
+          29,
+          248053,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248054,
+          27,
+          16,
+          13,
+          19,
+          6283,
+          29,
+          248053,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248054,
+          198,
+          1841,
+          357,
+          25,
+          198,
+          10408,
+          25,
+          198,
+          1841,
+          417,
+          25,
+          198,
+          26487,
+          660,
+          2250,
+          13,
+          248046,
+          198,
+          248045,
+          74455,
+          198,
+          248068,
+          198
+        ],
+        "prompt_token_ids_sha256": "d590ee38ef522866e1e07c7e0b3c0570015069b3874d495c31647f17d4d44fe3",
+        "prompt_tokens": 240
+      },
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "Image A:",
+                "type": "text"
+              },
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 5467,
+                    "fixture": "image-rgb-256.png",
+                    "mime": "image/png",
+                    "sha256": "dc486687ceead3b9a14953b32ff5f7ee3b6125f52de11fb1b76db378d62dd0c8",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "text": "Video:",
+                "type": "text"
+              },
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 54027,
+                    "fixture": "video-8f-4fps-128.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "text": "Image B:",
+                "type": "text"
+              },
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 125682,
+                    "fixture": "image-landscape-512x192.jpg",
+                    "mime": "image/jpeg",
+                    "sha256": "f3c0db7e6458b7aa669b600c1b213246585d3924102583c0f0605ab009e895e2",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "text": "Compare all three.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "${AIMA_SERVED_MODEL}",
+        "stream": false,
+        "temperature": 0
+      },
+      "request_sha256": "2b64110b5f9f3d8d194a96a343905283465d0f51882769a3e1b00d55490ef7c8",
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+              "annotations": null,
+              "audio": null,
+              "content": "The",
+              "function_call": null,
+              "reasoning": null,
+              "refusal": null,
+              "role": "assistant",
+              "tool_calls": []
+            },
+            "stop_reason": null,
+            "token_ids": null
+          }
+        ],
+        "kv_transfer_params": null,
+        "model": "qwen36-vl-reference",
+        "object": "chat.completion",
+        "prompt_logprobs": null,
+        "prompt_token_ids": null,
+        "service_tier": null,
+        "usage": {
+          "completion_tokens": 1,
+          "prompt_tokens": 240,
+          "prompt_tokens_details": null,
+          "total_tokens": 241
+        }
+      },
+      "response_bytes": 580,
+      "response_sha256": "1ad9fbd78c8412893685f6ed84c62af3e2434a746d1d8f3a681f342ef3bf494d",
+      "status_code": 200,
+      "surfaces": [
+        "mixed",
+        "conversation",
+        "interleave"
+      ],
+      "timings": {
+        "total_seconds": 1.0059900917112827,
+        "ttft_seconds": null
+      },
+      "transport_request_sha256": "4c272bb9367d7eb6b0300a6e9f3181a12473fd47a3a2ea5bd52d5a7b56743422"
+    },
+    {
+      "accepted": true,
+      "case_id": "mixed_multi_video_image_interleave",
+      "expected_accept": true,
+      "passed": true,
+      "qualification_checks": {
+        "finish_reason_length": true,
+        "generated_content_nonempty": true,
+        "http_200": true,
+        "render_max_tokens_exact": true,
+        "render_prompt_nonempty": true,
+        "stream_complete": true,
+        "surface_accepted": true,
+        "usage_or_stream_contract": true
+      },
+      "qualified": true,
+      "render": {
+        "max_tokens": 1,
+        "mm_placeholders": {
+          "image": [
+            {
+              "length": 72,
+              "offset": 118,
+              "pad_token_count": 72,
+              "token_ids_sha256": "d1b80f9b11a5ce2e39c8ba43eb54089eb8ec28a058cae3d6384428e3903dde38"
+            }
+          ],
+          "video": [
+            {
+              "length": 48,
+              "offset": 3,
+              "pad_token_count": 32,
+              "token_ids_sha256": "a8885617d653eb56b0410388cc6a41920ba9365d1c6dc48f7ba29fbd2ee2ab45"
+            },
+            {
+              "length": 64,
+              "offset": 52,
+              "pad_token_count": 48,
+              "token_ids_sha256": "330dd22da259fa5cbc689112b606c6ff5727c1f441e1e96cbd05f00eab4f87c4"
+            }
+          ]
+        },
+        "prompt_token_ids": [
+          248045,
+          846,
+          198,
+          27,
+          15,
+          13,
+          17,
+          6283,
+          29,
+          248053,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248054,
+          27,
+          16,
+          13,
+          19,
+          6283,
+          29,
+          248053,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248054,
+          198,
+          27,
+          15,
+          13,
+          17,
+          6283,
+          29,
+          248053,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248054,
+          27,
+          16,
+          13,
+          20,
+          6283,
+          29,
+          248053,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248054,
+          198,
+          248053,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248054,
+          198,
+          10408,
+          357,
+          25,
+          198,
+          1841,
+          25,
+          198,
+          10408,
+          417,
+          25,
+          198,
+          26487,
+          660,
+          2250,
+          13,
+          248046,
+          198,
+          248045,
+          74455,
+          198,
+          248068,
+          198
+        ],
+        "prompt_token_ids_sha256": "35599c0750d8f0177d44cff34fe2630441317fca3d3bd4c59b42d4ccf90d5643",
+        "prompt_tokens": 214
+      },
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "Video A:",
+                "type": "text"
+              },
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 54027,
+                    "fixture": "video-8f-4fps-128.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "text": "Image:",
+                "type": "text"
+              },
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 4993,
+                    "fixture": "image-transparent-160x320.png",
+                    "mime": "image/png",
+                    "sha256": "72e63cabe9a897fac895e9148fdb203867bb7f8ef95311fdfeaf4cd1026580f9",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "text": "Video B:",
+                "type": "text"
+              },
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 169626,
+                    "fixture": "video-12f-6fps-192x128.avi",
+                    "mime": "video/x-msvideo",
+                    "sha256": "91f394f27c25a34fcbd279746aa7b2365c19c192e692df04a36b52edff701076",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "text": "Compare all three.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "${AIMA_SERVED_MODEL}",
+        "stream": false,
+        "temperature": 0
+      },
+      "request_sha256": "0ba85083df311b3a1e6d786969f560e9721d3b00d6a594189efe738204d0b4e3",
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+              "annotations": null,
+              "audio": null,
+              "content": "The",
+              "function_call": null,
+              "reasoning": null,
+              "refusal": null,
+              "role": "assistant",
+              "tool_calls": []
+            },
+            "stop_reason": null,
+            "token_ids": null
+          }
+        ],
+        "kv_transfer_params": null,
+        "model": "qwen36-vl-reference",
+        "object": "chat.completion",
+        "prompt_logprobs": null,
+        "prompt_token_ids": null,
+        "service_tier": null,
+        "usage": {
+          "completion_tokens": 1,
+          "prompt_tokens": 214,
+          "prompt_tokens_details": null,
+          "total_tokens": 215
+        }
+      },
+      "response_bytes": 580,
+      "response_sha256": "107a5e43b5241fd1251c347d2168a9b116dd28114ceffb6961a11c47dfa471e2",
+      "status_code": 200,
+      "surfaces": [
+        "mixed",
+        "conversation",
+        "interleave"
+      ],
+      "timings": {
+        "total_seconds": 0.5028499606996775,
+        "ttft_seconds": null
+      },
+      "transport_request_sha256": "c5a05e9a7e3ff7e07a351645afc27189e7c1f2a821e804f48afdefeea7d0a3b8"
+    },
+    {
+      "accepted": true,
+      "case_id": "conversation_video_reuse_replace",
+      "expected_accept": true,
+      "passed": true,
+      "qualification_checks": {
+        "finish_reason_length": true,
+        "generated_content_nonempty": true,
+        "http_200": true,
+        "render_max_tokens_exact": true,
+        "render_prompt_nonempty": true,
+        "stream_complete": true,
+        "surface_accepted": true,
+        "usage_or_stream_contract": true
+      },
+      "qualified": true,
+      "render": {
+        "max_tokens": 1,
+        "mm_placeholders": {
+          "video": [
+            {
+              "length": 48,
+              "offset": 13,
+              "pad_token_count": 32,
+              "token_ids_sha256": "a8885617d653eb56b0410388cc6a41920ba9365d1c6dc48f7ba29fbd2ee2ab45"
+            },
+            {
+              "length": 64,
+              "offset": 79,
+              "pad_token_count": 48,
+              "token_ids_sha256": "330dd22da259fa5cbc689112b606c6ff5727c1f441e1e96cbd05f00eab4f87c4"
+            }
+          ]
+        },
+        "prompt_token_ids": [
+          248045,
+          8678,
+          198,
+          15666,
+          3413,
+          284,
+          943,
+          13,
+          248046,
+          198,
+          248045,
+          846,
+          198,
+          27,
+          15,
+          13,
+          17,
+          6283,
+          29,
+          248053,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248054,
+          27,
+          16,
+          13,
+          19,
+          6283,
+          29,
+          248053,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248054,
+          198,
+          27656,
+          411,
+          2678,
+          13,
+          248046,
+          198,
+          248045,
+          74455,
+          198,
+          87132,
+          3438,
+          13,
+          248046,
+          198,
+          248045,
+          846,
+          198,
+          27,
+          15,
+          13,
+          17,
+          6283,
+          29,
+          248053,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248054,
+          27,
+          16,
+          13,
+          20,
+          6283,
+          29,
+          248053,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248054,
+          198,
+          26487,
+          279,
+          1428,
+          2678,
+          440,
+          279,
+          4711,
+          2678,
+          13,
+          248046,
+          198,
+          248045,
+          74455,
+          198,
+          248068,
+          198
+        ],
+        "prompt_token_ids_sha256": "aef03e21962924385550223814a60f533d353c659df4c840373aecf32817bfb8",
+        "prompt_tokens": 160
+      },
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": "Answer concisely.",
+            "role": "system"
+          },
+          {
+            "content": [
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 54027,
+                    "fixture": "video-8f-4fps-128.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "text": "Remember this video.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          },
+          {
+            "content": "Acknowledged.",
+            "role": "assistant"
+          },
+          {
+            "content": [
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 169626,
+                    "fixture": "video-12f-6fps-192x128.avi",
+                    "mime": "video/x-msvideo",
+                    "sha256": "91f394f27c25a34fcbd279746aa7b2365c19c192e692df04a36b52edff701076",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "text": "Compare the current video with the prior video.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "${AIMA_SERVED_MODEL}",
+        "stream": false,
+        "temperature": 0
+      },
+      "request_sha256": "2f2f697b790bdc1730f88fd2852cba3b2da08cf5f1dd97e831acb1be9f452046",
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+              "annotations": null,
+              "audio": null,
+              "content": "The",
+              "function_call": null,
+              "reasoning": null,
+              "refusal": null,
+              "role": "assistant",
+              "tool_calls": []
+            },
+            "stop_reason": null,
+            "token_ids": null
+          }
+        ],
+        "kv_transfer_params": null,
+        "model": "qwen36-vl-reference",
+        "object": "chat.completion",
+        "prompt_logprobs": null,
+        "prompt_token_ids": null,
+        "service_tier": null,
+        "usage": {
+          "completion_tokens": 1,
+          "prompt_tokens": 160,
+          "prompt_tokens_details": null,
+          "total_tokens": 161
+        }
+      },
+      "response_bytes": 580,
+      "response_sha256": "0a069d39ed44d88d4068f17689fd262f0be434e1e33ad1345e4f6853ca9ac306",
+      "status_code": 200,
+      "surfaces": [
+        "video",
+        "conversation",
+        "reuse",
+        "replace"
+      ],
+      "timings": {
+        "total_seconds": 0.37956730648875237,
+        "ttft_seconds": null
+      },
+      "transport_request_sha256": "05e111c6130d24422ad9ff36e2df955b5e0ef77cd3a48d30f7ca128dcb00ea7c"
+    },
+    {
+      "accepted": true,
+      "case_id": "conversation_mixed_prior_turn",
+      "expected_accept": true,
+      "passed": true,
+      "qualification_checks": {
+        "finish_reason_length": true,
+        "generated_content_nonempty": true,
+        "http_200": true,
+        "render_max_tokens_exact": true,
+        "render_prompt_nonempty": true,
+        "stream_complete": true,
+        "surface_accepted": true,
+        "usage_or_stream_contract": true
+      },
+      "qualified": true,
+      "render": {
+        "max_tokens": 1,
+        "mm_placeholders": {
+          "image": [
+            {
+              "length": 64,
+              "offset": 4,
+              "pad_token_count": 64,
+              "token_ids_sha256": "45922ba183516ce4a23c13c38af977b130f0414156b4250ee4b499f071e4e888"
+            }
+          ],
+          "video": [
+            {
+              "length": 48,
+              "offset": 70,
+              "pad_token_count": 32,
+              "token_ids_sha256": "a8885617d653eb56b0410388cc6a41920ba9365d1c6dc48f7ba29fbd2ee2ab45"
+            }
+          ]
+        },
+        "prompt_token_ids": [
+          248045,
+          846,
+          198,
+          248053,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248054,
+          198,
+          27,
+          15,
+          13,
+          17,
+          6283,
+          29,
+          248053,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248054,
+          27,
+          16,
+          13,
+          19,
+          6283,
+          29,
+          248053,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248054,
+          198,
+          429,
+          198,
+          27656,
+          2107,
+          3561,
+          3470,
+          13,
+          248046,
+          198,
+          248045,
+          74455,
+          198,
+          87132,
+          3438,
+          13,
+          248046,
+          198,
+          248045,
+          846,
+          198,
+          26487,
+          279,
+          4711,
+          2099,
+          321,
+          2678,
+          13,
+          248046,
+          198,
+          248045,
+          74455,
+          198,
+          248068,
+          198
+        ],
+        "prompt_token_ids_sha256": "90e90d8b4feac00e5f2b20fc53b5861debfcd179c4feca612f7e81758dd834d5",
+        "prompt_tokens": 153
+      },
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": [
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 5467,
+                    "fixture": "image-rgb-256.png",
+                    "mime": "image/png",
+                    "sha256": "dc486687ceead3b9a14953b32ff5f7ee3b6125f52de11fb1b76db378d62dd0c8",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "text": "and",
+                "type": "text"
+              },
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 54027,
+                    "fixture": "video-8f-4fps-128.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "text": "Remember both media items.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          },
+          {
+            "content": "Acknowledged.",
+            "role": "assistant"
+          },
+          {
+            "content": "Compare the prior image and video.",
+            "role": "user"
+          }
+        ],
+        "model": "${AIMA_SERVED_MODEL}",
+        "stream": false,
+        "temperature": 0
+      },
+      "request_sha256": "5e88d3c7153bd7b4707c11045ed73ddd3f233881f211daf67b43a4b3588df2c6",
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+              "annotations": null,
+              "audio": null,
+              "content": "The",
+              "function_call": null,
+              "reasoning": null,
+              "refusal": null,
+              "role": "assistant",
+              "tool_calls": []
+            },
+            "stop_reason": null,
+            "token_ids": null
+          }
+        ],
+        "kv_transfer_params": null,
+        "model": "qwen36-vl-reference",
+        "object": "chat.completion",
+        "prompt_logprobs": null,
+        "prompt_token_ids": null,
+        "service_tier": null,
+        "usage": {
+          "completion_tokens": 1,
+          "prompt_tokens": 153,
+          "prompt_tokens_details": null,
+          "total_tokens": 154
+        }
+      },
+      "response_bytes": 580,
+      "response_sha256": "95e789cdf0cf1c3fb285bb9e4619698b3c27fb3ab8fa028a3929d305bc045a72",
+      "status_code": 200,
+      "surfaces": [
+        "mixed",
+        "conversation",
+        "prior_turn"
+      ],
+      "timings": {
+        "total_seconds": 0.38304999005049467,
+        "ttft_seconds": null
+      },
+      "transport_request_sha256": "766eff7449dd76f1be51559a7e1ff1b192c22b6a0e2ce6718c78f6559335a965"
+    },
+    {
+      "accepted": true,
+      "case_id": "stream_mixed_media",
+      "expected_accept": true,
+      "passed": true,
+      "qualification_checks": {
+        "finish_reason_length": true,
+        "generated_content_nonempty": true,
+        "http_200": true,
+        "render_max_tokens_exact": true,
+        "render_prompt_nonempty": true,
+        "stream_complete": true,
+        "surface_accepted": true,
+        "usage_or_stream_contract": true
+      },
+      "qualified": true,
+      "render": {
+        "max_tokens": 4,
+        "mm_placeholders": {
+          "image": [
+            {
+              "length": 72,
+              "offset": 4,
+              "pad_token_count": 72,
+              "token_ids_sha256": "d1b80f9b11a5ce2e39c8ba43eb54089eb8ec28a058cae3d6384428e3903dde38"
+            }
+          ],
+          "video": [
+            {
+              "length": 64,
+              "offset": 78,
+              "pad_token_count": 48,
+              "token_ids_sha256": "330dd22da259fa5cbc689112b606c6ff5727c1f441e1e96cbd05f00eab4f87c4"
+            }
+          ]
+        },
+        "prompt_token_ids": [
+          248045,
+          846,
+          198,
+          248053,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248056,
+          248054,
+          198,
+          27,
+          15,
+          13,
+          17,
+          6283,
+          29,
+          248053,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248054,
+          27,
+          16,
+          13,
+          20,
+          6283,
+          29,
+          248053,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248057,
+          248054,
+          198,
+          429,
+          198,
+          72240,
+          25899,
+          13,
+          248046,
+          198,
+          248045,
+          74455,
+          198,
+          248068,
+          198
+        ],
+        "prompt_token_ids_sha256": "0eca7fe85af43fdd13296cfa332b8d4e104e9259c10837acfb45bba824e6696f",
+        "prompt_tokens": 155
+      },
+      "request": {
+        "max_tokens": 4,
+        "messages": [
+          {
+            "content": [
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 4993,
+                    "fixture": "image-transparent-160x320.png",
+                    "mime": "image/png",
+                    "sha256": "72e63cabe9a897fac895e9148fdb203867bb7f8ef95311fdfeaf4cd1026580f9",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "text": "and",
+                "type": "text"
+              },
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 169626,
+                    "fixture": "video-12f-6fps-192x128.avi",
+                    "mime": "video/x-msvideo",
+                    "sha256": "91f394f27c25a34fcbd279746aa7b2365c19c192e692df04a36b52edff701076",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "text": "Describe briefly.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "${AIMA_SERVED_MODEL}",
+        "stream": true,
+        "temperature": 0
+      },
+      "request_sha256": "5b24f209d191e9cef8d46df57d7bfecdd2e2062b2625e7e61d3d18cc7fdf808d",
+      "response": {
+        "aggregate_content": "The user wants a",
+        "done": true,
+        "event_count": 5,
+        "events": [
+          {
+            "choices": [
+              {
+                "delta": {
+                  "content": "",
+                  "role": "assistant"
+                },
+                "finish_reason": null,
+                "index": 0,
+                "logprobs": null
+              }
+            ],
+            "model": "qwen36-vl-reference",
+            "object": "chat.completion.chunk",
+            "prompt_token_ids": null
+          },
+          {
+            "choices": [
+              {
+                "delta": {
+                  "content": "The"
+                },
+                "finish_reason": null,
+                "index": 0,
+                "logprobs": null,
+                "token_ids": null
+              }
+            ],
+            "model": "qwen36-vl-reference",
+            "object": "chat.completion.chunk"
+          },
+          {
+            "choices": [
+              {
+                "delta": {
+                  "content": " user"
+                },
+                "finish_reason": null,
+                "index": 0,
+                "logprobs": null,
+                "token_ids": null
+              }
+            ],
+            "model": "qwen36-vl-reference",
+            "object": "chat.completion.chunk"
+          },
+          {
+            "choices": [
+              {
+                "delta": {
+                  "content": " wants"
+                },
+                "finish_reason": null,
+                "index": 0,
+                "logprobs": null,
+                "token_ids": null
+              }
+            ],
+            "model": "qwen36-vl-reference",
+            "object": "chat.completion.chunk"
+          },
+          {
+            "choices": [
+              {
+                "delta": {
+                  "content": " a"
+                },
+                "finish_reason": "length",
+                "index": 0,
+                "logprobs": null,
+                "stop_reason": null,
+                "token_ids": null
+              }
+            ],
+            "model": "qwen36-vl-reference",
+            "object": "chat.completion.chunk"
+          }
+        ],
+        "tool_call_seen": false
+      },
+      "response_bytes": 1214,
+      "response_sha256": "98d8d2132be42850a8c1f12c29d14d7da4beeff483336258c6fb62f8993f2a0b",
+      "status_code": 200,
+      "surfaces": [
+        "mixed",
+        "stream",
+        "api"
+      ],
+      "timings": {
+        "total_seconds": 0.5572336949408054,
+        "ttft_seconds": 0.38004111405462027
+      },
+      "transport_request_sha256": "f15bd4f531949bc57402a2b94480ab76c5e5cd1b3ac0ed6755c8ecfec5ed10cc"
+    }
+  ],
+  "complete": true,
+  "decision": {
+    "five_reference_cases_accepted": true,
+    "five_render_prompt_vectors_frozen": true,
+    "g1_passed": false,
+    "g2_passed": false,
+    "g3_passed": false,
+    "g4_passed": false,
+    "g5_passed": false,
+    "mixed_multi_item_orders_frozen": true,
+    "mixed_sse_frozen": true,
+    "video_and_mixed_history_frozen": true
+  },
+  "host": {
+    "hostname": "quings",
+    "label": "amd395"
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "canonical_payload_sha256": "6b2e73dd37ae35c0b48bfc2e50a3e4055ad478377aa05010051aa10ebb134269"
+  },
+  "launch": {
+    "argv": [
+      "${AIMA_VLLM_PYTHON}",
+      "-m",
+      "vllm.entrypoints.openai.api_server",
+      "--model",
+      "${AIMA_MODEL_DIR}",
+      "--served-model-name",
+      "qwen36-vl-reference",
+      "--host",
+      "127.0.0.1",
+      "--port",
+      "${AIMA_VL_PORT}",
+      "--trust-remote-code",
+      "--dtype",
+      "bfloat16",
+      "--max-model-len",
+      "262144",
+      "--max-num-seqs",
+      "1",
+      "--max-num-batched-tokens",
+      "16384",
+      "--enable-chunked-prefill",
+      "--gpu-memory-utilization",
+      "0.95",
+      "--attention-backend",
+      "TRITON_ATTN",
+      "--mm-encoder-attn-backend",
+      "TRITON_ATTN",
+      "--gdn-prefill-backend",
+      "triton",
+      "--enforce-eager",
+      "--no-async-scheduling",
+      "--no-enable-prefix-caching",
+      "--enable-auto-tool-choice",
+      "--tool-call-parser",
+      "qwen3_xml",
+      "--no-language-model-only",
+      "--no-skip-mm-profiling",
+      "--limit-mm-per-prompt",
+      "{\"image\":16,\"video\":21}",
+      "--allowed-local-media-path",
+      "${AIMA_ALLOWED_MEDIA_ROOT}",
+      "--allowed-media-domains",
+      "localhost",
+      "127.0.0.1",
+      "--media-io-kwargs",
+      "{\"video\":{\"fps\":2.0,\"video_backend\":\"opencv\"}}",
+      "--mm-processor-kwargs",
+      "{}",
+      "--mm-processor-cache-gb",
+      "4",
+      "--video-pruning-rate",
+      "0",
+      "--load-format",
+      "safetensors",
+      "--tensor-parallel-size",
+      "1"
+    ],
+    "capability_manifest": {
+      "bytes": 86659,
+      "path": "benchmarks/results/vl-capability-manifest.json",
+      "schema": "aima-amd395-qwen36/vl-capability-manifest/v1",
+      "sha256": "72e64b8d5cb0c1de8a355617676c46c98c1e0f05cec7a6e3a7df79dd36560d7a"
+    },
+    "environment_policy": {
+      "inherit": false,
+      "variables": {
+        "HF_HUB_OFFLINE": "1",
+        "HIP_PATH": "/opt/rocm",
+        "LANG": "C.UTF-8",
+        "LD_LIBRARY_PATH": "/opt/rocm/lib:/opt/rocm/lib64",
+        "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+        "PYTHONHASHSEED": "0",
+        "PYTORCH_ALLOC_CONF": "expandable_segments:True",
+        "PYTORCH_ROCM_ARCH": "gfx1151",
+        "ROCM_PATH": "/opt/rocm",
+        "TRANSFORMERS_OFFLINE": "1",
+        "VLLM_IMAGE_FETCH_TIMEOUT": "10",
+        "VLLM_VIDEO_FETCH_TIMEOUT": "30",
+        "VLLM_VIDEO_LOADER_BACKEND": "opencv"
+      }
+    },
+    "measurement_boundary": {
+      "decode": true,
+      "llm_prefill": true,
+      "media_decode": true,
+      "media_fetch": true,
+      "processor": true,
+      "total_latency": true,
+      "ttft": true,
+      "vision_encode": true
+    },
+    "media_policy": {
+      "aggregate_encoder_token_budget": 16384,
+      "allowed_local_media_paths": [
+        "${AIMA_ALLOWED_MEDIA_ROOT}"
+      ],
+      "allowed_media_domains": [
+        "localhost",
+        "127.0.0.1"
+      ],
+      "limits": {
+        "image": 16,
+        "video": 21
+      },
+      "max_tokens_per_item": {
+        "image": 16384,
+        "video": 12288
+      },
+      "media_io_kwargs": {
+        "video": {
+          "fps": 2.0,
+          "video_backend": "opencv"
+        }
+      },
+      "mm_processor_kwargs": {},
+      "processor_cache_gb": 4,
+      "video_pruning_rate": 0
+    },
+    "schema": "aima-amd395-qwen36/vl-reference-launch/v1"
+  },
+  "qualified": true,
+  "reference_identity": {
+    "model": "Qwen/Qwen3.6-35B-A3B",
+    "revision": "995ad96eacd98c81ed38be0c5b274b04031597b0",
+    "runtime_version": "0.19.1rc1.dev300+g29e5d1020.rocm721"
+  },
+  "runtime": {
+    "endpoint": {
+      "host": "127.0.0.1",
+      "port": 31002,
+      "scheme": "http"
+    },
+    "vllm": "0.19.1rc1.dev300+g29e5d1020"
+  },
+  "schema": "aima-amd395-qwen36/vl-g1-mixed-conversation-reference/v1",
+  "scope": "fixed-vllm-five-case-mixed-conversation-stream-extension",
+  "source": {
+    "commit": "1842c8f6d281d6c8e91563205cda3fb66908d8a1",
+    "dirty": false,
+    "files": [
+      {
+        "bytes": 26668,
+        "path": "aima_engine/vl_capability.py",
+        "sha256": "4a04699edfc844dee3e651e855f8d56bfff4e1aaa8f78f24c2f64b1ef1206329"
+      },
+      {
+        "bytes": 9342,
+        "path": "aima_engine/vl_g1_extension.py",
+        "sha256": "e91cd5cce48568e129c285abc20e6e71100fa88c0d5144c42aff5c8e2a1b69eb"
+      },
+      {
+        "bytes": 33216,
+        "path": "aima_engine/vl_reference.py",
+        "sha256": "000b9713172d507580b723fd99a8cccf39f67d01e0a8164055d5c108de10d5a1"
+      },
+      {
+        "bytes": 23168,
+        "path": "scripts/probe-vllm-vl-api-capabilities.py",
+        "sha256": "2762c30b98119dbe87fe93f11db39523d26a4d43f2144f74b2479050aa90ebd1"
+      },
+      {
+        "bytes": 20846,
+        "path": "scripts/capture-vllm-vl-api-render.py",
+        "sha256": "7df604bc7842200a49c6c9135e504d75c6dc329ccbd56bb8cd9acea9446dfe31"
+      },
+      {
+        "bytes": 13871,
+        "path": "scripts/capture-vllm-vl-g1-extension.py",
+        "sha256": "f80b90006e3348a8bba8cf335ec7e7eaa2a08fb2e86499cd5eb0f0d73942d1ef"
+      }
+    ],
+    "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

@@ -14,7 +14,7 @@ blocking condition in the governing goal can move a gate to `passed`.
 
 | Gate | Current state | Evidence required to pass | Next blocking action |
 |---|---|---|---|
-| G1 full VL functional parity | the native HTTP path passes the frozen 30-case status/finish/tool/SSE surface and the corrected deterministic execution envelope passes 23/23 cells; an extended 17-request resident run closes live same-URL mutation, video transport and mixed hit/miss cache gaps; the sealed Goal section 2 audit still conservatively finds 4 requirements covered, 10 partially covered and none wholly missing | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | execute the remaining cases in the four named mixed/conversation, transport/cache, error and generation/requalification evidence workstreams from the G1 audit |
+| G1 full VL functional parity | the native HTTP path passes the frozen 30-case status/finish/tool/SSE surface and the corrected deterministic execution envelope passes 23/23 cells; the 17-request cache run and five-case reference-exact mixed/conversation extension close six named gaps; the sealed Goal section 2 audit now finds 7 requirements covered, 7 partially covered and none wholly missing | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | execute the remaining transport/cache, error and generation/requalification workstreams from the G1 audit |
 | G2 VL correctness parity | the five private and five independently rendered real-HTTP language prompts pass final norm and 84/84 selected full-vocabulary rows bit-exact; resident serving preserves the five frozen 8-token outputs; the 23-cell execution/error envelope also passes, but task-quality suites and four completion/usage differences remain open | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | freeze and run the image/video task-quality suites, then resolve the remaining completion/usage parity differences |
 | G3 text product no regression | frozen baseline identified; the resident engine and certified lm_head now have an optional mask path that is disabled for ordinary requests, but the complete paired release matrix has not run | paired 19-cell, maximum-window, correctness, MMLU, API, cache, startup and memory requalification | retain `v1.5.1` as an immutable paired binary and run the complete paired matrix after language integration stabilizes |
 | G4 native VL performance | the 23-cell native execution envelope now records per-request stage timings, but it is a single candidate qualification rather than paired performance evidence | paired per-cell stage timings and memory records against the fixed VL-enabled vLLM | run the same frozen cells with the alternating paired vLLM/candidate timing protocol |
@@ -24,22 +24,23 @@ blocking condition in the governing goal can move a gate to `passed`.
 
 The first requirement-to-evidence audit is sealed at
 `benchmarks/results/native-vl-g1-coverage-audit-v0.1.0.json`, SHA-256
-`c9babd9052ebbb5bca6e522664330c85e235c46d3aac3b365a9fc82c7d4ec504`.
+`61ba9d8d830d38ee49fd9d41a4cc2f8916f6800c6e24ef57489ba31cd8ecbb27`.
 It binds the governing goal, frozen reference surface, native 30-case surface,
 23-cell execution result, resident-serving/cache evidence, visual pipeline,
-language boundary, cache-identity unit contract and its generator.
+language boundary, the new mixed/conversation reference/native pair,
+cache-identity unit contract and its generator.
 
-The audit deliberately does not promote G1. Four of fourteen requirement
-groups are fully covered: image, video, tools and single-process residency.
-Ten are partial. The concrete missing evidence is grouped into four replayable
+The audit deliberately does not promote G1. Seven of fourteen requirement
+groups are fully covered: image, video, mixed media, conversation, OpenAI API,
+tools and single-process residency. Seven are partial. The concrete missing
+evidence is grouped into three replayable
 workstreams:
 
-1. multi-item mixed ordering, video/mixed conversation reuse and mixed SSE;
-2. HTTPS reference parity, video sampling/content cache keys, mixed-media
+1. HTTPS reference parity, video sampling/content cache keys, mixed-media
    reordered/mutated identity, longer-generation usage and cache-disabled/error
    invariance;
-3. empty, timeout, unreachable, byte-limit and duration-limit error categories;
-4. the four completion/usage differences, current-HEAD numerical
+2. empty, timeout, unreachable, byte-limit and duration-limit error categories;
+3. the four completion/usage differences, current-HEAD numerical
    requalification and the complete G3 text protocol.
 
 This replaces the ambiguous instruction to “add more coverage” with named
@@ -752,6 +753,30 @@ vLLM or Triton runtime. The sealed result is
 `benchmarks/results/native-vl-serving-v0.1.0.json`, SHA-256
 `9a894c5e54b8ca95160629e2fad7ca2eff6fa27a78ba91b83a795b87ec434fe2`.
 
+Clean commit `1842c8f6d281d6c8e91563205cda3fb66908d8a1` then froze the
+remaining mixed/conversation extension on the same fixed vLLM runtime. The
+five reference prompts cover image-video-image and video-image-video
+interleaving, prior/current video history, prior-turn mixed history and mixed
+SSE. Their prompt lengths are respectively `240`, `214`, `160`, `153` and
+`155`; all returned HTTP 200, the four non-stream usage triples equal the
+independent render lengths and the stream returned exactly four tokens. The
+sealed reference is
+`benchmarks/results/vl-g1-mixed-conversation-reference-v0.1.0.json`, SHA-256
+`e769446684c4f69b7a29dde163d050a541449ffddf0996ecbb48510a0c493451`.
+
+The exact-commit native binary SHA-256
+`e7f9f66483a1c4ec3185d0fc8a7cd8d426a4c8c926a052bb23152d2206354892`
+then replayed all five cases in one resident model load. Every HTTP status,
+prompt-token count and hash, ordered image/video count, M-RoPE boundary,
+generated text, finish reason and usage signature matched the reference; mixed
+SSE aggregated to the same `The user wants a` text. The server served `5/5`,
+reported no Python/Torch/vLLM/Triton runtime and wrote zero stderr bytes. The
+sealed native result is
+`benchmarks/results/native-vl-g1-extension-v0.1.0.json`, SHA-256
+`2b78b50d9de12028f437b86e3c52afd5df3a8ebbf0a87f5ee37cd5f3cf341b57`.
+This closes the mixed, conversation and OpenAI API coverage groups without
+promoting G1 or any later gate.
+
 Formal binaries must retain the complete default AOT closure. A q1024-only
 diagnostic build embedded 14 kernels from two manifests and correctly failed
 when a longer tool decode referenced a q8192 image; the accepted builds embed
@@ -768,7 +793,7 @@ The runtime build still installs and verifies the fixed vision-attention code
 object, and the portable package contract includes it in the deterministic
 bundle identity. These records now close the frozen API/render,
 deterministic-resident-serving and min/typical/max execution-envelope slices
-only. The ten partial G1 coverage groups, image/video task quality, complete
+only. The seven partial G1 coverage groups, image/video task quality, complete
 text no-regression, paired performance, portable-package, second-host, soak
 and rollback qualifications remain blocking. Therefore G1 through G5 all
 remain false.

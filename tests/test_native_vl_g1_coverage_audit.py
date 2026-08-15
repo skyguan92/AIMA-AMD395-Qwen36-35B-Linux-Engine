@@ -74,7 +74,7 @@ class NativeVlG1CoverageAuditTest(unittest.TestCase):
         self.assertEqual(coverage["requirements"], 14)
         self.assertEqual(
             coverage["counts"],
-            {"covered": 4, "partial": 10, "missing": 0},
+            {"covered": 7, "partial": 7, "missing": 0},
         )
         items = coverage["items"]
         self.assertEqual(len(items), len({item["requirement_id"] for item in items}))
@@ -84,7 +84,7 @@ class NativeVlG1CoverageAuditTest(unittest.TestCase):
                 for item in items
             )
         )
-        self.assertEqual(len(result["blocking_gaps"]), 10)
+        self.assertEqual(len(result["blocking_gaps"]), 7)
 
     def test_referenced_native_cases_exist_and_are_qualified(self) -> None:
         native = json.loads(
@@ -105,6 +105,15 @@ class NativeVlG1CoverageAuditTest(unittest.TestCase):
                 item["case_id"]: item
                 for item in execution["matrix"]["observations"]
             },
+            "mixed_conversation_native": {
+                item["case_id"]: item
+                for item in json.loads(
+                    (
+                        ROOT
+                        / "benchmarks/results/native-vl-g1-extension-v0.1.0.json"
+                    ).read_text(encoding="utf-8")
+                )["cases"]
+            },
         }
         for requirement in self.result["coverage"]["items"]:
             for record in requirement["evidence"]:
@@ -114,7 +123,6 @@ class NativeVlG1CoverageAuditTest(unittest.TestCase):
 
     def test_next_evidence_names_every_blocking_workstream(self) -> None:
         expected = {
-            "g1-mixed-conversation-extension",
             "g1-transport-cache-extension",
             "g1-error-extension",
             "g1-generation-and-current-head-requalification",

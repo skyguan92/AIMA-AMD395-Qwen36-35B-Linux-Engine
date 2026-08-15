@@ -40,6 +40,13 @@ ARTIFACT_PATHS = {
     "resident_serving": (
         ROOT / "benchmarks/results/native-vl-serving-v0.1.0.json"
     ),
+    "mixed_conversation_reference": (
+        ROOT
+        / "benchmarks/results/vl-g1-mixed-conversation-reference-v0.1.0.json"
+    ),
+    "mixed_conversation_native": (
+        ROOT / "benchmarks/results/native-vl-g1-extension-v0.1.0.json"
+    ),
     "vision_pipeline": (
         ROOT / "benchmarks/results/native-vision-pipeline-v0.1.0.json"
     ),
@@ -145,7 +152,7 @@ def build_requirements() -> list[dict[str, Any]]:
         requirement(
             "G1.2.1.mixed",
             "Mixed image/video ordering and interleaving",
-            "partial",
+            "covered",
             [
                 evidence(
                     "native_capability",
@@ -158,16 +165,22 @@ def build_requirements() -> list[dict[str, Any]]:
                     "mixed_cross_batch_boundary",
                     note="mixed request crossing the vision batch boundary",
                 ),
-            ],
-            [
-                "no frozen multi-image-plus-video or multi-video-plus-image interleave",
-                "no prior-turn mixed-media ordering case",
+                evidence(
+                    "mixed_conversation_reference",
+                    note="five new mixed/conversation requests frozen on fixed vLLM",
+                ),
+                evidence(
+                    "mixed_conversation_native",
+                    "mixed_multi_image_video_interleave",
+                    "mixed_multi_video_image_interleave",
+                    note="both three-media interleave directions are reference-exact",
+                ),
             ],
         ),
         requirement(
             "G1.2.1.conversation",
             "System, assistant, tool and multi-turn media history",
-            "partial",
+            "covered",
             [
                 evidence(
                     "native_capability",
@@ -180,16 +193,18 @@ def build_requirements() -> list[dict[str, Any]]:
                     "resident_serving",
                     note="same-process image A/B/A and prompt variants",
                 ),
-            ],
-            [
-                "no video reuse or replacement conversation",
-                "no mixed-media prior-turn reuse or replacement conversation",
+                evidence(
+                    "mixed_conversation_native",
+                    "conversation_video_reuse_replace",
+                    "conversation_mixed_prior_turn",
+                    note="video replacement and mixed prior-turn history match vLLM",
+                ),
             ],
         ),
         requirement(
             "G1.2.1.openai_api",
             "Streaming and non-stream OpenAI content parts",
-            "partial",
+            "covered",
             [
                 evidence(
                     "native_capability",
@@ -199,9 +214,13 @@ def build_requirements() -> list[dict[str, Any]]:
                     "video_local_mp4",
                     "mixed_image_then_video",
                     note="complete image/video SSE and non-stream media requests",
-                )
+                ),
+                evidence(
+                    "mixed_conversation_native",
+                    "stream_mixed_media",
+                    note="mixed-media SSE aggregate and finish reason match vLLM",
+                ),
             ],
-            ["no frozen mixed-media SSE case"],
         ),
         requirement(
             "G1.2.1.generation",
@@ -420,12 +439,16 @@ def validate_inputs(payloads: dict[str, dict[str, Any]]) -> None:
     native = payloads["native_capability"]
     execution = payloads["execution_envelope"]
     serving = payloads["resident_serving"]
+    extension_reference = payloads["mixed_conversation_reference"]
+    extension_native = payloads["mixed_conversation_native"]
     vision = payloads["vision_pipeline"]
     language = payloads["language_boundary"]
     for name, payload in (
         ("native capability", native),
         ("execution envelope", execution),
         ("resident serving", serving),
+        ("mixed/conversation reference", extension_reference),
+        ("mixed/conversation native", extension_native),
     ):
         if payload.get("complete") is not True or payload.get("qualified") is not True:
             raise SystemExit(f"{name} evidence is not complete and qualified")
@@ -454,6 +477,26 @@ def validate_inputs(payloads: dict[str, dict[str, Any]]) -> None:
             raise SystemExit(
                 f"resident cache evidence is missing decision: {decision}"
             )
+    if extension_reference["source"].get("commit") != extension_native[
+        "source"
+    ].get("commit"):
+        raise SystemExit("mixed/conversation reference and native commits differ")
+    reference_binding = extension_native["dependencies"].get("reference", {})
+    expected_reference = file_component(
+        ARTIFACT_PATHS["mixed_conversation_reference"],
+        "benchmarks/results/vl-g1-mixed-conversation-reference-v0.1.0.json",
+    )
+    if reference_binding != expected_reference:
+        raise SystemExit("mixed/conversation native reference binding changed")
+    for decision in (
+        "mixed_multi_item_orders_qualified",
+        "video_and_mixed_history_qualified",
+        "mixed_sse_qualified",
+    ):
+        if extension_native["decision"].get(decision) is not True:
+            raise SystemExit(
+                f"mixed/conversation native evidence is missing: {decision}"
+            )
 
 
 def build_payload() -> dict[str, Any]:
@@ -468,6 +511,7 @@ def build_payload() -> dict[str, Any]:
     execution_cases = case_map(
         payloads["execution_envelope"], ("matrix", "observations")
     )
+    extension_cases = case_map(payloads["mixed_conversation_native"], ("cases",))
     for item in requirements:
         for record in item["evidence"]:
             artifact = record["artifact"]
@@ -479,6 +523,8 @@ def build_payload() -> dict[str, Any]:
                 if artifact == "native_capability"
                 else execution_cases
                 if artifact == "execution_envelope"
+                else extension_cases
+                if artifact == "mixed_conversation_native"
                 else None
             )
             if available is None:
@@ -523,21 +569,6 @@ def build_payload() -> dict[str, Any]:
         },
         "blocking_gaps": blockers,
         "next_evidence": [
-            {
-                "evidence_id": "g1-mixed-conversation-extension",
-                "requirement_ids": [
-                    "G1.2.1.mixed",
-                    "G1.2.1.conversation",
-                    "G1.2.1.openai_api",
-                ],
-                "cases": [
-                    "mixed_multi_image_video_interleave",
-                    "mixed_multi_video_image_interleave",
-                    "conversation_video_reuse_replace",
-                    "conversation_mixed_prior_turn",
-                    "stream_mixed_media",
-                ],
-            },
             {
                 "evidence_id": "g1-transport-cache-extension",
                 "requirement_ids": [
