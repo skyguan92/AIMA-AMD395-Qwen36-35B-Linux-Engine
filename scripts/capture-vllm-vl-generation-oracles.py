@@ -134,10 +134,13 @@ class InstallGenerationLogitsHook:
             state["call_shapes"].append(list(logits.shape))
             if logits.shape[0] > 1:
                 state["prefill_calls"] += 1
-                output_index = 0
+                # With prompt_logprobs enabled, vLLM emits the teacher-forced
+                # prompt matrix first. Generated-token sampling then begins
+                # with a separate singleton call; this matrix is not output 0.
+                return
             elif logits.shape[0] == 1:
                 state["decode_calls"] += 1
-                output_index = state["decode_calls"]
+                output_index = state["decode_calls"] - 1
             else:
                 return
             if (
@@ -397,6 +400,13 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
             reference_logits = finalization[0]
             if reference_logits["captured_output_index"] != target_index:
                 raise RuntimeError(f"generation logit step changed: {case_id}")
+            if reference_logits["decode_calls"] != len(output_token_ids):
+                raise RuntimeError(f"generation logit call count changed: {case_id}")
+            raw_top1 = reference_logits["raw_top_tokens"][0]["token_id"]
+            if not contract["structured"] and raw_top1 != output_token_ids[target_index]:
+                raise RuntimeError(
+                    f"unconstrained generation top1 changed: {case_id}"
+                )
             cases.append(
                 {
                     "case_id": case_id,

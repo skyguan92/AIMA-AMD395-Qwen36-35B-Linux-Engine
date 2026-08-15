@@ -125,11 +125,20 @@ def validate_generation_oracle_manifest(
                 errors.extend(verify_raw_tensor(component, oracle_root))
         if logits.get("selected_token_id") != contract["reference_token_id"]:
             errors.append(f"selected reference token changed: {case_id}")
+        if logits.get("captured_output_index") != contract[
+            "divergence_output_index"
+        ]:
+            errors.append(f"captured reference logit step changed: {case_id}")
         top = logits.get("raw_top_tokens")
         if not isinstance(top, list) or not top:
             errors.append(f"reference top logits are missing: {case_id}")
         elif top[0].get("rank") != 1:
             errors.append(f"reference top logits are not ranked: {case_id}")
+        elif (
+            not contract["structured"]
+            and top[0].get("token_id") != contract["reference_token_id"]
+        ):
+            errors.append(f"unconstrained reference top1 changed: {case_id}")
 
     decisions = payload.get("decision")
     if not isinstance(decisions, dict):
