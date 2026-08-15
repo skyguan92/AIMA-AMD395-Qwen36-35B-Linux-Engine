@@ -264,6 +264,9 @@ def main() -> int:
     vision_probe_binary = args.vision_probe_binary.resolve()
     model_dir = args.model_dir.resolve()
     fmha_provider = args.fmha_provider.resolve()
+    long_context_fmha_provider = fmha_provider.with_name(
+        "libaima-fmha-ck.so"
+    )
     attention_image = args.vision_attention_image.resolve()
     envelope_path = args.envelope.resolve()
     fixture_root = args.fixture_root.resolve()
@@ -275,6 +278,7 @@ def main() -> int:
         processor_probe_binary,
         vision_probe_binary,
         fmha_provider,
+        long_context_fmha_provider,
         attention_image,
         envelope_path,
         fixture_manifest_path,
@@ -358,8 +362,6 @@ def main() -> int:
         "262143",
         "--cache-capacity",
         "262144",
-        "--fmha-provider",
-        str(fmha_provider),
         "--vision-attention-image",
         str(attention_image),
         "--allowed-local-media-path",
@@ -470,6 +472,12 @@ def main() -> int:
         "vl_ready": ready.get("native_vl") is True,
         "full_window_admitted": ready.get("context_capacity") == 262_144
         and ready.get("static_prefill_tokens") == 262_143,
+        "automatic_long_context_fmha_policy": (
+            ready.get("fmha_provider_path")
+            == str(long_context_fmha_provider)
+            and ready.get("secondary_fmha_provider_path")
+            == str(fmha_provider)
+        ),
     }
     actual_cell_observations = Counter(
         item["cell_id"] for item in observations
@@ -490,6 +498,10 @@ def main() -> int:
         (str(ROOT), "${AIMA_REPO_ROOT}"),
         (str(model_dir), "${AIMA_MODEL_DIR}"),
         (str(fixture_root), "${AIMA_VL_ENVELOPE_FIXTURE_ROOT}"),
+        (
+            str(long_context_fmha_provider),
+            "${AIMA_LONG_CONTEXT_FMHA_PROVIDER}",
+        ),
         (str(fmha_provider), "${AIMA_FMHA_PROVIDER}"),
         (str(attention_image), "${AIMA_VISION_ATTENTION_IMAGE}"),
         (str(binary.parent), "${AIMA_NATIVE_BUILD_DIR}"),
@@ -523,6 +535,10 @@ def main() -> int:
             ),
             "fmha_provider": file_component(
                 fmha_provider, "build/native/libaima-fmha-aotriton.so"
+            ),
+            "long_context_fmha_provider": file_component(
+                long_context_fmha_provider,
+                "build/native/libaima-fmha-ck.so",
             ),
             "vision_attention_image": file_component(
                 attention_image, "build/native/aima-vision-attention.hsaco"

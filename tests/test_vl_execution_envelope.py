@@ -84,6 +84,15 @@ class VlExecutionEnvelopeTest(unittest.TestCase):
             qualifier,
         )
         self.assertIn("timeout=args.client_timeout_seconds", qualifier)
+        self.assertIn(
+            'fmha_provider.with_name(\n        "libaima-fmha-ck.so"',
+            qualifier,
+        )
+        self.assertNotIn(
+            '"--fmha-provider",\n        str(fmha_provider),',
+            qualifier,
+        )
+        self.assertIn("automatic_long_context_fmha_policy", qualifier)
         self.assertIn("native_execution_qualification_complete", qualifier)
 
     def test_http_plan_has_exact_success_error_and_boundary_counts(self) -> None:
