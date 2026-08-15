@@ -241,6 +241,16 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         self.assertIn("const __hip_bfloat16 silu_bf16", shared_activation)
         self.assertIn("__bfloat162float(silu_bf16) * up_value", shared_activation)
 
+        decode_shared_activation = pointwise_source.split(
+            "__global__ void shared_activation_kernel(", 1
+        )[1].split("__global__ void shared_gate_kernel", 1)[0]
+        self.assertIn(
+            "const __hip_bfloat16 silu_bf16", decode_shared_activation
+        )
+        self.assertIn(
+            "__bfloat162float(silu_bf16) * up", decode_shared_activation
+        )
+
         router = moe_source.split(
             "__global__ void router_topk8_softmax_256_kernel(", 1
         )[1].split("__global__ void moe_align_block32_256_kernel", 1)[0]

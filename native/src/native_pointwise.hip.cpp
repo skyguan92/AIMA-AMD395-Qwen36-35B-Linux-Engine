@@ -248,8 +248,12 @@ __global__ void shared_activation_kernel(const __hip_bfloat16* shared_input,
   const float gate = __bfloat162float(shared_input[1 + index]);
   const float up =
       __bfloat162float(shared_input[1 + kSharedIntermediate + index]);
-  const float silu = gate / (1.0f + expf(-gate));
-  activated[index] = __float2bfloat16(silu * up);
+  // vLLM's BF16 SiluAndMul materializes the Silu result in the input dtype
+  // before multiplying by the BF16 up projection.  Preserve that rounding
+  // boundary instead of carrying Silu in FP32 through the final multiply.
+  const __hip_bfloat16 silu_bf16 =
+      __float2bfloat16(gate / (1.0f + expf(-gate)));
+  activated[index] = __float2bfloat16(__bfloat162float(silu_bf16) * up);
 }
 
 __global__ void shared_gate_kernel(const __hip_bfloat16* shared_input,
