@@ -27,6 +27,7 @@ from aima_engine.vl_generation_oracle import (  # noqa: E402
 )
 from aima_engine.vl_generation_layer_oracle import (  # noqa: E402
     BOUNDARY_NAMES,
+    NATIVE_LINEAR_ATTENTION_BOUNDARY_NAMES,
     validate_generation_layer_oracle_manifest,
 )
 from aima_engine.vl_prefill_state_oracle import (  # noqa: E402
@@ -132,6 +133,9 @@ def build_probe_cases(
                 )
             probe_case["reference_decode_boundary_dir"] = str(
                 (layer_oracle_root / case_id).resolve()
+            )
+            probe_case["reference_decode_linear_boundary_dir"] = str(
+                (layer_oracle_root / case_id / "linear").resolve()
             )
         if prefill_state_oracle_root is not None:
             state_case = state_cases.get(case_id)
@@ -261,6 +265,40 @@ def qualification_checks(
                     boundary.get("expected_sha256")
                     == layer_case["components"][boundary["label"]]["sha256"]
                     for boundary in boundaries
+                )
+            )
+            linear_boundaries = observed.get("decode_linear_boundaries")
+            linear_well_formed = (
+                isinstance(linear_boundaries, list)
+                and len(linear_boundaries)
+                == len(NATIVE_LINEAR_ATTENTION_BOUNDARY_NAMES)
+                and all(
+                    isinstance(boundary, dict)
+                    for boundary in linear_boundaries
+                )
+            )
+            checks[f"{case_id}_decode_linear_boundaries_complete"] = (
+                observed.get("decode_linear_boundaries_complete") is True
+                and linear_well_formed
+            )
+            checks[f"{case_id}_decode_linear_boundaries_finite"] = (
+                observed.get("decode_linear_boundaries_finite") is True
+                and linear_well_formed
+                and all(
+                    boundary.get("finite_elements")
+                    == boundary.get("elements")
+                    for boundary in linear_boundaries
+                )
+            )
+            linear_components = layer_case["linear_attention"]["components"]
+            checks[f"{case_id}_decode_linear_boundary_rows_bound"] = (
+                linear_well_formed
+                and [boundary.get("label") for boundary in linear_boundaries]
+                == list(NATIVE_LINEAR_ATTENTION_BOUNDARY_NAMES)
+                and all(
+                    boundary.get("expected_sha256")
+                    == linear_components[boundary["label"]]["sha256"]
+                    for boundary in linear_boundaries
                 )
             )
         if prefill_state_oracle is not None:

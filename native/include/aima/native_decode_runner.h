@@ -7,6 +7,7 @@
 #include "aima/native_decode_workspace.h"
 #include "aima/native_full_attention.h"
 #include "aima/native_lm_head.h"
+#include "aima/native_linear_layer.h"
 #include "aima/native_weight_store.h"
 
 #include <cstddef>
@@ -96,6 +97,7 @@ NativeDecodeRunMetrics run_native_decode_token(
     NativeDecodeExecutor& executor, NativeFullAttentionState& attention_state,
     int cu_count, const std::uint8_t* allowed_token_mask = nullptr,
     void* stream = nullptr,
-    const NativeDecodeLayerObserver* layer_observer = nullptr);
+    const NativeDecodeLayerObserver* layer_observer = nullptr,
+    const NativeDecodeLinearLayer0Observer* linear_layer0_observer = nullptr);
 
 }  // namespace aima

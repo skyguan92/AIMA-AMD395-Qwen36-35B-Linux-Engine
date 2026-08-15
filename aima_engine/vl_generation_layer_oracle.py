@@ -36,6 +36,20 @@ LINEAR_ATTENTION_BOUNDARY_SPECS = {
     "gated_norm": ([4_096], "torch.bfloat16", 2),
     "attention_output": ([HIDDEN_SIZE], "torch.bfloat16", 2),
 }
+NATIVE_LINEAR_ATTENTION_BOUNDARY_NAMES = (
+    "input_norm",
+    "conv_state_before",
+    "post_conv_mixed_qkv",
+    "z_projection",
+    "a_projection",
+    "b_projection",
+    "conv_state_after",
+    "recurrent_state_before",
+    "recurrent_output",
+    "recurrent_state_after",
+    "gated_norm",
+    "attention_output",
+)
 
 
 def validate_generation_layer_oracle_manifest(

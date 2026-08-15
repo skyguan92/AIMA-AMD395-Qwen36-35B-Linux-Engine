@@ -970,7 +970,10 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
           "native resident stop token is outside the vocabulary");
     }
   }
-  if (static_cast<bool>(request.decode_layer_observer) !=
+  const bool has_decode_observer =
+      static_cast<bool>(request.decode_layer_observer) ||
+      static_cast<bool>(request.decode_linear_layer0_observer);
+  if (has_decode_observer !=
           request.decode_layer_observer_output_index.has_value() ||
       (request.decode_layer_observer_output_index.has_value() &&
        (*request.decode_layer_observer_output_index == 0 ||
@@ -1930,12 +1933,18 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
         *request.decode_layer_observer_output_index ==
             metrics.output_token_ids.size();
     const NativeDecodeLayerObserver* layer_observer =
-        observe_decode_layers ? &request.decode_layer_observer : nullptr;
+        observe_decode_layers && request.decode_layer_observer
+            ? &request.decode_layer_observer
+            : nullptr;
+    const NativeDecodeLinearLayer0Observer* linear_layer0_observer =
+        observe_decode_layers && request.decode_linear_layer0_observer
+            ? &request.decode_linear_layer0_observer
+            : nullptr;
     const NativeDecodeRunMetrics token = run_native_decode_token(
         position, position + 1, impl_->weights, impl_->lm_head,
         impl_->decode_workspace, impl_->decode_invocations, impl_->executor,
         impl_->attention_state, impl_->cu_count, allowed_token_mask, nullptr,
-        layer_observer);
+        layer_observer, linear_layer0_observer);
     ++metrics.decode_tokens_executed;
     metrics.decode_aot_launches += token.aot_launches;
     metrics.decode_native_launches +=

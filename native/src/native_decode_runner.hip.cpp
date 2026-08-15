@@ -185,7 +185,8 @@ NativeDecodeRunMetrics run_native_decode_token(
     NativeDecodeInvocations& invocations,
     NativeDecodeExecutor& executor, NativeFullAttentionState& attention_state,
     int cu_count, const std::uint8_t* allowed_token_mask,
-    void* stream_value, const NativeDecodeLayerObserver* layer_observer) {
+    void* stream_value, const NativeDecodeLayerObserver* layer_observer,
+    const NativeDecodeLinearLayer0Observer* linear_layer0_observer) {
   const auto& launches = invocations.launches();
   if (launches.size() != 402 || !executor.loaded() || !lm_head.built() ||
       cu_count <= 0 ||
@@ -201,7 +202,8 @@ NativeDecodeRunMetrics run_native_decode_token(
         "triton_fused_input_proj_conv_kernel") {
       const NativeLinearLayerMetrics layer = run_native_linear_layer(
           layer_index, weights, workspace, invocations, executor, cu_count,
-          stream, false);
+          stream, false,
+          layer_index == 0 ? linear_layer0_observer : nullptr);
       ++metrics.linear_layer_count;
       metrics.aot_launches += layer.aot_launches;
       metrics.native_projection_launches += layer.native_projection_launches;

@@ -175,6 +175,9 @@ struct NativeResidentRequestOptions {
   // by prefill, so the observer target must name a later generated token.
   std::optional<std::size_t> decode_layer_observer_output_index;
   NativeDecodeLayerObserver decode_layer_observer;
+  // Qualification-only layer-0 projection/conv/recurrent stage observer. It
+  // shares the exact output-index target above with the whole-layer observer.
+  NativeDecodeLinearLayer0Observer decode_linear_layer0_observer;
 };
 
 struct NativeResidentRequestMetrics {

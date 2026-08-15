@@ -11,6 +11,7 @@ from aima_engine.vl_generation_layer_oracle import (
     GENERATION_LAYER_ORACLE_SCHEMA,
     HIDDEN_SIZE,
     LINEAR_ATTENTION_BOUNDARY_SPECS,
+    NATIVE_LINEAR_ATTENTION_BOUNDARY_NAMES,
     validate_generation_layer_oracle_manifest,
 )
 from aima_engine.vl_generation_oracle import CASE_CONTRACTS, CASE_ORDER
@@ -190,12 +191,16 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
         resident = RESIDENT.read_text(encoding="utf-8")
         http = HTTP.read_text(encoding="utf-8")
         self.assertIn("NativeDecodeLayerObserver", header)
+        self.assertIn("NativeDecodeLinearLayer0Observer", header)
         self.assertIn("layer_observer = nullptr", header)
         self.assertIn('workspace.find("rmsnorm_final_output")', runner)
         self.assertIn("(*layer_observer)(40", runner)
         self.assertIn("decode_layer_observer_output_index", resident)
         self.assertIn('item.contains("reference_decode_boundary_dir")', http)
         self.assertIn("decode_boundary_comparisons.size() != 41", http)
+        self.assertIn("reference_decode_linear_boundary_dir", http)
+        self.assertIn("decode_linear_layer0_observer", resident)
+        self.assertEqual(len(NATIVE_LINEAR_ATTENTION_BOUNDARY_NAMES), 12)
 
 
 if __name__ == "__main__":

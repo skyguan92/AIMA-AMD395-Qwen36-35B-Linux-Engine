@@ -136,6 +136,14 @@ void launch_packed_recurrent(
                            kPackedRecurrentLaunchConfig, parameters, stream);
 }
 
+void observe_boundary(const NativeDecodeLinearLayer0Observer* observer,
+                      const char* name, const void* device_tensor,
+                      std::uint64_t tensor_bytes, DecodeTensorDtype dtype) {
+  if (observer != nullptr) {
+    (*observer)(name, device_tensor, tensor_bytes, dtype);
+  }
+}
+
 }  // namespace
 
 NativeLinearLayerMetrics run_native_linear_layer(
@@ -143,7 +151,7 @@ NativeLinearLayerMetrics run_native_linear_layer(
     const NativeDecodeWorkspace& workspace,
     const NativeDecodeInvocations& invocations,
     NativeDecodeExecutor& executor, int cu_count, void* stream_value,
-    bool synchronize) {
+    bool synchronize, const NativeDecodeLinearLayer0Observer* observer) {
   const auto& launches = invocations.launches();
   const std::size_t base = layer_index * 10;
   if (!executor.loaded() || base + 10 > launches.size() ||
@@ -204,6 +212,17 @@ NativeLinearLayerMetrics run_native_linear_layer(
   const auto& output = require_workspace(
       workspace, require_argument_binding(launches[base + 10], "x"),
       kHidden * sizeof(__hip_bfloat16));
+  void* input_norm = invocations.tensor_pointer(base, "out");
+  void* fused_projection = invocations.tensor_pointer(base + 1, "out");
+  void* conv_state_before =
+      invocations.tensor_pointer(base + 1, "state_in");
+  void* conv_state_after =
+      invocations.tensor_pointer(base + 1, "state_out");
+  void* z_projection = invocations.tensor_pointer(base + 3, "z");
+  void* a_projection = invocations.tensor_pointer(base + 2, "a");
+  void* b_projection = invocations.tensor_pointer(base + 2, "b");
+  void* recurrent_state = invocations.tensor_pointer(base + 2, "h0");
+  void* recurrent_output = invocations.tensor_pointer(base + 2, "o");
   const std::string prefix =
       "model.language_model.layers." + suffix;
   const auto& output_weight = require_weight(
@@ -218,14 +237,49 @@ NativeLinearLayerMetrics run_native_linear_layer(
   NativeLinearLayerMetrics metrics;
   metrics.layer_index = layer_index;
   executor.launch(launches[base], stream);
+  observe_boundary(observer, "input_norm", input_norm,
+                   kHidden * sizeof(__hip_bfloat16),
+                   DecodeTensorDtype::kBfloat16);
+  observe_boundary(observer, "conv_state_before", conv_state_before,
+                   8192ULL * 3ULL * sizeof(__hip_bfloat16),
+                   DecodeTensorDtype::kBfloat16);
   executor.launch(launches[base + 1], stream);
+  observe_boundary(observer, "post_conv_mixed_qkv", fused_projection,
+                   8192ULL * sizeof(__hip_bfloat16),
+                   DecodeTensorDtype::kBfloat16);
+  observe_boundary(observer, "z_projection", z_projection,
+                   kLinearValue * sizeof(__hip_bfloat16),
+                   DecodeTensorDtype::kBfloat16);
+  observe_boundary(observer, "a_projection", a_projection,
+                   32ULL * sizeof(__hip_bfloat16),
+                   DecodeTensorDtype::kBfloat16);
+  observe_boundary(observer, "b_projection", b_projection,
+                   32ULL * sizeof(__hip_bfloat16),
+                   DecodeTensorDtype::kBfloat16);
+  observe_boundary(observer, "conv_state_after", conv_state_after,
+                   8192ULL * 3ULL * sizeof(__hip_bfloat16),
+                   DecodeTensorDtype::kBfloat16);
+  observe_boundary(observer, "recurrent_state_before", recurrent_state,
+                   kRecurrentStateBytes, DecodeTensorDtype::kFloat32);
   launch_packed_recurrent(layer_index, workspace, invocations, executor, stream);
+  observe_boundary(observer, "recurrent_output", recurrent_output,
+                   kLinearValue * sizeof(__hip_bfloat16),
+                   DecodeTensorDtype::kBfloat16);
+  observe_boundary(observer, "recurrent_state_after", recurrent_state,
+                   kRecurrentStateBytes, DecodeTensorDtype::kFloat32);
   executor.launch(launches[base + 3], stream);
+  observe_boundary(observer, "gated_norm", gated.device_pointer,
+                   kLinearValue * sizeof(__hip_bfloat16),
+                   DecodeTensorDtype::kBfloat16);
   metrics.aot_launches += 4;
   launch_bf16_wvsplitk(
       output_weight.device_pointer, gated.device_pointer, nullptr,
       attention_output.device_pointer, kHidden, kLinearValue, cu_count, stream);
   ++metrics.native_projection_launches;
+  observe_boundary(observer, "attention_output",
+                   attention_output.device_pointer,
+                   kHidden * sizeof(__hip_bfloat16),
+                   DecodeTensorDtype::kBfloat16);
   launch_bf16_add(input.device_pointer, attention_output.device_pointer,
                   after_attn.device_pointer, kHidden, stream);
   ++metrics.native_pointwise_launches;

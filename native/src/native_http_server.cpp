@@ -20,6 +20,7 @@
 #include <unistd.h>
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <cerrno>
 #include <chrono>
@@ -733,6 +734,41 @@ std::string prefill_state_label(std::size_t layer_index,
         << '_' << state_kind;
   return label.str();
 }
+
+struct DecodeLinearBoundaryContract {
+  const char* label;
+  const char* dtype;
+  std::uint64_t bytes;
+  DecodeTensorDtype tensor_dtype;
+};
+
+constexpr std::array<DecodeLinearBoundaryContract, 12>
+    kDecodeLinearBoundaryContracts{{
+        {"input_norm", "bfloat16", 2048ULL * 2ULL,
+         DecodeTensorDtype::kBfloat16},
+        {"conv_state_before", "bfloat16", 8192ULL * 3ULL * 2ULL,
+         DecodeTensorDtype::kBfloat16},
+        {"post_conv_mixed_qkv", "bfloat16", 8192ULL * 2ULL,
+         DecodeTensorDtype::kBfloat16},
+        {"z_projection", "bfloat16", 4096ULL * 2ULL,
+         DecodeTensorDtype::kBfloat16},
+        {"a_projection", "bfloat16", 32ULL * 2ULL,
+         DecodeTensorDtype::kBfloat16},
+        {"b_projection", "bfloat16", 32ULL * 2ULL,
+         DecodeTensorDtype::kBfloat16},
+        {"conv_state_after", "bfloat16", 8192ULL * 3ULL * 2ULL,
+         DecodeTensorDtype::kBfloat16},
+        {"recurrent_state_before", "float32",
+         32ULL * 128ULL * 128ULL * 4ULL, DecodeTensorDtype::kFloat32},
+        {"recurrent_output", "bfloat16", 4096ULL * 2ULL,
+         DecodeTensorDtype::kBfloat16},
+        {"recurrent_state_after", "float32",
+         32ULL * 128ULL * 128ULL * 4ULL, DecodeTensorDtype::kFloat32},
+        {"gated_norm", "bfloat16", 4096ULL * 2ULL,
+         DecodeTensorDtype::kBfloat16},
+        {"attention_output", "bfloat16", 2048ULL * 2ULL,
+         DecodeTensorDtype::kBfloat16},
+    }};
 
 struct ParsedCompletionRequest {
   NativePreparedChat chat;
@@ -1538,6 +1574,7 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
   bool all_reference_rows_bound = true;
   bool all_native_top1_exact = true;
   bool all_decode_boundaries_compared = true;
+  bool all_decode_linear_boundaries_compared = true;
   bool all_prefill_states_compared = true;
 
   for (const Json& item : specification["cases"]) {
@@ -1598,6 +1635,27 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
       }
     } else {
       all_decode_boundaries_compared = false;
+    }
+    std::vector<std::filesystem::path> reference_decode_linear_boundaries;
+    if (item.contains("reference_decode_linear_boundary_dir")) {
+      if (!item["reference_decode_linear_boundary_dir"].is_string() ||
+          item["reference_decode_linear_boundary_dir"]
+              .get<std::string>()
+              .empty()) {
+        throw std::runtime_error(
+            "VL generation decode linear boundary directory is malformed");
+      }
+      const std::filesystem::path boundary_dir = std::filesystem::absolute(
+          item["reference_decode_linear_boundary_dir"].get<std::string>());
+      reference_decode_linear_boundaries.reserve(
+          kDecodeLinearBoundaryContracts.size());
+      for (const DecodeLinearBoundaryContract& contract :
+           kDecodeLinearBoundaryContracts) {
+        reference_decode_linear_boundaries.push_back(
+            find_native_oracle_tensor_file(boundary_dir, contract.label));
+      }
+    } else {
+      all_decode_linear_boundaries_compared = false;
     }
     struct ReferencePrefillState {
       std::size_t layer_index = 0;
@@ -1698,6 +1756,35 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
                     reference_decode_boundaries[boundary_index]));
           };
     }
+    std::vector<NativeOracleComparison> decode_linear_boundary_comparisons;
+    if (!reference_decode_linear_boundaries.empty()) {
+      decode_linear_boundary_comparisons.reserve(
+          kDecodeLinearBoundaryContracts.size());
+      request.decode_layer_observer_output_index = expected_prefix.size();
+      request.decode_linear_layer0_observer =
+          [&](const char* boundary_name, const void* device_tensor,
+              std::uint64_t tensor_bytes, DecodeTensorDtype dtype) {
+            const std::size_t boundary_index =
+                decode_linear_boundary_comparisons.size();
+            if (boundary_index >= kDecodeLinearBoundaryContracts.size()) {
+              throw std::runtime_error(
+                  "native VL decode linear observer emitted extra boundaries");
+            }
+            const DecodeLinearBoundaryContract& expected =
+                kDecodeLinearBoundaryContracts[boundary_index];
+            if (std::string_view(boundary_name) != expected.label ||
+                tensor_bytes != expected.bytes ||
+                dtype != expected.tensor_dtype) {
+              throw std::runtime_error(
+                  "native VL decode linear observer order changed");
+            }
+            decode_linear_boundary_comparisons.push_back(
+                compare_native_oracle_tensor(
+                    expected.label, expected.dtype, device_tensor,
+                    tensor_bytes,
+                    reference_decode_linear_boundaries[boundary_index]));
+          };
+    }
     if (parsed.named_tool_json_constraint != nullptr) {
       const auto constraint = parsed.named_tool_json_constraint;
       request.next_token_mask =
@@ -1718,6 +1805,12 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
         decode_boundary_comparisons.size() != 41) {
       throw std::runtime_error(
           "native VL generation decode boundary capture is incomplete");
+    }
+    if (!reference_decode_linear_boundaries.empty() &&
+        decode_linear_boundary_comparisons.size() !=
+            kDecodeLinearBoundaryContracts.size()) {
+      throw std::runtime_error(
+          "native VL generation decode linear capture is incomplete");
     }
     if (metrics.output_token_ids.size() != expected_prefix.size() + 1) {
       throw std::runtime_error(
@@ -1766,6 +1859,16 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
       prefill_states_finite =
           prefill_states_finite && state.finite_elements == state.elements;
     }
+    Json decode_linear_boundaries = Json::array();
+    bool decode_linear_boundaries_finite =
+        !decode_linear_boundary_comparisons.empty();
+    for (const NativeOracleComparison& boundary :
+         decode_linear_boundary_comparisons) {
+      decode_linear_boundaries.push_back(oracle_comparison_json(boundary));
+      decode_linear_boundaries_finite =
+          decode_linear_boundaries_finite &&
+          boundary.finite_elements == boundary.elements;
+    }
 
     results.push_back(
         {{"case_id", case_id},
@@ -1786,6 +1889,13 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
           decode_boundary_comparisons.size() == 41},
          {"decode_boundaries_finite", decode_boundaries_finite},
          {"decode_boundaries", std::move(decode_boundaries)},
+         {"decode_linear_boundaries_complete",
+          decode_linear_boundary_comparisons.size() ==
+              kDecodeLinearBoundaryContracts.size()},
+         {"decode_linear_boundaries_finite",
+          decode_linear_boundaries_finite},
+         {"decode_linear_boundaries",
+          std::move(decode_linear_boundaries)},
          {"reference_logits",
           {{"elements", comparison.elements},
            {"exact_elements", comparison.exact_elements},
@@ -1818,6 +1928,8 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
                 {"all_reference_rows_bound", all_reference_rows_bound},
                 {"all_decode_boundaries_compared",
                  all_decode_boundaries_compared},
+                {"all_decode_linear_boundaries_compared",
+                 all_decode_linear_boundaries_compared},
                 {"all_prefill_states_compared",
                  all_prefill_states_compared},
                 {"all_native_generation_top1_exact",
