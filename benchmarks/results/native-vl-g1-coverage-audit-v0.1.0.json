@@ -1,0 +1,557 @@
+{
+  "audited_on": "2026-08-15",
+  "blocking_gaps": [
+    {
+      "gaps": [
+        "no frozen multi-image-plus-video or multi-video-plus-image interleave",
+        "no prior-turn mixed-media ordering case"
+      ],
+      "requirement_id": "G1.2.1.mixed"
+    },
+    {
+      "gaps": [
+        "no video reuse or replacement conversation",
+        "no mixed-media prior-turn reuse or replacement conversation"
+      ],
+      "requirement_id": "G1.2.1.conversation"
+    },
+    {
+      "gaps": [
+        "no frozen mixed-media SSE case"
+      ],
+      "requirement_id": "G1.2.1.openai_api"
+    },
+    {
+      "gaps": [
+        "four capability cases still differ in completion or usage",
+        "task-level longer greedy image/video corpus is not qualified"
+      ],
+      "requirement_id": "G1.2.1.generation"
+    },
+    {
+      "gaps": [
+        "HTTPS acceptance is unit-tested but not paired to a frozen vLLM request",
+        "same HTTP URL with changed response bytes has no live cache regression"
+      ],
+      "requirement_id": "G1.2.1.transport"
+    },
+    {
+      "gaps": [
+        "historical numerical evidence is source-hash bound to earlier commits",
+        "current HEAD still requires consolidated processor-to-output requalification"
+      ],
+      "requirement_id": "G1.2.2.model_semantics"
+    },
+    {
+      "gaps": [
+        "empty image and empty video categories are not frozen",
+        "remote timeout and unreachable-media categories are not frozen",
+        "compressed-byte, decoded-pixel and duration over-limit categories are not frozen",
+        "error-category compatibility is not sealed separately from HTTP status"
+      ],
+      "requirement_id": "G1.2.2.error_parity"
+    },
+    {
+      "gaps": [
+        "the complete G3 text and release no-regression protocol has not run"
+      ],
+      "requirement_id": "G1.2.3.product_preservation"
+    },
+    {
+      "gaps": [
+        "same HTTP URL with changed bytes has no live A/B/A regression",
+        "video sampling parameter changes have no independent cache regression",
+        "video and mixed-media A/B/A identities are not live-qualified"
+      ],
+      "requirement_id": "G1.2.4.cache_identity"
+    },
+    {
+      "gaps": [
+        "video cache hit/miss output invariance is not live-qualified",
+        "mixed-media cache hit/miss output invariance is not live-qualified"
+      ],
+      "requirement_id": "G1.2.4.cache_invariance"
+    }
+  ],
+  "complete": true,
+  "coverage": {
+    "counts": {
+      "covered": 4,
+      "missing": 0,
+      "partial": 10
+    },
+    "items": [
+      {
+        "evidence": [
+          {
+            "artifact": "native_capability",
+            "case_ids": [
+              "image_local_png",
+              "image_data_jpeg",
+              "image_http_webp",
+              "image_transparent_png",
+              "multi_image_interleaved"
+            ],
+            "note": "PNG, JPEG, WebP, alpha, local/data/HTTP and multi-image"
+          },
+          {
+            "artifact": "execution_envelope",
+            "case_ids": [
+              "image_minimum",
+              "image_typical_portrait",
+              "image_typical_landscape",
+              "image_maximum_pixels",
+              "image_above_maximum_clamp",
+              "image_aspect_rejection",
+              "image_count_maximum_small",
+              "image_count_over_limit",
+              "image_near_window_maximum"
+            ],
+            "note": "min/typical/max, aspect, clamp, count and near-window execution"
+          }
+        ],
+        "gaps": [],
+        "requirement_id": "G1.2.1.image",
+        "status": "covered",
+        "title": "Image formats, geometry, dynamic resolution and count boundaries"
+      },
+      {
+        "evidence": [
+          {
+            "artifact": "native_capability",
+            "case_ids": [
+              "video_local_mp4",
+              "video_data_mp4",
+              "video_http_avi",
+              "multi_video"
+            ],
+            "note": "MP4/AVI, local/data/HTTP and multi-video serving"
+          },
+          {
+            "artifact": "execution_envelope",
+            "case_ids": [
+              "video_minimum",
+              "video_typical",
+              "video_maximum_feature_shape",
+              "video_sampling_minimum",
+              "video_sampling_typical",
+              "video_sampling_maximum",
+              "video_sampling_above_maximum",
+              "video_count_maximum_small",
+              "video_count_over_limit",
+              "video_full_item_budget"
+            ],
+            "note": "sampling, feature, count and full-budget execution"
+          }
+        ],
+        "gaps": [],
+        "requirement_id": "G1.2.1.video",
+        "status": "covered",
+        "title": "Video formats, sampling, geometry and count boundaries"
+      },
+      {
+        "evidence": [
+          {
+            "artifact": "native_capability",
+            "case_ids": [
+              "mixed_image_then_video",
+              "mixed_video_then_image"
+            ],
+            "note": "both one-image/one-video orders"
+          },
+          {
+            "artifact": "execution_envelope",
+            "case_ids": [
+              "mixed_cross_batch_boundary"
+            ],
+            "note": "mixed request crossing the vision batch boundary"
+          }
+        ],
+        "gaps": [
+          "no frozen multi-image-plus-video or multi-video-plus-image interleave",
+          "no prior-turn mixed-media ordering case"
+        ],
+        "requirement_id": "G1.2.1.mixed",
+        "status": "partial",
+        "title": "Mixed image/video ordering and interleaving"
+      },
+      {
+        "evidence": [
+          {
+            "artifact": "native_capability",
+            "case_ids": [
+              "conversation_prior_image",
+              "conversation_media_replace",
+              "tool_history_with_image"
+            ],
+            "note": "system/assistant/tool history and image replacement"
+          },
+          {
+            "artifact": "resident_serving",
+            "note": "same-process image A/B/A and prompt variants"
+          }
+        ],
+        "gaps": [
+          "no video reuse or replacement conversation",
+          "no mixed-media prior-turn reuse or replacement conversation"
+        ],
+        "requirement_id": "G1.2.1.conversation",
+        "status": "partial",
+        "title": "System, assistant, tool and multi-turn media history"
+      },
+      {
+        "evidence": [
+          {
+            "artifact": "native_capability",
+            "case_ids": [
+              "stream_image",
+              "stream_video",
+              "image_local_png",
+              "video_local_mp4",
+              "mixed_image_then_video"
+            ],
+            "note": "complete image/video SSE and non-stream media requests"
+          }
+        ],
+        "gaps": [
+          "no frozen mixed-media SSE case"
+        ],
+        "requirement_id": "G1.2.1.openai_api",
+        "status": "partial",
+        "title": "Streaming and non-stream OpenAI content parts"
+      },
+      {
+        "evidence": [
+          {
+            "artifact": "native_capability",
+            "note": "20/20 finish-reason parity but only 14/18 exact usage"
+          },
+          {
+            "artifact": "resident_serving",
+            "note": "five frozen private-oracle 8-token generations preserved"
+          }
+        ],
+        "gaps": [
+          "four capability cases still differ in completion or usage",
+          "task-level longer greedy image/video corpus is not qualified"
+        ],
+        "requirement_id": "G1.2.1.generation",
+        "status": "partial",
+        "title": "Greedy tokens, finish reason, usage and response parity"
+      },
+      {
+        "evidence": [
+          {
+            "artifact": "native_capability",
+            "case_ids": [
+              "tool_history_with_image",
+              "tool_forced_image",
+              "tool_auto_image"
+            ],
+            "note": "history, none, forced named and auto tool behavior"
+          }
+        ],
+        "gaps": [],
+        "requirement_id": "G1.2.1.tools",
+        "status": "covered",
+        "title": "VL tools, tool choice and assistant/tool history"
+      },
+      {
+        "evidence": [
+          {
+            "artifact": "native_capability",
+            "case_ids": [
+              "image_local_png",
+              "image_data_jpeg",
+              "image_http_webp",
+              "video_local_mp4",
+              "video_data_mp4",
+              "video_http_avi"
+            ],
+            "note": "local, data and HTTP across supported formats"
+          }
+        ],
+        "gaps": [
+          "HTTPS acceptance is unit-tested but not paired to a frozen vLLM request",
+          "same HTTP URL with changed response bytes has no live cache regression"
+        ],
+        "requirement_id": "G1.2.1.transport",
+        "status": "partial",
+        "title": "URL, data URI/base64, local file and media-format transport"
+      },
+      {
+        "evidence": [
+          {
+            "artifact": "native_capability",
+            "case_ids": [
+              "residency_text_before",
+              "image_local_png",
+              "video_local_mp4",
+              "mixed_image_then_video",
+              "residency_text_after"
+            ],
+            "note": "one ordered 20-success native run with text before and after VL"
+          },
+          {
+            "artifact": "execution_envelope",
+            "note": "17 accepted boundary requests in one additional model load"
+          }
+        ],
+        "gaps": [],
+        "requirement_id": "G1.2.1.residency",
+        "status": "covered",
+        "title": "Text, image, video and mixed requests in one resident process"
+      },
+      {
+        "evidence": [
+          {
+            "artifact": "vision_pipeline",
+            "note": "five-case full visual pipeline boundary evidence"
+          },
+          {
+            "artifact": "language_boundary",
+            "note": "84/84 full-vocabulary rows bit-exact"
+          },
+          {
+            "artifact": "resident_serving",
+            "note": "five real-HTTP render vectors and deterministic outputs"
+          },
+          {
+            "artifact": "execution_envelope",
+            "note": "current long-window M-RoPE execution and launch accounting"
+          }
+        ],
+        "gaps": [
+          "historical numerical evidence is source-hash bound to earlier commits",
+          "current HEAD still requires consolidated processor-to-output requalification"
+        ],
+        "requirement_id": "G1.2.2.model_semantics",
+        "status": "partial",
+        "title": "Processor, vision, injection, M-RoPE and language semantics"
+      },
+      {
+        "evidence": [
+          {
+            "artifact": "native_capability",
+            "case_ids": [
+              "error_corrupt_image",
+              "error_corrupt_video",
+              "error_aspect_ratio",
+              "error_outside_local_root",
+              "error_disallowed_domain",
+              "error_image_count_over_limit",
+              "error_video_count_over_limit",
+              "error_malformed_data_uri",
+              "error_type_mismatch",
+              "error_audio_out_of_scope"
+            ],
+            "note": "ten frozen API rejection cases"
+          },
+          {
+            "artifact": "execution_envelope",
+            "case_ids": [
+              "image_aspect_rejection",
+              "video_below_temporal_rejection",
+              "video_below_spatial_rejection",
+              "video_aspect_rejection",
+              "image_count_over_limit",
+              "video_count_over_limit"
+            ],
+            "note": "six min/aspect/count envelope rejections"
+          }
+        ],
+        "gaps": [
+          "empty image and empty video categories are not frozen",
+          "remote timeout and unreachable-media categories are not frozen",
+          "compressed-byte, decoded-pixel and duration over-limit categories are not frozen",
+          "error-category compatibility is not sealed separately from HTTP status"
+        ],
+        "requirement_id": "G1.2.2.error_parity",
+        "status": "partial",
+        "title": "Invalid media status and error-category parity"
+      },
+      {
+        "evidence": [
+          {
+            "artifact": "native_capability",
+            "case_ids": [
+              "residency_text_before",
+              "residency_text_after"
+            ],
+            "note": "text remains serviceable around a VL workload"
+          },
+          {
+            "artifact": "resident_serving",
+            "note": "native-only launch, one model load and prefix behavior"
+          }
+        ],
+        "gaps": [
+          "the complete G3 text and release no-regression protocol has not run"
+        ],
+        "requirement_id": "G1.2.3.product_preservation",
+        "status": "partial",
+        "title": "Existing text, API, security, startup and cache product behavior"
+      },
+      {
+        "evidence": [
+          {
+            "artifact": "resident_serving",
+            "note": "same-path A/B/A, data/local equivalence and prompt variant checks"
+          },
+          {
+            "artifact": "cache_identity_unit",
+            "note": "content, order, processor identity and token span affect namespace"
+          }
+        ],
+        "gaps": [
+          "same HTTP URL with changed bytes has no live A/B/A regression",
+          "video sampling parameter changes have no independent cache regression",
+          "video and mixed-media A/B/A identities are not live-qualified"
+        ],
+        "requirement_id": "G1.2.4.cache_identity",
+        "status": "partial",
+        "title": "Content-addressed media identity and conservative cache reuse"
+      },
+      {
+        "evidence": [
+          {
+            "artifact": "resident_serving",
+            "note": "image A/B/A and data/local outputs remain exact"
+          }
+        ],
+        "gaps": [
+          "video cache hit/miss output invariance is not live-qualified",
+          "mixed-media cache hit/miss output invariance is not live-qualified"
+        ],
+        "requirement_id": "G1.2.4.cache_invariance",
+        "status": "partial",
+        "title": "Cache changes latency only, never outputs or request semantics"
+      }
+    ],
+    "requirements": 14
+  },
+  "decision": {
+    "all_referenced_cases_qualified": true,
+    "audit_complete": true,
+    "coverage_complete": false,
+    "g1_passed": false,
+    "g2_passed": false,
+    "g3_passed": false,
+    "g4_passed": false,
+    "g5_passed": false,
+    "new_evidence_required": true
+  },
+  "inputs": {
+    "cache_identity_unit": {
+      "bytes": 4487,
+      "path": "tests/native_multimodal_cache_test.cpp",
+      "sha256": "764494533015aa046071424304eb7127b0f86ab0e0ac21da35d668d5d90554a2"
+    },
+    "execution_envelope": {
+      "bytes": 184268,
+      "path": "benchmarks/results/native-vl-envelope-v0.1.0.json",
+      "sha256": "4f1bb7f0349b9c6b70bd0af876fa70c4b6be3b81f7b3750f45a24eb0d609b910"
+    },
+    "generator": {
+      "bytes": 22636,
+      "path": "scripts/generate-native-vl-g1-coverage-audit.py",
+      "sha256": "ff3e9a98ab4cfe7806c35f797cac249cfa97d8b4d60aee54346f914d9f0315f4"
+    },
+    "goal": {
+      "bytes": 17981,
+      "path": "docs/NATIVE_VL_GOAL.md",
+      "sha256": "174f2a994da6cb1aaacb37a16c38886f8d725fe3fe052b2a4d3f59855b2253dd"
+    },
+    "language_boundary": {
+      "bytes": 17611,
+      "path": "benchmarks/results/native-vl-language-full-v0.2.0.json",
+      "sha256": "6de4f46b10a659c358350b1c42dec6e1d361f81c01926bf628b44b892fffb636"
+    },
+    "native_capability": {
+      "bytes": 164763,
+      "path": "benchmarks/results/native-vl-capability-v0.1.0.json",
+      "sha256": "53fe6babad27686a4b7a5eb27f800da247352b5bb3cb80a6148a76441e04defa"
+    },
+    "reference_capability": {
+      "bytes": 86659,
+      "path": "benchmarks/results/vl-capability-manifest.json",
+      "sha256": "72e64b8d5cb0c1de8a355617676c46c98c1e0f05cec7a6e3a7df79dd36560d7a"
+    },
+    "resident_serving": {
+      "bytes": 34435,
+      "path": "benchmarks/results/native-vl-serving-v0.1.0.json",
+      "sha256": "01bacc552c0c93a6878efb745e976a187ff6c94458b7ef4fc8501d4ca087dc65"
+    },
+    "vision_pipeline": {
+      "bytes": 12538,
+      "path": "benchmarks/results/native-vision-pipeline-v0.1.0.json",
+      "sha256": "037fc26c25c5586959e1f3119a933c1f964e2aeb1d1ec0df056ae958072c1b7b"
+    }
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "canonical_payload_sha256": "0ae1c5b5e50666982e5a9c9078fa2f4aa8f308c731d4249254af93120c9ceb45"
+  },
+  "next_evidence": [
+    {
+      "cases": [
+        "mixed_multi_image_video_interleave",
+        "mixed_multi_video_image_interleave",
+        "conversation_video_reuse_replace",
+        "conversation_mixed_prior_turn",
+        "stream_mixed_media"
+      ],
+      "evidence_id": "g1-mixed-conversation-extension",
+      "requirement_ids": [
+        "G1.2.1.mixed",
+        "G1.2.1.conversation",
+        "G1.2.1.openai_api"
+      ]
+    },
+    {
+      "cases": [
+        "https_reference_parity",
+        "cache_http_url_mutation_aba",
+        "cache_video_sampling_parameters",
+        "cache_video_data_local_equivalence",
+        "cache_mixed_reorder_invariance"
+      ],
+      "evidence_id": "g1-transport-cache-extension",
+      "requirement_ids": [
+        "G1.2.1.transport",
+        "G1.2.4.cache_identity",
+        "G1.2.4.cache_invariance"
+      ]
+    },
+    {
+      "cases": [
+        "error_empty_image",
+        "error_empty_video",
+        "error_remote_timeout",
+        "error_remote_unreachable",
+        "error_media_bytes_over_limit",
+        "error_video_duration_over_limit"
+      ],
+      "evidence_id": "g1-error-extension",
+      "requirement_ids": [
+        "G1.2.2.error_parity"
+      ]
+    },
+    {
+      "cases": [
+        "resolve_four_usage_completion_differences",
+        "current_head_processor_to_output_requalification",
+        "complete_g3_text_nonregression"
+      ],
+      "evidence_id": "g1-generation-and-current-head-requalification",
+      "requirement_ids": [
+        "G1.2.1.generation",
+        "G1.2.2.model_semantics",
+        "G1.2.3.product_preservation"
+      ]
+    }
+  ],
+  "qualified": false,
+  "schema": "aima-amd395-qwen36/native-vl-g1-coverage-audit/v1",
+  "scope": "goal-sections-2.1-through-2.4-requirement-to-evidence"
+}
