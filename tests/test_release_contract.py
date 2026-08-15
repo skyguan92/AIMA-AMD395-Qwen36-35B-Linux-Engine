@@ -341,11 +341,15 @@ class ReleaseContractTest(unittest.TestCase):
                 config=self.config,
             )
             materialized = json.loads(output.read_text(encoding="utf-8"))
-            self.assertEqual(materialized["lanes"][0]["image_path"], str(lane0))
-            self.assertEqual(materialized["lanes"][1]["image_path"], str(lane1))
+            self.assertEqual(
+                materialized["lanes"][0]["image_path"], str(lane0.resolve())
+            )
+            self.assertEqual(
+                materialized["lanes"][1]["image_path"], str(lane1.resolve())
+            )
             self.assertEqual(
                 materialized["inputs"]["checkpoint_index"]["path"],
-                str(model / "model.safetensors.index.json"),
+                str((model / "model.safetensors.index.json").resolve()),
             )
 
     def test_direct_checkpoint_is_the_default_contract(self) -> None:
