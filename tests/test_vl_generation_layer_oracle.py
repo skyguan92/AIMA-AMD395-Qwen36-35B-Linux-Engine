@@ -233,7 +233,7 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
         self.assertIn("decode_linear_layer0_observer", resident)
         self.assertIn("decode_layer0_tail_observer", resident)
         self.assertEqual(len(NATIVE_LINEAR_ATTENTION_BOUNDARY_NAMES), 13)
-        self.assertEqual(len(LAYER0_TAIL_BOUNDARY_SPECS), 6)
+        self.assertEqual(len(LAYER0_TAIL_BOUNDARY_SPECS), 10)
 
 
 if __name__ == "__main__":

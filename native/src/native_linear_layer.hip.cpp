@@ -408,14 +408,32 @@ NativeLinearLayerMetrics run_native_linear_layer(
                    DecodeTensorDtype::kBfloat16);
   executor.launch(launches[base + 5], stream);
   metrics.aot_launches += 2;
+  observe_boundary(tail_observer, "shared_gate_logits",
+                   shared_input.device_pointer,
+                   sizeof(__hip_bfloat16),
+                   DecodeTensorDtype::kBfloat16);
+  observe_boundary(
+      tail_observer, "shared_gate_up_projection",
+      static_cast<unsigned char*>(shared_input.device_pointer) +
+          sizeof(__hip_bfloat16),
+      2 * kSharedIntermediate * sizeof(__hip_bfloat16),
+      DecodeTensorDtype::kBfloat16);
   launch_shared_silu_multiply(shared_input.device_pointer,
                               activated.device_pointer, stream);
   ++metrics.native_pointwise_launches;
+  observe_boundary(tail_observer, "shared_activation",
+                   activated.device_pointer,
+                   kSharedIntermediate * sizeof(__hip_bfloat16),
+                   DecodeTensorDtype::kBfloat16);
   launch_bf16_wvsplitk(
       shared_down_weight.device_pointer, activated.device_pointer, nullptr,
       shared_down.device_pointer, kHidden, kSharedIntermediate, cu_count,
       stream);
   ++metrics.native_projection_launches;
+  observe_boundary(tail_observer, "shared_down_projection",
+                   shared_down.device_pointer,
+                   kHidden * sizeof(__hip_bfloat16),
+                   DecodeTensorDtype::kBfloat16);
   launch_shared_sigmoid_scale(shared_input.device_pointer,
                               shared_down.device_pointer,
                               shared_scaled.device_pointer, stream);

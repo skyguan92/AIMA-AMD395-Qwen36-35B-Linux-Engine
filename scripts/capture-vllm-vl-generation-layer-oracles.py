@@ -168,6 +168,9 @@ class InstallGenerationLayerHooks:
             raise RuntimeError("generation language layer 0 is not linear attention")
         linear = layer0.linear_attn
         mlp = layer0.mlp
+        shared_expert = mlp.shared_expert
+        if shared_expert is None:
+            raise RuntimeError("generation layer-0 shared expert is missing")
         router = mlp.experts.router
         gdn_module = __import__(
             "vllm.model_executor.layers.mamba.gdn_linear_attn",
@@ -314,6 +317,22 @@ class InstallGenerationLayerHooks:
             capture_layer0_tail("shared_moe_output", output[0])
             capture_layer0_tail("routed_moe_output", output[1])
 
+        def shared_gate_hook(_module: Any, _args: Any, output: Any) -> None:
+            capture_layer0_tail("shared_gate_logits", output)
+
+        def shared_gate_up_hook(
+            _module: Any, _args: Any, output: Any
+        ) -> None:
+            capture_layer0_tail("shared_gate_up_projection", output)
+
+        def shared_activation_hook(
+            _module: Any, _args: Any, output: Any
+        ) -> None:
+            capture_layer0_tail("shared_activation", output)
+
+        def shared_down_hook(_module: Any, _args: Any, output: Any) -> None:
+            capture_layer0_tail("shared_down_projection", output)
+
         def mlp_hook(_module: Any, _args: Any, output: Any) -> None:
             capture_layer0_tail("combined_moe_output", output)
 
@@ -409,6 +428,22 @@ class InstallGenerationLayerHooks:
             layer0.post_attention_layernorm.register_forward_hook(
                 post_attention_hook
             )
+        )
+        handles.append(
+            mlp.shared_expert_gate.register_forward_hook(shared_gate_hook)
+        )
+        handles.append(
+            shared_expert.gate_up_proj.register_forward_hook(
+                shared_gate_up_hook
+            )
+        )
+        handles.append(
+            shared_expert.act_fn.register_forward_hook(
+                shared_activation_hook
+            )
+        )
+        handles.append(
+            shared_expert.down_proj.register_forward_hook(shared_down_hook)
         )
         handles.append(mlp.experts.register_forward_hook(experts_hook))
         handles.append(mlp.register_forward_hook(mlp_hook))

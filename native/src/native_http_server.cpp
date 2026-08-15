@@ -773,11 +773,19 @@ constexpr std::array<DecodeLinearBoundaryContract, 13>
          DecodeTensorDtype::kBfloat16},
     }};
 
-constexpr std::array<DecodeLinearBoundaryContract, 6>
+constexpr std::array<DecodeLinearBoundaryContract, 10>
     kDecodeLayer0TailBoundaryContracts{{
         {"attention_residual", "bfloat16", 2048ULL * 2ULL,
          DecodeTensorDtype::kBfloat16},
         {"post_attention_norm", "bfloat16", 2048ULL * 2ULL,
+         DecodeTensorDtype::kBfloat16},
+        {"shared_gate_logits", "bfloat16", 1ULL * 2ULL,
+         DecodeTensorDtype::kBfloat16},
+        {"shared_gate_up_projection", "bfloat16", 1024ULL * 2ULL,
+         DecodeTensorDtype::kBfloat16},
+        {"shared_activation", "bfloat16", 512ULL * 2ULL,
+         DecodeTensorDtype::kBfloat16},
+        {"shared_down_projection", "bfloat16", 2048ULL * 2ULL,
          DecodeTensorDtype::kBfloat16},
         {"shared_moe_output", "bfloat16", 2048ULL * 2ULL,
          DecodeTensorDtype::kBfloat16},

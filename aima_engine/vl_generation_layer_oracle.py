@@ -40,6 +40,10 @@ LINEAR_ATTENTION_BOUNDARY_SPECS = {
 LAYER0_TAIL_BOUNDARY_SPECS = {
     "attention_residual": ([HIDDEN_SIZE], "torch.bfloat16", 2),
     "post_attention_norm": ([HIDDEN_SIZE], "torch.bfloat16", 2),
+    "shared_gate_logits": ([1], "torch.bfloat16", 2),
+    "shared_gate_up_projection": ([1_024], "torch.bfloat16", 2),
+    "shared_activation": ([512], "torch.bfloat16", 2),
+    "shared_down_projection": ([HIDDEN_SIZE], "torch.bfloat16", 2),
     "shared_moe_output": ([HIDDEN_SIZE], "torch.bfloat16", 2),
     "router_indices": ([8], "torch.int32", 4),
     "routed_moe_output": ([HIDDEN_SIZE], "torch.bfloat16", 2),
