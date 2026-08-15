@@ -115,6 +115,12 @@ class NativeVlLanguageLayer3MropeTest(unittest.TestCase):
         )
         self.assertIn("options.cache_position_start == 0", full)
         self.assertIn("Unpadded and continuation M-RoPE segments", full)
+        self.assertIn("NativeQ8192CkProvider* segment_provider", resident)
+        self.assertIn(
+            "mrope_plan != nullptr && segment.input_offset != 0",
+            resident,
+        )
+        self.assertIn("segment_provider = &impl_->ck_provider", resident)
         self.assertIn(
             "provider.launch(q, attention_k, attention_v, attention_f32, tokens",
             full,

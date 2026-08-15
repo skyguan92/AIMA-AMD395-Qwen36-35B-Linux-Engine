@@ -251,7 +251,10 @@ This preserves the path used by the exact language evidence while removing
 the unsupported long-window launches. The envelope qualifier also leaves
 long-context provider selection automatic and verifies the resulting CK plus
 terminal AOTriton policy instead of overriding the service with the short
-provider. The long-window and full envelope reruns remain required.
+provider. M-RoPE continuation segments also select the generic rectangular CK
+owner even when their compute workspace uses a q1024-q4096 bucket: the
+standalone short AOTriton image rejects that short-query/long-prefix geometry.
+The long-window and full envelope reruns remain required.
 
 The native processor now also performs the exact fused normalization, odd-frame
 repeat and Qwen temporal/spatial patch permutation into contiguous

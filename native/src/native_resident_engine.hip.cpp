@@ -1559,10 +1559,18 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
                 request.layer_sequence_oracle_dir;
             attention_options.sequence_oracle_label_prefix = prefix.str();
           }
+          NativeQ8192CkProvider* segment_provider = owner.fmha_provider;
+          if (mrope_plan != nullptr && segment.input_offset != 0) {
+            // The short AOTriton owner is qualified for standalone q1024-
+            // q4096 buckets, but its selected image rejects a short query
+            // against a longer prefix. Continuation M-RoPE segments use the
+            // generic rectangular CK owner shared by the long-context path.
+            segment_provider = &impl_->ck_provider;
+          }
           NativeQ8192CkProvider& attention_provider =
               request_secondary_fmha_layers[layer_index]
                   ? impl_->secondary_fmha_provider
-                  : *owner.fmha_provider;
+                  : *segment_provider;
           const NativeFullPrefillOracleResult attention =
               probe_native_q8192_full_prefill_oracle(
                   {}, impl_->weights, chunk_workspace, chunk_invocations,
