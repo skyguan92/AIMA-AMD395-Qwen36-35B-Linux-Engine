@@ -25,8 +25,10 @@ constexpr std::size_t kLinearLayerCount = 30;
 constexpr std::size_t kModelLayerCount = 40;
 constexpr std::uint64_t kPackedStateIndexBytes =
     kModelLayerCount * sizeof(std::int32_t);
+constexpr std::uint64_t kNativeRoutedMoeScratchBytes = 62020ULL;
 constexpr std::uint64_t kNativeRuntimeScratchBytes =
-    4221952ULL + kRecurrentStateBytes + kPackedStateIndexBytes;
+    4221952ULL + kNativeRoutedMoeScratchBytes + kRecurrentStateBytes +
+    kPackedStateIndexBytes;
 constexpr std::string_view kInitialRecurrentPrefix =
     "linear_attention_initial_ssm_states_vllm.";
 
@@ -201,6 +203,22 @@ NativeDecodeWorkspaceMetrics NativeDecodeWorkspace::build(int device) {
        DecodeTensorDtype::kBfloat16, DecodeBindingKind::kTransientWorkspace},
       {"native.linear.combined_moe", 4096, 0,
        DecodeTensorDtype::kBfloat16, DecodeBindingKind::kTransientWorkspace},
+      {"native.decode.router_logits", 512, 0,
+       DecodeTensorDtype::kBfloat16, DecodeBindingKind::kTransientWorkspace},
+      {"native.decode.router_weights", 32, 0,
+       DecodeTensorDtype::kFloat32, DecodeBindingKind::kTransientWorkspace},
+      {"native.decode.router_indices", 32, 0,
+       DecodeTensorDtype::kInt32, DecodeBindingKind::kTransientWorkspace},
+      {"native.decode.routed_gate_up", 16384, 0,
+       DecodeTensorDtype::kBfloat16, DecodeBindingKind::kTransientWorkspace},
+      {"native.decode.routed_activation", 8192, 0,
+       DecodeTensorDtype::kBfloat16, DecodeBindingKind::kTransientWorkspace},
+      {"native.decode.routed_weighted", 32768, 0,
+       DecodeTensorDtype::kBfloat16, DecodeBindingKind::kTransientWorkspace},
+      {"native.decode.routed_output", 4096, 0,
+       DecodeTensorDtype::kBfloat16, DecodeBindingKind::kTransientWorkspace},
+      {"native.decode.routed_num_tokens_post_padded", 4, 0,
+       DecodeTensorDtype::kInt32, DecodeBindingKind::kTransientWorkspace},
       {"native.lm_head.candidate_weights", 4194304, 0,
        DecodeTensorDtype::kBfloat16, DecodeBindingKind::kTransientWorkspace},
       {"native.lm_head.candidate_logits", 2048, 0,
@@ -223,10 +241,10 @@ NativeDecodeWorkspaceMetrics NativeDecodeWorkspace::build(int device) {
       metrics.unique_bindings + metrics.runtime_scratch_bindings;
   metrics.total_logical_payload_bytes =
       metrics.logical_payload_bytes + metrics.runtime_scratch_payload_bytes;
-  if (metrics.runtime_scratch_bindings != 10 ||
+  if (metrics.runtime_scratch_bindings != 18 ||
       metrics.runtime_scratch_payload_bytes != kNativeRuntimeScratchBytes ||
-      metrics.total_bindings != 576 ||
-      metrics.total_logical_payload_bytes != 138242160ULL) {
+      metrics.total_bindings != 584 ||
+      metrics.total_logical_payload_bytes != 138304180ULL) {
     throw std::runtime_error("native decode runtime scratch closure mismatch");
   }
   metrics.allocation_bytes = allocation_bytes;

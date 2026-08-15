@@ -1,0 +1,902 @@
+{
+  "abi": {
+    "hidden_argument_values": [
+      0,
+      0
+    ],
+    "hidden_arguments": [
+      "global_scratch",
+      "profile_scratch"
+    ],
+    "launch": "hipModuleLaunchKernel"
+  },
+  "coverage": {
+    "cache_state": "warm_compilation_cache_cold_prefix_request",
+    "completion_tokens": 1,
+    "context_tokens": 1,
+    "full_matrix_complete": false
+  },
+  "kernel_count": 2,
+  "kernel_symbol_count": 1,
+  "kernels": [
+    {
+      "audit_artifacts": [
+        {
+          "bytes": 13280,
+          "name": "fused_moe_kernel.hsaco",
+          "sha256": "418b7b58ad5d65b7cfd84392a0128d95c3a695fcef66f22d89c689c257994e4e"
+        },
+        {
+          "bytes": 99721,
+          "name": "fused_moe_kernel.llir",
+          "sha256": "5d7cd8c82020e8d3fad359b42128a7901d71add3f06ae884b7d75fb7f78aa540"
+        },
+        {
+          "bytes": 64376,
+          "name": "fused_moe_kernel.amdgcn",
+          "sha256": "6303a77fdbcc4cce66a9225903e7d8bf487c89eb39bb7ebff9b69afd8a4d1ff2"
+        },
+        {
+          "bytes": 53734,
+          "name": "fused_moe_kernel.source",
+          "sha256": "6c71801e32f06ec7a63d8083c170cac8777d9468fff7034e419618e90e7b65eb"
+        },
+        {
+          "bytes": 28734,
+          "name": "fused_moe_kernel.ttir",
+          "sha256": "7e2f3f6876926deb5d9a9f4b8f160ca9f63bf1d759d84ad09af314ebd36e6421"
+        },
+        {
+          "bytes": 1133,
+          "name": "fused_moe_kernel.json",
+          "sha256": "e1c44ae98349d0ea54a85f8e7231d4ab9e0a8860cf9de678ca7fff8a11c4be8b"
+        },
+        {
+          "bytes": 40069,
+          "name": "fused_moe_kernel.ttgir",
+          "sha256": "f20100c22c5ecea1ee8c7a8714b7bcdd66a8edb4d798c6b6a97aa66bc2768456"
+        }
+      ],
+      "compile_constants": {
+        "BLOCK_SIZE_K": 256,
+        "BLOCK_SIZE_M": 16,
+        "BLOCK_SIZE_N": 16,
+        "GROUP_SIZE_M": 1,
+        "HAS_BIAS": false,
+        "MUL_ROUTED_WEIGHT": false,
+        "SPLIT_K": 1,
+        "a_scale_ptr": null,
+        "b_bias_ptr": null,
+        "b_scale_ptr": null,
+        "compute_type": "bf16",
+        "group_k": 0,
+        "group_n": 0,
+        "naive_block_assignment": true,
+        "per_channel_quant": false,
+        "sorted_token_ids_ptr": null,
+        "stride_ak": 1,
+        "stride_bk": 1,
+        "stride_cn": 1,
+        "top_k": 8,
+        "use_fp8_w8a8": false,
+        "use_int8_w8a16": false,
+        "use_int8_w8a8": false
+      },
+      "image": {
+        "bytes": 10536,
+        "path": "kernels/3ef02098201cfc66-fused_moe_kernel.hsaco",
+        "raw_bytes": 13280,
+        "raw_sha256": "418b7b58ad5d65b7cfd84392a0128d95c3a695fcef66f22d89c689c257994e4e",
+        "sha256": "86cc097b8f6ca7dd4f239d91b3a8368ec7db6e4a9c85bc5f748848797540750b",
+        "transformation": "llvm-strip --strip-debug"
+      },
+      "kernel_hash": "3ef02098201cfc66fd82896bf7c1abc4fe406c41fb911c2b58e0023e1eca1c99",
+      "launch_variants": [
+        {
+          "arguments": [
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "a_ptr",
+              "shape": [
+                1,
+                2048
+              ],
+              "stride": [
+                2048,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "b_ptr",
+              "shape": [
+                256,
+                1024,
+                2048
+              ],
+              "stride": [
+                2097152,
+                2048,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "c_ptr",
+              "shape": [
+                1,
+                8,
+                1024
+              ],
+              "stride": [
+                8192,
+                1024,
+                1
+              ]
+            },
+            {
+              "abi_type": "*fp32",
+              "dtype": "torch.float32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "topk_weights_ptr",
+              "shape": [
+                1,
+                8
+              ],
+              "stride": [
+                8,
+                1
+              ]
+            },
+            {
+              "abi_type": "*i32",
+              "dtype": "torch.int32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "expert_ids_ptr",
+              "shape": [
+                8
+              ],
+              "stride": [
+                1
+              ]
+            },
+            {
+              "abi_type": "*i32",
+              "dtype": "torch.int32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "num_tokens_post_padded_ptr",
+              "shape": [
+                1
+              ],
+              "stride": [
+                1
+              ]
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "N",
+              "value": 1024
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "K",
+              "value": 2048
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "EM",
+              "value": 128
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "num_valid_tokens",
+              "value": 8
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_am",
+              "value": 2048
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_be",
+              "value": 2097152
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_bn",
+              "value": 2048
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_cm",
+              "value": 1024
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_asm",
+              "value": 0
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_ask",
+              "value": 0
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_bse",
+              "value": 0
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_bsk",
+              "value": 0
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_bsn",
+              "value": 0
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_bbe",
+              "value": 0
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_bbn",
+              "value": 0
+            }
+          ],
+          "grid": [
+            512,
+            1,
+            1
+          ]
+        }
+      ],
+      "metadata": {
+        "launch_cooperative_grid": false,
+        "name": "fused_moe_kernel",
+        "num_ctas": 1,
+        "num_stages": 2,
+        "num_warps": 4,
+        "shared": 16384,
+        "target": {
+          "arch": "gfx1151",
+          "backend": "hip",
+          "warp_size": 32
+        },
+        "warp_size": 32
+      },
+      "regular_abi": [
+        {
+          "name": "a_ptr",
+          "type": "*bf16"
+        },
+        {
+          "name": "b_ptr",
+          "type": "*bf16"
+        },
+        {
+          "name": "c_ptr",
+          "type": "*bf16"
+        },
+        {
+          "name": "topk_weights_ptr",
+          "type": "*fp32"
+        },
+        {
+          "name": "expert_ids_ptr",
+          "type": "*i32"
+        },
+        {
+          "name": "num_tokens_post_padded_ptr",
+          "type": "*i32"
+        },
+        {
+          "name": "N",
+          "type": "i32"
+        },
+        {
+          "name": "K",
+          "type": "i32"
+        },
+        {
+          "name": "EM",
+          "type": "i32"
+        },
+        {
+          "name": "num_valid_tokens",
+          "type": "i32"
+        },
+        {
+          "name": "stride_am",
+          "type": "i32"
+        },
+        {
+          "name": "stride_be",
+          "type": "i32"
+        },
+        {
+          "name": "stride_bn",
+          "type": "i32"
+        },
+        {
+          "name": "stride_cm",
+          "type": "i32"
+        },
+        {
+          "name": "stride_asm",
+          "type": "i32"
+        },
+        {
+          "name": "stride_ask",
+          "type": "i32"
+        },
+        {
+          "name": "stride_bse",
+          "type": "i32"
+        },
+        {
+          "name": "stride_bsk",
+          "type": "i32"
+        },
+        {
+          "name": "stride_bsn",
+          "type": "i32"
+        },
+        {
+          "name": "stride_bbe",
+          "type": "i32"
+        },
+        {
+          "name": "stride_bbn",
+          "type": "i32"
+        }
+      ],
+      "signature": {
+        "BLOCK_SIZE_K": "constexpr",
+        "BLOCK_SIZE_M": "constexpr",
+        "BLOCK_SIZE_N": "constexpr",
+        "EM": "i32",
+        "GROUP_SIZE_M": "constexpr",
+        "HAS_BIAS": "constexpr",
+        "K": "i32",
+        "MUL_ROUTED_WEIGHT": "constexpr",
+        "N": "i32",
+        "SPLIT_K": "constexpr",
+        "a_ptr": "*bf16",
+        "a_scale_ptr": "constexpr",
+        "b_bias_ptr": "constexpr",
+        "b_ptr": "*bf16",
+        "b_scale_ptr": "constexpr",
+        "c_ptr": "*bf16",
+        "compute_type": "constexpr",
+        "expert_ids_ptr": "*i32",
+        "group_k": "constexpr",
+        "group_n": "constexpr",
+        "naive_block_assignment": "constexpr",
+        "num_tokens_post_padded_ptr": "*i32",
+        "num_valid_tokens": "i32",
+        "per_channel_quant": "constexpr",
+        "sorted_token_ids_ptr": "constexpr",
+        "stride_ak": "constexpr",
+        "stride_am": "i32",
+        "stride_ask": "i32",
+        "stride_asm": "i32",
+        "stride_bbe": "i32",
+        "stride_bbn": "i32",
+        "stride_be": "i32",
+        "stride_bk": "constexpr",
+        "stride_bn": "i32",
+        "stride_bse": "i32",
+        "stride_bsk": "i32",
+        "stride_bsn": "i32",
+        "stride_cm": "i32",
+        "stride_cn": "constexpr",
+        "top_k": "constexpr",
+        "topk_weights_ptr": "*fp32",
+        "use_fp8_w8a8": "constexpr",
+        "use_int8_w8a16": "constexpr",
+        "use_int8_w8a8": "constexpr"
+      },
+      "source_provenance": [
+        {
+          "license": "MIT",
+          "owner": "Triton",
+          "path": "triton/language/standard.py"
+        },
+        {
+          "license": "Apache-2.0",
+          "owner": "vLLM",
+          "path": "vllm/model_executor/layers/fused_moe/fused_moe.py"
+        }
+      ],
+      "symbol": "fused_moe_kernel"
+    },
+    {
+      "audit_artifacts": [
+        {
+          "bytes": 29854,
+          "name": "fused_moe_kernel.ttir",
+          "sha256": "1bc75d38a231218483531d3b1f66d4dbbe32e7e9dbb8b3e7a7395dafcadcc208"
+        },
+        {
+          "bytes": 55347,
+          "name": "fused_moe_kernel.source",
+          "sha256": "6d63e3c83b8119eeb67ece49d9163ae67121594467f4889a13dc7dae61944817"
+        },
+        {
+          "bytes": 64829,
+          "name": "fused_moe_kernel.amdgcn",
+          "sha256": "9a777f999e45e19f3a9eca87a502af36485c30a9d9c25d22840bdc0c25c88c9d"
+        },
+        {
+          "bytes": 41059,
+          "name": "fused_moe_kernel.ttgir",
+          "sha256": "ab06d9c318c5401f3bef51a96386e0e891c99f4805cb396fa6d8e33e6e1fbed0"
+        },
+        {
+          "bytes": 100636,
+          "name": "fused_moe_kernel.llir",
+          "sha256": "ad64b6d85cc1ad0ca98ef5b503f62a52019c5141e3a034094590571617b2752d"
+        },
+        {
+          "bytes": 1133,
+          "name": "fused_moe_kernel.json",
+          "sha256": "d7f56fa707b3cad045585ddb97397ab1f8d738bbe7c64203f1015759866c3171"
+        },
+        {
+          "bytes": 13392,
+          "name": "fused_moe_kernel.hsaco",
+          "sha256": "e41175b2e9b2f39a2a540e9ddc5730b428a57f86a2b1a0afe8a3ac093d21b1f6"
+        }
+      ],
+      "compile_constants": {
+        "BLOCK_SIZE_K": 256,
+        "BLOCK_SIZE_M": 16,
+        "BLOCK_SIZE_N": 16,
+        "GROUP_SIZE_M": 1,
+        "HAS_BIAS": false,
+        "MUL_ROUTED_WEIGHT": true,
+        "SPLIT_K": 1,
+        "a_scale_ptr": null,
+        "b_bias_ptr": null,
+        "b_scale_ptr": null,
+        "compute_type": "bf16",
+        "group_k": 0,
+        "group_n": 0,
+        "naive_block_assignment": true,
+        "per_channel_quant": false,
+        "sorted_token_ids_ptr": null,
+        "stride_ak": 1,
+        "stride_bk": 1,
+        "stride_cn": 1,
+        "top_k": 1,
+        "use_fp8_w8a8": false,
+        "use_int8_w8a16": false,
+        "use_int8_w8a8": false
+      },
+      "image": {
+        "bytes": 10664,
+        "path": "kernels/775c54180f936819-fused_moe_kernel.hsaco",
+        "raw_bytes": 13392,
+        "raw_sha256": "e41175b2e9b2f39a2a540e9ddc5730b428a57f86a2b1a0afe8a3ac093d21b1f6",
+        "sha256": "780ad77c75c0b7db065603bae69718050051f879ec5ee9f9be89aadd0355c358",
+        "transformation": "llvm-strip --strip-debug"
+      },
+      "kernel_hash": "775c54180f9368197b9493aa15e604d3f7622519a20fc322e827e2d51a979b75",
+      "launch_variants": [
+        {
+          "arguments": [
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "a_ptr",
+              "shape": [
+                8,
+                512
+              ],
+              "stride": [
+                512,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "b_ptr",
+              "shape": [
+                256,
+                2048,
+                512
+              ],
+              "stride": [
+                1048576,
+                512,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "c_ptr",
+              "shape": [
+                1,
+                8,
+                2048
+              ],
+              "stride": [
+                16384,
+                2048,
+                1
+              ]
+            },
+            {
+              "abi_type": "*fp32",
+              "dtype": "torch.float32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "topk_weights_ptr",
+              "shape": [
+                1,
+                8
+              ],
+              "stride": [
+                8,
+                1
+              ]
+            },
+            {
+              "abi_type": "*i32",
+              "dtype": "torch.int32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "expert_ids_ptr",
+              "shape": [
+                8
+              ],
+              "stride": [
+                1
+              ]
+            },
+            {
+              "abi_type": "*i32",
+              "dtype": "torch.int32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "num_tokens_post_padded_ptr",
+              "shape": [
+                1
+              ],
+              "stride": [
+                1
+              ]
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "N",
+              "value": 2048
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "K",
+              "value": 512
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "EM",
+              "value": 128
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "num_valid_tokens",
+              "value": 8
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_am",
+              "value": 512
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_be",
+              "value": 1048576
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_bn",
+              "value": 512
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_cm",
+              "value": 2048
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_asm",
+              "value": 0
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_ask",
+              "value": 0
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_bse",
+              "value": 0
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_bsk",
+              "value": 0
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_bsn",
+              "value": 0
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_bbe",
+              "value": 0
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_bbn",
+              "value": 0
+            }
+          ],
+          "grid": [
+            1024,
+            1,
+            1
+          ]
+        }
+      ],
+      "metadata": {
+        "launch_cooperative_grid": false,
+        "name": "fused_moe_kernel",
+        "num_ctas": 1,
+        "num_stages": 2,
+        "num_warps": 4,
+        "shared": 16384,
+        "target": {
+          "arch": "gfx1151",
+          "backend": "hip",
+          "warp_size": 32
+        },
+        "warp_size": 32
+      },
+      "regular_abi": [
+        {
+          "name": "a_ptr",
+          "type": "*bf16"
+        },
+        {
+          "name": "b_ptr",
+          "type": "*bf16"
+        },
+        {
+          "name": "c_ptr",
+          "type": "*bf16"
+        },
+        {
+          "name": "topk_weights_ptr",
+          "type": "*fp32"
+        },
+        {
+          "name": "expert_ids_ptr",
+          "type": "*i32"
+        },
+        {
+          "name": "num_tokens_post_padded_ptr",
+          "type": "*i32"
+        },
+        {
+          "name": "N",
+          "type": "i32"
+        },
+        {
+          "name": "K",
+          "type": "i32"
+        },
+        {
+          "name": "EM",
+          "type": "i32"
+        },
+        {
+          "name": "num_valid_tokens",
+          "type": "i32"
+        },
+        {
+          "name": "stride_am",
+          "type": "i32"
+        },
+        {
+          "name": "stride_be",
+          "type": "i32"
+        },
+        {
+          "name": "stride_bn",
+          "type": "i32"
+        },
+        {
+          "name": "stride_cm",
+          "type": "i32"
+        },
+        {
+          "name": "stride_asm",
+          "type": "i32"
+        },
+        {
+          "name": "stride_ask",
+          "type": "i32"
+        },
+        {
+          "name": "stride_bse",
+          "type": "i32"
+        },
+        {
+          "name": "stride_bsk",
+          "type": "i32"
+        },
+        {
+          "name": "stride_bsn",
+          "type": "i32"
+        },
+        {
+          "name": "stride_bbe",
+          "type": "i32"
+        },
+        {
+          "name": "stride_bbn",
+          "type": "i32"
+        }
+      ],
+      "signature": {
+        "BLOCK_SIZE_K": "constexpr",
+        "BLOCK_SIZE_M": "constexpr",
+        "BLOCK_SIZE_N": "constexpr",
+        "EM": "i32",
+        "GROUP_SIZE_M": "constexpr",
+        "HAS_BIAS": "constexpr",
+        "K": "i32",
+        "MUL_ROUTED_WEIGHT": "constexpr",
+        "N": "i32",
+        "SPLIT_K": "constexpr",
+        "a_ptr": "*bf16",
+        "a_scale_ptr": "constexpr",
+        "b_bias_ptr": "constexpr",
+        "b_ptr": "*bf16",
+        "b_scale_ptr": "constexpr",
+        "c_ptr": "*bf16",
+        "compute_type": "constexpr",
+        "expert_ids_ptr": "*i32",
+        "group_k": "constexpr",
+        "group_n": "constexpr",
+        "naive_block_assignment": "constexpr",
+        "num_tokens_post_padded_ptr": "*i32",
+        "num_valid_tokens": "i32",
+        "per_channel_quant": "constexpr",
+        "sorted_token_ids_ptr": "constexpr",
+        "stride_ak": "constexpr",
+        "stride_am": "i32",
+        "stride_ask": "i32",
+        "stride_asm": "i32",
+        "stride_bbe": "i32",
+        "stride_bbn": "i32",
+        "stride_be": "i32",
+        "stride_bk": "constexpr",
+        "stride_bn": "i32",
+        "stride_bse": "i32",
+        "stride_bsk": "i32",
+        "stride_bsn": "i32",
+        "stride_cm": "i32",
+        "stride_cn": "constexpr",
+        "top_k": "constexpr",
+        "topk_weights_ptr": "*fp32",
+        "use_fp8_w8a8": "constexpr",
+        "use_int8_w8a16": "constexpr",
+        "use_int8_w8a8": "constexpr"
+      },
+      "source_provenance": [
+        {
+          "license": "MIT",
+          "owner": "Triton",
+          "path": "triton/language/standard.py"
+        },
+        {
+          "license": "Apache-2.0",
+          "owner": "vLLM",
+          "path": "vllm/model_executor/layers/fused_moe/fused_moe.py"
+        }
+      ],
+      "symbol": "fused_moe_kernel"
+    }
+  ],
+  "launch_variant_count": 2,
+  "non_claims": [
+    "not_yet_a_complete_native_model_executor",
+    "not_yet_full_context_matrix_coverage",
+    "not_yet_a_correctness_or_performance_promotion"
+  ],
+  "packaged_hsaco_bytes": 21200,
+  "raw_hsaco_bytes": 26672,
+  "schema": "aima-amd395-qwen36/native-aot-closure/v1",
+  "source": {
+    "commit": "24149508018e9c75c224db6701b25021d4f4a6f3",
+    "compiler": {
+      "license": "MIT",
+      "name": "Triton",
+      "version": "3.6.0"
+    },
+    "engine_sha256": "58993882153c9a0eb91bfb21075da1585418d33e92d1a39866468c4a0747fbbc",
+    "traces": [
+      {
+        "bytes": 15385,
+        "records": 3,
+        "sha256": "3836fb891082e902e56a85352a28014c9ceba6fcfc7fb10dc8e886940563278b"
+      }
+    ],
+    "vllm_license": "Apache-2.0",
+    "vllm_version": "0.19.1rc1.dev300+g29e5d1020.rocm721"
+  },
+  "status": "bounded_q1_output1_executor_migration_evidence",
+  "target": {
+    "arch": "gfx1151",
+    "backend": "HIP",
+    "warp_size": 32
+  }
+}

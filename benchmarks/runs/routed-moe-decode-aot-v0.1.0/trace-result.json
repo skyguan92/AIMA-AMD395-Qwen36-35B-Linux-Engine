@@ -1,0 +1,38 @@
+{
+  "checks": {
+    "down_unchanged": true,
+    "gate_up_unchanged": true,
+    "hidden_states_unchanged": true,
+    "output_finite": true,
+    "output_sha256": "dc653b5fbfceaf4150d6eb056a60536833e0a8a12270914fe664aafde92a3238",
+    "topk_ids_in_range": true,
+    "topk_ids_sha256": "5d0946f5fe7996debc146366a9cdd90f4ff3fa31fcefc917582db2eb9089cd58",
+    "topk_weights_finite": true,
+    "topk_weights_sha256": "5c2d178e39e2b7fc714b570c2439c56b6c1ec4f971d40f9eb4969b232fb3373f"
+  },
+  "complete": true,
+  "geometry": {
+    "experts": 256,
+    "hidden_dtype": "torch.bfloat16",
+    "hidden_size": 2048,
+    "intermediate_size": 512,
+    "renormalize": true,
+    "router_logits_dtype": "torch.bfloat16",
+    "tokens": 1,
+    "top_k": 8,
+    "topk_ids_dtype": "torch.int32",
+    "topk_weights_dtype": "torch.float32"
+  },
+  "non_claims": [
+    "not_a_model_weight_correctness_oracle",
+    "not_yet_integrated_into_native_decode",
+    "not_a_promotion_result"
+  ],
+  "qualified_for_aot_capture": true,
+  "qualified_for_native_decode_replacement": false,
+  "schema": "aima-amd395-qwen36/routed-moe-decode-aot-trace/v1",
+  "source_apis": [
+    "vllm.model_executor.layers.fused_moe.router.fused_topk_router.fused_topk",
+    "vllm.model_executor.layers.fused_moe.fused_moe.fused_experts"
+  ]
+}

@@ -1,0 +1,117 @@
+{
+  "capture_manifest_sha256": "84d408773332db1f808d35ce29043644927481281cda81879db71e6bf26fb0cc",
+  "capture_source_commit": "7865515549c9eaaec9a0e913a771c7993b221e58",
+  "case_id": "tool_auto_image",
+  "comparisons": {
+    "end_to_end_routed_activation": {
+      "actual_sha256": "897750e3c3fcdf81f9267fe38ef1c348bb7eff15b8057f8f64f54ea2454a031d",
+      "bit_exact": true,
+      "elements": 4096,
+      "exact_elements": 4096,
+      "expected_sha256": "897750e3c3fcdf81f9267fe38ef1c348bb7eff15b8057f8f64f54ea2454a031d",
+      "first_mismatch_index": null
+    },
+    "end_to_end_routed_gate_up_projection": {
+      "actual_sha256": "8ee0edc8a2619a7ac893be0acd49dbe80adaa125814ac06d707d2d2359d21423",
+      "bit_exact": true,
+      "elements": 8192,
+      "exact_elements": 8192,
+      "expected_sha256": "8ee0edc8a2619a7ac893be0acd49dbe80adaa125814ac06d707d2d2359d21423",
+      "first_mismatch_index": null
+    },
+    "end_to_end_routed_moe_output": {
+      "actual_sha256": "a0a4f02dbe21b1786551fef2dd2e1cbf20700b08dd466be8d103f2796f01bc55",
+      "bit_exact": true,
+      "elements": 2048,
+      "exact_elements": 2048,
+      "expected_sha256": "a0a4f02dbe21b1786551fef2dd2e1cbf20700b08dd466be8d103f2796f01bc55",
+      "first_mismatch_index": null
+    },
+    "end_to_end_routed_weighted_expert_outputs": {
+      "actual_sha256": "0cc05d1dc9acf25ef197e8b59cb4c9360738bd614ccaf924a9b764f46250c7cd",
+      "bit_exact": true,
+      "elements": 16384,
+      "exact_elements": 16384,
+      "expected_sha256": "0cc05d1dc9acf25ef197e8b59cb4c9360738bd614ccaf924a9b764f46250c7cd",
+      "first_mismatch_index": null
+    },
+    "routed_activation": {
+      "actual_sha256": "897750e3c3fcdf81f9267fe38ef1c348bb7eff15b8057f8f64f54ea2454a031d",
+      "bit_exact": true,
+      "elements": 4096,
+      "exact_elements": 4096,
+      "expected_sha256": "897750e3c3fcdf81f9267fe38ef1c348bb7eff15b8057f8f64f54ea2454a031d",
+      "first_mismatch_index": null
+    },
+    "routed_gate_up_projection": {
+      "actual_sha256": "8ee0edc8a2619a7ac893be0acd49dbe80adaa125814ac06d707d2d2359d21423",
+      "bit_exact": true,
+      "elements": 8192,
+      "exact_elements": 8192,
+      "expected_sha256": "8ee0edc8a2619a7ac893be0acd49dbe80adaa125814ac06d707d2d2359d21423",
+      "first_mismatch_index": null
+    },
+    "routed_moe_output": {
+      "actual_sha256": "a0a4f02dbe21b1786551fef2dd2e1cbf20700b08dd466be8d103f2796f01bc55",
+      "bit_exact": true,
+      "elements": 2048,
+      "exact_elements": 2048,
+      "expected_sha256": "a0a4f02dbe21b1786551fef2dd2e1cbf20700b08dd466be8d103f2796f01bc55",
+      "first_mismatch_index": null
+    },
+    "routed_weighted_expert_outputs": {
+      "actual_sha256": "0cc05d1dc9acf25ef197e8b59cb4c9360738bd614ccaf924a9b764f46250c7cd",
+      "bit_exact": true,
+      "elements": 16384,
+      "exact_elements": 16384,
+      "expected_sha256": "0cc05d1dc9acf25ef197e8b59cb4c9360738bd614ccaf924a9b764f46250c7cd",
+      "first_mismatch_index": null
+    },
+    "router_indices": {
+      "actual_sha256": "4d7bc11fb2f753a0d8d9e997fbad9698d70a6353f38a5a0c0c7739cc16cc8745",
+      "bit_exact": true,
+      "elements": 8,
+      "exact_elements": 8,
+      "expected_sha256": "4d7bc11fb2f753a0d8d9e997fbad9698d70a6353f38a5a0c0c7739cc16cc8745",
+      "first_mismatch_index": null
+    },
+    "router_logits": {
+      "actual_sha256": "befb53063b59a48d23f1fc87b5aa5e03ec8b66e9143ef1c3f723924d166bcb03",
+      "bit_exact": true,
+      "elements": 256,
+      "exact_elements": 256,
+      "expected_sha256": "befb53063b59a48d23f1fc87b5aa5e03ec8b66e9143ef1c3f723924d166bcb03",
+      "first_mismatch_index": null
+    },
+    "router_weights": {
+      "actual_sha256": "d622a0e7c8d48bcb22e56a71fdb479839068315b48f0ea16d7304ef3ce89a903",
+      "bit_exact": true,
+      "elements": 8,
+      "exact_elements": 8,
+      "expected_sha256": "d622a0e7c8d48bcb22e56a71fdb479839068315b48f0ea16d7304ef3ce89a903",
+      "first_mismatch_index": null
+    }
+  },
+  "complete": true,
+  "cu_count": 20,
+  "decision": {
+    "g1_passed": false,
+    "g2_passed": false,
+    "g3_passed": false,
+    "g4_passed": false,
+    "g5_passed": false,
+    "model_weight_numerical_closure": true,
+    "promotion_result": false,
+    "qualified_for_native_decode_replacement": false
+  },
+  "down_image_sha256": "780ad77c75c0b7db065603bae69718050051f879ec5ee9f9be89aadd0355c358",
+  "end_to_end_router_outputs_consumed": true,
+  "expert_aot_seeded_from_reference_router": true,
+  "gate_up_image_sha256": "86cc097b8f6ca7dd4f239d91b3a8368ec7db6e4a9c85bc5f748848797540750b",
+  "gpu_arch": "gfx1151",
+  "language_weight_payload_bytes": 69321221376,
+  "router_evaluated_from_reference_hidden_state": true,
+  "schema": "aima-amd395-qwen36/routed-moe-decode-aot-model-probe/v1",
+  "source_commit": "dbf455abb2e408f6e716f38702ebae3a9f9f08a9",
+  "tail_set": "layer0_tail"
+}

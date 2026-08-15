@@ -1,0 +1,42 @@
+#pragma once
+
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2026 Approaching AI Authors
+
+#include "aima/native_decode_executor.h"
+
+#include <cstddef>
+
+namespace aima {
+
+// O(1) singleton-decode buffers for the current vLLM routed-MoE contract.
+// Router weights remain FP32 through the second expert GEMM; every other
+// activation/output buffer is BF16 and expert ids are int32.
+struct NativeDecodeRoutedMoeBuffers {
+  void* router_logits_bf16 = nullptr;
+  void* router_weights_fp32 = nullptr;
+  void* router_indices_i32 = nullptr;
+  void* num_tokens_post_padded_i32 = nullptr;
+  void* gate_up_bf16 = nullptr;
+  void* activation_bf16 = nullptr;
+  void* weighted_expert_outputs_bf16 = nullptr;
+  void* output_bf16 = nullptr;
+};
+
+struct NativeDecodeRoutedMoeMetrics {
+  std::size_t native_projection_launches = 0;
+  std::size_t native_pointwise_launches = 0;
+  std::size_t aot_launches = 0;
+};
+
+// Executes the pinned current-vLLM singleton routed-MoE chain:
+// BF16 router projection, FP32 normalized top-8 routing, two embedded Triton
+// expert GEMMs, BF16-boundary SiLU-and-multiply, and the eight-row reduction.
+NativeDecodeRoutedMoeMetrics run_native_decode_routed_moe(
+    const void* hidden_bf16, const void* router_weight_bf16,
+    const void* gate_up_weight_bf16, const void* down_weight_bf16,
+    const NativeDecodeRoutedMoeBuffers& buffers,
+    NativeDecodeExecutor& executor, int cu_count,
+    void* stream = nullptr);
+
+}  // namespace aima

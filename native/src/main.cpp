@@ -3388,7 +3388,7 @@ int run_linear_layer_oracle_probe(int argc, char** argv) {
             comparison.exact_elements == comparison.elements ? 1 : 0;
       }
     }
-    const bool complete = results.size() == 30 && total_aot_launches == 300;
+    const bool complete = results.size() == 30 && total_aot_launches == 240;
     const bool qualified = complete && all_qualified &&
                            exact_comparisons == total_comparisons;
     std::cout << std::setprecision(17)
@@ -3705,7 +3705,7 @@ int run_full_layer_oracle_probe(int argc, char** argv) {
             comparison.exact_elements == comparison.elements ? 1 : 0;
       }
     }
-    const bool complete = results.size() == 10 && total_aot_launches == 100 &&
+    const bool complete = results.size() == 10 && total_aot_launches == 80 &&
                           total_attention_launches == 40;
     qualified = qualified && complete;
     std::cout << std::setprecision(17)

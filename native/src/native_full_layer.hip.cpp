@@ -5,11 +5,13 @@
 
 #include "aima/bf16_wvsplitk.h"
 #include "aima/native_pointwise.h"
+#include "aima/native_routed_moe.h"
 
 #include <hip/hip_bf16.h>
 #include <hip/hip_runtime.h>
 
 #include <chrono>
+#include <cstdint>
 #include <stdexcept>
 #include <string>
 
@@ -19,6 +21,7 @@ namespace {
 constexpr std::size_t kHidden = 2048;
 constexpr std::size_t kQueryDimension = 4096;
 constexpr std::size_t kSharedIntermediate = 512;
+constexpr std::size_t kExperts = 256;
 constexpr std::size_t kRawValueOffsetElements = 8704;
 
 void check_hip(hipError_t status, const char* operation) {
@@ -35,6 +38,17 @@ const NativeDecodeWorkspaceView& require_workspace(
   if (view == nullptr || view->device_pointer == nullptr ||
       view->payload_bytes < minimum_bytes ||
       view->dtype != DecodeTensorDtype::kBfloat16) {
+    throw std::runtime_error("native full layer workspace mismatch: " + name);
+  }
+  return *view;
+}
+
+const NativeDecodeWorkspaceView& require_typed_workspace(
+    const NativeDecodeWorkspace& workspace, const std::string& name,
+    std::uint64_t expected_bytes, DecodeTensorDtype dtype) {
+  const NativeDecodeWorkspaceView* view = workspace.find(name);
+  if (view == nullptr || view->device_pointer == nullptr ||
+      view->payload_bytes != expected_bytes || view->dtype != dtype) {
     throw std::runtime_error("native full layer workspace mismatch: " + name);
   }
   return *view;
@@ -121,9 +135,30 @@ NativeFullLayerMetrics run_native_full_layer(
   const auto& shared_input = require_workspace(
       workspace, require_argument_binding(launches[base + 5], "out"),
       (1 + 2 * kSharedIntermediate) * sizeof(__hip_bfloat16));
+  const auto& router_logits = require_workspace(
+      workspace, "native.decode.router_logits",
+      kExperts * sizeof(__hip_bfloat16));
+  const auto& router_weights = require_typed_workspace(
+      workspace, "native.decode.router_weights", 8 * sizeof(float),
+      DecodeTensorDtype::kFloat32);
+  const auto& router_indices = require_typed_workspace(
+      workspace, "native.decode.router_indices", 8 * sizeof(std::int32_t),
+      DecodeTensorDtype::kInt32);
+  const auto& routed_gate_up = require_workspace(
+      workspace, "native.decode.routed_gate_up",
+      8 * 1024 * sizeof(__hip_bfloat16));
+  const auto& routed_activation = require_workspace(
+      workspace, "native.decode.routed_activation",
+      8 * kSharedIntermediate * sizeof(__hip_bfloat16));
+  const auto& routed_weighted = require_workspace(
+      workspace, "native.decode.routed_weighted",
+      8 * kHidden * sizeof(__hip_bfloat16));
   const auto& routed_moe = require_workspace(
-      workspace, require_argument_binding(launches[base + 9], "out"),
+      workspace, "native.decode.routed_output",
       kHidden * sizeof(__hip_bfloat16));
+  const auto& routed_padded = require_typed_workspace(
+      workspace, "native.decode.routed_num_tokens_post_padded",
+      sizeof(std::int32_t), DecodeTensorDtype::kInt32);
   const auto& output = require_workspace(
       workspace, require_argument_binding(launches[base + 10], "x"),
       kHidden * sizeof(__hip_bfloat16));
@@ -145,6 +180,15 @@ NativeFullLayerMetrics run_native_full_layer(
   const auto& shared_down_weight = require_weight(
       weights, prefix + ".mlp.shared_expert.down_proj.weight",
       kHidden * kSharedIntermediate * sizeof(__hip_bfloat16));
+  const auto& router_weight = require_weight(
+      weights, prefix + ".mlp.gate.weight",
+      kExperts * kHidden * sizeof(__hip_bfloat16));
+  const auto& routed_gate_up_weight = require_weight(
+      weights, prefix + ".mlp.experts.gate_up_proj",
+      kExperts * 1024ULL * kHidden * sizeof(__hip_bfloat16));
+  const auto& routed_down_weight = require_weight(
+      weights, prefix + ".mlp.experts.down_proj",
+      kExperts * kHidden * kSharedIntermediate * sizeof(__hip_bfloat16));
 
   const auto started = std::chrono::steady_clock::now();
   hipStream_t stream = static_cast<hipStream_t>(stream_value);
@@ -180,6 +224,7 @@ NativeFullLayerMetrics run_native_full_layer(
   executor.launch(launches[base + 4], stream);
   executor.launch(launches[base + 5], stream);
   metrics.aot_launches += 2;
+  void* post_attention_norm = invocations.tensor_pointer(base + 4, "out");
   launch_shared_silu_multiply(shared_input.device_pointer,
                               activated.device_pointer, stream);
   ++metrics.native_pointwise_launches;
@@ -192,10 +237,27 @@ NativeFullLayerMetrics run_native_full_layer(
                               shared_down.device_pointer,
                               shared_scaled.device_pointer, stream);
   ++metrics.native_pointwise_launches;
-  for (std::size_t offset = 6; offset < 10; ++offset) {
-    executor.launch(launches[base + offset], stream);
-    ++metrics.aot_launches;
-  }
+  const NativeDecodeRoutedMoeBuffers routed_buffers{
+      router_logits.device_pointer,
+      router_weights.device_pointer,
+      router_indices.device_pointer,
+      routed_padded.device_pointer,
+      routed_gate_up.device_pointer,
+      routed_activation.device_pointer,
+      routed_weighted.device_pointer,
+      routed_moe.device_pointer,
+  };
+  const NativeDecodeRoutedMoeMetrics routed_metrics =
+      run_native_decode_routed_moe(
+          post_attention_norm, router_weight.device_pointer,
+          routed_gate_up_weight.device_pointer,
+          routed_down_weight.device_pointer, routed_buffers, executor,
+          cu_count, stream);
+  metrics.aot_launches += routed_metrics.aot_launches;
+  metrics.native_projection_launches +=
+      routed_metrics.native_projection_launches;
+  metrics.native_pointwise_launches +=
+      routed_metrics.native_pointwise_launches;
   launch_bf16_add_pair(
       routed_moe.device_pointer, shared_scaled.device_pointer,
       after_attn.device_pointer, combined_moe.device_pointer,
