@@ -29,10 +29,14 @@ constexpr char kPackedRecurrentKernelHash[] =
     "361b24af7b3fc502598ffb5fd1e191c9b82afc437361f92f4056bf8772a960dc";
 constexpr char kCausalConvKernelHash[] =
     "ab71972380fed224052336c248656eb49e8d2ccd89acc4bebbee193e2c6a699c";
+constexpr char kLinearGatedNormKernelHash[] =
+    "2c40422c776225912e71c6cd74fb90ea37001e24b57e6cc135af84c048a791db";
 constexpr AotLaunchConfig kPackedRecurrentLaunchConfig{
     4, 32, 1, 1, 32, 64};
 constexpr AotLaunchConfig kCausalConvLaunchConfig{
     1, 32, 1, 4, 32, 2048};
+constexpr AotLaunchConfig kLinearGatedNormLaunchConfig{
+    32, 1, 1, 1, 32, 0};
 constexpr float kLinearAttentionScale = 0.08838834764831845f;
 
 void check_hip(hipError_t status, const char* operation) {
@@ -157,6 +161,22 @@ void launch_current_causal_conv(
   };
   executor.launch_embedded(kCausalConvKernelHash, kCausalConvLaunchConfig,
                            parameters, stream);
+}
+
+void launch_current_linear_gated_norm(
+    void* core, void* gate, void* weight, void* output, void* rstd,
+    NativeDecodeExecutor& executor, hipStream_t stream) {
+  std::int32_t stride_x_row = 128;
+  std::int32_t stride_y_row = 128;
+  std::int32_t stride_z_row = 128;
+  std::int32_t rows = 32;
+  float epsilon = 1.0e-6f;
+  const std::vector<void*> parameters = {
+      &core, &output, &weight, &gate, &rstd,
+      &stride_x_row, &stride_y_row, &stride_z_row, &rows, &epsilon,
+  };
+  executor.launch_embedded(kLinearGatedNormKernelHash,
+                           kLinearGatedNormLaunchConfig, parameters, stream);
 }
 
 void observe_boundary(const NativeDecodeLinearLayer0Observer* observer,
@@ -287,6 +307,9 @@ NativeLinearLayerMetrics run_native_linear_layer(
   const auto& conv_weight = require_weight(
       weights, prefix + ".linear_attn.conv1d.weight",
       kLinearQkv * 4 * sizeof(__hip_bfloat16));
+  const auto& linear_norm_weight = require_weight(
+      weights, prefix + ".linear_attn.norm.weight",
+      128 * sizeof(__hip_bfloat16));
   const auto& shared_down_weight = require_weight(
       weights, prefix + ".mlp.shared_expert.down_proj.weight",
       kHidden * kSharedIntermediate * sizeof(__hip_bfloat16));
@@ -349,7 +372,12 @@ NativeLinearLayerMetrics run_native_linear_layer(
                    DecodeTensorDtype::kBfloat16);
   observe_boundary(observer, "recurrent_state_after", recurrent_state,
                    kRecurrentStateBytes, DecodeTensorDtype::kFloat32);
-  executor.launch(launches[base + 3], stream);
+  // Current vLLM uses one row per Triton program for decode RMSNormGated.
+  // The attention-output scratch is still dead here and supplies the 32-value
+  // FP32 Rstd side output without growing the resident workspace.
+  launch_current_linear_gated_norm(
+      recurrent_output, z_projection, linear_norm_weight.device_pointer,
+      gated.device_pointer, attention_output.device_pointer, executor, stream);
   observe_boundary(observer, "gated_norm", gated.device_pointer,
                    kLinearValue * sizeof(__hip_bfloat16),
                    DecodeTensorDtype::kBfloat16);

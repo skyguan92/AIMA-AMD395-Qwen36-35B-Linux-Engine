@@ -1,0 +1,23 @@
+{
+  "checks": {
+    "gate_unchanged": true,
+    "input_unchanged": true,
+    "output_finite": true,
+    "output_sha256": "b9fd1e09d2f6e3b69284b150b01640cb8ac098b6368035dbd570ede056bfffbf"
+  },
+  "complete": true,
+  "geometry": {
+    "activation": "silu",
+    "batch": 1,
+    "dtype": "torch.bfloat16",
+    "epsilon": 1e-06,
+    "head_dimension": 128,
+    "linear_heads": 32,
+    "norm_before_gate": true,
+    "rows": 32,
+    "tokens": 1
+  },
+  "qualified_for_native_decode_replacement": true,
+  "schema": "aima-amd395-qwen36/linear-gated-norm-decode-aot-trace/v1",
+  "source_api": "vllm.model_executor.layers.fla.ops.layernorm_guard.rmsnorm_fn"
+}

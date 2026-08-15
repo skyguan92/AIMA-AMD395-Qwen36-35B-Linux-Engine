@@ -1,0 +1,319 @@
+{
+  "abi": {
+    "hidden_argument_values": [
+      0,
+      0
+    ],
+    "hidden_arguments": [
+      "global_scratch",
+      "profile_scratch"
+    ],
+    "launch": "hipModuleLaunchKernel"
+  },
+  "coverage": {
+    "cache_state": "warm_compilation_cache_cold_prefix_request",
+    "completion_tokens": 1,
+    "context_tokens": 1,
+    "full_matrix_complete": false
+  },
+  "kernel_count": 1,
+  "kernel_symbol_count": 1,
+  "kernels": [
+    {
+      "audit_artifacts": [
+        {
+          "bytes": 8120,
+          "name": "layer_norm_fwd_kernel.hsaco",
+          "sha256": "283d5d80b46fa72d59cd13474051c297fddd5610413ce529fed7df5a7cf61b35"
+        },
+        {
+          "bytes": 29795,
+          "name": "layer_norm_fwd_kernel.amdgcn",
+          "sha256": "53ec2be0db8ae61e2e48bb78df75ed498acbc05ac312781cc8645fe2db3ecb0e"
+        },
+        {
+          "bytes": 32157,
+          "name": "layer_norm_fwd_kernel.source",
+          "sha256": "5d80452cc03c0e7fb5a18b6895395f6691564a77bfc34682674c1f9c8a69aa68"
+        },
+        {
+          "bytes": 16856,
+          "name": "layer_norm_fwd_kernel.llir",
+          "sha256": "696d7b87e43cf3e0c80284c25240a8a116b35b40bbdb50d39c3eb05c25a1a4cf"
+        },
+        {
+          "bytes": 16219,
+          "name": "layer_norm_fwd_kernel.ttir",
+          "sha256": "c07839d16f074a10aba0eb31f4002cdc19b80b2e7369ab80350585403b5cf0be"
+        },
+        {
+          "bytes": 17408,
+          "name": "layer_norm_fwd_kernel.ttgir",
+          "sha256": "e91a6664373571fbb0bd6b46a9dc5b1f950626e9c1567971c1d79ea723fd19fd"
+        },
+        {
+          "bytes": 1133,
+          "name": "layer_norm_fwd_kernel.json",
+          "sha256": "ee368669df7763c82ca7e187294f346202531d734e9c8b5bb54b31a6eab4b280"
+        }
+      ],
+      "compile_constants": {
+        "ACTIVATION": "silu",
+        "B": null,
+        "BLOCK_N": 128,
+        "HAS_BIAS": false,
+        "HAS_Z": true,
+        "IS_RMS_NORM": true,
+        "Mean": null,
+        "N": 128,
+        "NORM_BEFORE_GATE": true,
+        "ROWS_PER_BLOCK": 1
+      },
+      "image": {
+        "bytes": 6248,
+        "path": "kernels/2c40422c77622591-layer_norm_fwd_kernel.hsaco",
+        "raw_bytes": 8120,
+        "raw_sha256": "283d5d80b46fa72d59cd13474051c297fddd5610413ce529fed7df5a7cf61b35",
+        "sha256": "2dabdbcdda886fbe028d53f2f99d0e22af0168893a942a0014a0953a0c9a0c45",
+        "transformation": "llvm-strip --strip-debug"
+      },
+      "kernel_hash": "2c40422c776225912e71c6cd74fb90ea37001e24b57e6cc135af84c048a791db",
+      "launch_variants": [
+        {
+          "arguments": [
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "X",
+              "shape": [
+                32,
+                128
+              ],
+              "stride": [
+                128,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "Y",
+              "shape": [
+                32,
+                128
+              ],
+              "stride": [
+                128,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "W",
+              "shape": [
+                128
+              ],
+              "stride": [
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "Z",
+              "shape": [
+                32,
+                128
+              ],
+              "stride": [
+                128,
+                1
+              ]
+            },
+            {
+              "abi_type": "*fp32",
+              "dtype": "torch.float32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "Rstd",
+              "shape": [
+                32
+              ],
+              "stride": [
+                1
+              ]
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_x_row",
+              "value": 128
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_y_row",
+              "value": 128
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_z_row",
+              "value": 128
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "M",
+              "value": 32
+            },
+            {
+              "abi_type": "fp32",
+              "kind": "scalar",
+              "name": "eps",
+              "value": 1e-06
+            }
+          ],
+          "grid": [
+            32,
+            1,
+            1
+          ]
+        }
+      ],
+      "metadata": {
+        "launch_cooperative_grid": false,
+        "name": "layer_norm_fwd_kernel",
+        "num_ctas": 1,
+        "num_stages": 2,
+        "num_warps": 1,
+        "shared": 0,
+        "target": {
+          "arch": "gfx1151",
+          "backend": "hip",
+          "warp_size": 32
+        },
+        "warp_size": 32
+      },
+      "regular_abi": [
+        {
+          "name": "X",
+          "type": "*bf16"
+        },
+        {
+          "name": "Y",
+          "type": "*bf16"
+        },
+        {
+          "name": "W",
+          "type": "*bf16"
+        },
+        {
+          "name": "Z",
+          "type": "*bf16"
+        },
+        {
+          "name": "Rstd",
+          "type": "*fp32"
+        },
+        {
+          "name": "stride_x_row",
+          "type": "i32"
+        },
+        {
+          "name": "stride_y_row",
+          "type": "i32"
+        },
+        {
+          "name": "stride_z_row",
+          "type": "i32"
+        },
+        {
+          "name": "M",
+          "type": "i32"
+        },
+        {
+          "name": "eps",
+          "type": "fp32"
+        }
+      ],
+      "signature": {
+        "ACTIVATION": "constexpr",
+        "B": "constexpr",
+        "BLOCK_N": "constexpr",
+        "HAS_BIAS": "constexpr",
+        "HAS_Z": "constexpr",
+        "IS_RMS_NORM": "constexpr",
+        "M": "i32",
+        "Mean": "constexpr",
+        "N": "constexpr",
+        "NORM_BEFORE_GATE": "constexpr",
+        "ROWS_PER_BLOCK": "constexpr",
+        "Rstd": "*fp32",
+        "W": "*bf16",
+        "X": "*bf16",
+        "Y": "*bf16",
+        "Z": "*bf16",
+        "eps": "fp32",
+        "stride_x_row": "i32",
+        "stride_y_row": "i32",
+        "stride_z_row": "i32"
+      },
+      "source_provenance": [
+        {
+          "license": "MIT",
+          "owner": "Triton",
+          "path": "triton/language/standard.py"
+        },
+        {
+          "license": "Apache-2.0",
+          "owner": "vLLM",
+          "path": "vllm/model_executor/layers/fla/ops/layernorm_guard.py"
+        }
+      ],
+      "symbol": "layer_norm_fwd_kernel"
+    }
+  ],
+  "launch_variant_count": 1,
+  "non_claims": [
+    "not_yet_a_complete_native_model_executor",
+    "not_yet_full_context_matrix_coverage",
+    "not_yet_a_correctness_or_performance_promotion"
+  ],
+  "packaged_hsaco_bytes": 6248,
+  "raw_hsaco_bytes": 8120,
+  "schema": "aima-amd395-qwen36/native-aot-closure/v1",
+  "source": {
+    "commit": "2b56bb94a6250b9e9fdb8b8140ac05998cb46735",
+    "compiler": {
+      "license": "MIT",
+      "name": "Triton",
+      "version": "3.6.0"
+    },
+    "engine_sha256": "e510c8392c8f8da8ed48b738dff0ce70322877701d7647cd00a3712d3f2a8847",
+    "traces": [
+      {
+        "bytes": 5024,
+        "records": 2,
+        "sha256": "aabd00a87ab920fb37493c52016a8e6de091d2af8d7f3a53981e8db92a7c7b1d"
+      }
+    ],
+    "vllm_license": "Apache-2.0",
+    "vllm_version": "0.19.1rc1.dev300+g29e5d1020.rocm721"
+  },
+  "status": "bounded_q1_output1_executor_migration_evidence",
+  "target": {
+    "arch": "gfx1151",
+    "backend": "HIP",
+    "warp_size": 32
+  }
+}
