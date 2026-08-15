@@ -14,11 +14,11 @@ blocking condition in the governing goal can move a gate to `passed`.
 
 | Gate | Current state | Evidence required to pass | Next blocking action |
 |---|---|---|---|
-| G1 full VL functional parity | the native HTTP path passes the frozen 30-case status/finish/tool/SSE surface, all 18 media prompt vectors match the real vLLM render boundary, and named-tool decoding is schema constrained; the corrected deterministic 23-cell min/typical/max envelope is sealed but not yet executed | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | execute all remaining envelope cells without shrinking the frozen support surface |
-| G2 VL correctness parity | the five private and five independently rendered real-HTTP language prompts now pass final norm and 84/84 selected full-vocabulary rows bit-exact; resident serving still preserves the five frozen 8-token outputs; task-quality suites and unexecuted envelope cells remain open | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | run the frozen image/video task-quality suites and all remaining envelope/error cells |
+| G1 full VL functional parity | the native HTTP path passes the frozen 30-case status/finish/tool/SSE surface, all 18 media prompt vectors match the real vLLM render boundary, named-tool decoding is schema constrained, and the corrected deterministic min/typical/max execution envelope passes 23/23 cells | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | audit every Goal section 2 surface against the two sealed matrices and add any missing conversation, transport or cache cases before making a G1 claim |
+| G2 VL correctness parity | the five private and five independently rendered real-HTTP language prompts pass final norm and 84/84 selected full-vocabulary rows bit-exact; resident serving preserves the five frozen 8-token outputs; the 23-cell execution/error envelope also passes, but task-quality suites and four completion/usage differences remain open | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | freeze and run the image/video task-quality suites, then resolve the remaining completion/usage parity differences |
 | G3 text product no regression | frozen baseline identified; the resident engine and certified lm_head now have an optional mask path that is disabled for ordinary requests, but the complete paired release matrix has not run | paired 19-cell, maximum-window, correctness, MMLU, API, cache, startup and memory requalification | retain `v1.5.1` as an immutable paired binary and run the complete paired matrix after language integration stabilizes |
-| G4 native VL performance | the 23-cell capability envelope is generated, but paired execution has not started | paired per-cell stage timings and memory records against the fixed VL-enabled vLLM | execute the generated cells with the frozen paired timing protocol |
-| G5 native release product | the full runtime now includes all qualified vision sources and loads the 333 visual tensors in the same resident process; the external vision-attention code object is hash-checked and wired into the portable package contract, but final package qualification has not run | native-only package, security, isolated bundle, second-host, soak and rollback evidence | generate a clean product qualification containing the vision code object, then run isolated bundle, second-host, soak and rollback gates |
+| G4 native VL performance | the 23-cell native execution envelope now records per-request stage timings, but it is a single candidate qualification rather than paired performance evidence | paired per-cell stage timings and memory records against the fixed VL-enabled vLLM | run the same frozen cells with the alternating paired vLLM/candidate timing protocol |
+| G5 native release product | the full runtime includes all qualified vision sources, loads the 333 visual tensors in one resident native process and survives the complete execution envelope; the external vision-attention code object is hash-checked and wired into the portable package contract, but final package qualification has not run | native-only package, security, isolated bundle, second-host, soak and rollback evidence | generate a clean product qualification containing the vision code object, then run isolated bundle, second-host, soak and rollback gates |
 
 ## Phase 0 invariants
 
@@ -226,9 +226,26 @@ state that a patch-only sum does not measure. On a cache miss, exclusive or
 least-recently-used plans are released before constructing the replacement;
 this avoids the transient double allocations exposed by both the
 small/small/small/maximum-image and small/small/maximum-video target
-sequences. Smaller shapes retain the four-entry LRU behavior. This paragraph
-describes the qualification mechanism only; no `amd395` execution artifact
-has yet been accepted.
+sequences. Smaller shapes retain the four-entry LRU behavior.
+
+Clean commit `3621cbb7b9d0da46780d8b2838bbfea6f7522954` and native binary
+SHA-256 `25ca579dcdab3faea92ef4e8309bc896e9859d744e55b044e0e102071eb98613`
+then passed the full execution qualifier on `amd395`. All 23 HTTP
+observations qualified: 17 accepted requests returned HTTP 200, six rejected
+boundaries returned HTTP 400, and the accepted request indexes were
+contiguous in one resident model load. The direct full-encoder probe executed
+16 batches, 262,144 visual tokens and 1,048,576 patches twice with finite,
+deterministic output. The near-window image and full-budget video requests
+then served 245,760 and 258,048 visual tokens in 15 and 21 batches without
+shrinking the 262,144-token model window. Their 310 and 330 full-attention
+launches were fully accounted as FMHA launches, with zero launches through the
+short unified-attention image; the ready record separately verifies the
+automatic CK-primary plus terminal-AOTriton policy. Processor, vision and
+server checks all passed with empty stderr. The sealed
+artifact is `benchmarks/results/native-vl-envelope-v0.1.0.json`, SHA-256
+`4f1bb7f0349b9c6b70bd0af876fa70c4b6be3b81f7b3750f45a24eb0d609b910`.
+This closes the execution-envelope subgate only and does not itself pass G1,
+G2, G3, G4 or G5.
 
 The first full-window HTTP attempt also exposed a launch-geometry bug that the
 original 81-token unified-attention capture could not reveal. Timeline-mode
@@ -254,7 +271,8 @@ terminal AOTriton policy instead of overriding the service with the short
 provider. M-RoPE continuation segments also select the generic rectangular CK
 owner even when their compute workspace uses a q1024-q4096 bucket: the
 standalone short AOTriton image rejects that short-query/long-prefix geometry.
-The long-window and full envelope reruns remain required.
+The sealed full-envelope result above qualifies both the long-window dispatch
+and the corrected provider policy.
 
 The native processor now also performs the exact fused normalization, odd-frame
 repeat and Qwen temporal/spatial patch permutation into contiguous
@@ -718,8 +736,9 @@ reruns vision/language normally.
 
 The runtime build still installs and verifies the fixed vision-attention code
 object, and the portable package contract includes it in the deterministic
-bundle identity. These records close the frozen API/render and deterministic
-resident-serving slices only. Execution of the sealed min/typical/max
-capability envelope, image/video task quality, complete text no-regression,
-paired performance, portable-package, second-host, soak and rollback
-qualifications remain blocking. Therefore G1 through G5 all remain false.
+bundle identity. These records now close the frozen API/render,
+deterministic-resident-serving and min/typical/max execution-envelope slices
+only. Image/video task quality, the final G1 coverage audit, complete text
+no-regression, paired performance, portable-package, second-host, soak and
+rollback qualifications remain blocking. Therefore G1 through G5 all remain
+false.
