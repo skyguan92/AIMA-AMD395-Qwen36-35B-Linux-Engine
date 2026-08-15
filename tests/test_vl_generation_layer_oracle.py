@@ -199,6 +199,8 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
         self.assertIn("max_tokens=target_index + 1", source)
         self.assertIn("target_logits_sha256", source)
         self.assertIn("boundary_singleton_calls", source)
+        self.assertIn("first_decode_captures", source)
+        self.assertIn('"first-decode",', source)
         self.assertIn("linear_singleton_calls", source)
         self.assertIn("first_decode_linear_captures", source)
         self.assertIn("FIRST_DECODE_LINEAR_OUTPUT_INDEX", source)

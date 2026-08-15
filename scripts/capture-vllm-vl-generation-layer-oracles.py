@@ -143,6 +143,7 @@ class InstallGenerationLayerHooks:
             "case_id": self.case_id,
             "target_output_index": self.output_index,
             "captures": {},
+            "first_decode_captures": {},
             "linear_captures": {},
             "first_decode_linear_captures": {},
             "linear_singleton_calls": 0,
@@ -347,10 +348,15 @@ class InstallGenerationLayerHooks:
             if tensor.shape[0] != 1:
                 return
             state["boundary_singleton_calls"][name] += 1
+            decode_call = state["boundary_singleton_calls"][name]
             if (
-                state["boundary_singleton_calls"][name] == self.output_index
-                and name not in state["captures"]
+                decode_call == FIRST_DECODE_LINEAR_OUTPUT_INDEX
+                and name not in state["first_decode_captures"]
             ):
+                state["first_decode_captures"][name] = (
+                    tensor[-1].detach().contiguous().cpu()
+                )
+            if decode_call == self.output_index and name not in state["captures"]:
                 state["captures"][name] = (
                     tensor[-1].detach().contiguous().cpu()
                 )
@@ -431,6 +437,14 @@ class FinalizeGenerationLayerHooks:
             raise RuntimeError(
                 "missing target decode boundaries: " + ", ".join(sorted(missing))
             )
+        first_decode_captures = state["first_decode_captures"]
+        missing_first_decode = set(BOUNDARY_NAMES) - set(first_decode_captures)
+        if missing_first_decode:
+            _remove_hooks(root, state)
+            raise RuntimeError(
+                "missing first-decode boundaries: "
+                + ", ".join(sorted(missing_first_decode))
+            )
         if state["captured_logits_output_index"] != state["target_output_index"]:
             _remove_hooks(root, state)
             raise RuntimeError("target logits and decode boundaries were not aligned")
@@ -466,29 +480,59 @@ class FinalizeGenerationLayerHooks:
 
         output_root = Path(self.output_root)
         case_id = state["case_id"]
-        components = {
-            name: write_raw_tensor(
-                output_root, f"{case_id}/components/{name}", captures[name]
-            )
-            for name in BOUNDARY_NAMES
-        }
         case_root = output_root / case_id
-        oracle_lines = [
-            json.dumps(
-                {
-                    "event": "native_layer_oracle_tensor",
-                    "label": name,
-                    "file": Path(components[name]["path"])
-                    .relative_to(case_id)
-                    .as_posix(),
-                },
-                sort_keys=True,
-                separators=(",", ":"),
+
+        def write_layer_boundary_set(
+            directory: str | None,
+            values: dict[str, Any],
+            target_decode_call: int,
+        ) -> dict[str, Any]:
+            relative_root = case_id
+            if directory is not None:
+                relative_root = f"{case_id}/{directory}"
+            boundary_components = {
+                name: write_raw_tensor(
+                    output_root,
+                    f"{relative_root}/components/{name}",
+                    values[name],
+                )
+                for name in BOUNDARY_NAMES
+            }
+            lines = [
+                json.dumps(
+                    {
+                        "event": "native_layer_oracle_tensor",
+                        "label": name,
+                        "file": Path(boundary_components[name]["path"])
+                        .relative_to(relative_root)
+                        .as_posix(),
+                    },
+                    sort_keys=True,
+                    separators=(",", ":"),
+                )
+                for name in BOUNDARY_NAMES
+            ]
+            boundary_root = output_root / relative_root
+            boundary_ledger = boundary_root / "oracle.jsonl"
+            boundary_ledger.write_text(
+                "\n".join(lines) + "\n", encoding="utf-8"
             )
-            for name in BOUNDARY_NAMES
-        ]
-        ledger = case_root / "oracle.jsonl"
-        ledger.write_text("\n".join(oracle_lines) + "\n", encoding="utf-8")
+            return {
+                "target_layer_decode_call": target_decode_call,
+                "components": boundary_components,
+                "oracle_jsonl": file_component(
+                    boundary_ledger, f"{relative_root}/oracle.jsonl"
+                ),
+            }
+
+        target_boundaries = write_layer_boundary_set(
+            None, captures, state["target_output_index"]
+        )
+        first_decode = write_layer_boundary_set(
+            "first-decode",
+            first_decode_captures,
+            FIRST_DECODE_LINEAR_OUTPUT_INDEX,
+        )
 
         def write_linear_boundary_set(
             directory: str,
@@ -539,11 +583,7 @@ class FinalizeGenerationLayerHooks:
             FIRST_DECODE_LINEAR_OUTPUT_INDEX,
         )
         result = {
-            "components": components,
-            "oracle_jsonl": file_component(
-                ledger, f"{case_id}/oracle.jsonl"
-            ),
-            "target_layer_decode_call": target_call,
+            **target_boundaries,
             "logits_prefill_calls": state["logits_prefill_calls"],
             "logits_decode_calls": state["logits_decode_calls"],
             "captured_logits_output_index": state[
@@ -553,6 +593,7 @@ class FinalizeGenerationLayerHooks:
             "target_logits_top1_token_id": state[
                 "target_logits_top1_token_id"
             ],
+            "first_decode": first_decode,
             "linear_attention": linear_attention,
             "first_decode_linear_attention": first_decode_linear_attention,
         }
