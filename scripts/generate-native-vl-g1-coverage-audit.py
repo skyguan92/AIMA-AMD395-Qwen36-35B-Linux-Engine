@@ -250,11 +250,17 @@ def build_requirements() -> list[dict[str, Any]]:
                     "video_data_mp4",
                     "video_http_avi",
                     note="local, data and HTTP across supported formats",
-                )
+                ),
+                evidence(
+                    "resident_serving",
+                    note=(
+                        "same HTTP URL A/B/A and video local/data content "
+                        "equivalence are live-qualified"
+                    ),
+                ),
             ],
             [
                 "HTTPS acceptance is unit-tested but not paired to a frozen vLLM request",
-                "same HTTP URL with changed response bytes has no live cache regression",
             ],
         ),
         requirement(
@@ -366,7 +372,10 @@ def build_requirements() -> list[dict[str, Any]]:
             [
                 evidence(
                     "resident_serving",
-                    note="same-path A/B/A, data/local equivalence and prompt variant checks",
+                    note=(
+                        "same-path and same-HTTP-URL A/B/A, image/video "
+                        "data/local equivalence and prompt variant checks"
+                    ),
                 ),
                 evidence(
                     "cache_identity_unit",
@@ -374,9 +383,9 @@ def build_requirements() -> list[dict[str, Any]]:
                 ),
             ],
             [
-                "same HTTP URL with changed bytes has no live A/B/A regression",
                 "video sampling parameter changes have no independent cache regression",
-                "video and mixed-media A/B/A identities are not live-qualified",
+                "video content A/B/A identity is not live-qualified",
+                "mixed-media reordered or mutated content identity is not live-qualified",
             ],
         ),
         requirement(
@@ -386,12 +395,15 @@ def build_requirements() -> list[dict[str, Any]]:
             [
                 evidence(
                     "resident_serving",
-                    note="image A/B/A and data/local outputs remain exact",
+                    note=(
+                        "image A/B/A plus video and mixed cold/hit outputs "
+                        "remain token-exact"
+                    ),
                 )
             ],
             [
-                "video cache hit/miss output invariance is not live-qualified",
-                "mixed-media cache hit/miss output invariance is not live-qualified",
+                "hit/miss equivalence is only one generated token and does not bind usage or full logits",
+                "cache-disabled and cache-influenced error semantics are not live-qualified",
             ],
         ),
     ]
@@ -433,6 +445,15 @@ def validate_inputs(payloads: dict[str, dict[str, Any]]) -> None:
         raise SystemExit("native capability usage gap changed")
     if not all(serving["cache_correctness"]["checks"].values()):
         raise SystemExit("resident cache evidence contains a failed check")
+    for decision in (
+        "same_http_url_content_mutation_qualified",
+        "video_transport_cache_equivalence_qualified",
+        "mixed_cache_invariance_qualified",
+    ):
+        if serving["decision"].get(decision) is not True:
+            raise SystemExit(
+                f"resident cache evidence is missing decision: {decision}"
+            )
 
 
 def build_payload() -> dict[str, Any]:
@@ -526,10 +547,11 @@ def build_payload() -> dict[str, Any]:
                 ],
                 "cases": [
                     "https_reference_parity",
-                    "cache_http_url_mutation_aba",
                     "cache_video_sampling_parameters",
-                    "cache_video_data_local_equivalence",
-                    "cache_mixed_reorder_invariance",
+                    "cache_video_content_mutation_aba",
+                    "cache_mixed_order_mutation_identity",
+                    "cache_hit_miss_long_generation_usage",
+                    "cache_disabled_and_error_semantics",
                 ],
             },
             {

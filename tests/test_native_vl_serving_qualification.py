@@ -134,13 +134,20 @@ class NativeVlServingQualificationTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             first = Path(directory) / "first.png"
             second = Path(directory) / "second.png"
+            changed = Path(directory) / "changed.png"
             self.module.write_cache_variant_png(first)
             self.module.write_cache_variant_png(second)
+            self.module.write_cache_variant_png(changed, phase=1)
             payload = first.read_bytes()
             self.assertEqual(payload, second.read_bytes())
+            self.assertNotEqual(payload, changed.read_bytes())
             self.assertEqual(payload[:8], b"\x89PNG\r\n\x1a\n")
             self.assertEqual(
                 self.module.struct.unpack(">II", payload[16:24]),
+                (160, 320),
+            )
+            self.assertEqual(
+                self.module.struct.unpack(">II", changed.read_bytes()[16:24]),
                 (160, 320),
             )
             cache_a = (
@@ -201,7 +208,7 @@ class NativeVlServingQualificationTest(unittest.TestCase):
         self.assertFalse(result["source"]["dirty"])
         self.assertEqual(
             result["source"]["commit"],
-            "85fa597c782d28c05c51467060d8e03a8a47646e",
+            "99cf348accdd5589d95ece0b4c3b64fabb267a9b",
         )
         self.assertEqual(
             result["build_info"]["source_commit"],
@@ -216,7 +223,11 @@ class NativeVlServingQualificationTest(unittest.TestCase):
             )
         self.assertEqual(
             result["binary"]["sha256"],
-            "7fe6ceb07dbae924e8da5efa378b3a47ae7b0cd8e6fc023eff3c74d1298e67b2",
+            "0aef5b58b621839f8ef2d3d18bea0791c632ba89134710cd7eef0bef77afd1c3",
+        )
+        self.assertEqual(
+            result["dependencies"]["fmha_provider"]["sha256"],
+            "98e6c47c017837ab796e3ca2e8256740d1e9cb6ec2f460af45ee586cd5fb7bd1",
         )
         for name in (
             "oracle_manifest",
@@ -237,6 +248,30 @@ class NativeVlServingQualificationTest(unittest.TestCase):
         )
         self.assertTrue(all(result["cache_correctness"]["checks"].values()))
         self.assertTrue(all(result["launch"]["checks"].values()))
+        observations = result["cache_correctness"]["observations"]
+        self.assertEqual(
+            [item["case_id"] for item in observations],
+            [
+                "image_local_a",
+                "image_local_b",
+                "image_local_a_restored",
+                "image_data_a_equivalent",
+                "image_data_a_prompt_variant",
+                "image_http_a",
+                "image_http_b",
+                "image_http_a_restored",
+                "video_local_cold",
+                "video_data_equivalent",
+                "mixed_local_cold",
+                "mixed_local_exact",
+            ],
+        )
+        self.assertEqual(
+            result["launch"]["stopped"],
+            {"event": "stopped", "model_loads": 1, "served": 17},
+        )
+        self.assertEqual(result["launch"]["ready"]["allowed_media_domains"], 1)
+        self.assertEqual(result["raw"]["stderr"]["bytes"], 0)
         self.assertTrue(
             result["decision"]["five_private_oracle_generations_preserved"]
         )
@@ -249,7 +284,17 @@ class NativeVlServingQualificationTest(unittest.TestCase):
         self.assertTrue(
             result["decision"]["content_addressed_media_cache_qualified"]
         )
+        self.assertTrue(
+            result["decision"]["same_http_url_content_mutation_qualified"]
+        )
+        self.assertTrue(
+            result["decision"]["video_transport_cache_equivalence_qualified"]
+        )
+        self.assertTrue(result["decision"]["mixed_cache_invariance_qualified"])
         self.assertTrue(result["decision"]["single_resident_model_load"])
+        serialized = payload.decode("utf-8")
+        for private_prefix in ("/home/", "/Users/", "/data/", "/tmp/"):
+            self.assertNotIn(f'"{private_prefix}', serialized)
         for gate in (
             "g1_passed",
             "g2_passed",

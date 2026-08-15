@@ -133,6 +133,19 @@ class NativeVlG1CoverageAuditTest(unittest.TestCase):
         }
         self.assertEqual(covered, blocked)
 
+        transport_cache = next(
+            item
+            for item in self.result["next_evidence"]
+            if item["evidence_id"] == "g1-transport-cache-extension"
+        )
+        self.assertNotIn("cache_http_url_mutation_aba", transport_cache["cases"])
+        self.assertNotIn(
+            "cache_video_data_local_equivalence", transport_cache["cases"]
+        )
+        self.assertIn(
+            "cache_hit_miss_long_generation_usage", transport_cache["cases"]
+        )
+
     def test_audit_does_not_promote_any_product_gate(self) -> None:
         decision = self.result["decision"]
         self.assertTrue(decision["audit_complete"])

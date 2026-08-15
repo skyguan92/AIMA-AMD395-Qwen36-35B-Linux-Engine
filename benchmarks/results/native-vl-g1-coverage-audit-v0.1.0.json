@@ -30,8 +30,7 @@
     },
     {
       "gaps": [
-        "HTTPS acceptance is unit-tested but not paired to a frozen vLLM request",
-        "same HTTP URL with changed response bytes has no live cache regression"
+        "HTTPS acceptance is unit-tested but not paired to a frozen vLLM request"
       ],
       "requirement_id": "G1.2.1.transport"
     },
@@ -59,16 +58,16 @@
     },
     {
       "gaps": [
-        "same HTTP URL with changed bytes has no live A/B/A regression",
         "video sampling parameter changes have no independent cache regression",
-        "video and mixed-media A/B/A identities are not live-qualified"
+        "video content A/B/A identity is not live-qualified",
+        "mixed-media reordered or mutated content identity is not live-qualified"
       ],
       "requirement_id": "G1.2.4.cache_identity"
     },
     {
       "gaps": [
-        "video cache hit/miss output invariance is not live-qualified",
-        "mixed-media cache hit/miss output invariance is not live-qualified"
+        "hit/miss equivalence is only one generated token and does not bind usage or full logits",
+        "cache-disabled and cache-influenced error semantics are not live-qualified"
       ],
       "requirement_id": "G1.2.4.cache_invariance"
     }
@@ -269,11 +268,14 @@
               "video_http_avi"
             ],
             "note": "local, data and HTTP across supported formats"
+          },
+          {
+            "artifact": "resident_serving",
+            "note": "same HTTP URL A/B/A and video local/data content equivalence are live-qualified"
           }
         ],
         "gaps": [
-          "HTTPS acceptance is unit-tested but not paired to a frozen vLLM request",
-          "same HTTP URL with changed response bytes has no live cache regression"
+          "HTTPS acceptance is unit-tested but not paired to a frozen vLLM request"
         ],
         "requirement_id": "G1.2.1.transport",
         "status": "partial",
@@ -396,7 +398,7 @@
         "evidence": [
           {
             "artifact": "resident_serving",
-            "note": "same-path A/B/A, data/local equivalence and prompt variant checks"
+            "note": "same-path and same-HTTP-URL A/B/A, image/video data/local equivalence and prompt variant checks"
           },
           {
             "artifact": "cache_identity_unit",
@@ -404,9 +406,9 @@
           }
         ],
         "gaps": [
-          "same HTTP URL with changed bytes has no live A/B/A regression",
           "video sampling parameter changes have no independent cache regression",
-          "video and mixed-media A/B/A identities are not live-qualified"
+          "video content A/B/A identity is not live-qualified",
+          "mixed-media reordered or mutated content identity is not live-qualified"
         ],
         "requirement_id": "G1.2.4.cache_identity",
         "status": "partial",
@@ -416,12 +418,12 @@
         "evidence": [
           {
             "artifact": "resident_serving",
-            "note": "image A/B/A and data/local outputs remain exact"
+            "note": "image A/B/A plus video and mixed cold/hit outputs remain token-exact"
           }
         ],
         "gaps": [
-          "video cache hit/miss output invariance is not live-qualified",
-          "mixed-media cache hit/miss output invariance is not live-qualified"
+          "hit/miss equivalence is only one generated token and does not bind usage or full logits",
+          "cache-disabled and cache-influenced error semantics are not live-qualified"
         ],
         "requirement_id": "G1.2.4.cache_invariance",
         "status": "partial",
@@ -453,9 +455,9 @@
       "sha256": "4f1bb7f0349b9c6b70bd0af876fa70c4b6be3b81f7b3750f45a24eb0d609b910"
     },
     "generator": {
-      "bytes": 22636,
+      "bytes": 23477,
       "path": "scripts/generate-native-vl-g1-coverage-audit.py",
-      "sha256": "ff3e9a98ab4cfe7806c35f797cac249cfa97d8b4d60aee54346f914d9f0315f4"
+      "sha256": "311b8bb3a1c27956ba741cdc7a150f55dfec2628f8293c0e9e269aa50dc14d6b"
     },
     "goal": {
       "bytes": 17981,
@@ -478,9 +480,9 @@
       "sha256": "72e64b8d5cb0c1de8a355617676c46c98c1e0f05cec7a6e3a7df79dd36560d7a"
     },
     "resident_serving": {
-      "bytes": 34435,
+      "bytes": 46499,
       "path": "benchmarks/results/native-vl-serving-v0.1.0.json",
-      "sha256": "01bacc552c0c93a6878efb745e976a187ff6c94458b7ef4fc8501d4ca087dc65"
+      "sha256": "9a894c5e54b8ca95160629e2fad7ca2eff6fa27a78ba91b83a795b87ec434fe2"
     },
     "vision_pipeline": {
       "bytes": 12538,
@@ -490,7 +492,7 @@
   },
   "integrity": {
     "algorithm": "sha256",
-    "canonical_payload_sha256": "0ae1c5b5e50666982e5a9c9078fa2f4aa8f308c731d4249254af93120c9ceb45"
+    "canonical_payload_sha256": "715210a7fb1f7e9e72d518ce2ae669410e05064ea0bc4fb3c34a1bf0d5582a6f"
   },
   "next_evidence": [
     {
@@ -511,10 +513,11 @@
     {
       "cases": [
         "https_reference_parity",
-        "cache_http_url_mutation_aba",
         "cache_video_sampling_parameters",
-        "cache_video_data_local_equivalence",
-        "cache_mixed_reorder_invariance"
+        "cache_video_content_mutation_aba",
+        "cache_mixed_order_mutation_identity",
+        "cache_hit_miss_long_generation_usage",
+        "cache_disabled_and_error_semantics"
       ],
       "evidence_id": "g1-transport-cache-extension",
       "requirement_ids": [

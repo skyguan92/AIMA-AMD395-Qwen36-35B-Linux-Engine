@@ -14,7 +14,7 @@ blocking condition in the governing goal can move a gate to `passed`.
 
 | Gate | Current state | Evidence required to pass | Next blocking action |
 |---|---|---|---|
-| G1 full VL functional parity | the native HTTP path passes the frozen 30-case status/finish/tool/SSE surface and the corrected deterministic execution envelope passes 23/23 cells; a sealed Goal section 2 audit finds 4 requirements covered, 10 partially covered and none wholly missing | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | execute the four named mixed/conversation, transport/cache, error and generation/requalification evidence workstreams from the G1 audit |
+| G1 full VL functional parity | the native HTTP path passes the frozen 30-case status/finish/tool/SSE surface and the corrected deterministic execution envelope passes 23/23 cells; an extended 17-request resident run closes live same-URL mutation, video transport and mixed hit/miss cache gaps; the sealed Goal section 2 audit still conservatively finds 4 requirements covered, 10 partially covered and none wholly missing | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | execute the remaining cases in the four named mixed/conversation, transport/cache, error and generation/requalification evidence workstreams from the G1 audit |
 | G2 VL correctness parity | the five private and five independently rendered real-HTTP language prompts pass final norm and 84/84 selected full-vocabulary rows bit-exact; resident serving preserves the five frozen 8-token outputs; the 23-cell execution/error envelope also passes, but task-quality suites and four completion/usage differences remain open | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | freeze and run the image/video task-quality suites, then resolve the remaining completion/usage parity differences |
 | G3 text product no regression | frozen baseline identified; the resident engine and certified lm_head now have an optional mask path that is disabled for ordinary requests, but the complete paired release matrix has not run | paired 19-cell, maximum-window, correctness, MMLU, API, cache, startup and memory requalification | retain `v1.5.1` as an immutable paired binary and run the complete paired matrix after language integration stabilizes |
 | G4 native VL performance | the 23-cell native execution envelope now records per-request stage timings, but it is a single candidate qualification rather than paired performance evidence | paired per-cell stage timings and memory records against the fixed VL-enabled vLLM | run the same frozen cells with the alternating paired vLLM/candidate timing protocol |
@@ -24,7 +24,7 @@ blocking condition in the governing goal can move a gate to `passed`.
 
 The first requirement-to-evidence audit is sealed at
 `benchmarks/results/native-vl-g1-coverage-audit-v0.1.0.json`, SHA-256
-`825a9ed2d49de554375fc7ceccca4644d42f90f00e562661425793cdb22b8d66`.
+`c9babd9052ebbb5bca6e522664330c85e235c46d3aac3b365a9fc82c7d4ec504`.
 It binds the governing goal, frozen reference surface, native 30-case surface,
 23-cell execution result, resident-serving/cache evidence, visual pipeline,
 language boundary, cache-identity unit contract and its generator.
@@ -35,8 +35,9 @@ Ten are partial. The concrete missing evidence is grouped into four replayable
 workstreams:
 
 1. multi-item mixed ordering, video/mixed conversation reuse and mixed SSE;
-2. HTTPS reference parity, same-URL byte mutation, video sampling/cache keys
-   and video/mixed cache invariance;
+2. HTTPS reference parity, video sampling/content cache keys, mixed-media
+   reordered/mutated identity, longer-generation usage and cache-disabled/error
+   invariance;
 3. empty, timeout, unreachable, byte-limit and duration-limit error categories;
 4. the four completion/usage differences, current-HEAD numerical
    requalification and the complete G3 text protocol.
@@ -734,18 +735,22 @@ language-boundary evidence rather than G4 serving timing. The hash-bound record
 is `benchmarks/results/native-vl-language-full-v0.2.0.json`, SHA-256
 `6de4f46b10a659c358350b1c42dec6e1d361f81c01926bf628b44b892fffb636`.
 
-Clean commit `85fa597c782d28c05c51467060d8e03a8a47646e` then rebuilt the
+Clean commit `99cf348accdd5589d95ece0b4c3b64fabb267a9b` then rebuilt the
 formal resident runtime with binary SHA-256
-`7fe6ceb07dbae924e8da5efa378b3a47ae7b0cd8e6fc023eff3c74d1298e67b2`.
+`0aef5b58b621839f8ef2d3d18bea0791c632ba89134710cd7eef0bef77afd1c3`.
 One resident process matched all five real-HTTP prompt vectors and preserved
 all five frozen private-oracle 8-token outputs, output text, finish reasons,
-vision shapes and M-RoPE deltas. The same process passed all A/B/A,
-same-path/same-shape invalidation, data/local equivalence, exact-prefix and
-safe media/shape reuse checks. It emitted one READY and one stopped event,
-loaded the model once, read no oracle tensors and reported no Python, Torch,
+vision shapes and M-RoPE deltas. Before those oracle requests, the same process
+ran twelve cache observations: image same-path A/B/A, same HTTP URL with live
+response-byte A/B/A mutation, image and video local/data equivalence, prompt
+variation, and mixed image/video cold/exact replay. All 21 fail-closed cache
+predicates passed, including content misses, safe shape-plan reuse, exact
+prefix/media hits and token-exact video/mixed hit/miss outputs. It served all
+17 requests, emitted one READY and one stopped event, loaded the model once,
+read no oracle tensors, wrote zero stderr bytes and reported no Python, Torch,
 vLLM or Triton runtime. The sealed result is
 `benchmarks/results/native-vl-serving-v0.1.0.json`, SHA-256
-`01bacc552c0c93a6878efb745e976a187ff6c94458b7ef4fc8501d4ca087dc65`.
+`9a894c5e54b8ca95160629e2fad7ca2eff6fa27a78ba91b83a795b87ec434fe2`.
 
 Formal binaries must retain the complete default AOT closure. A q1024-only
 diagnostic build embedded 14 kernels from two manifests and correctly failed
