@@ -178,6 +178,9 @@ struct NativeResidentRequestOptions {
   // Qualification-only layer-0 projection/conv/recurrent stage observer. It
   // shares the exact output-index target above with the whole-layer observer.
   NativeDecodeLinearLayer0Observer decode_linear_layer0_observer;
+  // Qualification-only layer-0 residual/post-attention/MoE observer. Keeping
+  // it separate preserves the frozen linear-attention oracle component set.
+  NativeDecodeLinearLayer0Observer decode_layer0_tail_observer;
 };
 
 struct NativeResidentRequestMetrics {

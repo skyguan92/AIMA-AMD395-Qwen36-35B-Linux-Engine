@@ -37,6 +37,14 @@ LINEAR_ATTENTION_BOUNDARY_SPECS = {
     "gated_norm": ([4_096], "torch.bfloat16", 2),
     "attention_output": ([HIDDEN_SIZE], "torch.bfloat16", 2),
 }
+LAYER0_TAIL_BOUNDARY_SPECS = {
+    "attention_residual": ([HIDDEN_SIZE], "torch.bfloat16", 2),
+    "post_attention_norm": ([HIDDEN_SIZE], "torch.bfloat16", 2),
+    "shared_moe_output": ([HIDDEN_SIZE], "torch.bfloat16", 2),
+    "router_indices": ([8], "torch.int32", 4),
+    "routed_moe_output": ([HIDDEN_SIZE], "torch.bfloat16", 2),
+    "combined_moe_output": ([HIDDEN_SIZE], "torch.bfloat16", 2),
+}
 NATIVE_LINEAR_ATTENTION_BOUNDARY_NAMES = (
     "input_norm",
     "conv_state_before",

@@ -22,9 +22,11 @@ struct NativeLinearLayerMetrics {
   double wall_ms = 0.0;
 };
 
-// Qualification-only synchronous observer for the current-vLLM layer-0
-// linear-attention decode stages. Product execution passes nullptr and pays no
-// device-to-host transfer or synchronization.
+// Qualification-only synchronous observer for current-vLLM layer-0 decode
+// stages. The attention and post-attention/MoE boundary sets use separate
+// callbacks so the frozen v3 attention oracle remains stable. Product
+// execution passes nullptr and pays no device-to-host transfer or
+// synchronization.
 using NativeDecodeLinearLayer0Observer = std::function<void(
     const char* boundary_name, const void* device_tensor,
     std::uint64_t tensor_bytes, DecodeTensorDtype dtype)>;
@@ -41,6 +43,7 @@ NativeLinearLayerMetrics run_native_linear_layer(
     int cu_count,
     void* stream = nullptr,
     bool synchronize = true,
-    const NativeDecodeLinearLayer0Observer* observer = nullptr);
+    const NativeDecodeLinearLayer0Observer* observer = nullptr,
+    const NativeDecodeLinearLayer0Observer* tail_observer = nullptr);
 
 }  // namespace aima

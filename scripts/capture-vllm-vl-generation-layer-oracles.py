@@ -27,6 +27,7 @@ from aima_engine.vl_generation_layer_oracle import (  # noqa: E402
     FIRST_DECODE_LINEAR_OUTPUT_INDEX,
     GENERATION_LAYER_ORACLE_SCHEMA,
     HIDDEN_SIZE,
+    LAYER0_TAIL_BOUNDARY_SPECS,
     LINEAR_ATTENTION_BOUNDARY_SPECS,
     validate_generation_layer_oracle_manifest,
 )
@@ -116,6 +117,9 @@ def _remove_hooks(root: Any, state: dict[str, Any]) -> None:
         gdn_module.fused_recurrent_gated_delta_rule_packed_decode = state[
             "original_packed_decode"
         ]
+    router = state.get("router")
+    if router is not None:
+        router.select_experts = state["original_router_select_experts"]
     if hasattr(root, STATE_ATTRIBUTE):
         delattr(root, STATE_ATTRIBUTE)
 
@@ -146,6 +150,8 @@ class InstallGenerationLayerHooks:
             "first_decode_captures": {},
             "linear_captures": {},
             "first_decode_linear_captures": {},
+            "layer0_tail_captures": {},
+            "first_decode_layer0_tail_captures": {},
             "linear_singleton_calls": 0,
             "linear_capture_kind": None,
             "boundary_singleton_calls": {name: 0 for name in BOUNDARY_NAMES},
@@ -161,6 +167,8 @@ class InstallGenerationLayerHooks:
         if getattr(layer0, "layer_type", None) != "linear_attention":
             raise RuntimeError("generation language layer 0 is not linear attention")
         linear = layer0.linear_attn
+        mlp = layer0.mlp
+        router = mlp.experts.router
         gdn_module = __import__(
             "vllm.model_executor.layers.mamba.gdn_linear_attn",
             fromlist=["causal_conv1d_update"],
@@ -176,6 +184,8 @@ class InstallGenerationLayerHooks:
                 ),
                 "layer0_conv_weight_pointer": linear.conv1d.weight.data_ptr(),
                 "layer0_a_log_pointer": linear.A_log.data_ptr(),
+                "router": router,
+                "original_router_select_experts": router.select_experts,
             }
         )
 
@@ -204,6 +214,37 @@ class InstallGenerationLayerHooks:
             if tensor.numel() != expected_elements or str(tensor.dtype) != expected_dtype:
                 raise RuntimeError(
                     "generation linear-attention boundary geometry changed: "
+                    f"{name}/{list(tensor.shape)}/{tensor.dtype}"
+                )
+            captures[name] = (
+                tensor.detach().reshape(expected_shape).contiguous().cpu()
+            )
+
+        def capture_layer0_tail(name: str, value: Any) -> None:
+            capture_kind = state["linear_capture_kind"]
+            if capture_kind is None:
+                return
+            captures = (
+                state["layer0_tail_captures"]
+                if capture_kind == "target"
+                else state["first_decode_layer0_tail_captures"]
+            )
+            if name in captures:
+                return
+            tensor = _first_tensor(value)
+            if tensor is None:
+                raise RuntimeError(
+                    f"generation layer-0 tail boundary has no tensor: {name}"
+                )
+            expected_shape, expected_dtype, _element_size = (
+                LAYER0_TAIL_BOUNDARY_SPECS[name]
+            )
+            expected_elements = 1
+            for dimension in expected_shape:
+                expected_elements *= dimension
+            if tensor.numel() != expected_elements or str(tensor.dtype) != expected_dtype:
+                raise RuntimeError(
+                    "generation layer-0 tail boundary geometry changed: "
                     f"{name}/{list(tensor.shape)}/{tensor.dtype}"
                 )
             captures[name] = (
@@ -256,6 +297,25 @@ class InstallGenerationLayerHooks:
             _module: Any, _args: Any, output: Any
         ) -> None:
             capture_linear("attention_output", output)
+
+        def post_attention_hook(
+            _module: Any, _args: Any, output: Any
+        ) -> None:
+            if not isinstance(output, (tuple, list)) or len(output) != 2:
+                raise RuntimeError(
+                    "generation post-attention norm contract changed"
+                )
+            capture_layer0_tail("post_attention_norm", output[0])
+            capture_layer0_tail("attention_residual", output[1])
+
+        def experts_hook(_module: Any, _args: Any, output: Any) -> None:
+            if not isinstance(output, (tuple, list)) or len(output) != 2:
+                raise RuntimeError("generation layer-0 experts contract changed")
+            capture_layer0_tail("shared_moe_output", output[0])
+            capture_layer0_tail("routed_moe_output", output[1])
+
+        def mlp_hook(_module: Any, _args: Any, output: Any) -> None:
+            capture_layer0_tail("combined_moe_output", output)
 
         def layer0_output_hook(_module: Any, _args: Any, _output: Any) -> None:
             state["linear_capture_kind"] = None
@@ -315,6 +375,20 @@ class InstallGenerationLayerHooks:
             )
             return result
 
+        def instrumented_router_select_experts(
+            *args: Any, **kwargs: Any
+        ) -> Any:
+            output = state["original_router_select_experts"](*args, **kwargs)
+            if state["linear_capture_kind"] is None:
+                return output
+            if not isinstance(output, (tuple, list)) or len(output) != 2:
+                raise RuntimeError("generation layer-0 router contract changed")
+            _weights, indices = output
+            if not isinstance(indices, torch.Tensor):
+                raise RuntimeError("generation layer-0 router indices unavailable")
+            capture_layer0_tail("router_indices", indices.to(torch.int32))
+            return output
+
         handles = state["handles"]
         handles.append(
             layer0.input_layernorm.register_forward_hook(
@@ -331,11 +405,19 @@ class InstallGenerationLayerHooks:
         handles.append(
             linear.out_proj.register_forward_hook(attention_output_hook)
         )
+        handles.append(
+            layer0.post_attention_layernorm.register_forward_hook(
+                post_attention_hook
+            )
+        )
+        handles.append(mlp.experts.register_forward_hook(experts_hook))
+        handles.append(mlp.register_forward_hook(mlp_hook))
         handles.append(layer0.register_forward_hook(layer0_output_hook))
         gdn_module.causal_conv1d_update = instrumented_causal_conv1d_update
         gdn_module.fused_recurrent_gated_delta_rule_packed_decode = (
             instrumented_packed_decode
         )
+        router.select_experts = instrumented_router_select_experts
 
         def capture_boundary(name: str, value: Any) -> None:
             tensor = _first_tensor(value)
@@ -470,6 +552,28 @@ class FinalizeGenerationLayerHooks:
                 "missing first-decode layer-0 linear-attention boundaries: "
                 + ", ".join(sorted(missing_first_decode_linear))
             )
+        layer0_tail_captures = state["layer0_tail_captures"]
+        missing_layer0_tail = set(LAYER0_TAIL_BOUNDARY_SPECS) - set(
+            layer0_tail_captures
+        )
+        if missing_layer0_tail:
+            _remove_hooks(root, state)
+            raise RuntimeError(
+                "missing target layer-0 tail boundaries: "
+                + ", ".join(sorted(missing_layer0_tail))
+            )
+        first_decode_layer0_tail_captures = state[
+            "first_decode_layer0_tail_captures"
+        ]
+        missing_first_decode_layer0_tail = set(
+            LAYER0_TAIL_BOUNDARY_SPECS
+        ) - set(first_decode_layer0_tail_captures)
+        if missing_first_decode_layer0_tail:
+            _remove_hooks(root, state)
+            raise RuntimeError(
+                "missing first-decode layer-0 tail boundaries: "
+                + ", ".join(sorted(missing_first_decode_layer0_tail))
+            )
         target_call = state["target_output_index"]
         capture_calls = {
             state["boundary_singleton_calls"][name] for name in BOUNDARY_NAMES
@@ -534,10 +638,11 @@ class FinalizeGenerationLayerHooks:
             FIRST_DECODE_LINEAR_OUTPUT_INDEX,
         )
 
-        def write_linear_boundary_set(
+        def write_tensor_boundary_set(
             directory: str,
             values: dict[str, Any],
             target_decode_call: int,
+            specs: Mapping[str, Any],
         ) -> dict[str, Any]:
             boundary_components = {
                 name: write_raw_tensor(
@@ -545,7 +650,7 @@ class FinalizeGenerationLayerHooks:
                     f"{case_id}/{directory}/components/{name}",
                     values[name],
                 )
-                for name in LINEAR_ATTENTION_BOUNDARY_SPECS
+                for name in specs
             }
             lines = [
                 json.dumps(
@@ -559,7 +664,7 @@ class FinalizeGenerationLayerHooks:
                     sort_keys=True,
                     separators=(",", ":"),
                 )
-                for name in LINEAR_ATTENTION_BOUNDARY_SPECS
+                for name in specs
             ]
             boundary_ledger = case_root / directory / "oracle.jsonl"
             boundary_ledger.write_text(
@@ -574,13 +679,29 @@ class FinalizeGenerationLayerHooks:
                 ),
             }
 
-        linear_attention = write_linear_boundary_set(
-            "linear", linear_captures, target_call
+        linear_attention = write_tensor_boundary_set(
+            "linear",
+            linear_captures,
+            target_call,
+            LINEAR_ATTENTION_BOUNDARY_SPECS,
         )
-        first_decode_linear_attention = write_linear_boundary_set(
+        first_decode_linear_attention = write_tensor_boundary_set(
             "first-decode-linear",
             first_decode_linear_captures,
             FIRST_DECODE_LINEAR_OUTPUT_INDEX,
+            LINEAR_ATTENTION_BOUNDARY_SPECS,
+        )
+        layer0_tail = write_tensor_boundary_set(
+            "layer0-tail",
+            layer0_tail_captures,
+            target_call,
+            LAYER0_TAIL_BOUNDARY_SPECS,
+        )
+        first_decode_layer0_tail = write_tensor_boundary_set(
+            "first-decode-layer0-tail",
+            first_decode_layer0_tail_captures,
+            FIRST_DECODE_LINEAR_OUTPUT_INDEX,
+            LAYER0_TAIL_BOUNDARY_SPECS,
         )
         result = {
             **target_boundaries,
@@ -596,6 +717,8 @@ class FinalizeGenerationLayerHooks:
             "first_decode": first_decode,
             "linear_attention": linear_attention,
             "first_decode_linear_attention": first_decode_linear_attention,
+            "layer0_tail": layer0_tail,
+            "first_decode_layer0_tail": first_decode_layer0_tail,
         }
         _remove_hooks(root, state)
         return result
@@ -861,7 +984,7 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
     diagnostic = args.diagnostic_output_index is not None
     scope = (
         "two-fixed-vllm-vl-shared-output-index-layer-and-layer0-linear-"
-        "attention-diagnostic-boundary-sets"
+        "attention-plus-tail-diagnostic-boundary-sets"
         if diagnostic
         else "two-fixed-vllm-vl-target-decode-layer-plus-target-and-first-"
         "decode-layer0-linear-attention-boundary-sets"
@@ -872,6 +995,12 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
             "two_diagnostic_logits_captured": len(cases) == 2,
             "two_diagnostic_decode_boundary_sets_captured": len(cases) == 2,
             "two_diagnostic_layer0_linear_attention_boundary_sets_captured": (
+                len(cases) == 2
+            ),
+            "two_diagnostic_layer0_tail_boundary_sets_captured": (
+                len(cases) == 2
+            ),
+            "two_diagnostic_first_decode_layer0_tail_boundary_sets_captured": (
                 len(cases) == 2
             ),
             "promotion_oracle": False,
@@ -890,6 +1019,10 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
                 len(cases) == 2
             ),
             "two_first_decode_layer0_linear_attention_boundary_sets_captured": (
+                len(cases) == 2
+            ),
+            "two_layer0_tail_boundary_sets_captured": len(cases) == 2,
+            "two_first_decode_layer0_tail_boundary_sets_captured": (
                 len(cases) == 2
             ),
             "g1_passed": False,

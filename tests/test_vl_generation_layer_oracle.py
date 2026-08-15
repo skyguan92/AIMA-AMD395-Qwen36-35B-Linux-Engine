@@ -11,6 +11,7 @@ from aima_engine.vl_generation_layer_oracle import (
     FIRST_DECODE_LINEAR_OUTPUT_INDEX,
     GENERATION_LAYER_ORACLE_SCHEMA,
     HIDDEN_SIZE,
+    LAYER0_TAIL_BOUNDARY_SPECS,
     LINEAR_ATTENTION_BOUNDARY_SPECS,
     NATIVE_LINEAR_ATTENTION_BOUNDARY_NAMES,
     validate_generation_layer_oracle_manifest,
@@ -203,6 +204,9 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
         self.assertIn('"first-decode",', source)
         self.assertIn("linear_singleton_calls", source)
         self.assertIn("first_decode_linear_captures", source)
+        self.assertIn("first_decode_layer0_tail_captures", source)
+        self.assertIn("instrumented_router_select_experts", source)
+        self.assertIn('"first-decode-layer0-tail"', source)
         self.assertIn("FIRST_DECODE_LINEAR_OUTPUT_INDEX", source)
         self.assertIn("--diagnostic-output-index", source)
         self.assertIn("vl-generation-layer-diagnostic/v1", source)
@@ -225,8 +229,11 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
         self.assertIn('item.contains("reference_decode_boundary_dir")', http)
         self.assertIn("decode_boundary_comparisons.size() != 41", http)
         self.assertIn("reference_decode_linear_boundary_dir", http)
+        self.assertIn("reference_decode_layer0_tail_boundary_dir", http)
         self.assertIn("decode_linear_layer0_observer", resident)
+        self.assertIn("decode_layer0_tail_observer", resident)
         self.assertEqual(len(NATIVE_LINEAR_ATTENTION_BOUNDARY_NAMES), 13)
+        self.assertEqual(len(LAYER0_TAIL_BOUNDARY_SPECS), 6)
 
 
 if __name__ == "__main__":

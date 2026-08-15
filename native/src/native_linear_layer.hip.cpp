@@ -194,7 +194,8 @@ NativeLinearLayerMetrics run_native_linear_layer(
     const NativeDecodeWorkspace& workspace,
     const NativeDecodeInvocations& invocations,
     NativeDecodeExecutor& executor, int cu_count, void* stream_value,
-    bool synchronize, const NativeDecodeLinearLayer0Observer* observer) {
+    bool synchronize, const NativeDecodeLinearLayer0Observer* observer,
+    const NativeDecodeLinearLayer0Observer* tail_observer) {
   const auto& launches = invocations.launches();
   const std::size_t base = layer_index * 10;
   if (!executor.loaded() || base + 10 > launches.size() ||
@@ -266,6 +267,8 @@ NativeLinearLayerMetrics run_native_linear_layer(
   void* b_projection = invocations.tensor_pointer(base + 2, "b");
   void* recurrent_state = invocations.tensor_pointer(base + 2, "h0");
   void* recurrent_output = invocations.tensor_pointer(base + 2, "o");
+  void* post_attention_norm = invocations.tensor_pointer(base + 4, "out");
+  void* router_indices = invocations.tensor_pointer(base + 7, "out_ids");
   const auto& packed_state_indices = require_typed_workspace(
       workspace, "native.linear.packed_ssm_state_indices",
       40 * sizeof(std::int32_t), DecodeTensorDtype::kInt32);
@@ -393,8 +396,16 @@ NativeLinearLayerMetrics run_native_linear_layer(
   launch_bf16_add(input.device_pointer, attention_output.device_pointer,
                   after_attn.device_pointer, kHidden, stream);
   ++metrics.native_pointwise_launches;
+  observe_boundary(tail_observer, "attention_residual",
+                   after_attn.device_pointer,
+                   kHidden * sizeof(__hip_bfloat16),
+                   DecodeTensorDtype::kBfloat16);
 
   executor.launch(launches[base + 4], stream);
+  observe_boundary(tail_observer, "post_attention_norm",
+                   post_attention_norm,
+                   kHidden * sizeof(__hip_bfloat16),
+                   DecodeTensorDtype::kBfloat16);
   executor.launch(launches[base + 5], stream);
   metrics.aot_launches += 2;
   launch_shared_silu_multiply(shared_input.device_pointer,
@@ -409,16 +420,30 @@ NativeLinearLayerMetrics run_native_linear_layer(
                               shared_down.device_pointer,
                               shared_scaled.device_pointer, stream);
   ++metrics.native_pointwise_launches;
+  observe_boundary(tail_observer, "shared_moe_output",
+                   shared_scaled.device_pointer,
+                   kHidden * sizeof(__hip_bfloat16),
+                   DecodeTensorDtype::kBfloat16);
 
   for (std::size_t offset = 6; offset < 10; ++offset) {
     executor.launch(launches[base + offset], stream);
     ++metrics.aot_launches;
   }
+  observe_boundary(tail_observer, "router_indices", router_indices,
+                   8 * sizeof(std::int32_t), DecodeTensorDtype::kInt32);
+  observe_boundary(tail_observer, "routed_moe_output",
+                   routed_moe.device_pointer,
+                   kHidden * sizeof(__hip_bfloat16),
+                   DecodeTensorDtype::kBfloat16);
   launch_bf16_add_pair(
       routed_moe.device_pointer, shared_scaled.device_pointer,
       after_attn.device_pointer, combined_moe.device_pointer,
       output.device_pointer, kHidden, stream);
   ++metrics.native_pointwise_launches;
+  observe_boundary(tail_observer, "combined_moe_output",
+                   combined_moe.device_pointer,
+                   kHidden * sizeof(__hip_bfloat16),
+                   DecodeTensorDtype::kBfloat16);
   if (synchronize) {
     check_hip(hipStreamSynchronize(stream),
               "hipStreamSynchronize native linear layer");

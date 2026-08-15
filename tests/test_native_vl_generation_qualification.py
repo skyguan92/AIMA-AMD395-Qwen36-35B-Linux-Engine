@@ -62,6 +62,8 @@ class NativeVlGenerationQualificationTest(unittest.TestCase):
             'item.value("diagnostic_allow_prefix_divergence", false)', source
         )
         self.assertIn("output_index=", source)
+        self.assertIn("reference_decode_layer0_tail_boundary_dir", source)
+        self.assertIn("decode_layer0_tail_boundaries", source)
 
     def test_checks_separate_setup_from_current_native_mismatch(self) -> None:
         oracle_cases = []
