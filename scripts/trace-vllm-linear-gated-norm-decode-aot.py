@@ -33,7 +33,7 @@ def main() -> int:
     args = parser.parse_args()
 
     import torch
-    from vllm.model_executor.layers.layernorm import RMSNormGated
+    from vllm.model_executor.layers.fla.ops.layernorm_guard import rmsnorm_fn
 
     torch.manual_seed(395)
     device = "cuda"
@@ -42,20 +42,18 @@ def main() -> int:
     gate = torch.randn_like(core)
     core_before = core.clone()
     gate_before = gate.clone()
-    norm = RMSNormGated(
-        128,
-        eps=1.0e-6,
-        group_size=None,
-        norm_before_gate=True,
-        device=torch.device(device),
-        dtype=dtype,
-        activation="silu",
-    )
+    weight = torch.randn((128,), device=device, dtype=dtype)
     with torch.no_grad():
-        norm.weight.copy_(
-            torch.randn((128,), device=device, dtype=dtype)
+        output = rmsnorm_fn(
+            core,
+            weight,
+            None,
+            z=gate,
+            eps=1.0e-6,
+            group_size=None,
+            norm_before_gate=True,
+            activation="silu",
         )
-        output = norm(core, gate)
     torch.cuda.synchronize()
 
     input_unchanged = bool(torch.equal(core, core_before))
@@ -74,7 +72,9 @@ def main() -> int:
         "schema": "aima-amd395-qwen36/linear-gated-norm-decode-aot-trace/v1",
         "complete": True,
         "qualified_for_native_decode_replacement": True,
-        "source_api": "vllm.model_executor.layers.layernorm.RMSNormGated",
+        "source_api": (
+            "vllm.model_executor.layers.fla.ops.layernorm_guard.rmsnorm_fn"
+        ),
         "geometry": {
             "batch": 1,
             "tokens": 1,
