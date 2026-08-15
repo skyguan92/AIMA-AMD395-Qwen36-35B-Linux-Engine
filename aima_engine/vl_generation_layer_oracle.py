@@ -39,10 +39,11 @@ LINEAR_ATTENTION_BOUNDARY_SPECS = {
 NATIVE_LINEAR_ATTENTION_BOUNDARY_NAMES = (
     "input_norm",
     "conv_state_before",
-    "post_conv_mixed_qkv",
+    "qkv_projection",
     "z_projection",
     "a_projection",
     "b_projection",
+    "post_conv_mixed_qkv",
     "conv_state_after",
     "recurrent_state_before",
     "recurrent_output",

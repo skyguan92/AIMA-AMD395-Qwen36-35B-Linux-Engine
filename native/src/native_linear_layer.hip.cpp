@@ -19,14 +19,20 @@ namespace aima {
 namespace {
 
 constexpr std::size_t kHidden = 2048;
+constexpr std::size_t kLinearQkv = 8192;
 constexpr std::size_t kLinearValue = 4096;
+constexpr std::size_t kLinearGate = 32;
 constexpr std::size_t kSharedIntermediate = 512;
 constexpr std::size_t kRecurrentStateBytes =
     32ULL * 128ULL * 128ULL * sizeof(float);
 constexpr char kPackedRecurrentKernelHash[] =
     "361b24af7b3fc502598ffb5fd1e191c9b82afc437361f92f4056bf8772a960dc";
+constexpr char kCausalConvKernelHash[] =
+    "ab71972380fed224052336c248656eb49e8d2ccd89acc4bebbee193e2c6a699c";
 constexpr AotLaunchConfig kPackedRecurrentLaunchConfig{
     4, 32, 1, 1, 32, 64};
+constexpr AotLaunchConfig kCausalConvLaunchConfig{
+    1, 32, 1, 4, 32, 2048};
 constexpr float kLinearAttentionScale = 0.08838834764831845f;
 
 void check_hip(hipError_t status, const char* operation) {
@@ -136,6 +142,23 @@ void launch_packed_recurrent(
                            kPackedRecurrentLaunchConfig, parameters, stream);
 }
 
+void launch_current_causal_conv(
+    void* mixed_qkv, void* conv_weight, void* conv_state,
+    void* state_index, NativeDecodeExecutor& executor, hipStream_t stream) {
+  void* output = mixed_qkv;
+  std::int32_t batch = 1;
+  const std::vector<void*> parameters = {
+      &mixed_qkv,
+      &conv_weight,
+      &conv_state,
+      &state_index,
+      &output,
+      &batch,
+  };
+  executor.launch_embedded(kCausalConvKernelHash, kCausalConvLaunchConfig,
+                           parameters, stream);
+}
+
 void observe_boundary(const NativeDecodeLinearLayer0Observer* observer,
                       const char* name, const void* device_tensor,
                       std::uint64_t tensor_bytes, DecodeTensorDtype dtype) {
@@ -213,7 +236,7 @@ NativeLinearLayerMetrics run_native_linear_layer(
       workspace, require_argument_binding(launches[base + 10], "x"),
       kHidden * sizeof(__hip_bfloat16));
   void* input_norm = invocations.tensor_pointer(base, "out");
-  void* fused_projection = invocations.tensor_pointer(base + 1, "out");
+  void* projection = invocations.tensor_pointer(base + 1, "out");
   void* conv_state_before =
       invocations.tensor_pointer(base + 1, "state_in");
   void* conv_state_after =
@@ -223,11 +246,47 @@ NativeLinearLayerMetrics run_native_linear_layer(
   void* b_projection = invocations.tensor_pointer(base + 2, "b");
   void* recurrent_state = invocations.tensor_pointer(base + 2, "h0");
   void* recurrent_output = invocations.tensor_pointer(base + 2, "o");
+  const auto& packed_state_indices = require_typed_workspace(
+      workspace, "native.linear.packed_ssm_state_indices",
+      40 * sizeof(std::int32_t), DecodeTensorDtype::kInt32);
+  void* direct_conv_state_index =
+      static_cast<unsigned char*>(packed_state_indices.device_pointer) +
+      3 * sizeof(std::int32_t);
+  auto* projection_bytes = static_cast<unsigned char*>(projection);
+  void* projected_qkv = projection_bytes;
+  void* projected_z =
+      projection_bytes + kLinearQkv * sizeof(__hip_bfloat16);
+  void* projected_a =
+      projection_bytes + (kLinearQkv + kLinearValue) *
+                             sizeof(__hip_bfloat16);
+  void* projected_b =
+      projection_bytes + (kLinearQkv + kLinearValue + kLinearGate) *
+                             sizeof(__hip_bfloat16);
+  if (projected_z != z_projection || projected_a != a_projection ||
+      projected_b != b_projection) {
+    throw std::runtime_error(
+        "native linear projection slice layout changed");
+  }
   const std::string prefix =
       "model.language_model.layers." + suffix;
   const auto& output_weight = require_weight(
       weights, prefix + ".linear_attn.out_proj.weight",
       kHidden * kLinearValue * sizeof(__hip_bfloat16));
+  const auto& qkv_weight = require_weight(
+      weights, prefix + ".linear_attn.in_proj_qkv.weight",
+      kLinearQkv * kHidden * sizeof(__hip_bfloat16));
+  const auto& z_weight = require_weight(
+      weights, prefix + ".linear_attn.in_proj_z.weight",
+      kLinearValue * kHidden * sizeof(__hip_bfloat16));
+  const auto& a_weight = require_weight(
+      weights, prefix + ".linear_attn.in_proj_a.weight",
+      kLinearGate * kHidden * sizeof(__hip_bfloat16));
+  const auto& b_weight = require_weight(
+      weights, prefix + ".linear_attn.in_proj_b.weight",
+      kLinearGate * kHidden * sizeof(__hip_bfloat16));
+  const auto& conv_weight = require_weight(
+      weights, prefix + ".linear_attn.conv1d.weight",
+      kLinearQkv * 4 * sizeof(__hip_bfloat16));
   const auto& shared_down_weight = require_weight(
       weights, prefix + ".mlp.shared_expert.down_proj.weight",
       kHidden * kSharedIntermediate * sizeof(__hip_bfloat16));
@@ -241,23 +300,46 @@ NativeLinearLayerMetrics run_native_linear_layer(
                    kHidden * sizeof(__hip_bfloat16),
                    DecodeTensorDtype::kBfloat16);
   observe_boundary(observer, "conv_state_before", conv_state_before,
-                   8192ULL * 3ULL * sizeof(__hip_bfloat16),
+                   kLinearQkv * 3ULL * sizeof(__hip_bfloat16),
                    DecodeTensorDtype::kBfloat16);
-  executor.launch(launches[base + 1], stream);
-  observe_boundary(observer, "post_conv_mixed_qkv", fused_projection,
-                   8192ULL * sizeof(__hip_bfloat16),
+  // Current vLLM evaluates the four source projections with its wvSplitK
+  // provider, then runs causal_conv1d_update in-place. The captured historical
+  // fused launch uses a different convolution reduction and is retained only
+  // as schedule evidence.
+  launch_bf16_wvsplitk(qkv_weight.device_pointer, input_norm, nullptr,
+                       projected_qkv, kLinearQkv, kHidden, cu_count, stream);
+  launch_bf16_wvsplitk(z_weight.device_pointer, input_norm, nullptr,
+                       projected_z, kLinearValue, kHidden, cu_count, stream);
+  launch_bf16_wvsplitk(a_weight.device_pointer, input_norm, nullptr,
+                       projected_a, kLinearGate, kHidden, cu_count, stream);
+  launch_bf16_wvsplitk(b_weight.device_pointer, input_norm, nullptr,
+                       projected_b, kLinearGate, kHidden, cu_count, stream);
+  metrics.native_projection_launches += 4;
+  observe_boundary(observer, "qkv_projection", projected_qkv,
+                   kLinearQkv * sizeof(__hip_bfloat16),
                    DecodeTensorDtype::kBfloat16);
   observe_boundary(observer, "z_projection", z_projection,
                    kLinearValue * sizeof(__hip_bfloat16),
                    DecodeTensorDtype::kBfloat16);
   observe_boundary(observer, "a_projection", a_projection,
-                   32ULL * sizeof(__hip_bfloat16),
+                   kLinearGate * sizeof(__hip_bfloat16),
                    DecodeTensorDtype::kBfloat16);
   observe_boundary(observer, "b_projection", b_projection,
-                   32ULL * sizeof(__hip_bfloat16),
+                   kLinearGate * sizeof(__hip_bfloat16),
+                   DecodeTensorDtype::kBfloat16);
+  check_hip(hipMemcpyAsync(
+                conv_state_after, conv_state_before,
+                kLinearQkv * 3ULL * sizeof(__hip_bfloat16),
+                hipMemcpyDeviceToDevice, stream),
+            "hipMemcpyAsync native causal-conv state");
+  launch_current_causal_conv(projected_qkv, conv_weight.device_pointer,
+                             conv_state_after, direct_conv_state_index,
+                             executor, stream);
+  observe_boundary(observer, "post_conv_mixed_qkv", projected_qkv,
+                   kLinearQkv * sizeof(__hip_bfloat16),
                    DecodeTensorDtype::kBfloat16);
   observe_boundary(observer, "conv_state_after", conv_state_after,
-                   8192ULL * 3ULL * sizeof(__hip_bfloat16),
+                   kLinearQkv * 3ULL * sizeof(__hip_bfloat16),
                    DecodeTensorDtype::kBfloat16);
   observe_boundary(observer, "recurrent_state_before", recurrent_state,
                    kRecurrentStateBytes, DecodeTensorDtype::kFloat32);

@@ -200,7 +200,7 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
         self.assertIn("decode_boundary_comparisons.size() != 41", http)
         self.assertIn("reference_decode_linear_boundary_dir", http)
         self.assertIn("decode_linear_layer0_observer", resident)
-        self.assertEqual(len(NATIVE_LINEAR_ATTENTION_BOUNDARY_NAMES), 12)
+        self.assertEqual(len(NATIVE_LINEAR_ATTENTION_BOUNDARY_NAMES), 13)
 
 
 if __name__ == "__main__":

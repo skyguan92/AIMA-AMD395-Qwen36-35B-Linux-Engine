@@ -1,0 +1,28 @@
+{
+  "checks": {
+    "direct_output_sha256": "af63f78639817b339e81db6d4c2cde136d85b9a2073807bd031765047905617c",
+    "direct_state_changed": true,
+    "direct_state_sha256": "d4ce9c0e126211151817db68b4a2e80259c030576d771a3d5d78a4f837beb2f7",
+    "output_finite": true,
+    "production_output_equal": true,
+    "production_output_sha256": "af63f78639817b339e81db6d4c2cde136d85b9a2073807bd031765047905617c",
+    "production_parity_checked": true,
+    "production_state_equal": true,
+    "production_state_sha256": "d4ce9c0e126211151817db68b4a2e80259c030576d771a3d5d78a4f837beb2f7",
+    "state_finite": true
+  },
+  "complete": true,
+  "geometry": {
+    "activation": "silu",
+    "batch": 1,
+    "channels": 8192,
+    "direct_state_index": 0,
+    "direct_state_rows": 1,
+    "kernel_width": 4,
+    "null_block_id": null,
+    "state_length": 3
+  },
+  "qualified_for_native_decode_replacement": true,
+  "schema": "aima-amd395-qwen36/causal-conv-decode-aot-trace/v1",
+  "source_api": "vllm.model_executor.layers.mamba.ops.causal_conv1d.causal_conv1d_update"
+}

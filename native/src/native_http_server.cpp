@@ -742,19 +742,21 @@ struct DecodeLinearBoundaryContract {
   DecodeTensorDtype tensor_dtype;
 };
 
-constexpr std::array<DecodeLinearBoundaryContract, 12>
+constexpr std::array<DecodeLinearBoundaryContract, 13>
     kDecodeLinearBoundaryContracts{{
         {"input_norm", "bfloat16", 2048ULL * 2ULL,
          DecodeTensorDtype::kBfloat16},
         {"conv_state_before", "bfloat16", 8192ULL * 3ULL * 2ULL,
          DecodeTensorDtype::kBfloat16},
-        {"post_conv_mixed_qkv", "bfloat16", 8192ULL * 2ULL,
+        {"qkv_projection", "bfloat16", 8192ULL * 2ULL,
          DecodeTensorDtype::kBfloat16},
         {"z_projection", "bfloat16", 4096ULL * 2ULL,
          DecodeTensorDtype::kBfloat16},
         {"a_projection", "bfloat16", 32ULL * 2ULL,
          DecodeTensorDtype::kBfloat16},
         {"b_projection", "bfloat16", 32ULL * 2ULL,
+         DecodeTensorDtype::kBfloat16},
+        {"post_conv_mixed_qkv", "bfloat16", 8192ULL * 2ULL,
          DecodeTensorDtype::kBfloat16},
         {"conv_state_after", "bfloat16", 8192ULL * 3ULL * 2ULL,
          DecodeTensorDtype::kBfloat16},

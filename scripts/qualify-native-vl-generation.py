@@ -562,11 +562,14 @@ def qualify(args: argparse.Namespace) -> dict[str, Any]:
                     for path in (
                         ROOT / "native/include/aima/native_http_server.h",
                         ROOT / "native/src/native_http_server.cpp",
+                        ROOT / "native/src/native_linear_layer.hip.cpp",
                         ROOT / "native/src/main.cpp",
                         Path(__file__).resolve(),
                         ROOT / "aima_engine/vl_generation_oracle.py",
                         ROOT / "aima_engine/vl_generation_layer_oracle.py",
                         ROOT / "aima_engine/vl_prefill_state_oracle.py",
+                        ROOT
+                        / "native/aot/gfx1151/causal-conv-decode-v0.1.0/manifest.json",
                     )
                 ],
             },
@@ -662,6 +665,15 @@ def qualify(args: argparse.Namespace) -> dict[str, Any]:
                     layer_oracle is not None
                     and all(
                         checks[f"{case_id}_decode_boundary_rows_bound"]
+                        for case_id in CASE_ORDER
+                    )
+                ),
+                "two_decode_linear_boundary_sets_bound": (
+                    layer_oracle is not None
+                    and all(
+                        checks[
+                            f"{case_id}_decode_linear_boundary_rows_bound"
+                        ]
                         for case_id in CASE_ORDER
                     )
                 ),
