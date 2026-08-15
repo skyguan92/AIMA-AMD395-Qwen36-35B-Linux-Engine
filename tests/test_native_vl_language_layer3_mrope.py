@@ -110,10 +110,11 @@ class NativeVlLanguageLayer3MropeTest(unittest.TestCase):
         self.assertIn("launch_prefill_rotary_table", full)
         self.assertIn("launch_full_attention_head_norm_rope_prefill", full)
         self.assertIn(
-            "use_mrope && (tokens != 8192 || active_tokens != tokens)",
+            "use_mrope && active_tokens != tokens &&",
             full,
         )
-        self.assertIn("Complete q8192 M-RoPE chunks", full)
+        self.assertIn("options.cache_position_start == 0", full)
+        self.assertIn("Unpadded and continuation M-RoPE segments", full)
         self.assertIn(
             "provider.launch(q, attention_k, attention_v, attention_f32, tokens",
             full,

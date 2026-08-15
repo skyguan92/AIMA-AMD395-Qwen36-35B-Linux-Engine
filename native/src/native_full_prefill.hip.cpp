@@ -307,7 +307,8 @@ NativeFullPrefillOracleResult probe_native_q8192_full_prefill_oracle(
           : options.comparison_tokens;
   const bool use_mrope = options.mrope_positions_i64 != nullptr;
   const bool use_vl_unified_attention =
-      use_mrope && (tokens != 8192 || active_tokens != tokens);
+      use_mrope && active_tokens != tokens &&
+      options.cache_position_start == 0;
   if (tokens == 0 || tokens > 262144 ||
       active_tokens == 0 || active_tokens > tokens ||
       comparison_tokens == 0 || comparison_tokens > active_tokens ||
@@ -766,10 +767,12 @@ NativeFullPrefillOracleResult probe_native_q8192_full_prefill_oracle(
     ++result.layer.native_vl_unified_attention_launches;
     ++result.layer.aot_launches;
   } else {
-    // Complete q8192 M-RoPE chunks reuse the qualified rectangular text
-    // provider after Q/K rotation. Padded M-RoPE tails take the logical-prefix
-    // unified-attention branch above. Ordinary text keeps its admitted bucket
-    // shape, and all downstream text operators consume that complete shape.
+    // Unpadded and continuation M-RoPE segments reuse the qualified
+    // rectangular text provider after Q/K rotation. In particular, a padded
+    // long-context tail keeps its admitted bucket shape so bottom-right causal
+    // alignment maps each live query row to the same absolute cache position.
+    // The captured unified-attention path remains confined to the initial
+    // padded short-prompt boundary used by the exact VL language evidence.
     provider.launch(q, attention_k, attention_v, attention_f32, tokens,
                     options.cache_position_start + tokens);
     ++result.layer.native_ck_fmha_launches;

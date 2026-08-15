@@ -242,12 +242,16 @@ envelope artifact; both must be rerun against the corrected binary.
 
 Exact ceil-division moved the deterministic failure from layer 7 to layer 31
 but did not make the q81-captured kernel a stable long-window implementation.
-Complete 8,192-token M-RoPE chunks now reuse the existing qualified
-rectangular text FMHA provider after Q/K have received their M-RoPE rotation;
-only padded logical tails retain the unified-attention kernel. This preserves
-the short prompt path already used by the exact language evidence while
-removing hundreds of unsupported full-chunk launches. The long-window and
-full envelope reruns remain required.
+Unpadded M-RoPE chunks and continuation tails now reuse the existing qualified
+rectangular text FMHA providers after Q/K have received their M-RoPE rotation.
+For a padded continuation tail the admitted bucket shape preserves
+bottom-right causal alignment for every live query row; only the initial
+padded short-prompt boundary retains the q81-captured unified-attention kernel.
+This preserves the path used by the exact language evidence while removing
+the unsupported long-window launches. The envelope qualifier also leaves
+long-context provider selection automatic and verifies the resulting CK plus
+terminal AOTriton policy instead of overriding the service with the short
+provider. The long-window and full envelope reruns remain required.
 
 The native processor now also performs the exact fused normalization, odd-frame
 repeat and Qwen temporal/spatial patch permutation into contiguous

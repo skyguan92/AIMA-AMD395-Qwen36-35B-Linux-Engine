@@ -107,8 +107,9 @@ struct NativeFullPrefillOracleOptions {
   NativeFullAttentionState* decode_attention_state = nullptr;
   NativeQ8192PrefillGemmPlans* gemm_plans = nullptr;
   const NativeDecodeBindings* bindings = nullptr;
-  // Resident exact vLLM unified-attention owner. M-RoPE requests use it for
-  // the logical causal prefix; scalar-position text requests retain CK.
+  // Resident exact vLLM unified-attention owner. The initial padded M-RoPE
+  // segment uses it for the logical causal prefix; admitted unpadded and
+  // continuation segments, plus scalar-position text requests, retain FMHA.
   NativeVlUnifiedAttentionPlan* vl_unified_attention = nullptr;
   std::size_t cache_position_start = 0;
   // Optional device-resident row-major int64[3,row_stride] positions. A
