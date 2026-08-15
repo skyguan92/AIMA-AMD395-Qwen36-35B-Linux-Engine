@@ -793,8 +793,12 @@ ParsedCompletionRequest parse_completion_request(
       throw std::invalid_argument(
           "prompt_token_ids cannot be combined with image or video content");
     }
+    NativeMediaPolicy effective_media_policy = media_policy;
+    if (parsed.chat.video_io_override.has_value()) {
+      effective_media_policy.video_io = *parsed.chat.video_io_override;
+    }
     NativeVlPreparedRequest vl = prepare_native_vl_request(
-        tokenizer, parsed.chat, media_policy, &media_cache);
+        tokenizer, parsed.chat, effective_media_policy, &media_cache);
     parsed.prompt = std::move(vl.prompt_token_ids);
     parsed.multimodal_cache_namespace =
         std::move(vl.multimodal_cache_namespace);

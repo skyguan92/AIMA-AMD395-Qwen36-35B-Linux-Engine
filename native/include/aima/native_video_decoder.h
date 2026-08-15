@@ -19,9 +19,10 @@ struct NativeDecodedVideo {
   std::vector<NativeRgbFrame> frames;
 };
 
-// Decodes admitted MP4/AVI bytes with the frozen OpenCV-compatible 2-fps
-// sampling surface. Demuxing is restricted to the MIME-selected container;
-// all selected frames are returned as packed RGB8.
+// Decodes admitted MP4/AVI bytes with the frozen OpenCV floor/linspace
+// sampling surface and the request-effective video IO policy. Demuxing is
+// restricted to the MIME-selected container; all selected frames are returned
+// as packed RGB8.
 NativeDecodedVideo decode_native_video(const NativeMediaPayload &payload,
                                        const NativeMediaPolicy &policy);
 

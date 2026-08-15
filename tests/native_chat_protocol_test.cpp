@@ -312,6 +312,60 @@ int main() {
               media.media[1].content_part_index == 3 &&
               media.media[1].media_index == 1,
           "video part metadata changed");
+  require(!media.video_io_override.has_value(),
+          "absent media_io_kwargs changed the frozen launch policy");
+
+  NativeOrderedJson video_fps_request = media_request;
+  video_fps_request["media_io_kwargs"] = {
+      {"video", {{"fps", 1.0}, {"video_backend", "opencv"}}}};
+  const auto video_fps = aima::prepare_native_chat(video_fps_request);
+  require(video_fps.video_io_override.has_value() &&
+              video_fps.video_io_override->num_frames == 32 &&
+              video_fps.video_io_override->fps == 1.0 &&
+              video_fps.video_io_override->video_backend == "opencv",
+          "request-level video fps override changed");
+
+  NativeOrderedJson video_frames_request = media_request;
+  video_frames_request["media_io_kwargs"] = {
+      {"video", {{"num_frames", 6}, {"video_backend", "opencv"}}}};
+  const auto video_frames =
+      aima::prepare_native_chat(video_frames_request);
+  require(video_frames.video_io_override.has_value() &&
+              video_frames.video_io_override->num_frames == 6 &&
+              video_frames.video_io_override->fps == -1.0,
+          "request-level video frame-count override changed");
+
+  NativeOrderedJson empty_runtime_mapping = media_request;
+  empty_runtime_mapping["media_io_kwargs"] = NativeOrderedJson::object();
+  require(!aima::prepare_native_chat(empty_runtime_mapping)
+               .video_io_override.has_value(),
+          "empty media_io_kwargs did not retain the launch mapping");
+  empty_runtime_mapping["media_io_kwargs"] = {
+      {"video", NativeOrderedJson::object()}};
+  const auto empty_video_mapping =
+      aima::prepare_native_chat(empty_runtime_mapping);
+  require(empty_video_mapping.video_io_override.has_value() &&
+              empty_video_mapping.video_io_override->num_frames == 32 &&
+              empty_video_mapping.video_io_override->fps == -1.0,
+          "non-empty runtime mapping did not replace launch fps");
+
+  for (const NativeOrderedJson& invalid_media_io :
+       std::vector<NativeOrderedJson>{
+           NativeOrderedJson::array(),
+           {{"video", "not-an-object"}},
+           {{"video", {{"fps", "fast"}}}},
+           {{"video", {{"num_frames", 1.5}}}},
+           {{"video", {{"video_backend", "decord"}}}},
+           {{"video", {{"unknown", 1}}}},
+           {{"image", {{"mode", "RGBA"}}}},
+           {{"audio", NativeOrderedJson::object()}},
+       }) {
+    NativeOrderedJson invalid_request = media_request;
+    invalid_request["media_io_kwargs"] = invalid_media_io;
+    require_invalid(
+        [&]() { (void)aima::prepare_native_chat(invalid_request); },
+        "invalid media_io_kwargs was admitted");
+  }
 
   const NativeOrderedJson alternating_request = {
       {"messages",

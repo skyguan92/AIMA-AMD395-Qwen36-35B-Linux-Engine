@@ -323,9 +323,26 @@ int main() {
                   "9401d88b9e1d084fe8514f5debecfd69f3997f6ec6bcbe529a8da1409a3638d1",
           "video BF16 temporal/spatial patchify oracle drifted");
 
-  require(aima::native_qwen36_processor_config_sha256() ==
-              "2d5a1388bfaefa0cae6fd96c097a291bb180f0cb3074f7b51e83e00e4df237ab",
+  const std::string default_processor_identity =
+      aima::native_qwen36_processor_config_sha256();
+  require(default_processor_identity ==
+              "d5c32c48a557b75c8192a824de0992464bb307890cac0cc01f0890cfccd874d2",
           "processor configuration identity is malformed");
+  aima::NativeVideoIoPolicy fps_one_identity;
+  fps_one_identity.fps = 1.0;
+  require(aima::native_qwen36_processor_config_sha256(fps_one_identity) !=
+              default_processor_identity,
+          "video fps was omitted from processor cache identity");
+  aima::NativeVideoIoPolicy frames_six_identity;
+  frames_six_identity.num_frames = 6;
+  frames_six_identity.fps = -1.0;
+  require(aima::native_qwen36_processor_config_sha256(frames_six_identity) !=
+              default_processor_identity &&
+              aima::native_qwen36_processor_config_sha256(
+                  frames_six_identity) !=
+                  aima::native_qwen36_processor_config_sha256(
+                      fps_one_identity),
+          "video frame count was omitted from processor cache identity");
   std::cout << "native_vl_processor_test: PASS\n";
   return 0;
 }

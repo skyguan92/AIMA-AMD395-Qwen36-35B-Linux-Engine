@@ -146,6 +146,12 @@ Supported request fields:
 - `tools`: OpenAI function-tool definitions;
 - `tool_choice`: `auto`, `none`, `required`, or a named function object;
 - `parallel_tool_calls`: boolean.
+- `media_io_kwargs`: an optional request-level object matching the frozen
+  vLLM video-loader surface. `video.fps` and `video.num_frames` may be supplied
+  together and the smaller resulting sample count wins;
+  `video.video_backend`, when present, must be `opencv`. An absent or empty
+  top-level object retains the frozen launch defaults (32-frame cap and 2 FPS),
+  while a non-empty mapping replaces the launch mapping as vLLM does.
 
 Not supported:
 
@@ -153,6 +159,7 @@ Not supported:
 - audio message parts;
 - deprecated `functions` or structured response formats;
 - stochastic sampling;
+- request-level image media-I/O overrides or video backends other than OpenCV;
 - batching or concurrent execution.
 
 The server applies the model's qualified Qwen tool/chat template. Thinking is
@@ -172,9 +179,10 @@ deadline limits apply before tensors reach the visual encoder.
 Decoded processor results use a 4 GiB, 64-entry content-addressed LRU by
 default. `--media-cache-capacity-bytes` can reduce the byte bound and
 `--disable-media-cache` provides the cold-cache performance surface. The key
-binds source-byte SHA-256, media kind and the fixed processor identity, so a
-changed object behind the same URL or pathname misses while equivalent local
-and data-URI bytes may hit.
+binds source-byte SHA-256, media kind and the request-effective processor and
+video-sampling identity, so a changed object behind the same URL or pathname
+or a changed `fps`/`num_frames` policy misses while equivalent local and
+data-URI bytes may hit.
 
 After tokenization:
 

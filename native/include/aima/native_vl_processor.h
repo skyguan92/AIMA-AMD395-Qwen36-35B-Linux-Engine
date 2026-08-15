@@ -126,8 +126,10 @@ NativeVlPixelTensor native_qwen36_process_rgb(
 std::string native_qwen36_expand_media_prompt(
     std::string prompt, const std::vector<NativeVlPromptMedia>& media);
 
-// Versioned identity of all effective fixed processor parameters and the
-// frozen processor/config/chat-template inputs. Used by media cache keys.
-std::string native_qwen36_processor_config_sha256();
+// Versioned identity of all effective fixed processor parameters, the
+// request-effective video loader sampling policy and the frozen
+// processor/config/chat-template inputs. Used by media cache keys.
+std::string native_qwen36_processor_config_sha256(
+    const NativeVideoIoPolicy& video_io = {});
 
 }  // namespace aima

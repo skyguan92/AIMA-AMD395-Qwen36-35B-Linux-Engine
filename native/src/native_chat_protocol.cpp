@@ -32,6 +32,79 @@ constexpr std::string_view kVideoPlaceholder =
 constexpr std::size_t kMaximumImagesPerPrompt = 16;
 constexpr std::size_t kMaximumVideosPerPrompt = 21;
 
+std::int64_t media_io_integer(const NativeOrderedJson& value,
+                              std::string_view field) {
+  if (value.is_number_unsigned()) {
+    const std::uint64_t parsed = value.get<std::uint64_t>();
+    if (parsed <=
+        static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max())) {
+      return static_cast<std::int64_t>(parsed);
+    }
+  } else if (value.is_number_integer()) {
+    return value.get<std::int64_t>();
+  }
+  throw std::invalid_argument(std::string(field) + " must be an integer");
+}
+
+std::optional<NativeVideoIoPolicy> parse_media_io_kwargs(
+    const NativeOrderedJson& request) {
+  if (!request.contains("media_io_kwargs")) return std::nullopt;
+  const NativeOrderedJson& mapping = request["media_io_kwargs"];
+  if (!mapping.is_object()) {
+    throw std::invalid_argument("media_io_kwargs must be an object");
+  }
+  // vLLM falls back to the engine-level mapping for an empty runtime mapping.
+  if (mapping.empty()) return std::nullopt;
+
+  NativeVideoIoPolicy effective;
+  // A non-empty runtime mapping replaces the engine-level mapping. The
+  // VideoMediaIO constructor still supplies its 32-frame default, while an
+  // absent fps means that the OpenCV rate limiter is disabled.
+  effective.fps = -1.0;
+  for (auto item = mapping.begin(); item != mapping.end(); ++item) {
+    if (item.key() != "image" && item.key() != "video") {
+      throw std::invalid_argument(
+          "media_io_kwargs supports only image and video mappings");
+    }
+    if (!item.value().is_object()) {
+      throw std::invalid_argument(
+          "media_io_kwargs modality values must be objects");
+    }
+    if (item.key() == "image" && !item.value().empty()) {
+      throw std::invalid_argument(
+          "request-level image media_io_kwargs are not supported");
+    }
+  }
+  const auto video = mapping.find("video");
+  if (video == mapping.end()) return effective;
+  for (auto item = video->begin(); item != video->end(); ++item) {
+    if (item.key() == "num_frames") {
+      effective.num_frames =
+          media_io_integer(item.value(), "media_io_kwargs.video.num_frames");
+    } else if (item.key() == "fps") {
+      if (!item.value().is_number()) {
+        throw std::invalid_argument(
+            "media_io_kwargs.video.fps must be a number");
+      }
+      effective.fps = item.value().get<double>();
+      if (!std::isfinite(effective.fps)) {
+        throw std::invalid_argument(
+            "media_io_kwargs.video.fps must be finite");
+      }
+    } else if (item.key() == "video_backend") {
+      if (!item.value().is_string() ||
+          item.value().get<std::string>() != "opencv") {
+        throw std::invalid_argument(
+            "media_io_kwargs.video.video_backend must be opencv");
+      }
+    } else {
+      throw std::invalid_argument(
+          "unsupported media_io_kwargs.video field: " + item.key());
+    }
+  }
+  return effective;
+}
+
 std::string trim_ascii_copy(std::string_view input) {
   std::size_t begin = 0;
   std::size_t end = input.size();
@@ -750,6 +823,7 @@ NativePreparedChat prepare_native_chat(const NativeOrderedJson& request) {
   }
 
   NativePreparedChat prepared;
+  prepared.video_io_override = parse_media_io_kwargs(request);
   std::unordered_set<std::string> tool_names;
   if (request.contains("tools")) {
     if (!request["tools"].is_array()) {

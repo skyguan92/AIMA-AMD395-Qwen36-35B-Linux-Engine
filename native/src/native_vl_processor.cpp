@@ -753,9 +753,16 @@ std::string native_qwen36_expand_media_prompt(
   return prompt;
 }
 
-std::string native_qwen36_processor_config_sha256() {
-  constexpr std::string_view canonical =
-      "aima-amd395-qwen36/native-vl-processor/v1\n"
+std::string native_qwen36_processor_config_sha256(
+    const NativeVideoIoPolicy& video_io) {
+  if (video_io.video_backend != "opencv" ||
+      !std::isfinite(video_io.fps)) {
+    throw std::invalid_argument("video IO policy is invalid");
+  }
+  std::ostringstream canonical;
+  canonical.imbue(std::locale::classic());
+  canonical << std::setprecision(std::numeric_limits<double>::max_digits10)
+      << "aima-amd395-qwen36/native-vl-processor/v2\n"
       "preprocessor_config_sha256=27225450ac9c6529872ee1924fcb0962ff5634834f817040f444118116f4e516\n"
       "video_preprocessor_config_sha256=7768af27c1fafa9cc9011c1dc20067e03f8915e03b63504550e11d5066986d13\n"
       "chat_template_sha256=e84f32a23fdda27689f868aa4a1a5621f41133e51a48d7f3efcbea2839574259\n"
@@ -769,6 +776,11 @@ std::string native_qwen36_processor_config_sha256() {
       "video_fps=2\n"
       "video_min_frames=4\n"
       "video_max_frames=768\n"
+      "video_io_sampling=opencv-floor-linspace\n"
+      "video_io_num_frames=" << video_io.num_frames << '\n'
+      << "video_io_fps=" << video_io.fps << '\n'
+      << "video_io_backend=" << video_io.video_backend << '\n'
+      <<
       "resample=bicubic-antialias\n"
       "rescale_factor=1/255\n"
       "image_mean=0.5,0.5,0.5\n"
@@ -777,7 +789,8 @@ std::string native_qwen36_processor_config_sha256() {
       "video_token_id=248057\n"
       "vision_start_token_id=248053\n"
       "vision_end_token_id=248054\n";
-  return sha256_bytes(canonical.data(), canonical.size());
+  const std::string payload = canonical.str();
+  return sha256_bytes(payload.data(), payload.size());
 }
 
 }  // namespace aima

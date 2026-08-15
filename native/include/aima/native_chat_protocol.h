@@ -8,6 +8,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -42,6 +43,10 @@ struct NativePreparedChat {
   std::vector<NativeChatTool> prompt_tools;
   std::vector<NativeFunctionTool> function_tools;
   std::vector<NativeMediaPart> media;
+  // A non-empty request-level media_io_kwargs object replaces the frozen
+  // launch-level media IO mapping in vLLM. Empty/absent objects retain the
+  // launch default and therefore leave this override unset.
+  std::optional<NativeVideoIoPolicy> video_io_override;
   NativeToolChoiceMode tool_choice = NativeToolChoiceMode::kAuto;
   std::string required_function_name;
   bool parallel_tool_calls = true;

@@ -31,7 +31,6 @@ extern "C" {
 namespace aima {
 namespace {
 
-constexpr double kFrozenVideoFps = 2.0;
 constexpr int kAvioBufferBytes = 32768;
 
 std::string ffmpeg_error(int code) {
@@ -394,6 +393,7 @@ void require_video_policy(const NativeMediaPayload &payload,
 
 std::vector<std::size_t>
 opencv_sample_indices(std::size_t total_frames, double source_fps,
+                      const NativeVideoIoPolicy &video_io,
                       std::size_t maximum_sampled_frames) {
   if (total_frames == 0 || !std::isfinite(source_fps) || source_fps <= 0.0) {
     throw std::invalid_argument("video sampling metadata is invalid");
@@ -401,11 +401,30 @@ opencv_sample_indices(std::size_t total_frames, double source_fps,
   if (maximum_sampled_frames == 0) {
     throw std::invalid_argument("video sampling frame limit is invalid");
   }
-  const double requested = std::floor(static_cast<double>(total_frames) /
-                                      source_fps * kFrozenVideoFps);
-  std::size_t count =
-      requested >= 1.0 ? static_cast<std::size_t>(requested) : std::size_t{1};
-  count = std::min({count, total_frames, maximum_sampled_frames});
+  if (video_io.video_backend != "opencv" ||
+      !std::isfinite(video_io.fps)) {
+    throw std::invalid_argument("video IO policy is invalid");
+  }
+  std::size_t count = total_frames;
+  if (video_io.num_frames > 0) {
+    const std::uint64_t requested =
+        static_cast<std::uint64_t>(video_io.num_frames);
+    count = static_cast<std::size_t>(std::min<std::uint64_t>(
+        requested, static_cast<std::uint64_t>(count)));
+  }
+  if (video_io.fps > 0.0) {
+    const double requested = std::floor(
+        static_cast<double>(total_frames) / source_fps * video_io.fps);
+    const std::size_t rate_count =
+        requested >= static_cast<double>(total_frames)
+            ? total_frames
+            : requested >= 1.0
+                  ? static_cast<std::size_t>(requested)
+                  : std::size_t{1};
+    count = std::min(count, rate_count);
+  }
+  count = std::min(std::max<std::size_t>(count, 1),
+                   maximum_sampled_frames);
   std::vector<std::size_t> indices(count, 0);
   if (count == total_frames) {
     std::iota(indices.begin(), indices.end(), std::size_t{0});
@@ -454,7 +473,7 @@ NativeDecodedVideo decode_native_video(const NativeMediaPayload &payload,
   }
   const std::vector<std::size_t> indices =
       opencv_sample_indices(static_cast<std::size_t>(total_frames),
-                            probe.source_fps(),
+                            probe.source_fps(), policy.video_io,
                             policy.maximum_video_sampled_frames);
   const std::uint64_t frame_pixels =
       static_cast<std::uint64_t>(probe.width()) * probe.height();

@@ -22,6 +22,16 @@ enum class NativeMediaTransport {
   kHttpsUrl,
 };
 
+// Effective OpenCV video-loader arguments. The defaults match the frozen
+// vLLM launch: VideoMediaIO's 32-frame default plus the explicit 2-fps
+// media_io_kwargs override. Non-positive values disable the corresponding
+// limiter, as in the reference OpenCV backend.
+struct NativeVideoIoPolicy {
+  std::int64_t num_frames = 32;
+  double fps = 2.0;
+  std::string video_backend = "opencv";
+};
+
 // An ordered OpenAI content part. The source is retained only for the native
 // media loader; prompts receive the model's canonical special-token marker.
 struct NativeMediaPart {
@@ -62,6 +72,7 @@ struct NativeMediaPolicy {
   std::uint32_t maximum_video_sampled_frames = 768;
   double maximum_video_duration_seconds = 768.0;
   std::uint32_t maximum_video_decode_milliseconds = 30000;
+  NativeVideoIoPolicy video_io;
   bool allow_data_uri = true;
 };
 

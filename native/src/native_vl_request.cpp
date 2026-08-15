@@ -222,16 +222,16 @@ struct NativeVlMediaCache::Impl {
   explicit Impl(std::uint64_t byte_capacity,
                 std::size_t entry_capacity)
       : capacity_bytes(byte_capacity),
-        capacity_entries(entry_capacity),
-        processor_identity(native_qwen36_processor_config_sha256()) {
+        capacity_entries(entry_capacity) {
     if (capacity_bytes == 0 || capacity_entries == 0) {
       capacity_bytes = 0;
       capacity_entries = 0;
     }
   }
 
-  std::string key(const NativeMediaPayload& payload) const {
-    return processor_identity + ':' +
+  std::string key(const NativeMediaPayload& payload,
+                  std::string_view processor_identity) const {
+    return std::string(processor_identity) + ':' +
            (payload.kind == NativeMediaKind::kImage ? "image:" : "video:") +
            payload.content_sha256;
   }
@@ -274,7 +274,6 @@ struct NativeVlMediaCache::Impl {
 
   std::uint64_t capacity_bytes = 0;
   std::size_t capacity_entries = 0;
-  std::string processor_identity;
   std::vector<Entry> values;
   std::uint64_t resident_bytes = 0;
   std::uint64_t clock = 0;
@@ -312,6 +311,8 @@ NativeVlPreparedRequest prepare_native_vl_request(
 
   NativeVlPreparedRequest result;
   result.metrics.media_count = chat.media.size();
+  const std::string processor_identity =
+      native_qwen36_processor_config_sha256(policy.video_io);
   std::vector<std::shared_ptr<const ProcessedMedia>> processed;
   processed.reserve(chat.media.size());
   std::vector<NativeVlPromptMedia> prompt_media;
@@ -322,7 +323,9 @@ NativeVlPreparedRequest prepare_native_vl_request(
     result.metrics.media_load_wall_ms += elapsed_ms(load_started);
     result.metrics.source_bytes += payload.bytes.size();
     const std::string cache_key =
-        media_cache != nullptr ? media_cache->impl_->key(payload) : "";
+        media_cache != nullptr
+            ? media_cache->impl_->key(payload, processor_identity)
+            : "";
     std::shared_ptr<const ProcessedMedia> item =
         media_cache != nullptr ? media_cache->impl_->find(cache_key) : nullptr;
     if (item) {
@@ -385,8 +388,7 @@ NativeVlPreparedRequest prepare_native_vl_request(
   std::vector<NativeMropeMedia> mrope_media;
   mrope_media.reserve(processed.size());
   NativeMultimodalCacheIdentityInput cache_identity;
-  cache_identity.processor_config_sha256 =
-      native_qwen36_processor_config_sha256();
+  cache_identity.processor_config_sha256 = processor_identity;
   cache_identity.media.reserve(processed.size());
   std::size_t search = 0;
   std::size_t visual_offset = 0;

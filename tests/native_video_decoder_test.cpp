@@ -110,6 +110,43 @@ int main(int argc, char **argv) {
                   "0b1e",
           "AVI decode-to-BF16 processor oracle drifted");
 
+  aima::NativeMediaPolicy fps_one = policy;
+  fps_one.video_io.fps = 1.0;
+  const auto fps_one_video = aima::decode_native_video(
+      payload(root, "video-12f-6fps-192x128.avi", "video/x-msvideo"),
+      fps_one);
+  require(fps_one_video.frame_indices ==
+              std::vector<std::size_t>({0, 11}),
+          "request-level 1-fps sampling drifted");
+
+  aima::NativeMediaPolicy six_frames = policy;
+  six_frames.video_io.num_frames = 6;
+  six_frames.video_io.fps = -1.0;
+  const auto six_frame_video = aima::decode_native_video(
+      payload(root, "video-12f-6fps-192x128.avi", "video/x-msvideo"),
+      six_frames);
+  require(six_frame_video.frame_indices ==
+              std::vector<std::size_t>({0, 2, 4, 6, 8, 11}),
+          "request-level num_frames sampling drifted");
+
+  aima::NativeMediaPolicy combined_sampling = policy;
+  combined_sampling.video_io.num_frames = 3;
+  combined_sampling.video_io.fps = 2.0;
+  const auto combined_video = aima::decode_native_video(
+      payload(root, "video-12f-6fps-192x128.avi", "video/x-msvideo"),
+      combined_sampling);
+  require(combined_video.frame_indices ==
+              std::vector<std::size_t>({0, 5, 11}),
+          "combined request-level sampling limit drifted");
+
+  aima::NativeMediaPolicy no_rate_limit = policy;
+  no_rate_limit.video_io.fps = -1.0;
+  const auto all_short_frames = aima::decode_native_video(
+      payload(root, "video-8f-4fps-128.mp4", "video/mp4"), no_rate_limit);
+  require(all_short_frames.frame_indices ==
+              std::vector<std::size_t>({0, 1, 2, 3, 4, 5, 6, 7}),
+          "disabled request-level fps limiter drifted");
+
   try {
     (void)aima::decode_native_video(
         payload(root, "corrupt-video.mp4", "video/mp4"), policy);

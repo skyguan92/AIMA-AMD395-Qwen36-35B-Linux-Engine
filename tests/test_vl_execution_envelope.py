@@ -138,9 +138,10 @@ class VlExecutionEnvelopeTest(unittest.TestCase):
             encoding="utf-8"
         )
         self.assertIn(
-            "std::min({count, total_frames, maximum_sampled_frames})",
+            "count = std::min(std::max<std::size_t>(count, 1),",
             decoder,
         )
+        self.assertIn("maximum_sampled_frames);", decoder)
         self.assertNotIn("sampled video frame count exceeds the limit", decoder)
 
     def test_http_observation_validator_fails_closed(self) -> None:
