@@ -120,6 +120,14 @@ def _remove_hooks(root: Any, state: dict[str, Any]) -> None:
     router = state.get("router")
     if router is not None:
         router.select_experts = state["original_router_select_experts"]
+    fused_moe_module = state.get("fused_moe_module")
+    if fused_moe_module is not None:
+        fused_moe_module.apply_moe_activation = state[
+            "original_apply_moe_activation"
+        ]
+    custom_ops = state.get("custom_ops")
+    if custom_ops is not None:
+        custom_ops.moe_sum = state["original_moe_sum"]
     if hasattr(root, STATE_ATTRIBUTE):
         delattr(root, STATE_ATTRIBUTE)
 
@@ -176,6 +184,11 @@ class InstallGenerationLayerHooks:
             "vllm.model_executor.layers.mamba.gdn_linear_attn",
             fromlist=["causal_conv1d_update"],
         )
+        fused_moe_module = __import__(
+            "vllm.model_executor.layers.fused_moe.fused_moe",
+            fromlist=["apply_moe_activation"],
+        )
+        custom_ops = __import__("vllm._custom_ops", fromlist=["moe_sum"])
         state.update(
             {
                 "gdn_module": gdn_module,
@@ -189,6 +202,12 @@ class InstallGenerationLayerHooks:
                 "layer0_a_log_pointer": linear.A_log.data_ptr(),
                 "router": router,
                 "original_router_select_experts": router.select_experts,
+                "fused_moe_module": fused_moe_module,
+                "original_apply_moe_activation": (
+                    fused_moe_module.apply_moe_activation
+                ),
+                "custom_ops": custom_ops,
+                "original_moe_sum": custom_ops.moe_sum,
             }
         )
 
@@ -317,6 +336,9 @@ class InstallGenerationLayerHooks:
             capture_layer0_tail("shared_moe_output", output[0])
             capture_layer0_tail("routed_moe_output", output[1])
 
+        def router_logits_hook(_module: Any, _args: Any, output: Any) -> None:
+            capture_layer0_tail("router_logits", output)
+
         def shared_gate_hook(_module: Any, _args: Any, output: Any) -> None:
             capture_layer0_tail("shared_gate_logits", output)
 
@@ -402,11 +424,32 @@ class InstallGenerationLayerHooks:
                 return output
             if not isinstance(output, (tuple, list)) or len(output) != 2:
                 raise RuntimeError("generation layer-0 router contract changed")
-            _weights, indices = output
-            if not isinstance(indices, torch.Tensor):
+            weights, indices = output
+            if not isinstance(weights, torch.Tensor) or not isinstance(
+                indices, torch.Tensor
+            ):
                 raise RuntimeError("generation layer-0 router indices unavailable")
+            capture_layer0_tail("router_weights", weights)
             capture_layer0_tail("router_indices", indices.to(torch.int32))
             return output
+
+        def instrumented_apply_moe_activation(
+            activation: Any, activation_output: Any, activation_input: Any
+        ) -> Any:
+            capture_layer0_tail(
+                "routed_gate_up_projection", activation_input
+            )
+            result = state["original_apply_moe_activation"](
+                activation, activation_output, activation_input
+            )
+            capture_layer0_tail("routed_activation", activation_output)
+            return result
+
+        def instrumented_moe_sum(moe_input: Any, moe_output: Any) -> Any:
+            capture_layer0_tail(
+                "routed_weighted_expert_outputs", moe_input
+            )
+            return state["original_moe_sum"](moe_input, moe_output)
 
         handles = state["handles"]
         handles.append(
@@ -432,6 +475,7 @@ class InstallGenerationLayerHooks:
         handles.append(
             mlp.shared_expert_gate.register_forward_hook(shared_gate_hook)
         )
+        handles.append(mlp.gate.register_forward_hook(router_logits_hook))
         handles.append(
             shared_expert.gate_up_proj.register_forward_hook(
                 shared_gate_up_hook
@@ -453,6 +497,10 @@ class InstallGenerationLayerHooks:
             instrumented_packed_decode
         )
         router.select_experts = instrumented_router_select_experts
+        fused_moe_module.apply_moe_activation = (
+            instrumented_apply_moe_activation
+        )
+        custom_ops.moe_sum = instrumented_moe_sum
 
         def capture_boundary(name: str, value: Any) -> None:
             tensor = _first_tensor(value)
@@ -1019,7 +1067,7 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
     diagnostic = args.diagnostic_output_index is not None
     scope = (
         "two-fixed-vllm-vl-shared-output-index-layer-and-layer0-linear-"
-        "attention-plus-tail-diagnostic-boundary-sets"
+        "attention-plus-tail-and-routed-moe-diagnostic-boundary-sets"
         if diagnostic
         else "two-fixed-vllm-vl-target-decode-layer-plus-target-and-first-"
         "decode-layer0-linear-attention-boundary-sets"
@@ -1038,6 +1086,7 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
             "two_diagnostic_first_decode_layer0_tail_boundary_sets_captured": (
                 len(cases) == 2
             ),
+            "two_diagnostic_routed_moe_stage_sets_captured": len(cases) == 2,
             "promotion_oracle": False,
             "g1_passed": False,
             "g2_passed": False,
@@ -1060,6 +1109,7 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
             "two_first_decode_layer0_tail_boundary_sets_captured": (
                 len(cases) == 2
             ),
+            "two_routed_moe_stage_sets_captured": len(cases) == 2,
             "g1_passed": False,
             "g2_passed": False,
             "g3_passed": False,

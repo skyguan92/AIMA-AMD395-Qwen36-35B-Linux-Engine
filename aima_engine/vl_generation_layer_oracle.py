@@ -45,7 +45,16 @@ LAYER0_TAIL_BOUNDARY_SPECS = {
     "shared_activation": ([512], "torch.bfloat16", 2),
     "shared_down_projection": ([HIDDEN_SIZE], "torch.bfloat16", 2),
     "shared_moe_output": ([HIDDEN_SIZE], "torch.bfloat16", 2),
+    "router_logits": ([256], "torch.bfloat16", 2),
+    "router_weights": ([8], "torch.float32", 4),
     "router_indices": ([8], "torch.int32", 4),
+    "routed_gate_up_projection": ([8, 1_024], "torch.bfloat16", 2),
+    "routed_activation": ([8, 512], "torch.bfloat16", 2),
+    "routed_weighted_expert_outputs": (
+        [8, HIDDEN_SIZE],
+        "torch.bfloat16",
+        2,
+    ),
     "routed_moe_output": ([HIDDEN_SIZE], "torch.bfloat16", 2),
     "combined_moe_output": ([HIDDEN_SIZE], "torch.bfloat16", 2),
 }

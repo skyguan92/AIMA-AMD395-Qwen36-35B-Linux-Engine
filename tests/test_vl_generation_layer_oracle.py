@@ -206,11 +206,17 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
         self.assertIn("first_decode_linear_captures", source)
         self.assertIn("first_decode_layer0_tail_captures", source)
         self.assertIn("instrumented_router_select_experts", source)
+        self.assertIn("instrumented_apply_moe_activation", source)
+        self.assertIn("instrumented_moe_sum", source)
+        self.assertIn('"routed_weighted_expert_outputs"', source)
         self.assertIn('"first-decode-layer0-tail"', source)
         self.assertIn("FIRST_DECODE_LINEAR_OUTPUT_INDEX", source)
         self.assertIn("--diagnostic-output-index", source)
         self.assertIn("vl-generation-layer-diagnostic/v1", source)
         self.assertIn('"promotion_oracle": False', source)
+        self.assertIn(
+            '"two_diagnostic_routed_moe_stage_sets_captured"', source
+        )
         self.assertIn("instrumented_causal_conv1d_update", source)
         self.assertIn("instrumented_packed_decode", source)
         self.assertIn("for case_id in CASE_ORDER", source)
@@ -233,7 +239,7 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
         self.assertIn("decode_linear_layer0_observer", resident)
         self.assertIn("decode_layer0_tail_observer", resident)
         self.assertEqual(len(NATIVE_LINEAR_ATTENTION_BOUNDARY_NAMES), 13)
-        self.assertEqual(len(LAYER0_TAIL_BOUNDARY_SPECS), 10)
+        self.assertEqual(len(LAYER0_TAIL_BOUNDARY_SPECS), 15)
 
 
 if __name__ == "__main__":
