@@ -8,6 +8,7 @@ import unittest
 
 from aima_engine.vl_generation_layer_oracle import (
     BOUNDARY_NAMES,
+    FIRST_DECODE_LINEAR_OUTPUT_INDEX,
     GENERATION_LAYER_ORACLE_SCHEMA,
     HIDDEN_SIZE,
     LINEAR_ATTENTION_BOUNDARY_SPECS,
@@ -34,6 +35,60 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
             cases = []
             raw = b"\x00" * (HIDDEN_SIZE * 2)
             digest = hashlib.sha256(raw).hexdigest()
+
+            def write_linear_boundary_set(
+                case_id: str, directory: str, target_decode_call: int
+            ) -> dict[str, object]:
+                components = {}
+                ledger_lines = []
+                for name, (shape, dtype, element_size) in (
+                    LINEAR_ATTENTION_BOUNDARY_SPECS.items()
+                ):
+                    elements = 1
+                    for dimension in shape:
+                        elements *= dimension
+                    linear_raw = b"\x00" * (elements * element_size)
+                    relative = (
+                        Path(case_id)
+                        / directory
+                        / "components"
+                        / f"{name}.bin"
+                    )
+                    path = root / relative
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_bytes(linear_raw)
+                    components[name] = {
+                        "schema": TENSOR_SCHEMA,
+                        "path": relative.as_posix(),
+                        "shape": shape,
+                        "dtype": dtype,
+                        "element_size": element_size,
+                        "bytes": len(linear_raw),
+                        "sha256": hashlib.sha256(linear_raw).hexdigest(),
+                    }
+                    ledger_lines.append(
+                        json.dumps(
+                            {
+                                "event": "native_layer_oracle_tensor",
+                                "label": name,
+                                "file": f"components/{name}.bin",
+                            },
+                            sort_keys=True,
+                            separators=(",", ":"),
+                        )
+                    )
+                ledger = root / case_id / directory / "oracle.jsonl"
+                ledger.write_text(
+                    "\n".join(ledger_lines) + "\n", encoding="utf-8"
+                )
+                return {
+                    "target_decode_call": target_decode_call,
+                    "components": components,
+                    "oracle_jsonl": file_component(
+                        ledger, f"{case_id}/{directory}/oracle.jsonl"
+                    ),
+                }
+
             for case_id in CASE_ORDER:
                 contract = CASE_CONTRACTS[case_id]
                 components = {}
@@ -67,45 +122,6 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
                 ledger.write_text(
                     "\n".join(ledger_lines) + "\n", encoding="utf-8"
                 )
-                linear_components = {}
-                linear_ledger_lines = []
-                for name, (shape, dtype, element_size) in (
-                    LINEAR_ATTENTION_BOUNDARY_SPECS.items()
-                ):
-                    elements = 1
-                    for dimension in shape:
-                        elements *= dimension
-                    linear_raw = b"\x00" * (elements * element_size)
-                    relative = (
-                        Path(case_id) / "linear" / "components" / f"{name}.bin"
-                    )
-                    path = root / relative
-                    path.parent.mkdir(parents=True, exist_ok=True)
-                    path.write_bytes(linear_raw)
-                    linear_components[name] = {
-                        "schema": TENSOR_SCHEMA,
-                        "path": relative.as_posix(),
-                        "shape": shape,
-                        "dtype": dtype,
-                        "element_size": element_size,
-                        "bytes": len(linear_raw),
-                        "sha256": hashlib.sha256(linear_raw).hexdigest(),
-                    }
-                    linear_ledger_lines.append(
-                        json.dumps(
-                            {
-                                "event": "native_layer_oracle_tensor",
-                                "label": name,
-                                "file": f"components/{name}.bin",
-                            },
-                            sort_keys=True,
-                            separators=(",", ":"),
-                        )
-                    )
-                linear_ledger = root / case_id / "linear" / "oracle.jsonl"
-                linear_ledger.write_text(
-                    "\n".join(linear_ledger_lines) + "\n", encoding="utf-8"
-                )
                 cases.append(
                     {
                         "case_id": case_id,
@@ -124,16 +140,18 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
                         "oracle_jsonl": file_component(
                             ledger, f"{case_id}/oracle.jsonl"
                         ),
-                        "linear_attention": {
-                            "target_decode_call": contract[
-                                "divergence_output_index"
-                            ],
-                            "components": linear_components,
-                            "oracle_jsonl": file_component(
-                                linear_ledger,
-                                f"{case_id}/linear/oracle.jsonl",
-                            ),
-                        },
+                        "linear_attention": write_linear_boundary_set(
+                            case_id,
+                            "linear",
+                            contract["divergence_output_index"],
+                        ),
+                        "first_decode_linear_attention": (
+                            write_linear_boundary_set(
+                                case_id,
+                                "first-decode-linear",
+                                FIRST_DECODE_LINEAR_OUTPUT_INDEX,
+                            )
+                        ),
                     }
                 )
             manifest = seal_manifest(
@@ -148,6 +166,7 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
                         "two_target_logits_bound": True,
                         "two_decode_boundary_sets_captured": True,
                         "two_layer0_linear_attention_boundary_sets_captured": True,
+                        "two_first_decode_layer0_linear_attention_boundary_sets_captured": True,
                         "g1_passed": False,
                         "g2_passed": False,
                         "g3_passed": False,
@@ -181,6 +200,8 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
         self.assertIn("target_logits_sha256", source)
         self.assertIn("boundary_singleton_calls", source)
         self.assertIn("linear_singleton_calls", source)
+        self.assertIn("first_decode_linear_captures", source)
+        self.assertIn("FIRST_DECODE_LINEAR_OUTPUT_INDEX", source)
         self.assertIn("instrumented_causal_conv1d_update", source)
         self.assertIn("instrumented_packed_decode", source)
         self.assertIn("for case_id in CASE_ORDER", source)

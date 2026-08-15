@@ -24,6 +24,7 @@ sys.path.insert(0, str(ROOT))
 
 from aima_engine.vl_generation_layer_oracle import (  # noqa: E402
     BOUNDARY_NAMES,
+    FIRST_DECODE_LINEAR_OUTPUT_INDEX,
     GENERATION_LAYER_ORACLE_SCHEMA,
     HIDDEN_SIZE,
     LINEAR_ATTENTION_BOUNDARY_SPECS,
@@ -140,8 +141,9 @@ class InstallGenerationLayerHooks:
             "target_output_index": self.output_index,
             "captures": {},
             "linear_captures": {},
+            "first_decode_linear_captures": {},
             "linear_singleton_calls": 0,
-            "linear_capture_active": False,
+            "linear_capture_kind": None,
             "boundary_singleton_calls": {name: 0 for name in BOUNDARY_NAMES},
             "logits_prefill_calls": 0,
             "logits_decode_calls": 0,
@@ -174,9 +176,15 @@ class InstallGenerationLayerHooks:
         )
 
         def capture_linear(name: str, value: Any) -> None:
-            if not state["linear_capture_active"] or name in state[
-                "linear_captures"
-            ]:
+            capture_kind = state["linear_capture_kind"]
+            if capture_kind is None:
+                return
+            captures = (
+                state["linear_captures"]
+                if capture_kind == "target"
+                else state["first_decode_linear_captures"]
+            )
+            if name in captures:
                 return
             tensor = _first_tensor(value)
             if tensor is None:
@@ -194,7 +202,7 @@ class InstallGenerationLayerHooks:
                     "generation linear-attention boundary geometry changed: "
                     f"{name}/{list(tensor.shape)}/{tensor.dtype}"
                 )
-            state["linear_captures"][name] = (
+            captures[name] = (
                 tensor.detach().reshape(expected_shape).contiguous().cpu()
             )
 
@@ -207,15 +215,19 @@ class InstallGenerationLayerHooks:
             if tensor.shape[0] != 1:
                 return
             state["linear_singleton_calls"] += 1
-            state["linear_capture_active"] = (
-                state["linear_singleton_calls"] == self.output_index
-            )
+            decode_call = state["linear_singleton_calls"]
+            if decode_call == FIRST_DECODE_LINEAR_OUTPUT_INDEX:
+                state["linear_capture_kind"] = "first_decode"
+            elif decode_call == self.output_index:
+                state["linear_capture_kind"] = "target"
+            else:
+                state["linear_capture_kind"] = None
             capture_linear("input_norm", tensor)
 
         def qkvz_projection_hook(
             _module: Any, _args: Any, output: Any
         ) -> None:
-            if not state["linear_capture_active"]:
+            if state["linear_capture_kind"] is None:
                 return
             tensor = _first_tensor(output)
             if tensor is None or tensor.shape != (1, 12_288):
@@ -224,7 +236,7 @@ class InstallGenerationLayerHooks:
             capture_linear("z_projection", tensor[:, 8_192:])
 
         def ba_projection_hook(_module: Any, _args: Any, output: Any) -> None:
-            if not state["linear_capture_active"]:
+            if state["linear_capture_kind"] is None:
                 return
             tensor = _first_tensor(output)
             if tensor is None or tensor.shape != (1, 64):
@@ -242,7 +254,7 @@ class InstallGenerationLayerHooks:
             capture_linear("attention_output", output)
 
         def layer0_output_hook(_module: Any, _args: Any, _output: Any) -> None:
-            state["linear_capture_active"] = False
+            state["linear_capture_kind"] = None
 
         def instrumented_causal_conv1d_update(
             *args: Any, **kwargs: Any
@@ -252,7 +264,7 @@ class InstallGenerationLayerHooks:
                 isinstance(weight, torch.Tensor)
                 and weight.data_ptr() == state["layer0_conv_weight_pointer"]
             )
-            if not state["linear_capture_active"] or not is_layer0:
+            if state["linear_capture_kind"] is None or not is_layer0:
                 return state["original_causal_conv1d_update"](*args, **kwargs)
             conv_state = args[1] if len(args) > 1 else kwargs.get("conv_state")
             indices = kwargs.get("conv_state_indices")
@@ -273,7 +285,7 @@ class InstallGenerationLayerHooks:
                 isinstance(a_log, torch.Tensor)
                 and a_log.data_ptr() == state["layer0_a_log_pointer"]
             )
-            if not state["linear_capture_active"] or not is_layer0:
+            if state["linear_capture_kind"] is None or not is_layer0:
                 return state["original_packed_decode"](*args, **kwargs)
             initial_state = (
                 args[6] if len(args) > 6 else kwargs.get("initial_state")
@@ -429,6 +441,18 @@ class FinalizeGenerationLayerHooks:
                 "missing target layer-0 linear-attention boundaries: "
                 + ", ".join(sorted(missing_linear))
             )
+        first_decode_linear_captures = state[
+            "first_decode_linear_captures"
+        ]
+        missing_first_decode_linear = set(
+            LINEAR_ATTENTION_BOUNDARY_SPECS
+        ) - set(first_decode_linear_captures)
+        if missing_first_decode_linear:
+            _remove_hooks(root, state)
+            raise RuntimeError(
+                "missing first-decode layer-0 linear-attention boundaries: "
+                + ", ".join(sorted(missing_first_decode_linear))
+            )
         target_call = state["target_output_index"]
         capture_calls = {
             state["boundary_singleton_calls"][name] for name in BOUNDARY_NAMES
@@ -462,31 +486,54 @@ class FinalizeGenerationLayerHooks:
         ]
         ledger = case_root / "oracle.jsonl"
         ledger.write_text("\n".join(oracle_lines) + "\n", encoding="utf-8")
-        linear_components = {
-            name: write_raw_tensor(
-                output_root,
-                f"{case_id}/linear/components/{name}",
-                linear_captures[name],
+
+        def write_linear_boundary_set(
+            directory: str,
+            values: dict[str, Any],
+            target_decode_call: int,
+        ) -> dict[str, Any]:
+            boundary_components = {
+                name: write_raw_tensor(
+                    output_root,
+                    f"{case_id}/{directory}/components/{name}",
+                    values[name],
+                )
+                for name in LINEAR_ATTENTION_BOUNDARY_SPECS
+            }
+            lines = [
+                json.dumps(
+                    {
+                        "event": "native_layer_oracle_tensor",
+                        "label": name,
+                        "file": Path(boundary_components[name]["path"])
+                        .relative_to(f"{case_id}/{directory}")
+                        .as_posix(),
+                    },
+                    sort_keys=True,
+                    separators=(",", ":"),
+                )
+                for name in LINEAR_ATTENTION_BOUNDARY_SPECS
+            ]
+            boundary_ledger = case_root / directory / "oracle.jsonl"
+            boundary_ledger.write_text(
+                "\n".join(lines) + "\n", encoding="utf-8"
             )
-            for name in LINEAR_ATTENTION_BOUNDARY_SPECS
-        }
-        linear_oracle_lines = [
-            json.dumps(
-                {
-                    "event": "native_layer_oracle_tensor",
-                    "label": name,
-                    "file": Path(linear_components[name]["path"])
-                    .relative_to(f"{case_id}/linear")
-                    .as_posix(),
-                },
-                sort_keys=True,
-                separators=(",", ":"),
-            )
-            for name in LINEAR_ATTENTION_BOUNDARY_SPECS
-        ]
-        linear_ledger = case_root / "linear" / "oracle.jsonl"
-        linear_ledger.write_text(
-            "\n".join(linear_oracle_lines) + "\n", encoding="utf-8"
+            return {
+                "target_decode_call": target_decode_call,
+                "components": boundary_components,
+                "oracle_jsonl": file_component(
+                    boundary_ledger,
+                    f"{case_id}/{directory}/oracle.jsonl",
+                ),
+            }
+
+        linear_attention = write_linear_boundary_set(
+            "linear", linear_captures, target_call
+        )
+        first_decode_linear_attention = write_linear_boundary_set(
+            "first-decode-linear",
+            first_decode_linear_captures,
+            FIRST_DECODE_LINEAR_OUTPUT_INDEX,
         )
         result = {
             "components": components,
@@ -503,13 +550,8 @@ class FinalizeGenerationLayerHooks:
             "target_logits_top1_token_id": state[
                 "target_logits_top1_token_id"
             ],
-            "linear_attention": {
-                "target_decode_call": state["linear_singleton_calls"],
-                "components": linear_components,
-                "oracle_jsonl": file_component(
-                    linear_ledger, f"{case_id}/linear/oracle.jsonl"
-                ),
-            },
+            "linear_attention": linear_attention,
+            "first_decode_linear_attention": first_decode_linear_attention,
         }
         _remove_hooks(root, state)
         return result
@@ -768,8 +810,8 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
             "complete": True,
             "qualified_for_decode_attribution": True,
             "scope": (
-                "two-fixed-vllm-vl-target-decode-layer-and-layer0-linear-"
-                "attention-boundary-sets"
+                "two-fixed-vllm-vl-target-decode-layer-plus-target-and-first-"
+                "decode-layer0-linear-attention-boundary-sets"
             ),
             "source": {
                 **source,
@@ -811,6 +853,9 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
                 "two_target_logits_bound": len(cases) == 2,
                 "two_decode_boundary_sets_captured": len(cases) == 2,
                 "two_layer0_linear_attention_boundary_sets_captured": (
+                    len(cases) == 2
+                ),
+                "two_first_decode_layer0_linear_attention_boundary_sets_captured": (
                     len(cases) == 2
                 ),
                 "g1_passed": False,

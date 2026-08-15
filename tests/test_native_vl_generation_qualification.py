@@ -6,7 +6,10 @@ import tempfile
 import unittest
 
 from aima_engine.vl_generation_oracle import CASE_CONTRACTS, CASE_ORDER
-from aima_engine.vl_generation_layer_oracle import BOUNDARY_NAMES
+from aima_engine.vl_generation_layer_oracle import (
+    BOUNDARY_NAMES,
+    NATIVE_LINEAR_ATTENTION_BOUNDARY_NAMES,
+)
 from aima_engine.vl_prefill_state_oracle import STATE_COMPONENT_NAMES
 
 
@@ -127,6 +130,21 @@ class NativeVlGenerationQualificationTest(unittest.TestCase):
                 }
                 for name in BOUNDARY_NAMES
             ]
+            linear_components = {
+                name: {"sha256": f"{index + 100:064x}"}
+                for index, name in enumerate(
+                    NATIVE_LINEAR_ATTENTION_BOUNDARY_NAMES, start=1
+                )
+            }
+            linear_boundaries = [
+                {
+                    "label": name,
+                    "elements": 1,
+                    "finite_elements": 1,
+                    "expected_sha256": linear_components[name]["sha256"],
+                }
+                for name in NATIVE_LINEAR_ATTENTION_BOUNDARY_NAMES
+            ]
             oracle_cases.append(
                 {
                     "case_id": case_id,
@@ -135,7 +153,11 @@ class NativeVlGenerationQualificationTest(unittest.TestCase):
                 }
             )
             layer_cases.append(
-                {"case_id": case_id, "components": components}
+                {
+                    "case_id": case_id,
+                    "components": components,
+                    "linear_attention": {"components": linear_components},
+                }
             )
             probe_cases.append(
                 {
@@ -146,6 +168,9 @@ class NativeVlGenerationQualificationTest(unittest.TestCase):
                     "decode_boundaries_complete": True,
                     "decode_boundaries_finite": True,
                     "decode_boundaries": boundaries,
+                    "decode_linear_boundaries_complete": True,
+                    "decode_linear_boundaries_finite": True,
+                    "decode_linear_boundaries": linear_boundaries,
                     "request_metrics": {
                         "prompt_token_ids_sha256": prompt_sha,
                         "vl": {"enabled": True},
@@ -178,6 +203,9 @@ class NativeVlGenerationQualificationTest(unittest.TestCase):
             self.assertTrue(checks[f"{case_id}_decode_boundaries_complete"])
             self.assertTrue(checks[f"{case_id}_decode_boundaries_finite"])
             self.assertTrue(checks[f"{case_id}_decode_boundary_rows_bound"])
+            self.assertTrue(
+                checks[f"{case_id}_decode_linear_boundary_rows_bound"]
+            )
 
     def test_prefill_state_checks_bind_all_linear_layer_states(self) -> None:
         oracle_cases = []
