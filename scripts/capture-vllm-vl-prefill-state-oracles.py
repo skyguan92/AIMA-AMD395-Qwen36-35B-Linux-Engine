@@ -115,7 +115,7 @@ class InstallPrefillStateHooks:
             "case_id": self.case_id,
             "captures": {},
             "capture_decode_call": 0,
-            "cache_index": None,
+            "cache_indices": {},
             "conv_state_dim_first": None,
             "layer0_attention": layer0_attention,
             "original_forward_core": original_forward_core,
@@ -136,14 +136,7 @@ class InstallPrefillStateHooks:
             state["capture_decode_call"] += 1
             if state["captures"]:
                 return
-            indices = metadata.non_spec_state_indices_tensor.flatten()
-            if indices.numel() < 1:
-                raise RuntimeError("decode state index is unavailable")
-            cache_index = int(indices[0].item())
-            if cache_index < 0:
-                raise RuntimeError("decode state index is invalid")
             dim_first = bool(gdn_module.is_conv_state_dim_first())
-            state["cache_index"] = cache_index
             state["conv_state_dim_first"] = dim_first
             for layer_index in LINEAR_LAYER_INDICES:
                 layer = language.model.layers[layer_index]
@@ -152,6 +145,18 @@ class InstallPrefillStateHooks:
                         f"language layer {layer_index} is not linear attention"
                     )
                 attention = layer.linear_attn
+                layer_metadata = context.attn_metadata[attention.prefix]
+                indices = layer_metadata.non_spec_state_indices_tensor.flatten()
+                if indices.numel() < 1:
+                    raise RuntimeError(
+                        f"layer {layer_index} decode state index is unavailable"
+                    )
+                cache_index = int(indices[0].item())
+                if cache_index < 0:
+                    raise RuntimeError(
+                        f"layer {layer_index} decode state index is invalid"
+                    )
+                state["cache_indices"][str(layer_index)] = cache_index
                 conv_cache, recurrent_cache = attention.kv_cache
                 conv_cache = (
                     conv_cache
@@ -241,7 +246,7 @@ class FinalizePrefillStateHooks:
             "oracle_jsonl": file_component(ledger, f"{case_id}/oracle.jsonl"),
             "capture_decode_call": 1,
             "observed_decode_calls": state["capture_decode_call"],
-            "cache_index": state["cache_index"],
+            "cache_indices": state["cache_indices"],
             "conv_state_dim_first": state["conv_state_dim_first"],
         }
         _remove_hooks(root, state)

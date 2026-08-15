@@ -86,6 +86,7 @@ class VlPrefillStateOracleTest(unittest.TestCase):
         self.assertIn("max_tokens=2", source)
         self.assertIn("original_forward_core", source)
         self.assertIn("non_spec_state_indices_tensor", source)
+        self.assertIn("context.attn_metadata[attention.prefix]", source)
         self.assertIn("for case_id in CASE_ORDER", source)
 
     def test_native_observer_is_qualification_only(self) -> None:
