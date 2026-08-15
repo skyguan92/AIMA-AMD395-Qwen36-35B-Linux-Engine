@@ -10,12 +10,6 @@
     },
     {
       "gaps": [
-        "HTTPS acceptance is unit-tested but not paired to a frozen vLLM request"
-      ],
-      "requirement_id": "G1.2.1.transport"
-    },
-    {
-      "gaps": [
         "historical numerical evidence is source-hash bound to earlier commits",
         "current HEAD still requires consolidated processor-to-output requalification"
       ],
@@ -35,29 +29,14 @@
         "the complete G3 text and release no-regression protocol has not run"
       ],
       "requirement_id": "G1.2.3.product_preservation"
-    },
-    {
-      "gaps": [
-        "video sampling parameter changes have no independent cache regression",
-        "video content A/B/A identity is not live-qualified",
-        "mixed-media reordered or mutated content identity is not live-qualified"
-      ],
-      "requirement_id": "G1.2.4.cache_identity"
-    },
-    {
-      "gaps": [
-        "hit/miss equivalence is only one generated token and does not bind usage or full logits",
-        "cache-disabled and cache-influenced error semantics are not live-qualified"
-      ],
-      "requirement_id": "G1.2.4.cache_invariance"
     }
   ],
   "complete": true,
   "coverage": {
     "counts": {
-      "covered": 7,
+      "covered": 10,
       "missing": 0,
-      "partial": 7
+      "partial": 4
     },
     "items": [
       {
@@ -227,6 +206,16 @@
           {
             "artifact": "resident_serving",
             "note": "five frozen private-oracle 8-token generations preserved"
+          },
+          {
+            "artifact": "transport_cache_native",
+            "case_ids": [
+              "video_content_a_cold",
+              "video_content_b_miss",
+              "video_content_a_disabled_1",
+              "video_content_b_disabled"
+            ],
+            "note": "8-token video outputs and usage are reference-exact with cache enabled and disabled"
           }
         ],
         "gaps": [
@@ -271,13 +260,26 @@
           {
             "artifact": "resident_serving",
             "note": "same HTTP URL A/B/A and video local/data content equivalence are live-qualified"
+          },
+          {
+            "artifact": "transport_cache_reference",
+            "case_ids": [
+              "https_image"
+            ],
+            "note": "verified loopback HTTPS is frozen on fixed vLLM"
+          },
+          {
+            "artifact": "transport_cache_native",
+            "case_ids": [
+              "https_image_cold",
+              "https_image_exact"
+            ],
+            "note": "native verified-CA HTTPS is reference-exact on cold and resident reuse"
           }
         ],
-        "gaps": [
-          "HTTPS acceptance is unit-tested but not paired to a frozen vLLM request"
-        ],
+        "gaps": [],
         "requirement_id": "G1.2.1.transport",
-        "status": "partial",
+        "status": "covered",
         "title": "URL, data URI/base64, local file and media-format transport"
       },
       {
@@ -320,6 +322,10 @@
           {
             "artifact": "execution_envelope",
             "note": "current long-window M-RoPE execution and launch accounting"
+          },
+          {
+            "artifact": "transport_cache_native",
+            "note": "current runtime binds vLLM-exact sampling, mixed ordering, prompt tokens, outputs and usage"
           }
         ],
         "gaps": [
@@ -359,6 +365,14 @@
               "video_count_over_limit"
             ],
             "note": "six min/aspect/count envelope rejections"
+          },
+          {
+            "artifact": "transport_cache_native",
+            "case_ids": [
+              "video_content_error",
+              "video_content_error_disabled"
+            ],
+            "note": "corrupt-video status is reference-exact and invariant to cache mode"
           }
         ],
         "gaps": [
@@ -402,15 +416,29 @@
           {
             "artifact": "cache_identity_unit",
             "note": "content, order, processor identity and token span affect namespace"
+          },
+          {
+            "artifact": "transport_cache_native",
+            "case_ids": [
+              "video_content_a_cold",
+              "video_content_b_miss",
+              "video_content_a_restored",
+              "video_sampling_default",
+              "video_sampling_fps_1",
+              "video_sampling_default_restored",
+              "video_sampling_num_frames_6",
+              "video_sampling_num_frames_6_exact",
+              "mixed_image_video",
+              "mixed_video_image_reordered",
+              "mixed_mutated_image_video",
+              "mixed_image_video_restored"
+            ],
+            "note": "live A/B/A covers video bytes, sampling policy, mixed order and media mutation"
           }
         ],
-        "gaps": [
-          "video sampling parameter changes have no independent cache regression",
-          "video content A/B/A identity is not live-qualified",
-          "mixed-media reordered or mutated content identity is not live-qualified"
-        ],
+        "gaps": [],
         "requirement_id": "G1.2.4.cache_identity",
-        "status": "partial",
+        "status": "covered",
         "title": "Content-addressed media identity and conservative cache reuse"
       },
       {
@@ -418,14 +446,25 @@
           {
             "artifact": "resident_serving",
             "note": "image A/B/A plus video and mixed cold/hit outputs remain token-exact"
+          },
+          {
+            "artifact": "transport_cache_native",
+            "case_ids": [
+              "video_content_error",
+              "video_content_error_disabled",
+              "video_content_a_disabled_1",
+              "video_content_a_disabled_2",
+              "video_sampling_default_disabled_1",
+              "video_sampling_default_disabled_2",
+              "mixed_image_video_disabled_1",
+              "mixed_image_video_disabled_2"
+            ],
+            "note": "8-token output and usage equality, all-miss disabled mode, and error status/payload invariance are live-qualified"
           }
         ],
-        "gaps": [
-          "hit/miss equivalence is only one generated token and does not bind usage or full logits",
-          "cache-disabled and cache-influenced error semantics are not live-qualified"
-        ],
+        "gaps": [],
         "requirement_id": "G1.2.4.cache_invariance",
-        "status": "partial",
+        "status": "covered",
         "title": "Cache changes latency only, never outputs or request semantics"
       }
     ],
@@ -454,9 +493,9 @@
       "sha256": "4f1bb7f0349b9c6b70bd0af876fa70c4b6be3b81f7b3750f45a24eb0d609b910"
     },
     "generator": {
-      "bytes": 25079,
+      "bytes": 29685,
       "path": "scripts/generate-native-vl-g1-coverage-audit.py",
-      "sha256": "dabbd210f714b6a7812e56369acacacbf918d37836a3858620e4765f328b03e1"
+      "sha256": "de9cc5ac9712eb1d1fcb6723e075ad00de969d9f9d34977f415ac93427c0af06"
     },
     "goal": {
       "bytes": 17981,
@@ -493,6 +532,16 @@
       "path": "benchmarks/results/native-vl-serving-v0.1.0.json",
       "sha256": "9a894c5e54b8ca95160629e2fad7ca2eff6fa27a78ba91b83a795b87ec434fe2"
     },
+    "transport_cache_native": {
+      "bytes": 210900,
+      "path": "benchmarks/results/native-vl-transport-cache-v0.1.0.json",
+      "sha256": "9f577990025ff785d2af54f394732eaf08b3f1fc91b4c53212971e191edbb66b"
+    },
+    "transport_cache_reference": {
+      "bytes": 58936,
+      "path": "benchmarks/results/vl-transport-cache-reference-v0.1.0.json",
+      "sha256": "d98433b1be1cd8264947c116073c88287d8181a0ad8a7e60cce868238b48607a"
+    },
     "vision_pipeline": {
       "bytes": 12538,
       "path": "benchmarks/results/native-vision-pipeline-v0.1.0.json",
@@ -501,25 +550,9 @@
   },
   "integrity": {
     "algorithm": "sha256",
-    "canonical_payload_sha256": "11c85403b1c810200279fb5889773dbcad38a91279cf4425fc30e3be34afd84a"
+    "canonical_payload_sha256": "adc41b25308d425c2cab940cc3447a725bd527fa6d40cc6ef7092174bc311f40"
   },
   "next_evidence": [
-    {
-      "cases": [
-        "https_reference_parity",
-        "cache_video_sampling_parameters",
-        "cache_video_content_mutation_aba",
-        "cache_mixed_order_mutation_identity",
-        "cache_hit_miss_long_generation_usage",
-        "cache_disabled_and_error_semantics"
-      ],
-      "evidence_id": "g1-transport-cache-extension",
-      "requirement_ids": [
-        "G1.2.1.transport",
-        "G1.2.4.cache_identity",
-        "G1.2.4.cache_invariance"
-      ]
-    },
     {
       "cases": [
         "error_empty_image",

@@ -47,6 +47,13 @@ ARTIFACT_PATHS = {
     "mixed_conversation_native": (
         ROOT / "benchmarks/results/native-vl-g1-extension-v0.1.0.json"
     ),
+    "transport_cache_reference": (
+        ROOT
+        / "benchmarks/results/vl-transport-cache-reference-v0.1.0.json"
+    ),
+    "transport_cache_native": (
+        ROOT / "benchmarks/results/native-vl-transport-cache-v0.1.0.json"
+    ),
     "vision_pipeline": (
         ROOT / "benchmarks/results/native-vision-pipeline-v0.1.0.json"
     ),
@@ -235,6 +242,17 @@ def build_requirements() -> list[dict[str, Any]]:
                     "resident_serving",
                     note="five frozen private-oracle 8-token generations preserved",
                 ),
+                evidence(
+                    "transport_cache_native",
+                    "video_content_a_cold",
+                    "video_content_b_miss",
+                    "video_content_a_disabled_1",
+                    "video_content_b_disabled",
+                    note=(
+                        "8-token video outputs and usage are reference-exact with "
+                        "cache enabled and disabled"
+                    ),
+                ),
             ],
             [
                 "four capability cases still differ in completion or usage",
@@ -258,7 +276,7 @@ def build_requirements() -> list[dict[str, Any]]:
         requirement(
             "G1.2.1.transport",
             "URL, data URI/base64, local file and media-format transport",
-            "partial",
+            "covered",
             [
                 evidence(
                     "native_capability",
@@ -277,9 +295,20 @@ def build_requirements() -> list[dict[str, Any]]:
                         "equivalence are live-qualified"
                     ),
                 ),
-            ],
-            [
-                "HTTPS acceptance is unit-tested but not paired to a frozen vLLM request",
+                evidence(
+                    "transport_cache_reference",
+                    "https_image",
+                    note="verified loopback HTTPS is frozen on fixed vLLM",
+                ),
+                evidence(
+                    "transport_cache_native",
+                    "https_image_cold",
+                    "https_image_exact",
+                    note=(
+                        "native verified-CA HTTPS is reference-exact on cold and "
+                        "resident reuse"
+                    ),
+                ),
             ],
         ),
         requirement(
@@ -323,6 +352,13 @@ def build_requirements() -> list[dict[str, Any]]:
                     "execution_envelope",
                     note="current long-window M-RoPE execution and launch accounting",
                 ),
+                evidence(
+                    "transport_cache_native",
+                    note=(
+                        "current runtime binds vLLM-exact sampling, mixed ordering, "
+                        "prompt tokens, outputs and usage"
+                    ),
+                ),
             ],
             [
                 "historical numerical evidence is source-hash bound to earlier commits",
@@ -358,6 +394,15 @@ def build_requirements() -> list[dict[str, Any]]:
                     "video_count_over_limit",
                     note="six min/aspect/count envelope rejections",
                 ),
+                evidence(
+                    "transport_cache_native",
+                    "video_content_error",
+                    "video_content_error_disabled",
+                    note=(
+                        "corrupt-video status is reference-exact and invariant to "
+                        "cache mode"
+                    ),
+                ),
             ],
             [
                 "empty image and empty video categories are not frozen",
@@ -387,7 +432,7 @@ def build_requirements() -> list[dict[str, Any]]:
         requirement(
             "G1.2.4.cache_identity",
             "Content-addressed media identity and conservative cache reuse",
-            "partial",
+            "covered",
             [
                 evidence(
                     "resident_serving",
@@ -400,17 +445,31 @@ def build_requirements() -> list[dict[str, Any]]:
                     "cache_identity_unit",
                     note="content, order, processor identity and token span affect namespace",
                 ),
-            ],
-            [
-                "video sampling parameter changes have no independent cache regression",
-                "video content A/B/A identity is not live-qualified",
-                "mixed-media reordered or mutated content identity is not live-qualified",
+                evidence(
+                    "transport_cache_native",
+                    "video_content_a_cold",
+                    "video_content_b_miss",
+                    "video_content_a_restored",
+                    "video_sampling_default",
+                    "video_sampling_fps_1",
+                    "video_sampling_default_restored",
+                    "video_sampling_num_frames_6",
+                    "video_sampling_num_frames_6_exact",
+                    "mixed_image_video",
+                    "mixed_video_image_reordered",
+                    "mixed_mutated_image_video",
+                    "mixed_image_video_restored",
+                    note=(
+                        "live A/B/A covers video bytes, sampling policy, mixed order "
+                        "and media mutation"
+                    ),
+                ),
             ],
         ),
         requirement(
             "G1.2.4.cache_invariance",
             "Cache changes latency only, never outputs or request semantics",
-            "partial",
+            "covered",
             [
                 evidence(
                     "resident_serving",
@@ -418,21 +477,36 @@ def build_requirements() -> list[dict[str, Any]]:
                         "image A/B/A plus video and mixed cold/hit outputs "
                         "remain token-exact"
                     ),
-                )
-            ],
-            [
-                "hit/miss equivalence is only one generated token and does not bind usage or full logits",
-                "cache-disabled and cache-influenced error semantics are not live-qualified",
+                ),
+                evidence(
+                    "transport_cache_native",
+                    "video_content_error",
+                    "video_content_error_disabled",
+                    "video_content_a_disabled_1",
+                    "video_content_a_disabled_2",
+                    "video_sampling_default_disabled_1",
+                    "video_sampling_default_disabled_2",
+                    "mixed_image_video_disabled_1",
+                    "mixed_image_video_disabled_2",
+                    note=(
+                        "8-token output and usage equality, all-miss disabled mode, "
+                        "and error status/payload invariance are live-qualified"
+                    ),
+                ),
             ],
         ),
     ]
 
 
-def case_map(payload: dict[str, Any], path: tuple[str, ...]) -> dict[str, Any]:
+def case_map(
+    payload: dict[str, Any],
+    path: tuple[str, ...],
+    id_field: str = "case_id",
+) -> dict[str, Any]:
     value: Any = payload
     for key in path:
         value = value[key]
-    return {item["case_id"]: item for item in value}
+    return {item[id_field]: item for item in value}
 
 
 def validate_inputs(payloads: dict[str, dict[str, Any]]) -> None:
@@ -441,6 +515,8 @@ def validate_inputs(payloads: dict[str, dict[str, Any]]) -> None:
     serving = payloads["resident_serving"]
     extension_reference = payloads["mixed_conversation_reference"]
     extension_native = payloads["mixed_conversation_native"]
+    transport_reference = payloads["transport_cache_reference"]
+    transport_native = payloads["transport_cache_native"]
     vision = payloads["vision_pipeline"]
     language = payloads["language_boundary"]
     for name, payload in (
@@ -449,6 +525,8 @@ def validate_inputs(payloads: dict[str, dict[str, Any]]) -> None:
         ("resident serving", serving),
         ("mixed/conversation reference", extension_reference),
         ("mixed/conversation native", extension_native),
+        ("transport/cache reference", transport_reference),
+        ("transport/cache native", transport_native),
     ):
         if payload.get("complete") is not True or payload.get("qualified") is not True:
             raise SystemExit(f"{name} evidence is not complete and qualified")
@@ -497,6 +575,36 @@ def validate_inputs(payloads: dict[str, dict[str, Any]]) -> None:
             raise SystemExit(
                 f"mixed/conversation native evidence is missing: {decision}"
             )
+    if transport_reference["source"].get("commit") != transport_native[
+        "source"
+    ].get("commit"):
+        raise SystemExit("transport/cache reference and native commits differ")
+    transport_binding = transport_native["dependencies"].get("reference", {})
+    expected_transport_reference = file_component(
+        ARTIFACT_PATHS["transport_cache_reference"],
+        "benchmarks/results/vl-transport-cache-reference-v0.1.0.json",
+    )
+    if transport_binding != expected_transport_reference:
+        raise SystemExit("transport/cache native reference binding changed")
+    if not all(transport_reference["qualification_checks"].values()):
+        raise SystemExit("transport/cache reference contains a failed check")
+    for checks in transport_native["qualification_checks"].values():
+        if not all(checks.values()):
+            raise SystemExit("transport/cache native contains a failed check")
+    for decision in (
+        "all_observations_reference_exact",
+        "verified_https_qualified",
+        "video_sampling_cache_identity_qualified",
+        "video_content_a_b_a_qualified",
+        "mixed_order_mutation_qualified",
+        "long_generation_usage_qualified",
+        "cache_disabled_and_error_invariance_qualified",
+        "two_resident_model_loads",
+    ):
+        if transport_native["decision"].get(decision) is not True:
+            raise SystemExit(
+                f"transport/cache native evidence is missing: {decision}"
+            )
 
 
 def build_payload() -> dict[str, Any]:
@@ -512,6 +620,21 @@ def build_payload() -> dict[str, Any]:
         payloads["execution_envelope"], ("matrix", "observations")
     )
     extension_cases = case_map(payloads["mixed_conversation_native"], ("cases",))
+    transport_reference_cases = case_map(
+        payloads["transport_cache_reference"], ("cases",)
+    )
+    transport_native_cases = {
+        **case_map(
+            payloads["transport_cache_native"],
+            ("runs", "cache_enabled", "cases"),
+            "observation_id",
+        ),
+        **case_map(
+            payloads["transport_cache_native"],
+            ("runs", "cache_disabled", "cases"),
+            "observation_id",
+        ),
+    }
     for item in requirements:
         for record in item["evidence"]:
             artifact = record["artifact"]
@@ -525,6 +648,10 @@ def build_payload() -> dict[str, Any]:
                 if artifact == "execution_envelope"
                 else extension_cases
                 if artifact == "mixed_conversation_native"
+                else transport_reference_cases
+                if artifact == "transport_cache_reference"
+                else transport_native_cases
+                if artifact == "transport_cache_native"
                 else None
             )
             if available is None:
@@ -569,22 +696,6 @@ def build_payload() -> dict[str, Any]:
         },
         "blocking_gaps": blockers,
         "next_evidence": [
-            {
-                "evidence_id": "g1-transport-cache-extension",
-                "requirement_ids": [
-                    "G1.2.1.transport",
-                    "G1.2.4.cache_identity",
-                    "G1.2.4.cache_invariance",
-                ],
-                "cases": [
-                    "https_reference_parity",
-                    "cache_video_sampling_parameters",
-                    "cache_video_content_mutation_aba",
-                    "cache_mixed_order_mutation_identity",
-                    "cache_hit_miss_long_generation_usage",
-                    "cache_disabled_and_error_semantics",
-                ],
-            },
             {
                 "evidence_id": "g1-error-extension",
                 "requirement_ids": ["G1.2.2.error_parity"],

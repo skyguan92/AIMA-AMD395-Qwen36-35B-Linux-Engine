@@ -74,7 +74,7 @@ class NativeVlG1CoverageAuditTest(unittest.TestCase):
         self.assertEqual(coverage["requirements"], 14)
         self.assertEqual(
             coverage["counts"],
-            {"covered": 7, "partial": 7, "missing": 0},
+            {"covered": 10, "partial": 4, "missing": 0},
         )
         items = coverage["items"]
         self.assertEqual(len(items), len({item["requirement_id"] for item in items}))
@@ -84,7 +84,7 @@ class NativeVlG1CoverageAuditTest(unittest.TestCase):
                 for item in items
             )
         )
-        self.assertEqual(len(result["blocking_gaps"]), 7)
+        self.assertEqual(len(result["blocking_gaps"]), 4)
 
     def test_referenced_native_cases_exist_and_are_qualified(self) -> None:
         native = json.loads(
@@ -115,6 +115,26 @@ class NativeVlG1CoverageAuditTest(unittest.TestCase):
                 )["cases"]
             },
         }
+        transport = json.loads(
+            (
+                ROOT
+                / "benchmarks/results/native-vl-transport-cache-v0.1.0.json"
+            ).read_text(encoding="utf-8")
+        )
+        case_maps["transport_cache_reference"] = {
+            item["case_id"]: item
+            for item in json.loads(
+                (
+                    ROOT
+                    / "benchmarks/results/vl-transport-cache-reference-v0.1.0.json"
+                ).read_text(encoding="utf-8")
+            )["cases"]
+        }
+        case_maps["transport_cache_native"] = {
+            item["observation_id"]: item
+            for run in transport["runs"].values()
+            for item in run["cases"]
+        }
         for requirement in self.result["coverage"]["items"]:
             for record in requirement["evidence"]:
                 for case_id in record.get("case_ids", []):
@@ -123,7 +143,6 @@ class NativeVlG1CoverageAuditTest(unittest.TestCase):
 
     def test_next_evidence_names_every_blocking_workstream(self) -> None:
         expected = {
-            "g1-transport-cache-extension",
             "g1-error-extension",
             "g1-generation-and-current-head-requalification",
         }
@@ -140,19 +159,6 @@ class NativeVlG1CoverageAuditTest(unittest.TestCase):
             item["requirement_id"] for item in self.result["blocking_gaps"]
         }
         self.assertEqual(covered, blocked)
-
-        transport_cache = next(
-            item
-            for item in self.result["next_evidence"]
-            if item["evidence_id"] == "g1-transport-cache-extension"
-        )
-        self.assertNotIn("cache_http_url_mutation_aba", transport_cache["cases"])
-        self.assertNotIn(
-            "cache_video_data_local_equivalence", transport_cache["cases"]
-        )
-        self.assertIn(
-            "cache_hit_miss_long_generation_usage", transport_cache["cases"]
-        )
 
     def test_audit_does_not_promote_any_product_gate(self) -> None:
         decision = self.result["decision"]
