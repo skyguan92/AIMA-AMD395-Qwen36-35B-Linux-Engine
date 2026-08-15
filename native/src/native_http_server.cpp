@@ -33,6 +33,7 @@
 #include <fstream>
 #include <iostream>
 #include <iomanip>
+#include <iterator>
 #include <limits>
 #include <memory>
 #include <optional>
@@ -1590,10 +1591,14 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
         !item.contains("expected_reference_token_id") ||
         !item["expected_reference_token_id"].is_number_unsigned() ||
         !item.contains("reference_logits") ||
-        !item["reference_logits"].is_string()) {
+        !item["reference_logits"].is_string() ||
+        (item.contains("diagnostic_allow_prefix_divergence") &&
+         !item["diagnostic_allow_prefix_divergence"].is_boolean())) {
       throw std::runtime_error("VL generation case is malformed");
     }
     const std::string case_id = item["case_id"].get<std::string>();
+    const bool diagnostic_allow_prefix_divergence =
+        item.value("diagnostic_allow_prefix_divergence", false);
     std::vector<std::uint32_t> expected_prefix;
     expected_prefix.reserve(item["expected_prefix_token_ids"].size());
     for (const Json& token : item["expected_prefix_token_ids"]) {
@@ -1821,9 +1826,18 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
     const bool prefix_exact = std::equal(
         expected_prefix.begin(), expected_prefix.end(),
         metrics.output_token_ids.begin());
-    if (!prefix_exact) {
+    if (!prefix_exact && !diagnostic_allow_prefix_divergence) {
+      const auto mismatch = std::mismatch(
+          expected_prefix.begin(), expected_prefix.end(),
+          metrics.output_token_ids.begin());
+      const std::size_t mismatch_index = static_cast<std::size_t>(
+          std::distance(expected_prefix.begin(), mismatch.first));
       throw std::runtime_error(
-          "native VL generation diverged before the diagnostic token");
+          "native VL generation diverged before the diagnostic token: " +
+          case_id + " output_index=" + std::to_string(mismatch_index) +
+          " expected=" + std::to_string(expected_prefix[mismatch_index]) +
+          " actual=" +
+          std::to_string(metrics.output_token_ids[mismatch_index]));
     }
     const NativeLogitsComparison comparison =
         engine.compare_current_logits(reference_logits);
@@ -1881,6 +1895,8 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
          {"selected_native_token_id", selected_token},
          {"output_token_ids", metrics.output_token_ids},
          {"prefix_exact", prefix_exact},
+         {"diagnostic_prefix_divergence_allowed",
+          diagnostic_allow_prefix_divergence},
          {"selected_reference_token", selected_reference},
          {"request_metrics", request_metrics_json(metrics)},
          {"prefill_states_complete",

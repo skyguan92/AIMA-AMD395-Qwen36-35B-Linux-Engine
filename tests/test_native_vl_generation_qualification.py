@@ -53,6 +53,16 @@ class NativeVlGenerationQualificationTest(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "fixture changed"):
                 self.module.materialize_request(request, root)
 
+    def test_prefix_divergence_diagnostic_is_explicit_and_non_default(self) -> None:
+        source = (ROOT / "native/src/native_http_server.cpp").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("diagnostic_allow_prefix_divergence", source)
+        self.assertIn(
+            'item.value("diagnostic_allow_prefix_divergence", false)', source
+        )
+        self.assertIn("output_index=", source)
+
     def test_checks_separate_setup_from_current_native_mismatch(self) -> None:
         oracle_cases = []
         probe_cases = []
