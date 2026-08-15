@@ -10,6 +10,7 @@ from aima_engine.vl_generation_layer_oracle import (
     BOUNDARY_NAMES,
     GENERATION_LAYER_ORACLE_SCHEMA,
     HIDDEN_SIZE,
+    LINEAR_ATTENTION_BOUNDARY_SPECS,
     validate_generation_layer_oracle_manifest,
 )
 from aima_engine.vl_generation_oracle import CASE_CONTRACTS, CASE_ORDER
@@ -65,6 +66,45 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
                 ledger.write_text(
                     "\n".join(ledger_lines) + "\n", encoding="utf-8"
                 )
+                linear_components = {}
+                linear_ledger_lines = []
+                for name, (shape, dtype, element_size) in (
+                    LINEAR_ATTENTION_BOUNDARY_SPECS.items()
+                ):
+                    elements = 1
+                    for dimension in shape:
+                        elements *= dimension
+                    linear_raw = b"\x00" * (elements * element_size)
+                    relative = (
+                        Path(case_id) / "linear" / "components" / f"{name}.bin"
+                    )
+                    path = root / relative
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_bytes(linear_raw)
+                    linear_components[name] = {
+                        "schema": TENSOR_SCHEMA,
+                        "path": relative.as_posix(),
+                        "shape": shape,
+                        "dtype": dtype,
+                        "element_size": element_size,
+                        "bytes": len(linear_raw),
+                        "sha256": hashlib.sha256(linear_raw).hexdigest(),
+                    }
+                    linear_ledger_lines.append(
+                        json.dumps(
+                            {
+                                "event": "native_layer_oracle_tensor",
+                                "label": name,
+                                "file": f"components/{name}.bin",
+                            },
+                            sort_keys=True,
+                            separators=(",", ":"),
+                        )
+                    )
+                linear_ledger = root / case_id / "linear" / "oracle.jsonl"
+                linear_ledger.write_text(
+                    "\n".join(linear_ledger_lines) + "\n", encoding="utf-8"
+                )
                 cases.append(
                     {
                         "case_id": case_id,
@@ -83,6 +123,16 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
                         "oracle_jsonl": file_component(
                             ledger, f"{case_id}/oracle.jsonl"
                         ),
+                        "linear_attention": {
+                            "target_decode_call": contract[
+                                "divergence_output_index"
+                            ],
+                            "components": linear_components,
+                            "oracle_jsonl": file_component(
+                                linear_ledger,
+                                f"{case_id}/linear/oracle.jsonl",
+                            ),
+                        },
                     }
                 )
             manifest = seal_manifest(
@@ -96,6 +146,7 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
                         "two_target_prefixes_exact": True,
                         "two_target_logits_bound": True,
                         "two_decode_boundary_sets_captured": True,
+                        "two_layer0_linear_attention_boundary_sets_captured": True,
                         "g1_passed": False,
                         "g2_passed": False,
                         "g3_passed": False,
@@ -128,6 +179,9 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
         self.assertIn("max_tokens=target_index + 1", source)
         self.assertIn("target_logits_sha256", source)
         self.assertIn("boundary_singleton_calls", source)
+        self.assertIn("linear_singleton_calls", source)
+        self.assertIn("instrumented_causal_conv1d_update", source)
+        self.assertIn("instrumented_packed_decode", source)
         self.assertIn("for case_id in CASE_ORDER", source)
 
     def test_native_observer_is_opt_in_and_captures_final_norm(self) -> None:

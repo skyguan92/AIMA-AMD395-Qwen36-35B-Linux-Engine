@@ -26,6 +26,7 @@ from aima_engine.vl_generation_layer_oracle import (  # noqa: E402
     BOUNDARY_NAMES,
     GENERATION_LAYER_ORACLE_SCHEMA,
     HIDDEN_SIZE,
+    LINEAR_ATTENTION_BOUNDARY_SPECS,
     validate_generation_layer_oracle_manifest,
 )
 from aima_engine.vl_generation_oracle import (  # noqa: E402
@@ -103,6 +104,14 @@ def _remove_hooks(root: Any, state: dict[str, Any]) -> None:
     for handle in state.get("handles", []):
         handle.remove()
     state["handles"] = []
+    gdn_module = state.get("gdn_module")
+    if gdn_module is not None:
+        gdn_module.causal_conv1d_update = state[
+            "original_causal_conv1d_update"
+        ]
+        gdn_module.fused_recurrent_gated_delta_rule_packed_decode = state[
+            "original_packed_decode"
+        ]
     if hasattr(root, STATE_ATTRIBUTE):
         delattr(root, STATE_ATTRIBUTE)
 
@@ -130,6 +139,9 @@ class InstallGenerationLayerHooks:
             "case_id": self.case_id,
             "target_output_index": self.output_index,
             "captures": {},
+            "linear_captures": {},
+            "linear_singleton_calls": 0,
+            "linear_capture_active": False,
             "boundary_singleton_calls": {name: 0 for name in BOUNDARY_NAMES},
             "logits_prefill_calls": 0,
             "logits_decode_calls": 0,
@@ -138,6 +150,176 @@ class InstallGenerationLayerHooks:
             "target_logits_top1_token_id": None,
             "handles": [],
         }
+
+        layer0 = language.model.layers[0]
+        if getattr(layer0, "layer_type", None) != "linear_attention":
+            raise RuntimeError("generation language layer 0 is not linear attention")
+        linear = layer0.linear_attn
+        gdn_module = __import__(
+            "vllm.model_executor.layers.mamba.gdn_linear_attn",
+            fromlist=["causal_conv1d_update"],
+        )
+        state.update(
+            {
+                "gdn_module": gdn_module,
+                "original_causal_conv1d_update": (
+                    gdn_module.causal_conv1d_update
+                ),
+                "original_packed_decode": (
+                    gdn_module.fused_recurrent_gated_delta_rule_packed_decode
+                ),
+                "layer0_conv_weight_pointer": linear.conv1d.weight.data_ptr(),
+                "layer0_a_log_pointer": linear.A_log.data_ptr(),
+            }
+        )
+
+        def capture_linear(name: str, value: Any) -> None:
+            if not state["linear_capture_active"] or name in state[
+                "linear_captures"
+            ]:
+                return
+            tensor = _first_tensor(value)
+            if tensor is None:
+                raise RuntimeError(
+                    f"generation linear-attention boundary has no tensor: {name}"
+                )
+            expected_shape, expected_dtype, _element_size = (
+                LINEAR_ATTENTION_BOUNDARY_SPECS[name]
+            )
+            expected_elements = 1
+            for dimension in expected_shape:
+                expected_elements *= dimension
+            if tensor.numel() != expected_elements or str(tensor.dtype) != expected_dtype:
+                raise RuntimeError(
+                    "generation linear-attention boundary geometry changed: "
+                    f"{name}/{list(tensor.shape)}/{tensor.dtype}"
+                )
+            state["linear_captures"][name] = (
+                tensor.detach().reshape(expected_shape).contiguous().cpu()
+            )
+
+        def layer0_input_norm_hook(
+            _module: Any, _args: Any, output: Any
+        ) -> None:
+            tensor = _first_tensor(output)
+            if tensor is None or tensor.ndim != 2 or tensor.shape[-1] != HIDDEN_SIZE:
+                raise RuntimeError("generation layer-0 input norm geometry changed")
+            if tensor.shape[0] != 1:
+                return
+            state["linear_singleton_calls"] += 1
+            state["linear_capture_active"] = (
+                state["linear_singleton_calls"] == self.output_index
+            )
+            capture_linear("input_norm", tensor)
+
+        def qkvz_projection_hook(
+            _module: Any, _args: Any, output: Any
+        ) -> None:
+            if not state["linear_capture_active"]:
+                return
+            tensor = _first_tensor(output)
+            if tensor is None or tensor.shape != (1, 12_288):
+                raise RuntimeError("generation QKVZ projection geometry changed")
+            capture_linear("qkv_projection", tensor[:, :8_192])
+            capture_linear("z_projection", tensor[:, 8_192:])
+
+        def ba_projection_hook(_module: Any, _args: Any, output: Any) -> None:
+            if not state["linear_capture_active"]:
+                return
+            tensor = _first_tensor(output)
+            if tensor is None or tensor.shape != (1, 64):
+                raise RuntimeError("generation BA projection geometry changed")
+            b, a = tensor.chunk(2, dim=-1)
+            capture_linear("a_projection", a)
+            capture_linear("b_projection", b)
+
+        def gated_norm_hook(_module: Any, _args: Any, output: Any) -> None:
+            capture_linear("gated_norm", output)
+
+        def attention_output_hook(
+            _module: Any, _args: Any, output: Any
+        ) -> None:
+            capture_linear("attention_output", output)
+
+        def layer0_output_hook(_module: Any, _args: Any, _output: Any) -> None:
+            state["linear_capture_active"] = False
+
+        def instrumented_causal_conv1d_update(
+            *args: Any, **kwargs: Any
+        ) -> Any:
+            weight = args[2] if len(args) > 2 else kwargs.get("weight")
+            is_layer0 = (
+                isinstance(weight, torch.Tensor)
+                and weight.data_ptr() == state["layer0_conv_weight_pointer"]
+            )
+            if not state["linear_capture_active"] or not is_layer0:
+                return state["original_causal_conv1d_update"](*args, **kwargs)
+            conv_state = args[1] if len(args) > 1 else kwargs.get("conv_state")
+            indices = kwargs.get("conv_state_indices")
+            if not isinstance(conv_state, torch.Tensor) or not isinstance(
+                indices, torch.Tensor
+            ) or indices.numel() != 1:
+                raise RuntimeError("generation layer-0 conv state geometry changed")
+            state_index = int(indices.reshape(-1)[0].item())
+            capture_linear("conv_state_before", conv_state[state_index])
+            output = state["original_causal_conv1d_update"](*args, **kwargs)
+            capture_linear("post_conv_mixed_qkv", output)
+            capture_linear("conv_state_after", conv_state[state_index])
+            return output
+
+        def instrumented_packed_decode(*args: Any, **kwargs: Any) -> Any:
+            a_log = args[3] if len(args) > 3 else kwargs.get("A_log")
+            is_layer0 = (
+                isinstance(a_log, torch.Tensor)
+                and a_log.data_ptr() == state["layer0_a_log_pointer"]
+            )
+            if not state["linear_capture_active"] or not is_layer0:
+                return state["original_packed_decode"](*args, **kwargs)
+            initial_state = (
+                args[6] if len(args) > 6 else kwargs.get("initial_state")
+            )
+            output = args[7] if len(args) > 7 else kwargs.get("out")
+            indices = (
+                args[8] if len(args) > 8 else kwargs.get("ssm_state_indices")
+            )
+            if not isinstance(initial_state, torch.Tensor) or not isinstance(
+                output, torch.Tensor
+            ) or not isinstance(indices, torch.Tensor) or indices.numel() != 1:
+                raise RuntimeError(
+                    "generation layer-0 recurrent state geometry changed"
+                )
+            state_index = int(indices.reshape(-1)[0].item())
+            capture_linear(
+                "recurrent_state_before", initial_state[state_index]
+            )
+            result = state["original_packed_decode"](*args, **kwargs)
+            capture_linear("recurrent_output", output)
+            capture_linear(
+                "recurrent_state_after", initial_state[state_index]
+            )
+            return result
+
+        handles = state["handles"]
+        handles.append(
+            layer0.input_layernorm.register_forward_hook(
+                layer0_input_norm_hook
+            )
+        )
+        handles.append(
+            linear.in_proj_qkvz.register_forward_hook(qkvz_projection_hook)
+        )
+        handles.append(
+            linear.in_proj_ba.register_forward_hook(ba_projection_hook)
+        )
+        handles.append(linear.norm.register_forward_hook(gated_norm_hook))
+        handles.append(
+            linear.out_proj.register_forward_hook(attention_output_hook)
+        )
+        handles.append(layer0.register_forward_hook(layer0_output_hook))
+        gdn_module.causal_conv1d_update = instrumented_causal_conv1d_update
+        gdn_module.fused_recurrent_gated_delta_rule_packed_decode = (
+            instrumented_packed_decode
+        )
 
         def capture_boundary(name: str, value: Any) -> None:
             tensor = _first_tensor(value)
@@ -202,7 +384,6 @@ class InstallGenerationLayerHooks:
                 torch.argmax(target).item()
             )
 
-        handles = state["handles"]
         for next_layer in range(1, 40):
             handles.append(
                 language.model.layers[
@@ -238,6 +419,16 @@ class FinalizeGenerationLayerHooks:
         if state["captured_logits_output_index"] != state["target_output_index"]:
             _remove_hooks(root, state)
             raise RuntimeError("target logits and decode boundaries were not aligned")
+        linear_captures = state["linear_captures"]
+        missing_linear = set(LINEAR_ATTENTION_BOUNDARY_SPECS) - set(
+            linear_captures
+        )
+        if missing_linear:
+            _remove_hooks(root, state)
+            raise RuntimeError(
+                "missing target layer-0 linear-attention boundaries: "
+                + ", ".join(sorted(missing_linear))
+            )
         target_call = state["target_output_index"]
         capture_calls = {
             state["boundary_singleton_calls"][name] for name in BOUNDARY_NAMES
@@ -271,6 +462,32 @@ class FinalizeGenerationLayerHooks:
         ]
         ledger = case_root / "oracle.jsonl"
         ledger.write_text("\n".join(oracle_lines) + "\n", encoding="utf-8")
+        linear_components = {
+            name: write_raw_tensor(
+                output_root,
+                f"{case_id}/linear/components/{name}",
+                linear_captures[name],
+            )
+            for name in LINEAR_ATTENTION_BOUNDARY_SPECS
+        }
+        linear_oracle_lines = [
+            json.dumps(
+                {
+                    "event": "native_layer_oracle_tensor",
+                    "label": name,
+                    "file": Path(linear_components[name]["path"])
+                    .relative_to(f"{case_id}/linear")
+                    .as_posix(),
+                },
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+            for name in LINEAR_ATTENTION_BOUNDARY_SPECS
+        ]
+        linear_ledger = case_root / "linear" / "oracle.jsonl"
+        linear_ledger.write_text(
+            "\n".join(linear_oracle_lines) + "\n", encoding="utf-8"
+        )
         result = {
             "components": components,
             "oracle_jsonl": file_component(
@@ -286,6 +503,13 @@ class FinalizeGenerationLayerHooks:
             "target_logits_top1_token_id": state[
                 "target_logits_top1_token_id"
             ],
+            "linear_attention": {
+                "target_decode_call": state["linear_singleton_calls"],
+                "components": linear_components,
+                "oracle_jsonl": file_component(
+                    linear_ledger, f"{case_id}/linear/oracle.jsonl"
+                ),
+            },
         }
         _remove_hooks(root, state)
         return result
@@ -543,7 +767,10 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
             "captured_at": base.utc_now(),
             "complete": True,
             "qualified_for_decode_attribution": True,
-            "scope": "two-fixed-vllm-vl-target-decode-layer-boundary-sets",
+            "scope": (
+                "two-fixed-vllm-vl-target-decode-layer-and-layer0-linear-"
+                "attention-boundary-sets"
+            ),
             "source": {
                 **source,
                 "files": [
@@ -583,6 +810,9 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
                 "two_target_prefixes_exact": len(cases) == 2,
                 "two_target_logits_bound": len(cases) == 2,
                 "two_decode_boundary_sets_captured": len(cases) == 2,
+                "two_layer0_linear_attention_boundary_sets_captured": (
+                    len(cases) == 2
+                ),
                 "g1_passed": False,
                 "g2_passed": False,
                 "g3_passed": False,

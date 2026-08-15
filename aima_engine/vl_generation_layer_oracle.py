@@ -15,12 +15,27 @@ from aima_engine.vl_reference import sha256_file, verify_manifest_integrity
 
 
 GENERATION_LAYER_ORACLE_SCHEMA = (
-    "aima-amd395-qwen36/vl-generation-layer-oracle/v1"
+    "aima-amd395-qwen36/vl-generation-layer-oracle/v2"
 )
 HIDDEN_SIZE = 2_048
 BOUNDARY_NAMES = tuple(
     f"layer_{layer:03d}_output" for layer in range(40)
 ) + ("language_final_norm",)
+LINEAR_ATTENTION_BOUNDARY_SPECS = {
+    "input_norm": ([HIDDEN_SIZE], "torch.bfloat16", 2),
+    "qkv_projection": ([8_192], "torch.bfloat16", 2),
+    "z_projection": ([4_096], "torch.bfloat16", 2),
+    "a_projection": ([32], "torch.bfloat16", 2),
+    "b_projection": ([32], "torch.bfloat16", 2),
+    "post_conv_mixed_qkv": ([8_192], "torch.bfloat16", 2),
+    "conv_state_before": ([8_192, 3], "torch.bfloat16", 2),
+    "conv_state_after": ([8_192, 3], "torch.bfloat16", 2),
+    "recurrent_state_before": ([32, 128, 128], "torch.float32", 4),
+    "recurrent_output": ([4_096], "torch.bfloat16", 2),
+    "recurrent_state_after": ([32, 128, 128], "torch.float32", 4),
+    "gated_norm": ([4_096], "torch.bfloat16", 2),
+    "attention_output": ([HIDDEN_SIZE], "torch.bfloat16", 2),
+}
 
 
 def validate_generation_layer_oracle_manifest(
@@ -124,6 +139,85 @@ def validate_generation_layer_oracle_manifest(
                                 f"generation layer oracle ledger digest changed: {case_id}"
                             )
 
+        linear_attention = case.get("linear_attention")
+        if not isinstance(linear_attention, dict):
+            errors.append(
+                f"generation layer linear-attention boundaries are missing: {case_id}"
+            )
+            continue
+        if linear_attention.get("target_decode_call") != contract[
+            "divergence_output_index"
+        ]:
+            errors.append(
+                f"generation layer linear-attention target changed: {case_id}"
+            )
+        linear_components = linear_attention.get("components")
+        if not isinstance(linear_components, dict):
+            errors.append(
+                f"generation layer linear-attention components are missing: {case_id}"
+            )
+            continue
+        if set(linear_components) != set(LINEAR_ATTENTION_BOUNDARY_SPECS):
+            errors.append(
+                f"generation layer linear-attention component set changed: {case_id}"
+            )
+        for name, (shape, dtype, element_size) in (
+            LINEAR_ATTENTION_BOUNDARY_SPECS.items()
+        ):
+            component = linear_components.get(name)
+            if not isinstance(component, dict):
+                continue
+            elements = 1
+            for dimension in shape:
+                elements *= dimension
+            if component.get("shape") != shape:
+                errors.append(
+                    f"generation layer linear-attention shape changed: {case_id}/{name}"
+                )
+            if component.get("dtype") != dtype:
+                errors.append(
+                    f"generation layer linear-attention dtype changed: {case_id}/{name}"
+                )
+            if component.get("bytes") != elements * element_size:
+                errors.append(
+                    f"generation layer linear-attention byte count changed: {case_id}/{name}"
+                )
+            if oracle_root is not None:
+                errors.extend(verify_raw_tensor(component, oracle_root))
+
+        linear_ledger = linear_attention.get("oracle_jsonl")
+        if not isinstance(linear_ledger, dict):
+            errors.append(
+                f"generation layer linear-attention ledger is missing: {case_id}"
+            )
+        elif oracle_root is not None:
+            relative = linear_ledger.get("path")
+            if not isinstance(relative, str) or not relative:
+                errors.append(
+                    f"generation layer linear-attention ledger path is missing: {case_id}"
+                )
+            else:
+                path = Path(relative)
+                if path.is_absolute() or ".." in path.parts:
+                    errors.append(
+                        f"generation layer linear-attention ledger path is unsafe: {case_id}"
+                    )
+                else:
+                    resolved = oracle_root / path
+                    if not resolved.is_file():
+                        errors.append(
+                            f"generation layer linear-attention ledger is absent: {case_id}"
+                        )
+                    else:
+                        if linear_ledger.get("bytes") != resolved.stat().st_size:
+                            errors.append(
+                                f"generation layer linear-attention ledger size changed: {case_id}"
+                            )
+                        if linear_ledger.get("sha256") != sha256_file(resolved):
+                            errors.append(
+                                f"generation layer linear-attention ledger digest changed: {case_id}"
+                            )
+
     decision = payload.get("decision")
     if not isinstance(decision, dict):
         errors.append("generation layer oracle decision is missing")
@@ -132,6 +226,7 @@ def validate_generation_layer_oracle_manifest(
             "two_target_prefixes_exact",
             "two_target_logits_bound",
             "two_decode_boundary_sets_captured",
+            "two_layer0_linear_attention_boundary_sets_captured",
         ):
             if decision.get(name) is not True:
                 errors.append(f"generation layer oracle decision failed: {name}")
