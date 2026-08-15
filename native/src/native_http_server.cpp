@@ -29,6 +29,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <iomanip>
 #include <limits>
@@ -1432,6 +1433,216 @@ int run_native_http_server(int argc, char** argv) {
                      {"model_loads", 1}})
                    .dump()
             << std::endl;
+  return 0;
+}
+
+int run_native_vl_generation_logits_probe(int argc, char** argv) {
+  std::filesystem::path cases_path;
+  std::vector<std::string> forwarded;
+  forwarded.reserve(static_cast<std::size_t>(argc));
+  forwarded.emplace_back(argv[0]);
+  forwarded.emplace_back(argv[1]);
+  for (int index = 2; index < argc; ++index) {
+    const std::string argument = argv[index];
+    if (argument == "--cases-json") {
+      if (++index >= argc) {
+        throw std::runtime_error("--cases-json requires a value");
+      }
+      cases_path = std::filesystem::absolute(argv[index]);
+      continue;
+    }
+    forwarded.push_back(argument);
+  }
+  if (cases_path.empty()) {
+    throw std::runtime_error(
+        "VL generation logits probe requires --cases-json");
+  }
+  std::vector<char*> forwarded_argv;
+  forwarded_argv.reserve(forwarded.size());
+  for (std::string& argument : forwarded) {
+    forwarded_argv.push_back(argument.data());
+  }
+  const ServerOptions options = parse_options(
+      static_cast<int>(forwarded_argv.size()), forwarded_argv.data());
+
+  std::ifstream stream(cases_path, std::ios::binary);
+  if (!stream) {
+    throw std::runtime_error("cannot open VL generation cases file");
+  }
+  stream.seekg(0, std::ios::end);
+  const std::streamoff bytes = stream.tellg();
+  if (bytes <= 0 || bytes > static_cast<std::streamoff>(kMaximumRequestBytes)) {
+    throw std::runtime_error("VL generation cases file size is invalid");
+  }
+  stream.seekg(0, std::ios::beg);
+  std::string serialized(static_cast<std::size_t>(bytes), '\0');
+  stream.read(serialized.data(), bytes);
+  if (!stream) {
+    throw std::runtime_error("cannot read VL generation cases file");
+  }
+  const Json specification = Json::parse(serialized);
+  if (!specification.is_object() || !specification.contains("cases") ||
+      !specification["cases"].is_array() ||
+      specification["cases"].empty()) {
+    throw std::runtime_error(
+        "VL generation cases file must contain a non-empty cases array");
+  }
+
+  NativeTokenizer tokenizer;
+  tokenizer.load(options.engine.weights.model_dir);
+  NativeResidentEngine engine;
+  const NativeResidentLoadMetrics load = engine.load(options.engine);
+  NativeVlMediaCache media_cache(options.media_cache_capacity_bytes);
+  Json results = Json::array();
+  bool all_prefixes_exact = true;
+  bool all_reference_rows_bound = true;
+  bool all_native_top1_exact = true;
+
+  for (const Json& item : specification["cases"]) {
+    if (!item.is_object() || !item.contains("case_id") ||
+        !item["case_id"].is_string() ||
+        item["case_id"].get<std::string>().empty() ||
+        !item.contains("request") || !item["request"].is_object() ||
+        !item.contains("expected_prefix_token_ids") ||
+        !item["expected_prefix_token_ids"].is_array() ||
+        item["expected_prefix_token_ids"].empty() ||
+        !item.contains("expected_reference_token_id") ||
+        !item["expected_reference_token_id"].is_number_unsigned() ||
+        !item.contains("reference_logits") ||
+        !item["reference_logits"].is_string()) {
+      throw std::runtime_error("VL generation case is malformed");
+    }
+    const std::string case_id = item["case_id"].get<std::string>();
+    std::vector<std::uint32_t> expected_prefix;
+    expected_prefix.reserve(item["expected_prefix_token_ids"].size());
+    for (const Json& token : item["expected_prefix_token_ids"]) {
+      if (!token.is_number_unsigned()) {
+        throw std::runtime_error(
+            "VL generation expected prefix contains a non-integer token");
+      }
+      const std::uint64_t value = token.get<std::uint64_t>();
+      if (value >= tokenizer.size()) {
+        throw std::runtime_error(
+            "VL generation expected prefix token exceeds the vocabulary");
+      }
+      expected_prefix.push_back(static_cast<std::uint32_t>(value));
+    }
+    const std::uint64_t reference_token_value =
+        item["expected_reference_token_id"].get<std::uint64_t>();
+    if (reference_token_value >= tokenizer.size()) {
+      throw std::runtime_error(
+          "VL generation reference token exceeds the vocabulary");
+    }
+    const std::uint32_t expected_reference_token =
+        static_cast<std::uint32_t>(reference_token_value);
+    const std::filesystem::path reference_logits =
+        std::filesystem::absolute(
+            item["reference_logits"].get<std::string>());
+
+    ParsedCompletionRequest parsed = parse_completion_request(
+        tokenizer, item["request"], options.media_policy, media_cache,
+        load.cache_capacity);
+    if (!parsed.vl_input.has_value() || parsed.stream ||
+        parsed.raw_prompt_tokens) {
+      throw std::runtime_error(
+          "VL generation diagnosis requires a non-streaming media chat request");
+    }
+    NativeResidentRequestOptions request;
+    request.input_token_ids = std::move(parsed.prompt);
+    request.multimodal_cache_namespace =
+        std::move(parsed.multimodal_cache_namespace);
+    request.mrope_plan = std::move(parsed.mrope_plan);
+    request.vl_input = std::move(parsed.vl_input);
+    request.max_new_tokens = expected_prefix.size() + 1;
+    request.stop_token_ids = {tokenizer.eos_token_id()};
+    request.disable_prefix_cache = true;
+    if (parsed.named_tool_json_constraint != nullptr) {
+      const auto constraint = parsed.named_tool_json_constraint;
+      request.next_token_mask =
+          [constraint](const std::vector<std::uint32_t>& generated,
+                       std::vector<std::uint8_t>* mask) {
+            constraint->allowed_token_mask(generated, mask);
+          };
+    }
+
+    const NativeResidentRequestMetrics metrics = engine.run(request);
+    if (metrics.output_token_ids.size() != expected_prefix.size() + 1) {
+      throw std::runtime_error(
+          "native VL generation ended before the diagnostic token");
+    }
+    const bool prefix_exact = std::equal(
+        expected_prefix.begin(), expected_prefix.end(),
+        metrics.output_token_ids.begin());
+    if (!prefix_exact) {
+      throw std::runtime_error(
+          "native VL generation diverged before the diagnostic token");
+    }
+    const NativeLogitsComparison comparison =
+        engine.compare_current_logits(reference_logits);
+    const bool reference_row_bound =
+        comparison.reference_top1_token_id == expected_reference_token;
+    if (!reference_row_bound) {
+      throw std::runtime_error(
+          "VL generation reference row top1 differs from its contract");
+    }
+    const std::uint32_t selected_token = metrics.output_token_ids.back();
+    const bool selected_reference =
+        selected_token == expected_reference_token;
+    const bool native_top1_exact = comparison.top1_match &&
+                                   selected_reference &&
+                                   comparison.actual_top1_token_id ==
+                                       selected_token;
+    all_prefixes_exact = all_prefixes_exact && prefix_exact;
+    all_reference_rows_bound =
+        all_reference_rows_bound && reference_row_bound;
+    all_native_top1_exact = all_native_top1_exact && native_top1_exact;
+
+    results.push_back(
+        {{"case_id", case_id},
+         {"complete", true},
+         {"divergence_output_index", expected_prefix.size()},
+         {"expected_prefix_token_ids", expected_prefix},
+         {"expected_reference_token_id", expected_reference_token},
+         {"selected_native_token_id", selected_token},
+         {"output_token_ids", metrics.output_token_ids},
+         {"prefix_exact", prefix_exact},
+         {"selected_reference_token", selected_reference},
+         {"request_metrics", request_metrics_json(metrics)},
+         {"reference_logits",
+          {{"elements", comparison.elements},
+           {"exact_elements", comparison.exact_elements},
+           {"finite_elements", comparison.finite_elements},
+           {"reference_top1_token_id",
+            comparison.reference_top1_token_id},
+           {"actual_top1_token_id", comparison.actual_top1_token_id},
+           {"top1_match", comparison.top1_match},
+           {"maximum_absolute_error", comparison.maximum_absolute_error},
+           {"relative_l2_error", comparison.relative_l2_error},
+           {"kl_divergence", comparison.kl_divergence},
+           {"expected_sha256", comparison.expected_sha256},
+           {"actual_sha256", comparison.actual_sha256}}},
+         {"native_top1_exact", native_top1_exact}});
+  }
+
+  std::cout
+      << Json(
+             {{"schema",
+               "aima-amd395-qwen36/native-vl-generation-logits-probe/v1"},
+              {"complete", true},
+              {"qualified_for_attribution", all_prefixes_exact &&
+                                                   all_reference_rows_bound},
+              {"model_loads", engine.load_metrics().model_tensor_count > 0
+                                    ? 1
+                                    : 0},
+              {"cases", std::move(results)},
+              {"decision",
+               {{"all_shared_prefixes_exact", all_prefixes_exact},
+                {"all_reference_rows_bound", all_reference_rows_bound},
+                {"all_native_generation_top1_exact",
+                 all_native_top1_exact},
+                {"product_http_oracle_dependency", false}}}})
+             .dump()
+      << std::endl;
   return 0;
 }
 

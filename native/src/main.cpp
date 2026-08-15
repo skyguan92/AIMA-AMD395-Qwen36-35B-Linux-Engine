@@ -145,6 +145,7 @@ void usage(std::ostream& output) {
       << "  aima-engine-native prefill-linear-prefix-oracle-probe --model-dir PATH --layer0-attention-oracle-dir PATH --layer0-moe-oracle-dir PATH --later-oracle-dir PATH [--full-layer-oracle-dir PATH --ck-provider PATH --through-layer 3] [--chain-output-oracle-dir PATH] [options]\n"
       << "  aima-engine-native prefill-all-layers-oracle-probe --model-dir PATH --ck-provider PATH (--chain-output-oracle-dir PATH | --execution-only) [--uniform-input-token-id ID | --input-token-id-cycle ID,ID,...] [--entry-input-oracle-dir PATH] [--prefill-state-oracle-dir PATH] [--decode-oracle-dir PATH] [--decode-logits-oracle-dir PATH] [--decode-logits-oracle-label-prefix LABEL] [options]\n"
       << "  aima-engine-native resident-session-probe --model-dir PATH (--uniform-input-token-id ID | --input-token-id-cycle ID,ID,...) [--context-tokens 1024|2048|4096|8192|16384|32768] [--prompt-tokens N] [--fmha-provider PATH] [--secondary-fmha-provider PATH --secondary-fmha-layers 3,7,...] [--max-new-tokens N | --max-new-tokens-sequence N,N,...] [--requests N] [--cached-suffix-token-ids ID,ID,...] [--expected-token-ids ID,ID,...] [--reference-logits PATH] [--layer-tail-oracle-dir PATH [--layer-tail-oracle-index 0..39]] [options]\n"
+      << "  aima-engine-native vl-generation-logits-probe --model-dir PATH --cases-json PATH [--fmha-provider PATH] [--vision-attention-image PATH] [options]\n"
       << "  aima-engine-native serve --model-dir PATH [--context-tokens 1024|2048|4096|8192|16384|32768] [--fmha-provider PATH] [--secondary-fmha-provider PATH --secondary-fmha-layers 3,7,...] [--host 127.0.0.1] [--port 8000] [--cache-capacity N] [options]\n"
       << "  aima-engine-native prefill-full-layer-oracle-probe --model-dir PATH --oracle-dir PATH --ck-provider PATH [--layer 3] [options]\n"
       << "  aima-engine-native full-attention-core-oracle-probe --oracle-dir PATH [--layer INDEX] [--cache-end N]\n"
@@ -4961,6 +4962,9 @@ int main(int argc, char** argv) {
     }
     if (std::string(argv[1]) == "resident-session-probe") {
       return run_resident_session_probe(argc, argv);
+    }
+    if (std::string(argv[1]) == "vl-generation-logits-probe") {
+      return aima::run_native_vl_generation_logits_probe(argc, argv);
     }
     if (std::string(argv[1]) == "serve") {
       return aima::run_native_http_server(argc, argv);

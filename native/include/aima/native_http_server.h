@@ -10,4 +10,9 @@ namespace aima {
 // binary inside the portable bundle.
 int run_native_http_server(int argc, char** argv);
 
+// Qualification-only resident VL generation diagnosis. The cases file binds
+// real chat/media requests to frozen full-vocabulary reference rows; no oracle
+// path is accepted by or reachable from the product HTTP service.
+int run_native_vl_generation_logits_probe(int argc, char** argv);
+
 }  // namespace aima
