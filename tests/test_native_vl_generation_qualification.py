@@ -8,6 +8,7 @@ import unittest
 from aima_engine.vl_generation_oracle import CASE_CONTRACTS, CASE_ORDER
 from aima_engine.vl_generation_layer_oracle import (
     BOUNDARY_NAMES,
+    LAYER0_TAIL_BOUNDARY_SPECS,
     NATIVE_LINEAR_ATTENTION_BOUNDARY_NAMES,
 )
 from aima_engine.vl_prefill_state_oracle import STATE_COMPONENT_NAMES
@@ -52,6 +53,58 @@ class NativeVlGenerationQualificationTest(unittest.TestCase):
             fixture.write_bytes(b"changed")
             with self.assertRaisesRegex(RuntimeError, "fixture changed"):
                 self.module.materialize_request(request, root)
+
+    def test_probe_cases_bind_target_layer0_tail_oracles(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            fixture_root = root / "fixtures"
+            fixture_root.mkdir()
+            fixture = fixture_root / "image.png"
+            fixture.write_bytes(b"fixed")
+            fixture_identity = {
+                "fixture": fixture.name,
+                "transport": "local",
+                "bytes": 5,
+                "sha256": __import__("hashlib").sha256(b"fixed").hexdigest(),
+            }
+            oracle_cases = []
+            layer_cases = []
+            for case_id in CASE_ORDER:
+                contract = CASE_CONTRACTS[case_id]
+                target = contract["divergence_output_index"]
+                oracle_cases.append(
+                    {
+                        "case_id": case_id,
+                        "divergence_output_index": target,
+                        "generation": {
+                            "output_token_ids": [0] * target
+                            + [contract["reference_token_id"]]
+                        },
+                        "request": {"image_url": {"url": fixture_identity}},
+                        "reference_logits": {
+                            "component": {"path": f"{case_id}.bin"}
+                        },
+                    }
+                )
+                layer_cases.append({"case_id": case_id})
+            layer_root = root / "layers"
+            cases = self.module.build_probe_cases(
+                {"cases": oracle_cases},
+                root,
+                fixture_root,
+                {"cases": layer_cases},
+                layer_root,
+            )["cases"]
+            self.assertEqual(
+                [
+                    Path(case["reference_decode_layer0_tail_boundary_dir"])
+                    for case in cases
+                ],
+                [
+                    (layer_root / case_id / "layer0-tail").resolve()
+                    for case_id in CASE_ORDER
+                ],
+            )
 
     def test_prefix_divergence_diagnostic_is_explicit_and_non_default(self) -> None:
         source = (ROOT / "native/src/native_http_server.cpp").read_text(
@@ -157,6 +210,21 @@ class NativeVlGenerationQualificationTest(unittest.TestCase):
                 }
                 for name in NATIVE_LINEAR_ATTENTION_BOUNDARY_NAMES
             ]
+            tail_components = {
+                name: {"sha256": f"{index + 200:064x}"}
+                for index, name in enumerate(
+                    LAYER0_TAIL_BOUNDARY_SPECS, start=1
+                )
+            }
+            tail_boundaries = [
+                {
+                    "label": name,
+                    "elements": 1,
+                    "finite_elements": 1,
+                    "expected_sha256": tail_components[name]["sha256"],
+                }
+                for name in LAYER0_TAIL_BOUNDARY_SPECS
+            ]
             oracle_cases.append(
                 {
                     "case_id": case_id,
@@ -169,6 +237,7 @@ class NativeVlGenerationQualificationTest(unittest.TestCase):
                     "case_id": case_id,
                     "components": components,
                     "linear_attention": {"components": linear_components},
+                    "layer0_tail": {"components": tail_components},
                 }
             )
             probe_cases.append(
@@ -183,6 +252,9 @@ class NativeVlGenerationQualificationTest(unittest.TestCase):
                     "decode_linear_boundaries_complete": True,
                     "decode_linear_boundaries_finite": True,
                     "decode_linear_boundaries": linear_boundaries,
+                    "decode_layer0_tail_boundaries_complete": True,
+                    "decode_layer0_tail_boundaries_finite": True,
+                    "decode_layer0_tail_boundaries": tail_boundaries,
                     "request_metrics": {
                         "prompt_token_ids_sha256": prompt_sha,
                         "vl": {"enabled": True},
@@ -217,6 +289,15 @@ class NativeVlGenerationQualificationTest(unittest.TestCase):
             self.assertTrue(checks[f"{case_id}_decode_boundary_rows_bound"])
             self.assertTrue(
                 checks[f"{case_id}_decode_linear_boundary_rows_bound"]
+            )
+            self.assertTrue(
+                checks[f"{case_id}_decode_layer0_tail_boundaries_complete"]
+            )
+            self.assertTrue(
+                checks[f"{case_id}_decode_layer0_tail_boundaries_finite"]
+            )
+            self.assertTrue(
+                checks[f"{case_id}_decode_layer0_tail_boundary_rows_bound"]
             )
 
     def test_prefill_state_checks_bind_all_linear_layer_states(self) -> None:

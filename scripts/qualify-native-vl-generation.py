@@ -27,6 +27,7 @@ from aima_engine.vl_generation_oracle import (  # noqa: E402
 )
 from aima_engine.vl_generation_layer_oracle import (  # noqa: E402
     BOUNDARY_NAMES,
+    LAYER0_TAIL_BOUNDARY_SPECS,
     NATIVE_LINEAR_ATTENTION_BOUNDARY_NAMES,
     validate_generation_layer_oracle_manifest,
 )
@@ -136,6 +137,9 @@ def build_probe_cases(
             )
             probe_case["reference_decode_linear_boundary_dir"] = str(
                 (layer_oracle_root / case_id / "linear").resolve()
+            )
+            probe_case["reference_decode_layer0_tail_boundary_dir"] = str(
+                (layer_oracle_root / case_id / "layer0-tail").resolve()
             )
         if prefill_state_oracle_root is not None:
             state_case = state_cases.get(case_id)
@@ -299,6 +303,36 @@ def qualification_checks(
                     boundary.get("expected_sha256")
                     == linear_components[boundary["label"]]["sha256"]
                     for boundary in linear_boundaries
+                )
+            )
+            tail_boundaries = observed.get("decode_layer0_tail_boundaries")
+            tail_well_formed = (
+                isinstance(tail_boundaries, list)
+                and len(tail_boundaries) == len(LAYER0_TAIL_BOUNDARY_SPECS)
+                and all(isinstance(boundary, dict) for boundary in tail_boundaries)
+            )
+            checks[f"{case_id}_decode_layer0_tail_boundaries_complete"] = (
+                observed.get("decode_layer0_tail_boundaries_complete") is True
+                and tail_well_formed
+            )
+            checks[f"{case_id}_decode_layer0_tail_boundaries_finite"] = (
+                observed.get("decode_layer0_tail_boundaries_finite") is True
+                and tail_well_formed
+                and all(
+                    boundary.get("finite_elements")
+                    == boundary.get("elements")
+                    for boundary in tail_boundaries
+                )
+            )
+            tail_components = layer_case["layer0_tail"]["components"]
+            checks[f"{case_id}_decode_layer0_tail_boundary_rows_bound"] = (
+                tail_well_formed
+                and [boundary.get("label") for boundary in tail_boundaries]
+                == list(LAYER0_TAIL_BOUNDARY_SPECS)
+                and all(
+                    boundary.get("expected_sha256")
+                    == tail_components[boundary["label"]]["sha256"]
+                    for boundary in tail_boundaries
                 )
             )
         if prefill_state_oracle is not None:
@@ -673,6 +707,15 @@ def qualify(args: argparse.Namespace) -> dict[str, Any]:
                     and all(
                         checks[
                             f"{case_id}_decode_linear_boundary_rows_bound"
+                        ]
+                        for case_id in CASE_ORDER
+                    )
+                ),
+                "two_decode_layer0_tail_boundary_sets_bound": (
+                    layer_oracle is not None
+                    and all(
+                        checks[
+                            f"{case_id}_decode_layer0_tail_boundary_rows_bound"
                         ]
                         for case_id in CASE_ORDER
                     )

@@ -38,18 +38,19 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
             raw = b"\x00" * (HIDDEN_SIZE * 2)
             digest = hashlib.sha256(raw).hexdigest()
 
-            def write_linear_boundary_set(
-                case_id: str, directory: str, target_decode_call: int
+            def write_boundary_set(
+                case_id: str,
+                directory: str,
+                target_decode_call: int,
+                specs: dict[str, tuple[list[int], str, int]],
             ) -> dict[str, object]:
                 components = {}
                 ledger_lines = []
-                for name, (shape, dtype, element_size) in (
-                    LINEAR_ATTENTION_BOUNDARY_SPECS.items()
-                ):
+                for name, (shape, dtype, element_size) in specs.items():
                     elements = 1
                     for dimension in shape:
                         elements *= dimension
-                    linear_raw = b"\x00" * (elements * element_size)
+                    boundary_raw = b"\x00" * (elements * element_size)
                     relative = (
                         Path(case_id)
                         / directory
@@ -58,15 +59,15 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
                     )
                     path = root / relative
                     path.parent.mkdir(parents=True, exist_ok=True)
-                    path.write_bytes(linear_raw)
+                    path.write_bytes(boundary_raw)
                     components[name] = {
                         "schema": TENSOR_SCHEMA,
                         "path": relative.as_posix(),
                         "shape": shape,
                         "dtype": dtype,
                         "element_size": element_size,
-                        "bytes": len(linear_raw),
-                        "sha256": hashlib.sha256(linear_raw).hexdigest(),
+                        "bytes": len(boundary_raw),
+                        "sha256": hashlib.sha256(boundary_raw).hexdigest(),
                     }
                     ledger_lines.append(
                         json.dumps(
@@ -142,17 +143,31 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
                         "oracle_jsonl": file_component(
                             ledger, f"{case_id}/oracle.jsonl"
                         ),
-                        "linear_attention": write_linear_boundary_set(
+                        "linear_attention": write_boundary_set(
                             case_id,
                             "linear",
                             contract["divergence_output_index"],
+                            LINEAR_ATTENTION_BOUNDARY_SPECS,
                         ),
                         "first_decode_linear_attention": (
-                            write_linear_boundary_set(
+                            write_boundary_set(
                                 case_id,
                                 "first-decode-linear",
                                 FIRST_DECODE_LINEAR_OUTPUT_INDEX,
+                                LINEAR_ATTENTION_BOUNDARY_SPECS,
                             )
+                        ),
+                        "layer0_tail": write_boundary_set(
+                            case_id,
+                            "layer0-tail",
+                            contract["divergence_output_index"],
+                            LAYER0_TAIL_BOUNDARY_SPECS,
+                        ),
+                        "first_decode_layer0_tail": write_boundary_set(
+                            case_id,
+                            "first-decode-layer0-tail",
+                            FIRST_DECODE_LINEAR_OUTPUT_INDEX,
+                            LAYER0_TAIL_BOUNDARY_SPECS,
                         ),
                     }
                 )
@@ -169,6 +184,9 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
                         "two_decode_boundary_sets_captured": True,
                         "two_layer0_linear_attention_boundary_sets_captured": True,
                         "two_first_decode_layer0_linear_attention_boundary_sets_captured": True,
+                        "two_layer0_tail_boundary_sets_captured": True,
+                        "two_first_decode_layer0_tail_boundary_sets_captured": True,
+                        "two_routed_moe_stage_sets_captured": True,
                         "g1_passed": False,
                         "g2_passed": False,
                         "g3_passed": False,
@@ -182,6 +200,16 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
                     manifest, oracle_root=root
                 ),
                 [],
+            )
+            manifest["cases"][0]["layer0_tail"]["components"][
+                "router_weights"
+            ]["sha256"] = "e" * 64
+            self.assertIn(
+                "raw tensor SHA-256 mismatch: "
+                "tool_forced_image/layer0-tail/components/router_weights.bin",
+                validate_generation_layer_oracle_manifest(
+                    manifest, oracle_root=root
+                ),
             )
             manifest["cases"][0]["components"]["layer_000_output"][
                 "sha256"

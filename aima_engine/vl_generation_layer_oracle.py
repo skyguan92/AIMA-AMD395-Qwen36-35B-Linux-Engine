@@ -75,12 +75,13 @@ NATIVE_LINEAR_ATTENTION_BOUNDARY_NAMES = (
 )
 
 
-def _validate_linear_attention_boundary_set(
+def _validate_boundary_set(
     value: Any,
     *,
     case_id: str,
     label: str,
     expected_decode_call: int,
+    specs: Mapping[str, tuple[list[int], str, int]],
     oracle_root: Path | None,
 ) -> list[str]:
     errors: list[str] = []
@@ -93,11 +94,9 @@ def _validate_linear_attention_boundary_set(
         return errors + [
             f"generation layer {label} components are missing: {case_id}"
         ]
-    if set(components) != set(LINEAR_ATTENTION_BOUNDARY_SPECS):
+    if set(components) != set(specs):
         errors.append(f"generation layer {label} component set changed: {case_id}")
-    for name, (shape, dtype, element_size) in (
-        LINEAR_ATTENTION_BOUNDARY_SPECS.items()
-    ):
+    for name, (shape, dtype, element_size) in specs.items():
         component = components.get(name)
         if not isinstance(component, dict):
             continue
@@ -254,20 +253,42 @@ def validate_generation_layer_oracle_manifest(
                             )
 
         errors.extend(
-            _validate_linear_attention_boundary_set(
+            _validate_boundary_set(
                 case.get("linear_attention"),
                 case_id=case_id,
                 label="linear-attention",
                 expected_decode_call=contract["divergence_output_index"],
+                specs=LINEAR_ATTENTION_BOUNDARY_SPECS,
                 oracle_root=oracle_root,
             )
         )
         errors.extend(
-            _validate_linear_attention_boundary_set(
+            _validate_boundary_set(
                 case.get("first_decode_linear_attention"),
                 case_id=case_id,
                 label="first-decode linear-attention",
                 expected_decode_call=FIRST_DECODE_LINEAR_OUTPUT_INDEX,
+                specs=LINEAR_ATTENTION_BOUNDARY_SPECS,
+                oracle_root=oracle_root,
+            )
+        )
+        errors.extend(
+            _validate_boundary_set(
+                case.get("layer0_tail"),
+                case_id=case_id,
+                label="layer-0 tail",
+                expected_decode_call=contract["divergence_output_index"],
+                specs=LAYER0_TAIL_BOUNDARY_SPECS,
+                oracle_root=oracle_root,
+            )
+        )
+        errors.extend(
+            _validate_boundary_set(
+                case.get("first_decode_layer0_tail"),
+                case_id=case_id,
+                label="first-decode layer-0 tail",
+                expected_decode_call=FIRST_DECODE_LINEAR_OUTPUT_INDEX,
+                specs=LAYER0_TAIL_BOUNDARY_SPECS,
                 oracle_root=oracle_root,
             )
         )
@@ -282,6 +303,9 @@ def validate_generation_layer_oracle_manifest(
             "two_decode_boundary_sets_captured",
             "two_layer0_linear_attention_boundary_sets_captured",
             "two_first_decode_layer0_linear_attention_boundary_sets_captured",
+            "two_layer0_tail_boundary_sets_captured",
+            "two_first_decode_layer0_tail_boundary_sets_captured",
+            "two_routed_moe_stage_sets_captured",
         ):
             if decision.get(name) is not True:
                 errors.append(f"generation layer oracle decision failed: {name}")
