@@ -231,6 +231,9 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
     import cloudpickle
     import torch
     from vllm import LLM, SamplingParams
+    from vllm.entrypoints.openai.chat_completion.protocol import (
+        ChatCompletionRequest,
+    )
     from vllm.outputs import RequestOutput
     from vllm.sampling_params import StructuredOutputsParams
 
@@ -297,6 +300,12 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
             contract = CASE_CONTRACTS[case_id]
             spec = specs[case_id]
             payload = canonical_round_trip(spec["payload"])
+            openai_request = ChatCompletionRequest.model_validate(payload)
+            tool_dicts = (
+                [tool.model_dump() for tool in openai_request.tools]
+                if openai_request.tools is not None
+                else None
+            )
             normalized_request = probe.recursive_replace(
                 spec["payload"], spec["replacements"]
             )
@@ -306,9 +315,10 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
             llm.reset_mm_cache()
             llm.llm_engine.reset_encoder_cache()
             engine_input = llm._preprocess_chat_one(
-                payload["messages"],
+                openai_request.messages,
                 chat_template_content_format="string",
-                tools=payload["tools"],
+                chat_template_kwargs=openai_request.chat_template_kwargs,
+                tools=tool_dicts,
             )
             prompt_token_ids = [
                 int(token) for token in engine_input["prompt_token_ids"]
