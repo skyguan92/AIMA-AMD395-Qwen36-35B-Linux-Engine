@@ -22,6 +22,9 @@ from native_text_metrics import text_path_is_idle
 
 
 ROOT = Path(__file__).resolve().parents[1]
+STARTUP_CEILING_MS = 44_900.0
+MINIMUM_PREFIX_TTFT_SPEEDUP = 2637.0
+MINIMUM_PREFIX_DECODE_RETENTION = 1.0003
 
 
 def sha256(path: Path) -> str:
@@ -49,17 +52,53 @@ def atomic_json(path: Path, value: dict[str, Any]) -> None:
     temporary.replace(path)
 
 
-def publicize(value: Any, model_dir: Path) -> Any:
+def publicize(
+    value: Any,
+    *,
+    engine: Path,
+    model_dir: Path,
+    output_dir: Path,
+) -> Any:
     if isinstance(value, str):
-        return value.replace(str(ROOT), "${AIMA_REPO_ROOT}").replace(
-            str(model_dir), "${AIMA_MODEL_DIR}"
+        return (
+            value.replace(str(engine), "${AIMA_ENGINE}")
+            .replace(str(model_dir), "${AIMA_MODEL_DIR}")
+            .replace(str(output_dir), "${AIMA_OUTPUT_DIR}")
+            .replace(str(ROOT), "${AIMA_REPO_ROOT}")
         )
     if isinstance(value, list):
-        return [publicize(item, model_dir) for item in value]
+        return [
+            publicize(
+                item,
+                engine=engine,
+                model_dir=model_dir,
+                output_dir=output_dir,
+            )
+            for item in value
+        ]
     if isinstance(value, dict):
         return {
-            key: publicize(item, model_dir) for key, item in value.items()
+            key: publicize(
+                item,
+                engine=engine,
+                model_dir=model_dir,
+                output_dir=output_dir,
+            )
+            for key, item in value.items()
         }
+    return value
+
+
+def engine_build_info(engine: Path) -> dict[str, Any]:
+    completed = subprocess.run(
+        [str(engine), "--build-info"],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    value = json.loads(completed.stdout)
+    if not isinstance(value, dict):
+        raise RuntimeError("native --build-info returned a non-object")
     return value
 
 
@@ -241,7 +280,12 @@ def run_prefix_cache(
         "load_report": str(load_report),
         "load_report_sha256": sha256(load_report),
     }
-    payload = publicize(payload, model_dir)
+    payload = publicize(
+        payload,
+        engine=engine,
+        model_dir=model_dir,
+        output_dir=output_dir,
+    )
     atomic_json(report, payload)
     if completed.returncode != 0 or not prefix_cache_report_qualified(
         payload,
@@ -411,7 +455,12 @@ def run_server(
         "stopped": stopped,
         "stderr": str(stderr_path),
     }
-    payload = publicize(payload, model_dir)
+    payload = publicize(
+        payload,
+        engine=engine,
+        model_dir=model_dir,
+        output_dir=output_dir,
+    )
     atomic_json(report, payload)
     if not server_run_qualified(
         payload, engine_sha256=engine_sha256, with_chat=with_chat
@@ -442,17 +491,17 @@ def main() -> None:
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--port-base", type=int, default=18080)
     parser.add_argument(
-        "--startup-ceiling-ms", type=float, default=51408.20149378851
+        "--startup-ceiling-ms", type=float, default=STARTUP_CEILING_MS
     )
     parser.add_argument(
         "--minimum-prefix-ttft-speedup",
         type=float,
-        default=110.11994260509346,
+        default=MINIMUM_PREFIX_TTFT_SPEEDUP,
     )
     parser.add_argument(
         "--minimum-prefix-decode-retention",
         type=float,
-        default=0.999653457424567,
+        default=MINIMUM_PREFIX_DECODE_RETENTION,
     )
     cli = parser.parse_args()
 
@@ -522,8 +571,9 @@ def main() -> None:
         "complete": True,
         "qualified": prefix_pass and startup_pass and http_pass,
         "engine": {
-            "path": "${AIMA_REPO_ROOT}/build/native/aima-engine-native",
+            "path": "${AIMA_ENGINE}",
             "sha256": engine_sha256,
+            "build_info": engine_build_info(engine),
         },
         "model_dir": "${AIMA_MODEL_DIR}",
         "host": {
