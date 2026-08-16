@@ -35,12 +35,12 @@
       "width": 512
     },
     {
-      "bytes": 1299,
+      "bytes": 1498,
       "format": "png",
       "height": 384,
       "modality": "image",
-      "path": "image-text-aima-395.png",
-      "sha256": "120c7478f882119073bf5c51fdcd5686c4caefdab1fe11d43d5d44e666d9eccb",
+      "path": "image-quadrant-red-circle.png",
+      "sha256": "a65cda6f8045770cf454a1dd4a7d98e0ed407a5a5de012857c3b786006b7b0d8",
       "width": 512
     },
     {
@@ -135,13 +135,13 @@
     }
   ],
   "generator": {
-    "bytes": 14936,
+    "bytes": 13709,
     "path": "scripts/generate-vl-task-quality-fixtures.py",
-    "sha256": "74940cce124b57d8fc3888f41737105ed44f0b31ac3a21ca77863803b78db06c"
+    "sha256": "a41fcaf0fcc035a21b3d9c2136adf925a177b02ea0610af2ee44d9ce9021f3fc"
   },
   "integrity": {
     "algorithm": "sha256",
-    "canonical_payload_sha256": "0e2d8193db9e8d9f4262701b55bdb31f9d94446ffb86446a0783d3558776adc1"
+    "canonical_payload_sha256": "62107c188679fbe3d14df61903781d3bdba0bfee22bf108c52c08c2c6ad0aa18"
   },
   "schema": "aima-amd395-qwen36/vl-task-quality-fixtures/v1"
 }
