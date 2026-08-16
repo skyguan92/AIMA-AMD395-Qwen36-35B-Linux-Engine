@@ -891,3 +891,13 @@ must bind the same validated non-full-attention layer. This permits resident
 conv/recurrent state attribution at the first non-exact layer without widening
 the product runtime path or comparing an isolated layer seeded from oracle
 state.
+
+Diagnostic capture can select the observer independently for each frozen case
+with repeated `--diagnostic-linear-attention-layer CASE_ID=LAYER` arguments.
+The mapping must cover both cases exactly, rejects full-attention layers, and is
+sealed into the control plane separately from the historical
+first-divergence preset. This is required when the first non-exact layer moves
+across output indices: at aligned output index 3, layer 5/10 and all their
+resident-state boundaries were exact, while the first non-exact whole-layer
+rows occurred later at layer 20/13. Those observations are attribution
+evidence only and do not promote a gate.

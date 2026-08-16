@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import runpy
 import tempfile
 import unittest
 from pathlib import Path
@@ -302,6 +303,8 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
         )
         self.assertIn("--first-divergence-full-attention", source)
         self.assertIn("--first-divergence-linear-attention", source)
+        self.assertIn("--diagnostic-linear-attention-layer", source)
+        self.assertIn("selected_linear_attention_layers", source)
         self.assertIn('capture_full_attention("qkv_projection"', source)
         self.assertIn('capture_full_attention("gated_attention"', source)
         self.assertIn('capture_full_attention("projected_attention"', source)
@@ -339,6 +342,40 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
         self.assertIn("instrumented_causal_conv1d_update", source)
         self.assertIn("instrumented_packed_decode", source)
         self.assertIn("for case_id in CASE_ORDER", source)
+
+    def test_diagnostic_linear_layer_mapping_is_exact_and_validated(self) -> None:
+        parse = runpy.run_path(str(CAPTURE))[
+            "parse_case_linear_attention_layers"
+        ]
+        self.assertEqual(
+            parse(
+                [
+                    "tool_auto_image=13",
+                    "tool_forced_image=20",
+                ]
+            ),
+            {
+                "tool_forced_image": 20,
+                "tool_auto_image": 13,
+            },
+        )
+        with self.assertRaisesRegex(ValueError, "mapping is incomplete"):
+            parse(["tool_forced_image=20"])
+        with self.assertRaisesRegex(ValueError, "unsupported"):
+            parse(
+                [
+                    "tool_forced_image=3",
+                    "tool_auto_image=13",
+                ]
+            )
+        with self.assertRaisesRegex(ValueError, "duplicate"):
+            parse(
+                [
+                    "tool_forced_image=20",
+                    "tool_forced_image=24",
+                    "tool_auto_image=13",
+                ]
+            )
 
     def test_native_observer_is_opt_in_and_captures_final_norm(self) -> None:
         header = RUNNER_HEADER.read_text(encoding="utf-8")

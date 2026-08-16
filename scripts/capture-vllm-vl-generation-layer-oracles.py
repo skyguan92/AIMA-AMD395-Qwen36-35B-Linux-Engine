@@ -94,6 +94,44 @@ FULL_ATTENTION_PROJECTION_COMPONENT_NAMES = (
 )
 
 
+def parse_case_linear_attention_layers(
+    values: list[str] | None,
+) -> dict[str, int] | None:
+    """Parse an exact two-case diagnostic linear-layer selection."""
+
+    if not values:
+        return None
+    layers: dict[str, int] = {}
+    for value in values:
+        case_id, separator, layer_text = value.partition("=")
+        if separator != "=" or case_id not in CASE_ORDER:
+            raise ValueError(
+                "diagnostic linear-attention layer must be CASE_ID=LAYER"
+            )
+        if case_id in layers:
+            raise ValueError(
+                f"duplicate diagnostic linear-attention case: {case_id}"
+            )
+        try:
+            layer_index = int(layer_text)
+        except ValueError as error:
+            raise ValueError(
+                f"diagnostic linear-attention layer is not an integer: {value}"
+            ) from error
+        if layer_index < 0 or layer_index >= 40 or layer_index % 4 == 3:
+            raise ValueError(
+                f"diagnostic linear-attention layer is unsupported: {value}"
+            )
+        layers[case_id] = layer_index
+    missing = [case_id for case_id in CASE_ORDER if case_id not in layers]
+    if missing:
+        raise ValueError(
+            "diagnostic linear-attention layer mapping is incomplete: "
+            + ", ".join(missing)
+        )
+    return {case_id: layers[case_id] for case_id in CASE_ORDER}
+
+
 def load_module(path: Path, name: str) -> ModuleType:
     spec = importlib.util.spec_from_file_location(name, path)
     if spec is None or spec.loader is None:
@@ -1531,6 +1569,27 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
     from vllm.outputs import RequestOutput
     from vllm.sampling_params import StructuredOutputsParams
 
+    explicit_linear_attention_layers = parse_case_linear_attention_layers(
+        args.diagnostic_linear_attention_layer
+    )
+    if (
+        explicit_linear_attention_layers is not None
+        and args.first_divergence_linear_attention
+    ):
+        raise ValueError(
+            "explicit and first-divergence linear-attention layers are "
+            "mutually exclusive"
+        )
+    selected_linear_attention_layers = (
+        explicit_linear_attention_layers
+        if explicit_linear_attention_layers is not None
+        else (
+            FIRST_DIVERGENCE_LINEAR_ATTENTION_LAYERS
+            if args.first_divergence_linear_attention
+            else None
+        )
+    )
+
     output_root = args.output_root.resolve()
     if output_root.exists() and any(output_root.iterdir()):
         raise ValueError(f"generation layer oracle root must be empty: {output_root}")
@@ -1680,8 +1739,8 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
                 else FULL_ATTENTION_LAYER
             )
             linear_attention_layer_index = (
-                FIRST_DIVERGENCE_LINEAR_ATTENTION_LAYERS[case_id]
-                if args.first_divergence_linear_attention
+                selected_linear_attention_layers[case_id]
+                if selected_linear_attention_layers is not None
                 else LINEAR_ATTENTION_LAYER
             )
 
@@ -1795,7 +1854,7 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
     diagnostic = (
         args.diagnostic_output_index is not None
         or args.first_divergence_full_attention
-        or args.first_divergence_linear_attention
+        or selected_linear_attention_layers is not None
     )
     scope = (
         "two-fixed-vllm-vl-decode-layer-and-selected-linear-attention-plus-"
@@ -1815,7 +1874,8 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
                 len(cases) == 2
             ),
             "two_diagnostic_selected_linear_attention_sets_captured": (
-                args.first_divergence_linear_attention and len(cases) == 2
+                selected_linear_attention_layers is not None
+                and len(cases) == 2
             ),
             "two_diagnostic_layer0_tail_boundary_sets_captured": (
                 len(cases) == 2
@@ -1926,6 +1986,12 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
                     if args.first_divergence_linear_attention
                     else None
                 ),
+                "diagnostic_linear_attention_layers": (
+                    explicit_linear_attention_layers
+                ),
+                "selected_linear_attention_layers": (
+                    selected_linear_attention_layers
+                ),
                 "layer3_unified_attention_compact_identity_block_table": True,
                 "product_runtime_dependency": False,
             },
@@ -1984,6 +2050,16 @@ def parse_args() -> argparse.Namespace:
         help=(
             "capture the resident state boundaries at each case's first "
             "known divergent linear-attention layer"
+        ),
+    )
+    parser.add_argument(
+        "--diagnostic-linear-attention-layer",
+        action="append",
+        default=[],
+        metavar="CASE_ID=LAYER",
+        help=(
+            "select one validated linear-attention observer layer per fixed "
+            "case; repeat for both cases"
         ),
     )
     parser.add_argument(
