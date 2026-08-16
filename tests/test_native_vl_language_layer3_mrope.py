@@ -130,6 +130,12 @@ class NativeVlLanguageLayer3MropeTest(unittest.TestCase):
         self.assertIn("position, position, input_token_id", decode)
         self.assertIn("decode_rotary_kernel", decode)
         self.assertIn("rotary_position, static_cast<float*>(cosine)", decode)
+        self.assertIn(
+            "__bfloat162float(__float2bfloat16(cosf(angle)))", decode
+        )
+        self.assertIn(
+            "__bfloat162float(__float2bfloat16(sinf(angle)))", decode
+        )
 
     def test_unified_attention_artifact_is_embedded_and_hash_bound(self) -> None:
         import hashlib

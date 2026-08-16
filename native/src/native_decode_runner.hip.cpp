@@ -55,8 +55,12 @@ __global__ void decode_rotary_kernel(std::size_t position, float* cosine,
   if (index >= kRotaryHalfDimension) return;
   const float angle =
       static_cast<float>(position) * kInverseFrequencies[index];
-  cosine[index] = cosf(angle);
-  sine[index] = sinf(angle);
+  // current-vLLM materializes the FP32 rotary cache, converts it to the
+  // BF16 query dtype, then the captured Triton consumer promotes it back to
+  // FP32. Preserve that boundary: unrounded FP32 trigonometry changes only
+  // rotary Q/K lanes and was the first resident layer-3 decode divergence.
+  cosine[index] = __bfloat162float(__float2bfloat16(cosf(angle)));
+  sine[index] = __bfloat162float(__float2bfloat16(sinf(angle)));
 }
 
 }  // namespace
