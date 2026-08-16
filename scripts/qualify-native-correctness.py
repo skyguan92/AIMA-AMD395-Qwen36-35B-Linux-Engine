@@ -14,8 +14,14 @@ from pathlib import Path
 import subprocess
 from typing import Any
 
+from aima_engine.aotriton_closure import require_aotriton_closure
+
 
 ROOT = Path(__file__).resolve().parents[1]
+FMHA_AOTRITON_FILENAME = "libaima-fmha-aotriton.so"
+FMHA_CK_FILENAME = "libaima-fmha-ck.so"
+FMHA_Q16384_HYBRID_FILENAME = "libaima-fmha-q16384-hybrid.so"
+VISION_ATTENTION_FILENAME = "aima-vision-attention.hsaco"
 PRODUCTION_TOKEN_PERIOD = (
     55771,
     18,
@@ -55,6 +61,13 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def json_sha256(value: Any) -> str:
+    encoded = json.dumps(
+        value, sort_keys=True, separators=(",", ":")
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
 def load_json(path: Path) -> dict[str, Any]:
     value = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(value, dict):
@@ -84,6 +97,88 @@ def publicize(value: Any, model_dir: Path) -> Any:
             key: publicize(item, model_dir) for key, item in value.items()
         }
     return value
+
+
+def automatic_runtime_path(engine: Path, filename: str) -> Path:
+    executable_dir = engine.parent
+    if executable_dir.name == "libexec":
+        return executable_dir.parent / "lib" / filename
+    if executable_dir.name == "bin" and (
+        executable_dir.parent / "libexec" / "aima-engine.real"
+    ).is_file():
+        return executable_dir.parent / "lib" / filename
+    return executable_dir / filename
+
+
+def bind_runtime_dependencies(
+    *,
+    engine: Path,
+    expected_aotriton_provider_sha256: str,
+    expected_ck_provider_sha256: str,
+    expected_q16384_hybrid_provider_sha256: str,
+    expected_vision_attention_sha256: str,
+) -> dict[str, Any]:
+    aotriton_provider = automatic_runtime_path(
+        engine, FMHA_AOTRITON_FILENAME
+    )
+    closure = require_aotriton_closure(aotriton_provider)
+    ck_provider = automatic_runtime_path(engine, FMHA_CK_FILENAME)
+    hybrid_provider = automatic_runtime_path(
+        engine, FMHA_Q16384_HYBRID_FILENAME
+    )
+    vision_attention = automatic_runtime_path(
+        engine, VISION_ATTENTION_FILENAME
+    )
+    checks = (
+        (
+            "AOTriton FMHA provider",
+            closure.provider,
+            expected_aotriton_provider_sha256,
+        ),
+        ("CK FMHA provider", ck_provider, expected_ck_provider_sha256),
+        (
+            "q16384 hybrid FMHA provider",
+            hybrid_provider,
+            expected_q16384_hybrid_provider_sha256,
+        ),
+        (
+            "vision-attention image",
+            vision_attention,
+            expected_vision_attention_sha256,
+        ),
+    )
+    for label, path, expected in checks:
+        if not path.is_file():
+            raise SystemExit(f"candidate {label} is missing")
+        if sha256(path) != expected:
+            raise SystemExit(f"candidate {label} SHA-256 changed")
+    return {
+        "automatic_provider_policy": True,
+        "aotriton_fmha_provider": {
+            "path": "${AIMA_FMHA_AOTRITON_PROVIDER}",
+            "sha256": sha256(closure.provider),
+        },
+        "aotriton_runtime": {
+            "path": "${AIMA_AOTRITON_RUNTIME}",
+            "sha256": sha256(closure.runtime),
+        },
+        "aotriton_image": {
+            "path": "${AIMA_AOTRITON_IMAGE}",
+            "sha256": sha256(closure.image),
+        },
+        "ck_fmha_provider": {
+            "path": "${AIMA_FMHA_CK_PROVIDER}",
+            "sha256": sha256(ck_provider),
+        },
+        "q16384_hybrid_fmha_provider": {
+            "path": "${AIMA_FMHA_Q16384_HYBRID_PROVIDER}",
+            "sha256": sha256(hybrid_provider),
+        },
+        "vision_attention_image": {
+            "path": "${AIMA_VISION_ATTENTION_IMAGE}",
+            "sha256": sha256(vision_attention),
+        },
+    }
 
 
 def parse_oracle(text: str) -> tuple[int, tuple[int, ...], Path]:
@@ -128,6 +223,7 @@ def report_qualified(
     engine_sha256: str,
     oracle_sha256: str,
     input_cycle: tuple[int, ...],
+    runtime_binding_sha256: str | None,
 ) -> bool:
     try:
         comparison = payload["reference_logits"]
@@ -157,6 +253,11 @@ def report_qualified(
             and qualification["engine_sha256"] == engine_sha256
             and qualification["oracle_sha256"] == oracle_sha256
             and qualification["input_token_period"] == list(input_cycle)
+            and (
+                runtime_binding_sha256 is None
+                or qualification.get("runtime_binding_sha256")
+                == runtime_binding_sha256
+            )
         )
     except (KeyError, IndexError, TypeError, ValueError):
         return False
@@ -171,6 +272,7 @@ def run_case(
     oracle: Path,
     engine_sha256: str,
     input_cycle: tuple[int, ...],
+    runtime_binding_sha256: str | None,
 ) -> Path:
     report = output_dir / "raw" / f"q{context}-full-vocabulary.json"
     oracle_sha256 = sha256(oracle)
@@ -182,6 +284,7 @@ def run_case(
             engine_sha256=engine_sha256,
             oracle_sha256=oracle_sha256,
             input_cycle=input_cycle,
+            runtime_binding_sha256=runtime_binding_sha256,
         ):
             return report
 
@@ -247,6 +350,7 @@ def run_case(
             sha256(load_report) if load_report.is_file() else None
         ),
         "input_token_period": list(input_cycle),
+        "runtime_binding_sha256": runtime_binding_sha256,
     }
     payload = publicize(payload, model_dir)
     atomic_json(report, payload)
@@ -256,6 +360,7 @@ def run_case(
         engine_sha256=engine_sha256,
         oracle_sha256=oracle_sha256,
         input_cycle=input_cycle,
+        runtime_binding_sha256=runtime_binding_sha256,
     ):
         raise RuntimeError(
             f"native correctness run failed with exit {completed.returncode}: "
@@ -282,6 +387,7 @@ def exact_completion_qualified(
     engine_sha256: str,
     context: int,
     completion_tokens: int,
+    runtime_binding_sha256: str | None,
 ) -> bool:
     try:
         request = payload["requests"][0]
@@ -298,6 +404,11 @@ def exact_completion_qualified(
             and request["first_token_certified"] is True
             and request["all_decode_tokens_certified"] is True
             and payload["qualification"]["engine_sha256"] == engine_sha256
+            and (
+                runtime_binding_sha256 is None
+                or payload["qualification"].get("runtime_binding_sha256")
+                == runtime_binding_sha256
+            )
         )
     except (KeyError, IndexError, TypeError, ValueError):
         return False
@@ -312,6 +423,7 @@ def run_exact_completion(
     context: int,
     token_id: int,
     completion_tokens: int,
+    runtime_binding_sha256: str | None,
 ) -> Path:
     report = (
         output_dir
@@ -323,6 +435,7 @@ def run_exact_completion(
         engine_sha256=engine_sha256,
         context=context,
         completion_tokens=completion_tokens,
+        runtime_binding_sha256=runtime_binding_sha256,
     ):
         return report
     load_report = report.with_name(report.stem + ".load.json")
@@ -376,6 +489,7 @@ def run_exact_completion(
         "load_report_sha256": sha256(load_report),
         "expected_token_id": token_id,
         "expected_completion_tokens": completion_tokens,
+        "runtime_binding_sha256": runtime_binding_sha256,
     }
     payload = publicize(payload, model_dir)
     atomic_json(report, payload)
@@ -384,6 +498,7 @@ def run_exact_completion(
         engine_sha256=engine_sha256,
         context=context,
         completion_tokens=completion_tokens,
+        runtime_binding_sha256=runtime_binding_sha256,
     ):
         raise RuntimeError(
             f"native exact-completion qualification failed: {report}"
@@ -422,6 +537,10 @@ def main() -> None:
     parser.add_argument("--exact-context", type=int, default=8192)
     parser.add_argument("--exact-token-id", type=int, default=1000)
     parser.add_argument("--exact-completion-tokens", type=int, default=128)
+    parser.add_argument("--aotriton-provider-sha256")
+    parser.add_argument("--ck-provider-sha256")
+    parser.add_argument("--q16384-hybrid-provider-sha256")
+    parser.add_argument("--vision-attention-sha256")
     cli = parser.parse_args()
 
     engine = cli.engine.expanduser().resolve()
@@ -441,6 +560,38 @@ def main() -> None:
         raise SystemExit("oracle contexts must be unique")
 
     engine_sha256 = sha256(engine)
+    expected_runtime_sha256 = {
+        "aotriton_provider": cli.aotriton_provider_sha256,
+        "ck_provider": cli.ck_provider_sha256,
+        "q16384_hybrid_provider": cli.q16384_hybrid_provider_sha256,
+        "vision_attention": cli.vision_attention_sha256,
+    }
+    supplied_runtime_sha256 = {
+        name: value
+        for name, value in expected_runtime_sha256.items()
+        if value is not None
+    }
+    if supplied_runtime_sha256 and len(supplied_runtime_sha256) != len(
+        expected_runtime_sha256
+    ):
+        missing = sorted(set(expected_runtime_sha256) - set(supplied_runtime_sha256))
+        raise SystemExit(
+            "runtime SHA-256 arguments are all-or-none; missing: "
+            + ", ".join(missing)
+        )
+    runtime_dependencies: dict[str, Any] | None = None
+    runtime_binding_sha256: str | None = None
+    if supplied_runtime_sha256:
+        runtime_dependencies = bind_runtime_dependencies(
+            engine=engine,
+            expected_aotriton_provider_sha256=cli.aotriton_provider_sha256,
+            expected_ck_provider_sha256=cli.ck_provider_sha256,
+            expected_q16384_hybrid_provider_sha256=(
+                cli.q16384_hybrid_provider_sha256
+            ),
+            expected_vision_attention_sha256=cli.vision_attention_sha256,
+        )
+        runtime_binding_sha256 = json_sha256(runtime_dependencies)
     reports = [
         run_case(
             engine=engine,
@@ -450,6 +601,7 @@ def main() -> None:
             oracle=oracle,
             engine_sha256=engine_sha256,
             input_cycle=input_cycle,
+            runtime_binding_sha256=runtime_binding_sha256,
         )
         for context, input_cycle, oracle in cases
     ]
@@ -461,6 +613,7 @@ def main() -> None:
         context=cli.exact_context,
         token_id=cli.exact_token_id,
         completion_tokens=cli.exact_completion_tokens,
+        runtime_binding_sha256=runtime_binding_sha256,
     )
     rows: list[dict[str, Any]] = []
     all_pass = True
@@ -491,6 +644,7 @@ def main() -> None:
                 engine_sha256=engine_sha256,
                 oracle_sha256=sha256(oracle),
                 input_cycle=input_cycle,
+                runtime_binding_sha256=runtime_binding_sha256,
             ),
         }
         all_pass = all_pass and row["qualified"]
@@ -502,6 +656,7 @@ def main() -> None:
         engine_sha256=engine_sha256,
         context=cli.exact_context,
         completion_tokens=cli.exact_completion_tokens,
+        runtime_binding_sha256=runtime_binding_sha256,
     )
     all_pass = all_pass and exact_pass
     result = {
@@ -513,6 +668,8 @@ def main() -> None:
             "sha256": engine_sha256,
         },
         "model_dir": "${AIMA_MODEL_DIR}",
+        "runtime_dependencies": runtime_dependencies,
+        "runtime_binding_sha256": runtime_binding_sha256,
         "host": {
             "hostname": os.uname().nodename,
             "sysname": os.uname().sysname,
