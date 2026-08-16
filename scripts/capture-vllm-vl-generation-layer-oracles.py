@@ -77,6 +77,10 @@ FULL_ATTENTION_DECODE_COMPONENT_NAMES = (
 FULL_ATTENTION_PROJECTION_COMPONENT_NAMES = (
     "qkv_projection",
     *FULL_ATTENTION_DECODE_COMPONENT_NAMES,
+    "gated_attention",
+    "projected_attention",
+    "attention_residual",
+    "post_attention_norm",
 )
 
 
@@ -405,6 +409,62 @@ class InstallGenerationLayerHooks:
                     "generation full-attention QKV projection geometry changed"
                 )
             capture_full_attention("qkv_projection", tensor)
+
+        def full_attention_o_proj_pre_hook(
+            _module: Any, args: Any
+        ) -> None:
+            if (
+                not self.capture_full_attention_projection
+                or state["full_attention_capture_kind"] is None
+            ):
+                return
+            tensor = _first_tensor(args)
+            if tensor is None or tensor.shape != (1, 4_096):
+                raise RuntimeError(
+                    "generation full-attention gated output geometry changed"
+                )
+            capture_full_attention("gated_attention", tensor)
+
+        def full_attention_o_proj_hook(
+            _module: Any, _args: Any, output: Any
+        ) -> None:
+            if (
+                not self.capture_full_attention_projection
+                or state["full_attention_capture_kind"] is None
+            ):
+                return
+            tensor = _first_tensor(output)
+            if tensor is None or tensor.shape != (1, HIDDEN_SIZE):
+                raise RuntimeError(
+                    "generation full-attention projected output geometry changed"
+                )
+            capture_full_attention("projected_attention", tensor)
+
+        def full_attention_post_attention_hook(
+            _module: Any, _args: Any, output: Any
+        ) -> None:
+            if (
+                not self.capture_full_attention_projection
+                or state["full_attention_capture_kind"] is None
+            ):
+                return
+            if not isinstance(output, (tuple, list)) or len(output) != 2:
+                raise RuntimeError(
+                    "generation full-attention post-attention norm contract changed"
+                )
+            post_attention_norm = _first_tensor(output[0])
+            attention_residual = _first_tensor(output[1])
+            if (
+                post_attention_norm is None
+                or post_attention_norm.shape != (1, HIDDEN_SIZE)
+                or attention_residual is None
+                or attention_residual.shape != (1, HIDDEN_SIZE)
+            ):
+                raise RuntimeError(
+                    "generation full-attention residual geometry changed"
+                )
+            capture_full_attention("attention_residual", attention_residual)
+            capture_full_attention("post_attention_norm", post_attention_norm)
 
         def full_attention_input_norm_hook(
             _module: Any, _args: Any, output: Any
@@ -803,6 +863,21 @@ class InstallGenerationLayerHooks:
             handles.append(
                 full_attention_module.qkv_proj.register_forward_hook(
                     full_attention_qkv_projection_hook
+                )
+            )
+            handles.append(
+                full_attention_module.o_proj.register_forward_pre_hook(
+                    full_attention_o_proj_pre_hook
+                )
+            )
+            handles.append(
+                full_attention_module.o_proj.register_forward_hook(
+                    full_attention_o_proj_hook
+                )
+            )
+            handles.append(
+                full_attention_layer.post_attention_layernorm.register_forward_hook(
+                    full_attention_post_attention_hook
                 )
             )
         handles.append(

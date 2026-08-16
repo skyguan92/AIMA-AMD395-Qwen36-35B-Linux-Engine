@@ -1730,6 +1730,10 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
       std::filesystem::path key_cache;
       std::filesystem::path value_cache;
       std::filesystem::path output;
+      std::filesystem::path gated_attention;
+      std::filesystem::path projected_attention;
+      std::filesystem::path attention_residual;
+      std::filesystem::path post_attention_norm;
     };
     std::optional<ReferenceDecodeFullAttention>
         reference_decode_full_attention;
@@ -1768,6 +1772,14 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
           find_native_oracle_tensor_file(attention_dir, "key_cache"),
           find_native_oracle_tensor_file(attention_dir, "value_cache"),
           find_native_oracle_tensor_file(attention_dir, "output"),
+          find_native_oracle_tensor_file_if_present(
+              attention_dir, "gated_attention"),
+          find_native_oracle_tensor_file_if_present(
+              attention_dir, "projected_attention"),
+          find_native_oracle_tensor_file_if_present(
+              attention_dir, "attention_residual"),
+          find_native_oracle_tensor_file_if_present(
+              attention_dir, "post_attention_norm"),
       };
     } else {
       all_decode_full_attention_compared = false;
@@ -1935,7 +1947,17 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
         decode_full_attention_comparisons;
     if (reference_decode_full_attention.has_value()) {
       const std::size_t expected_full_attention_comparisons =
-          reference_decode_full_attention->qkv_projection.empty() ? 6 : 7;
+          6 +
+          static_cast<std::size_t>(
+              !reference_decode_full_attention->qkv_projection.empty()) +
+          static_cast<std::size_t>(
+              !reference_decode_full_attention->gated_attention.empty()) +
+          static_cast<std::size_t>(
+              !reference_decode_full_attention->projected_attention.empty()) +
+          static_cast<std::size_t>(
+              !reference_decode_full_attention->attention_residual.empty()) +
+          static_cast<std::size_t>(
+              !reference_decode_full_attention->post_attention_norm.empty());
       decode_full_attention_comparisons.reserve(
           expected_full_attention_comparisons);
       request.decode_layer_observer_output_index = expected_prefix.size();
@@ -1944,7 +1966,10 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
               const void* qkv_projection, const void* query,
               const void* current_key, const void* current_value,
               const void* key_cache, const void* value_cache,
-              const void* attention_output) {
+              const void* attention_output, const void* gated_attention,
+              const void* projected_attention,
+              const void* attention_residual,
+              const void* post_attention_norm) {
             const ReferenceDecodeFullAttention& expected =
                 *reference_decode_full_attention;
             if (layer_index != expected.layer_index) return;
@@ -1991,6 +2016,35 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
                 compare_native_oracle_tensor(
                     "output", "bfloat16", attention_output, kQueryBytes,
                     expected.output));
+            if (!expected.gated_attention.empty()) {
+              decode_full_attention_comparisons.push_back(
+                  compare_native_oracle_tensor(
+                      "gated_attention", "bfloat16", gated_attention,
+                      kQueryBytes, expected.gated_attention));
+            }
+            constexpr std::size_t kHiddenBytes =
+                2048ULL * sizeof(std::uint16_t);
+            if (!expected.projected_attention.empty()) {
+              decode_full_attention_comparisons.push_back(
+                  compare_native_oracle_tensor(
+                      "projected_attention", "bfloat16",
+                      projected_attention, kHiddenBytes,
+                      expected.projected_attention));
+            }
+            if (!expected.attention_residual.empty()) {
+              decode_full_attention_comparisons.push_back(
+                  compare_native_oracle_tensor(
+                      "attention_residual", "bfloat16",
+                      attention_residual, kHiddenBytes,
+                      expected.attention_residual));
+            }
+            if (!expected.post_attention_norm.empty()) {
+              decode_full_attention_comparisons.push_back(
+                  compare_native_oracle_tensor(
+                      "post_attention_norm", "bfloat16",
+                      post_attention_norm, kHiddenBytes,
+                      expected.post_attention_norm));
+            }
           };
     }
     if (parsed.named_tool_json_constraint != nullptr) {
@@ -2028,8 +2082,16 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
     }
     if (reference_decode_full_attention.has_value() &&
         decode_full_attention_comparisons.size() !=
-            (reference_decode_full_attention->qkv_projection.empty() ? 6
-                                                                      : 7)) {
+            6 + static_cast<std::size_t>(
+                    !reference_decode_full_attention->qkv_projection.empty()) +
+                static_cast<std::size_t>(
+                    !reference_decode_full_attention->gated_attention.empty()) +
+                static_cast<std::size_t>(
+                    !reference_decode_full_attention->projected_attention.empty()) +
+                static_cast<std::size_t>(
+                    !reference_decode_full_attention->attention_residual.empty()) +
+                static_cast<std::size_t>(
+                    !reference_decode_full_attention->post_attention_norm.empty())) {
       throw std::runtime_error(
           "native VL generation decode full-attention capture is incomplete");
     }
@@ -2159,9 +2221,16 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
          {"decode_full_attention_complete",
           reference_decode_full_attention.has_value() &&
               decode_full_attention_comparisons.size() ==
-                  (reference_decode_full_attention->qkv_projection.empty()
-                       ? 6
-                       : 7)},
+                  6 + static_cast<std::size_t>(
+                          !reference_decode_full_attention->qkv_projection.empty()) +
+                      static_cast<std::size_t>(
+                          !reference_decode_full_attention->gated_attention.empty()) +
+                      static_cast<std::size_t>(
+                          !reference_decode_full_attention->projected_attention.empty()) +
+                      static_cast<std::size_t>(
+                          !reference_decode_full_attention->attention_residual.empty()) +
+                      static_cast<std::size_t>(
+                          !reference_decode_full_attention->post_attention_norm.empty())},
          {"decode_full_attention_finite",
           decode_full_attention_finite},
          {"decode_full_attention",

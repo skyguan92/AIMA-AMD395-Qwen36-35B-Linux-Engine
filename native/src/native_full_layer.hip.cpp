@@ -268,15 +268,6 @@ NativeFullLayerMetrics run_native_full_layer(
   metrics.pv_splits = attention.pv_splits;
   metrics.aot_launches += attention.aot_launches;
   metrics.native_attention_launches = attention.native_kernel_launches;
-  if (attention_observer != nullptr) {
-    check_hip(hipStreamSynchronize(stream),
-              "hipStreamSynchronize native full-attention observer");
-    (*attention_observer)(
-        layer_index, cache_end, qkv.device_pointer, q.device_pointer,
-        k.device_pointer, raw_v, attention_state.k_cache(layer_index),
-        attention_state.v_cache(layer_index),
-        attention_state.attention_output());
-  }
   launch_full_attention_sigmoid_gate(
       attention_state.attention_output(), qkv.device_pointer,
       attention_state.gated_attention(), stream);
@@ -292,9 +283,22 @@ NativeFullLayerMetrics run_native_full_layer(
   ++metrics.native_pointwise_launches;
 
   executor.launch(launches[base + 4], stream);
-  executor.launch(launches[base + 5], stream);
-  metrics.aot_launches += 2;
+  ++metrics.aot_launches;
   void* post_attention_norm = invocations.tensor_pointer(base + 4, "out");
+  if (attention_observer != nullptr) {
+    check_hip(hipStreamSynchronize(stream),
+              "hipStreamSynchronize native full-attention observer");
+    (*attention_observer)(
+        layer_index, cache_end, qkv.device_pointer, q.device_pointer,
+        k.device_pointer, raw_v, attention_state.k_cache(layer_index),
+        attention_state.v_cache(layer_index),
+        attention_state.attention_output(),
+        attention_state.gated_attention(),
+        attention_state.projected_attention(), after_attn.device_pointer,
+        post_attention_norm);
+  }
+  executor.launch(launches[base + 5], stream);
+  ++metrics.aot_launches;
   launch_shared_silu_multiply(shared_input.device_pointer,
                               activated.device_pointer, stream);
   ++metrics.native_pointwise_launches;

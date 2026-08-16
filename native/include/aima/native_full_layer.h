@@ -33,7 +33,9 @@ using NativeDecodeFullAttentionObserver = std::function<void(
     const void* qkv_projection, const void* query,
     const void* current_key, const void* current_value,
     const void* key_cache, const void* value_cache,
-    const void* attention_output)>;
+    const void* attention_output, const void* gated_attention,
+    const void* projected_attention, const void* attention_residual,
+    const void* post_attention_norm)>;
 
 NativeFullLayerMetrics run_native_full_layer(
     std::size_t layer_index, std::size_t position, std::size_t cache_end,

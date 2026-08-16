@@ -249,6 +249,10 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
         self.assertIn("FIRST_DIVERGENCE_FULL_ATTENTION_LAYERS", source)
         self.assertIn("--first-divergence-full-attention", source)
         self.assertIn('capture_full_attention("qkv_projection"', source)
+        self.assertIn('capture_full_attention("gated_attention"', source)
+        self.assertIn('capture_full_attention("projected_attention"', source)
+        self.assertIn('capture_full_attention("attention_residual"', source)
+        self.assertIn('capture_full_attention("post_attention_norm"', source)
         self.assertIn("instrumented_unified_attention", source)
         self.assertIn('"k_descale"', source)
         self.assertIn('"v_descale"', source)
@@ -309,7 +313,11 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
         self.assertIn("compare_native_oracle_tensor_slice", http)
         self.assertIn("expected_offset_bytes", layer_oracle)
         self.assertIn(
-            "reference_decode_full_attention->qkv_projection.empty() ? 6",
+            "!reference_decode_full_attention->gated_attention.empty()",
+            http,
+        )
+        self.assertIn(
+            "!reference_decode_full_attention->post_attention_norm.empty()",
             http,
         )
         self.assertEqual(len(NATIVE_LINEAR_ATTENTION_BOUNDARY_NAMES), 13)
