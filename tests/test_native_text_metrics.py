@@ -76,6 +76,10 @@ class NativeTextMetricsTest(unittest.TestCase):
             text_path_idle_checks({}), {"metrics_shape_complete": False}
         )
         self.assertFalse(text_path_is_idle({}))
+        self.assertEqual(
+            text_path_idle_checks(None), {"metrics_shape_complete": False}
+        )
+        self.assertFalse(text_path_is_idle([]))
 
 
 if __name__ == "__main__":

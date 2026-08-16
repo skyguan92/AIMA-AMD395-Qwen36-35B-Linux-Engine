@@ -48,9 +48,11 @@ def _all_zero(payload: dict[str, Any], fields: tuple[str, ...]) -> bool:
         return False
 
 
-def text_path_idle_checks(metrics: dict[str, Any]) -> dict[str, bool]:
+def text_path_idle_checks(metrics: Any) -> dict[str, bool]:
     """Return auditable checks proving a request did not enter native VL."""
 
+    if not isinstance(metrics, dict):
+        return {"metrics_shape_complete": False}
     mrope = metrics.get("mrope")
     vl = metrics.get("vl")
     if not isinstance(mrope, dict) or not isinstance(vl, dict):
@@ -67,5 +69,5 @@ def text_path_idle_checks(metrics: dict[str, Any]) -> dict[str, bool]:
     }
 
 
-def text_path_is_idle(metrics: dict[str, Any]) -> bool:
+def text_path_is_idle(metrics: Any) -> bool:
     return all(text_path_idle_checks(metrics).values())
