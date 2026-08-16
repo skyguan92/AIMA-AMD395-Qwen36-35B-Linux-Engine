@@ -315,6 +315,12 @@ NativeLinearLayerMetrics run_native_linear_layer(
   }
   const std::string prefix =
       "model.language_model.layers." + suffix;
+  const auto& input_norm_weight = require_weight(
+      weights, prefix + ".input_layernorm.weight",
+      kHidden * sizeof(__hip_bfloat16));
+  const auto& post_attention_norm_weight = require_weight(
+      weights, prefix + ".post_attention_layernorm.weight",
+      kHidden * sizeof(__hip_bfloat16));
   const auto& output_weight = require_weight(
       weights, prefix + ".linear_attn.out_proj.weight",
       kHidden * kLinearValue * sizeof(__hip_bfloat16));
@@ -359,7 +365,18 @@ NativeLinearLayerMetrics run_native_linear_layer(
   hipStream_t stream = static_cast<hipStream_t>(stream_value);
   NativeLinearLayerMetrics metrics;
   metrics.layer_index = layer_index;
-  executor.launch(launches[base], stream);
+  if (use_current_vllm_projections) {
+    // The current GemmaRMSNorm path reduces singleton rows through the same
+    // PyTorch boundary as native prefill.  The historical decode image can
+    // differ by one BF16 value, which then perturbs every resident state.
+    launch_prefill_rmsnorm_2048(
+        input.device_pointer, input_norm_weight.device_pointer, input_norm, 1,
+        stream);
+    ++metrics.native_pointwise_launches;
+  } else {
+    executor.launch(launches[base], stream);
+    ++metrics.aot_launches;
+  }
   observe_boundary(observer, "input_norm", input_norm,
                    kHidden * sizeof(__hip_bfloat16),
                    DecodeTensorDtype::kBfloat16);
@@ -422,7 +439,7 @@ NativeLinearLayerMetrics run_native_linear_layer(
   observe_boundary(observer, "gated_norm", gated.device_pointer,
                    kLinearValue * sizeof(__hip_bfloat16),
                    DecodeTensorDtype::kBfloat16);
-  metrics.aot_launches += 4;
+  metrics.aot_launches += 3;
   launch_bf16_wvsplitk(
       output_weight.device_pointer, gated.device_pointer, nullptr,
       attention_output.device_pointer, kHidden, kLinearValue, cu_count, stream);
@@ -439,13 +456,21 @@ NativeLinearLayerMetrics run_native_linear_layer(
                    kHidden * sizeof(__hip_bfloat16),
                    DecodeTensorDtype::kBfloat16);
 
-  executor.launch(launches[base + 4], stream);
+  if (use_current_vllm_projections) {
+    launch_prefill_rmsnorm_2048(
+        after_attn.device_pointer, post_attention_norm_weight.device_pointer,
+        post_attention_norm, 1, stream);
+    ++metrics.native_pointwise_launches;
+  } else {
+    executor.launch(launches[base + 4], stream);
+    ++metrics.aot_launches;
+  }
   observe_boundary(tail_observer, "post_attention_norm",
                    post_attention_norm,
                    kHidden * sizeof(__hip_bfloat16),
                    DecodeTensorDtype::kBfloat16);
   executor.launch(launches[base + 5], stream);
-  metrics.aot_launches += 2;
+  ++metrics.aot_launches;
   if (use_current_vllm_projections) {
     auto* shared_input_bytes =
         static_cast<unsigned char*>(shared_input.device_pointer);
