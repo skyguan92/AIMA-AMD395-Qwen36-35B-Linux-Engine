@@ -16,7 +16,7 @@ blocking condition in the governing goal can move a gate to `passed`.
 |---|---|---|---|
 | G1 full VL functional parity | the native HTTP path passes the frozen 30-case status/finish/tool/SSE surface and the corrected deterministic execution envelope passes 23/23 cells; mixed/conversation, verified HTTPS, request-level media I/O, error compatibility and cache identity/invariance have reference-exact resident evidence; the frozen 12-case long image/video corpus passes its task-quality gate without regression; consolidated current-HEAD processor-to-output generation is qualified, while two long-generation token vectors remain diagnostic mismatches | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | close the two long-generation parity divergences and run the complete G3 text/release no-regression protocol |
 | G2 VL correctness parity | the five private and five independently rendered real-HTTP language prompts pass final norm and 84/84 selected full-vocabulary rows bit-exact; current-HEAD tool generation binds exact prompt prefixes, 120/120 prefill states, 82/82 whole-layer rows, 26/26 linear, 30/30 tail and 12/12 full-attention boundaries, with exact top-1 and selected tokens; image task quality is `1.000000` and video task quality is `0.947368`, equal to the fixed vLLM reference, with long generated token vectors exact for 10/12 | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | resolve the two remaining long deterministic-generation divergences, then run the final G2/G3 correctness gates |
-| G3 text product no regression | frozen baseline identified; the resident engine and certified lm_head now have an optional mask path that is disabled for ordinary requests, but the complete paired release matrix has not run | paired 19-cell, maximum-window, correctness, MMLU, API, cache, startup and memory requalification | retain `v1.5.1` as an immutable paired binary and run the complete paired matrix after language integration stabilizes |
+| G3 text product no regression | the exact portable `v1.5.1` executable is retained as an immutable paired baseline; a resumable 19-cell alternating comparator now enforces the 1.000x no-regression rule and text-path VL-idle checks, while the full live matrix and remaining correctness/API/cache/memory evidence have not completed | paired 19-cell, maximum-window, correctness, MMLU, API, cache, startup and memory requalification | finish current-head text correctness and run the complete paired baseline/candidate protocol |
 | G4 native VL performance | the 23-cell native execution envelope now records per-request stage timings, but it is a single candidate qualification rather than paired performance evidence | paired per-cell stage timings and memory records against the fixed VL-enabled vLLM | run the same frozen cells with the alternating paired vLLM/candidate timing protocol |
 | G5 native release product | the full runtime includes all qualified vision sources, loads the 333 visual tensors in one resident native process and survives the complete execution envelope; the external vision-attention code object is hash-checked and wired into the portable package contract, but final package qualification has not run | native-only package, security, isolated bundle, second-host, soak and rollback evidence | generate a clean product qualification containing the vision code object, then run isolated bundle, second-host, soak and rollback gates |
 
@@ -44,6 +44,36 @@ explicit blockers:
 This replaces the ambiguous instruction to “add more coverage” with named
 cases and preserves every existing passing observation as evidence rather
 than rerunning it without closing a gap.
+
+## G3 paired text protocol (2026-08-16)
+
+`scripts/qualify-native-paired-text-matrix.py` converts the G3 performance
+language into an executable fail-closed protocol. It binds both executables by
+SHA-256 and embedded source commit before the first model load, covers the
+sixteen standard input/output cells plus all three maximum-window endpoints,
+and stores each release/candidate process as a separate raw record. Odd pairs
+run release then candidate; even pairs reverse the order. Fewer than five
+pairs are rejected, and the default is six so both execution orders are
+balanced.
+
+Each cell is decided independently from the median paired ratio. Candidate
+prefill/decode throughput must be at least `1.000x`; component and composed
+request latency must be at most `1.000x`. The historical `0.97x` floor remains
+an additional safety check and cannot mask a paired regression. The q8192
+startup gate independently requires both paired non-regression and an absolute
+candidate median no greater than `44.90 s`. In candidate text records, M-RoPE,
+VL unified attention, logical projection and request-level VL workspace
+metrics must all remain disabled or zero. HTTP media/vision-idle behavior and
+`READY=1` vision readiness remain separate surface gates rather than being
+inferred from the probe.
+
+The runner writes a partial aggregate after every pair and resumes only raw
+records whose engine hash, role, pair index, order, context and output sequence
+still match. A final aggregate cannot pass when any one of the nineteen cells,
+startup, identity, or text-path checks fails. The script and its threshold
+semantics are covered by `tests/test_native_paired_text_matrix.py`. This is a
+replayable methodology artifact, not G3 evidence; G3 remains false until the
+live matrix and every other blocking text/release gate pass.
 
 ## Phase 0 invariants
 

@@ -20,6 +20,8 @@ import subprocess
 import time
 from typing import Any
 
+from native_text_metrics import text_path_idle_checks
+
 
 MODEL_ID = "aima-amd395-qwen36-35b"
 ROOT = Path(__file__).resolve().parents[1]
@@ -746,6 +748,32 @@ def main() -> None:
         and stopped["served"] == 14
         and returncode == 0
     )
+    text_metric_records = {
+        "plain_stream": plain_stream["metrics"],
+        "plain_nonstream": plain_metrics,
+        "ordinary_turn": ordinary_turn_metrics,
+        "tool_nonstream": tool_nonstream["aima_amd395"],
+        "tool_stream": tool_stream["metrics"],
+        "tool_history": history_response["aima_amd395"],
+        "post_long_short": post_long_metrics,
+        **{
+            f"resident_bucket_{response['prompt_tokens']}": response[
+                "metrics"
+            ]
+            for response in resident_bucket_responses
+        },
+        **{
+            f"prefix_lru_{index}": response["metrics"]
+            for index, response in enumerate(lru_responses, start=1)
+        },
+    }
+    text_path_checks = {
+        name: text_path_idle_checks(metrics)
+        for name, metrics in text_metric_records.items()
+    }
+    text_path_pass = len(text_path_checks) == 14 and all(
+        all(checks.values()) for checks in text_path_checks.values()
+    )
     result = {
         "schema": "aima-amd395-qwen36/native-openai-features/v2",
         "complete": True,
@@ -761,6 +789,7 @@ def main() -> None:
                 disconnect_pass,
                 validation_pass,
                 lifecycle_pass,
+                text_path_pass,
             )
         ),
         "engine": {
@@ -880,6 +909,12 @@ def main() -> None:
             "ready": ready,
             "stopped": stopped,
             "pass": lifecycle_pass,
+        },
+        "text_path_idle": {
+            "request_count": len(text_path_checks),
+            "expected_request_count": 14,
+            "checks": text_path_checks,
+            "pass": text_path_pass,
         },
         "artifacts": {
             "load_report": str(load_report),

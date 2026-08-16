@@ -18,6 +18,8 @@ import subprocess
 import time
 from typing import Any
 
+from native_text_metrics import text_path_is_idle
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -303,6 +305,8 @@ def server_run_qualified(
             == second_metrics["output_token_ids_sha256"]
             and float(second_metrics["ttft_ms"])
             < float(first_metrics["ttft_ms"])
+            and text_path_is_idle(first_metrics)
+            and text_path_is_idle(second_metrics)
         )
     except (KeyError, IndexError, TypeError, ValueError):
         return False
@@ -601,6 +605,10 @@ def main() -> None:
             "runtime_torch": False,
             "runtime_vllm": False,
             "runtime_triton": False,
+            "text_path_idle": (
+                text_path_is_idle(first_metrics)
+                and text_path_is_idle(second_metrics)
+            ),
             "pass": http_pass,
         },
     }

@@ -22,6 +22,8 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 
+from native_text_metrics import text_path_idle_checks
+
 
 SCHEMA = "aima-amd395-qwen36/native-answer-eval/v1"
 MODEL = "aima-amd395-qwen36-35b"
@@ -205,6 +207,9 @@ def scorecard(
 ) -> dict[str, Any]:
     correct = sum(record["correct"] for record in records)
     invalid = sum(record["parsed_answer"] is None for record in records)
+    text_path_idle = sum(
+        record.get("text_path_idle") is True for record in records
+    )
     domain_counts: dict[str, list[bool]] = defaultdict(list)
     for record in records:
         domain_counts[record["subject"]].append(record["correct"])
@@ -220,7 +225,12 @@ def scorecard(
     result = {
         "schema": SCHEMA,
         "complete": complete,
-        "qualified": complete and invalid == 0 and gate,
+        "qualified": (
+            complete
+            and invalid == 0
+            and gate
+            and text_path_idle == len(records)
+        ),
         "started_at_utc": started_at,
         "updated_at_utc": utc_now(),
         "claim_boundary": (
@@ -253,6 +263,7 @@ def scorecard(
             "top_p": 1,
             "parser": "first standalone A/B/C/D in decoded completion",
             "same_frozen_prompt_token_ids": True,
+            "text_requests_must_not_enter_vl": True,
         },
         "progress": {"completed": len(records), "items": item_count},
         "score": {
@@ -268,6 +279,10 @@ def scorecard(
             "minimum_correct": minimum_correct,
             "score_pass": gate if complete else None,
             "all_answers_valid": invalid == 0 if complete else None,
+            "text_path_idle_records": text_path_idle,
+            "all_text_paths_idle": (
+                text_path_idle == len(records) if complete else None
+            ),
         },
         "domains": domains,
         "records": records,
@@ -434,6 +449,10 @@ def main() -> int:
         if not isinstance(previous_records, list):
             raise RuntimeError("existing output has invalid records")
         records = previous_records
+        if any("text_path_idle" not in record for record in records):
+            raise RuntimeError(
+                "existing output predates the text-path VL-idle gate"
+            )
         started_at = str(previous.get("started_at_utc", started_at))
     completed_ids = {record.get("item_id") for record in records}
     expected_prefix = [item["item_id"] for item in items[: len(records)]]
@@ -464,6 +483,7 @@ def main() -> int:
         if expected not in {"A", "B", "C", "D"}:
             raise RuntimeError(f"{item['item_id']}: invalid correct_answer")
         parsed = parse_answer(content)
+        idle_checks = text_path_idle_checks(metrics)
         record = {
             "ordinal": item.get("ordinal"),
             "item_id": item["item_id"],
@@ -481,6 +501,8 @@ def main() -> int:
             "aot_prefill_tokens": metrics.get("aot_prefill_tokens"),
             "request_wall_ms": metrics.get("request_wall_ms"),
             "http_round_trip_ms": (time.monotonic() - request_started) * 1000,
+            "text_path_idle": all(idle_checks.values()),
+            "text_path_idle_checks": idle_checks,
         }
         if record["prompt_source"] != "token_ids":
             raise RuntimeError(f"{item['item_id']}: raw prompt source was not used")
