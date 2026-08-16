@@ -1662,6 +1662,9 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
         item.contains("reference_decode_linear_boundary_dir") ||
         item.contains("reference_decode_layer0_tail_boundary_dir") ||
         item.contains("reference_decode_full_attention_dir");
+    const bool has_linear_decode_references =
+        item.contains("reference_decode_linear_boundary_dir") ||
+        item.contains("reference_decode_layer0_tail_boundary_dir");
     std::optional<std::size_t> reference_decode_output_index;
     if (has_decode_references) {
       if (!item.contains("reference_decode_output_index") ||
@@ -1674,6 +1677,22 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
       if (*reference_decode_output_index != expected_prefix.size()) {
         throw std::runtime_error(
             "VL generation decode reference output index is misaligned");
+      }
+    }
+    std::size_t reference_decode_linear_layer_index = 0;
+    if (has_linear_decode_references) {
+      if (!item.contains("reference_decode_linear_layer_index") ||
+          !item["reference_decode_linear_layer_index"]
+               .is_number_unsigned()) {
+        throw std::runtime_error(
+            "VL generation linear reference layer is missing");
+      }
+      reference_decode_linear_layer_index =
+          item["reference_decode_linear_layer_index"].get<std::size_t>();
+      if (reference_decode_linear_layer_index >= 40 ||
+          reference_decode_linear_layer_index % 4 == 3) {
+        throw std::runtime_error(
+            "VL generation linear reference layer is unsupported");
       }
     }
     const std::uint64_t reference_token_value =
@@ -1974,6 +1993,8 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
           };
     }
     std::vector<NativeOracleComparison> decode_linear_boundary_comparisons;
+    request.decode_linear_observer_layer_index =
+        reference_decode_linear_layer_index;
     if (!reference_decode_linear_boundaries.empty()) {
       decode_linear_boundary_comparisons.reserve(
           kDecodeLinearBoundaryContracts.size());
@@ -2324,6 +2345,10 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
          {"reference_decode_output_index",
           reference_decode_output_index.has_value()
               ? Json(*reference_decode_output_index)
+              : Json(nullptr)},
+         {"reference_decode_linear_layer_index",
+          has_linear_decode_references
+              ? Json(reference_decode_linear_layer_index)
               : Json(nullptr)},
          {"selected_native_token_id", selected_token},
          {"output_token_ids", metrics.output_token_ids},

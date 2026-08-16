@@ -176,11 +176,12 @@ struct NativeResidentRequestOptions {
   // by prefill, so the observer target must name a later generated token.
   std::optional<std::size_t> decode_layer_observer_output_index;
   NativeDecodeLayerObserver decode_layer_observer;
-  // Qualification-only layer-0 projection/conv/recurrent stage observer. It
-  // shares the exact output-index target above with the whole-layer observer.
+  // Qualification-only selected linear-layer observer. Layer zero preserves
+  // the promotion-oracle default; diagnostics may select any linear layer.
+  std::size_t decode_linear_observer_layer_index = 0;
   NativeDecodeLinearLayer0Observer decode_linear_layer0_observer;
-  // Qualification-only layer-0 residual/post-attention/MoE observer. Keeping
-  // it separate preserves the frozen linear-attention oracle component set.
+  // The residual/post-attention/MoE callback stays separate to preserve the
+  // frozen linear-attention oracle component set.
   NativeDecodeLinearLayer0Observer decode_layer0_tail_observer;
   // Qualification-only singleton full-attention observer. It shares the
   // exact output-index target above and exposes resident cache state without

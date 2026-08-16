@@ -99,6 +99,7 @@ NativeDecodeRunMetrics run_native_decode_token(
     int cu_count, const std::uint8_t* allowed_token_mask = nullptr,
     void* stream = nullptr,
     const NativeDecodeLayerObserver* layer_observer = nullptr,
+    std::size_t linear_observer_layer_index = 0,
     const NativeDecodeLinearLayer0Observer* linear_layer0_observer = nullptr,
     const NativeDecodeLinearLayer0Observer* layer0_tail_observer = nullptr,
     const NativeDecodeFullAttentionObserver* full_attention_observer = nullptr,

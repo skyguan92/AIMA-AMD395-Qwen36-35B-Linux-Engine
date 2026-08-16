@@ -85,6 +85,7 @@ def _validate_boundary_set(
     case_id: str,
     label: str,
     expected_decode_call: int,
+    expected_layer_index: int,
     specs: Mapping[str, tuple[list[int], str, int]],
     oracle_root: Path | None,
 ) -> list[str]:
@@ -93,6 +94,11 @@ def _validate_boundary_set(
         return [f"generation layer {label} boundaries are missing: {case_id}"]
     if value.get("target_decode_call") != expected_decode_call:
         errors.append(f"generation layer {label} target changed: {case_id}")
+    metadata = value.get("metadata")
+    if not isinstance(metadata, dict) or metadata.get("layer_index") != (
+        expected_layer_index
+    ):
+        errors.append(f"generation layer {label} index changed: {case_id}")
     components = value.get("components")
     if not isinstance(components, dict):
         return errors + [
@@ -297,6 +303,7 @@ def validate_generation_layer_oracle_manifest(
                 case_id=case_id,
                 label="linear-attention",
                 expected_decode_call=contract["divergence_output_index"],
+                expected_layer_index=0,
                 specs=LINEAR_ATTENTION_BOUNDARY_SPECS,
                 oracle_root=oracle_root,
             )
@@ -307,6 +314,7 @@ def validate_generation_layer_oracle_manifest(
                 case_id=case_id,
                 label="first-decode linear-attention",
                 expected_decode_call=FIRST_DECODE_LINEAR_OUTPUT_INDEX,
+                expected_layer_index=0,
                 specs=LINEAR_ATTENTION_BOUNDARY_SPECS,
                 oracle_root=oracle_root,
             )
@@ -317,6 +325,7 @@ def validate_generation_layer_oracle_manifest(
                 case_id=case_id,
                 label="layer-0 tail",
                 expected_decode_call=contract["divergence_output_index"],
+                expected_layer_index=0,
                 specs=LAYER0_TAIL_BOUNDARY_SPECS,
                 oracle_root=oracle_root,
             )
@@ -327,6 +336,7 @@ def validate_generation_layer_oracle_manifest(
                 case_id=case_id,
                 label="first-decode layer-0 tail",
                 expected_decode_call=FIRST_DECODE_LINEAR_OUTPUT_INDEX,
+                expected_layer_index=0,
                 specs=LAYER0_TAIL_BOUNDARY_SPECS,
                 oracle_root=oracle_root,
             )

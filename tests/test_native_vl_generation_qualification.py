@@ -93,6 +93,9 @@ class NativeVlGenerationQualificationTest(unittest.TestCase):
                         "target_logits_component": {
                             "path": f"{case_id}/target-logits.bin"
                         },
+                        "linear_attention": {
+                            "metadata": {"layer_index": 0}
+                        },
                         "full_attention": {
                             "metadata": {
                                 "layer_index": (
@@ -125,6 +128,13 @@ class NativeVlGenerationQualificationTest(unittest.TestCase):
                     CASE_CONTRACTS[case_id]["divergence_output_index"]
                     for case_id in CASE_ORDER
                 ],
+            )
+            self.assertEqual(
+                [
+                    case["reference_decode_linear_layer_index"]
+                    for case in cases
+                ],
+                [0, 0],
             )
             self.assertEqual(
                 [Path(case["reference_logits"]) for case in cases],
@@ -180,6 +190,8 @@ class NativeVlGenerationQualificationTest(unittest.TestCase):
         self.assertIn("diagnostic_allow_prefix_divergence", source)
         self.assertIn("reference_logits_output_index", source)
         self.assertIn("reference_decode_output_index", source)
+        self.assertIn("reference_decode_linear_layer_index", source)
+        self.assertIn("decode_linear_observer_layer_index", source)
         self.assertIn("reference logits output index is misaligned", source)
         self.assertIn("decode reference output index is misaligned", source)
         self.assertIn(

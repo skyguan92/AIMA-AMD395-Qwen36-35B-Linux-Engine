@@ -146,6 +146,30 @@ def build_probe_cases(
                     (component_root / component["path"]).resolve()
                 )
             probe_case["reference_decode_output_index"] = target
+            linear_attention = layer_case.get("linear_attention")
+            linear_metadata = (
+                linear_attention.get("metadata")
+                if isinstance(linear_attention, dict)
+                else None
+            )
+            linear_layer_index = (
+                linear_metadata.get("layer_index")
+                if isinstance(linear_metadata, dict)
+                else 0
+            )
+            if (
+                not isinstance(linear_layer_index, int)
+                or isinstance(linear_layer_index, bool)
+                or linear_layer_index < 0
+                or linear_layer_index >= 40
+                or linear_layer_index % 4 == 3
+            ):
+                raise RuntimeError(
+                    f"generation linear observer layer is invalid: {case_id}"
+                )
+            probe_case["reference_decode_linear_layer_index"] = (
+                linear_layer_index
+            )
             probe_case["reference_decode_boundary_dir"] = str(
                 (layer_oracle_root / case_id).resolve()
             )

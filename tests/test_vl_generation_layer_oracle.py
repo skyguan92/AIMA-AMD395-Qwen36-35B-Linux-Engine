@@ -93,6 +93,7 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
                 )
                 return {
                     "target_decode_call": target_decode_call,
+                    "metadata": {"layer_index": 0},
                     "components": components,
                     "oracle_jsonl": file_component(
                         ledger, f"{case_id}/{directory}/oracle.jsonl"
@@ -296,7 +297,11 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
         self.assertIn("FULL_ATTENTION_DECODE_COMPONENT_NAMES", source)
         self.assertIn("FULL_ATTENTION_PROJECTION_COMPONENT_NAMES", source)
         self.assertIn("FIRST_DIVERGENCE_FULL_ATTENTION_LAYERS", source)
+        self.assertIn(
+            "FIRST_DIVERGENCE_LINEAR_ATTENTION_LAYERS", source
+        )
         self.assertIn("--first-divergence-full-attention", source)
+        self.assertIn("--first-divergence-linear-attention", source)
         self.assertIn('capture_full_attention("qkv_projection"', source)
         self.assertIn('capture_full_attention("gated_attention"', source)
         self.assertIn('capture_full_attention("projected_attention"', source)
@@ -357,10 +362,13 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
         self.assertIn("reference_decode_linear_boundary_dir", http)
         self.assertIn("reference_decode_layer0_tail_boundary_dir", http)
         self.assertIn("decode_linear_layer0_observer", resident)
+        self.assertIn("decode_linear_observer_layer_index", resident)
+        self.assertIn("linear_observer_layer_index", runner)
         self.assertIn("decode_layer0_tail_observer", resident)
         self.assertIn("decode_full_attention_observer", resident)
         self.assertIn("hipStreamSynchronize native full-attention observer", full_layer)
         self.assertIn("reference_decode_full_attention_dir", http)
+        self.assertIn("reference_decode_linear_layer_index", http)
         self.assertIn(
             "reference_decode_full_attention_layer_index", http
         )

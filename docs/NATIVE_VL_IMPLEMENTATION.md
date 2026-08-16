@@ -883,3 +883,11 @@ evidence. A correctly aligned preliminary replay showed both output-index-1
 token pairs and all 41 language boundaries bit-exact; target-index state and
 logits still require exact-commit recapture and qualification, so no gate is
 promoted by that observation.
+
+The linear-attention diagnostic observer is layer-parameterized while retaining
+layer 0 as the promotion-oracle default. A diagnostic manifest records the
+selected layer in each attention and tail boundary set, and the native case
+must bind the same validated non-full-attention layer. This permits resident
+conv/recurrent state attribution at the first non-exact layer without widening
+the product runtime path or comparing an isolated layer seeded from oracle
+state.

@@ -59,9 +59,14 @@ GENERATION_LAYER_DIAGNOSTIC_SCHEMA = (
     "aima-amd395-qwen36/vl-generation-layer-diagnostic/v1"
 )
 FULL_ATTENTION_LAYER = 3
+LINEAR_ATTENTION_LAYER = 0
 FIRST_DIVERGENCE_FULL_ATTENTION_LAYERS = {
     "tool_forced_image": 11,
     "tool_auto_image": 3,
+}
+FIRST_DIVERGENCE_LINEAR_ATTENTION_LAYERS = {
+    "tool_forced_image": 5,
+    "tool_auto_image": 10,
 }
 FULL_ATTENTION_DECODE_COMPONENT_NAMES = (
     "query",
@@ -191,11 +196,13 @@ class InstallGenerationLayerHooks:
         *,
         case_id: str,
         output_index: int,
+        linear_attention_layer_index: int = LINEAR_ATTENTION_LAYER,
         full_attention_layer_index: int = FULL_ATTENTION_LAYER,
         capture_full_attention_projection: bool = False,
     ) -> None:
         self.case_id = case_id
         self.output_index = output_index
+        self.linear_attention_layer_index = linear_attention_layer_index
         self.full_attention_layer_index = full_attention_layer_index
         self.capture_full_attention_projection = (
             capture_full_attention_projection
@@ -206,6 +213,12 @@ class InstallGenerationLayerHooks:
 
         if self.output_index <= 0:
             raise RuntimeError("decode layer capture requires output index > 0")
+        if (
+            self.linear_attention_layer_index < 0
+            or self.linear_attention_layer_index >= 40
+            or self.linear_attention_layer_index % 4 == 3
+        ):
+            raise RuntimeError("decode linear-attention layer is unsupported")
         if (
             self.full_attention_layer_index < 0
             or self.full_attention_layer_index >= 40
@@ -234,6 +247,9 @@ class InstallGenerationLayerHooks:
             "first_decode_full_attention_metadata": {},
             "linear_singleton_calls": 0,
             "linear_capture_kind": None,
+            "linear_attention_layer_index": (
+                self.linear_attention_layer_index
+            ),
             "full_attention_singleton_calls": 0,
             "full_attention_capture_kind": None,
             "full_attention_layer_index": self.full_attention_layer_index,
@@ -253,14 +269,20 @@ class InstallGenerationLayerHooks:
             "handles": [],
         }
 
-        layer0 = language.model.layers[0]
-        if getattr(layer0, "layer_type", None) != "linear_attention":
-            raise RuntimeError("generation language layer 0 is not linear attention")
-        linear = layer0.linear_attn
-        mlp = layer0.mlp
+        linear_layer = language.model.layers[
+            self.linear_attention_layer_index
+        ]
+        if getattr(linear_layer, "layer_type", None) != "linear_attention":
+            raise RuntimeError(
+                "generation diagnostic layer is not linear attention"
+            )
+        linear = linear_layer.linear_attn
+        mlp = linear_layer.mlp
         shared_expert = mlp.shared_expert
         if shared_expert is None:
-            raise RuntimeError("generation layer-0 shared expert is missing")
+            raise RuntimeError(
+                "generation diagnostic linear shared expert is missing"
+            )
         router = mlp.experts.router
         full_attention_layer = language.model.layers[
             self.full_attention_layer_index
@@ -306,8 +328,8 @@ class InstallGenerationLayerHooks:
                 "original_packed_decode": (
                     gdn_module.fused_recurrent_gated_delta_rule_packed_decode
                 ),
-                "layer0_conv_weight_pointer": linear.conv1d.weight.data_ptr(),
-                "layer0_a_log_pointer": linear.A_log.data_ptr(),
+                "linear_conv_weight_pointer": linear.conv1d.weight.data_ptr(),
+                "linear_a_log_pointer": linear.A_log.data_ptr(),
                 "router": router,
                 "original_router_select_experts": router.select_experts,
                 "full_attention_router": full_attention_router,
@@ -687,12 +709,14 @@ class InstallGenerationLayerHooks:
             destination.update(metadata)
             return result
 
-        def layer0_input_norm_hook(
+        def linear_input_norm_hook(
             _module: Any, _args: Any, output: Any
         ) -> None:
             tensor = _first_tensor(output)
             if tensor is None or tensor.ndim != 2 or tensor.shape[-1] != HIDDEN_SIZE:
-                raise RuntimeError("generation layer-0 input norm geometry changed")
+                raise RuntimeError(
+                    "generation linear input norm geometry changed"
+                )
             if tensor.shape[0] != 1:
                 return
             state["linear_singleton_calls"] += 1
@@ -746,7 +770,9 @@ class InstallGenerationLayerHooks:
 
         def experts_hook(_module: Any, _args: Any, output: Any) -> None:
             if not isinstance(output, (tuple, list)) or len(output) != 2:
-                raise RuntimeError("generation layer-0 experts contract changed")
+                raise RuntimeError(
+                    "generation linear experts contract changed"
+                )
             capture_layer0_tail("shared_moe_output", output[0])
             capture_layer0_tail("routed_moe_output", output[1])
 
@@ -812,25 +838,30 @@ class InstallGenerationLayerHooks:
         ) -> None:
             capture_full_attention("combined_moe_output", output)
 
-        def layer0_output_hook(_module: Any, _args: Any, _output: Any) -> None:
+        def linear_output_hook(_module: Any, _args: Any, _output: Any) -> None:
             state["linear_capture_kind"] = None
 
         def instrumented_causal_conv1d_update(
             *args: Any, **kwargs: Any
         ) -> Any:
             weight = args[2] if len(args) > 2 else kwargs.get("weight")
-            is_layer0 = (
+            is_selected_linear_layer = (
                 isinstance(weight, torch.Tensor)
-                and weight.data_ptr() == state["layer0_conv_weight_pointer"]
+                and weight.data_ptr() == state["linear_conv_weight_pointer"]
             )
-            if state["linear_capture_kind"] is None or not is_layer0:
+            if (
+                state["linear_capture_kind"] is None
+                or not is_selected_linear_layer
+            ):
                 return state["original_causal_conv1d_update"](*args, **kwargs)
             conv_state = args[1] if len(args) > 1 else kwargs.get("conv_state")
             indices = kwargs.get("conv_state_indices")
             if not isinstance(conv_state, torch.Tensor) or not isinstance(
                 indices, torch.Tensor
             ) or indices.numel() != 1:
-                raise RuntimeError("generation layer-0 conv state geometry changed")
+                raise RuntimeError(
+                    "generation linear conv state geometry changed"
+                )
             state_index = int(indices.reshape(-1)[0].item())
             capture_linear("conv_state_before", conv_state[state_index])
             output = state["original_causal_conv1d_update"](*args, **kwargs)
@@ -840,11 +871,14 @@ class InstallGenerationLayerHooks:
 
         def instrumented_packed_decode(*args: Any, **kwargs: Any) -> Any:
             a_log = args[3] if len(args) > 3 else kwargs.get("A_log")
-            is_layer0 = (
+            is_selected_linear_layer = (
                 isinstance(a_log, torch.Tensor)
-                and a_log.data_ptr() == state["layer0_a_log_pointer"]
+                and a_log.data_ptr() == state["linear_a_log_pointer"]
             )
-            if state["linear_capture_kind"] is None or not is_layer0:
+            if (
+                state["linear_capture_kind"] is None
+                or not is_selected_linear_layer
+            ):
                 return state["original_packed_decode"](*args, **kwargs)
             initial_state = (
                 args[6] if len(args) > 6 else kwargs.get("initial_state")
@@ -857,7 +891,7 @@ class InstallGenerationLayerHooks:
                 output, torch.Tensor
             ) or not isinstance(indices, torch.Tensor) or indices.numel() != 1:
                 raise RuntimeError(
-                    "generation layer-0 recurrent state geometry changed"
+                    "generation linear recurrent state geometry changed"
                 )
             state_index = int(indices.reshape(-1)[0].item())
             capture_linear(
@@ -877,12 +911,14 @@ class InstallGenerationLayerHooks:
             if state["linear_capture_kind"] is None:
                 return output
             if not isinstance(output, (tuple, list)) or len(output) != 2:
-                raise RuntimeError("generation layer-0 router contract changed")
+                raise RuntimeError("generation linear router contract changed")
             weights, indices = output
             if not isinstance(weights, torch.Tensor) or not isinstance(
                 indices, torch.Tensor
             ):
-                raise RuntimeError("generation layer-0 router indices unavailable")
+                raise RuntimeError(
+                    "generation linear router indices unavailable"
+                )
             capture_layer0_tail("router_weights", weights)
             capture_layer0_tail("router_indices", indices.to(torch.int32))
             return output
@@ -937,8 +973,8 @@ class InstallGenerationLayerHooks:
 
         handles = state["handles"]
         handles.append(
-            layer0.input_layernorm.register_forward_hook(
-                layer0_input_norm_hook
+            linear_layer.input_layernorm.register_forward_hook(
+                linear_input_norm_hook
             )
         )
         handles.append(
@@ -952,7 +988,7 @@ class InstallGenerationLayerHooks:
             linear.out_proj.register_forward_hook(attention_output_hook)
         )
         handles.append(
-            layer0.post_attention_layernorm.register_forward_hook(
+            linear_layer.post_attention_layernorm.register_forward_hook(
                 post_attention_hook
             )
         )
@@ -975,7 +1011,7 @@ class InstallGenerationLayerHooks:
         )
         handles.append(mlp.experts.register_forward_hook(experts_hook))
         handles.append(mlp.register_forward_hook(mlp_hook))
-        handles.append(layer0.register_forward_hook(layer0_output_hook))
+        handles.append(linear_layer.register_forward_hook(linear_output_hook))
         handles.append(
             full_attention_layer.input_layernorm.register_forward_hook(
                 full_attention_input_norm_hook
@@ -1152,6 +1188,9 @@ class InstallGenerationLayerHooks:
         return {
             "installed": True,
             "target_output_index": self.output_index,
+            "linear_attention_layer_index": (
+                self.linear_attention_layer_index
+            ),
             "full_attention_layer_index": self.full_attention_layer_index,
             "full_attention_projection_captured": (
                 self.capture_full_attention_projection
@@ -1395,24 +1434,36 @@ class FinalizeGenerationLayerHooks:
             target_call,
             LINEAR_ATTENTION_BOUNDARY_SPECS,
         )
+        linear_attention["metadata"] = {
+            "layer_index": state["linear_attention_layer_index"]
+        }
         first_decode_linear_attention = write_tensor_boundary_set(
             "first-decode-linear",
             first_decode_linear_captures,
             FIRST_DECODE_LINEAR_OUTPUT_INDEX,
             LINEAR_ATTENTION_BOUNDARY_SPECS,
         )
+        first_decode_linear_attention["metadata"] = {
+            "layer_index": state["linear_attention_layer_index"]
+        }
         layer0_tail = write_tensor_boundary_set(
             "layer0-tail",
             layer0_tail_captures,
             target_call,
             LAYER0_TAIL_BOUNDARY_SPECS,
         )
+        layer0_tail["metadata"] = {
+            "layer_index": state["linear_attention_layer_index"]
+        }
         first_decode_layer0_tail = write_tensor_boundary_set(
             "first-decode-layer0-tail",
             first_decode_layer0_tail_captures,
             FIRST_DECODE_LINEAR_OUTPUT_INDEX,
             LAYER0_TAIL_BOUNDARY_SPECS,
         )
+        first_decode_layer0_tail["metadata"] = {
+            "layer_index": state["linear_attention_layer_index"]
+        }
         full_attention = write_tensor_boundary_set(
             "full-attention",
             full_attention_captures,
@@ -1628,11 +1679,19 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
                 if args.first_divergence_full_attention
                 else FULL_ATTENTION_LAYER
             )
+            linear_attention_layer_index = (
+                FIRST_DIVERGENCE_LINEAR_ATTENTION_LAYERS[case_id]
+                if args.first_divergence_linear_attention
+                else LINEAR_ATTENTION_LAYER
+            )
 
             def install_callable(model: Any) -> dict[str, Any]:
                 return InstallGenerationLayerHooks(
                     case_id=case_id,
                     output_index=target_index,
+                    linear_attention_layer_index=(
+                        linear_attention_layer_index
+                    ),
                     full_attention_layer_index=full_attention_layer_index,
                     capture_full_attention_projection=(
                         args.first_divergence_full_attention
@@ -1736,9 +1795,10 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
     diagnostic = (
         args.diagnostic_output_index is not None
         or args.first_divergence_full_attention
+        or args.first_divergence_linear_attention
     )
     scope = (
-        "two-fixed-vllm-vl-decode-layer-and-layer0-linear-attention-plus-"
+        "two-fixed-vllm-vl-decode-layer-and-selected-linear-attention-plus-"
         "tail-routed-moe-and-selected-full-attention-qkv-diagnostic-"
         "boundary-sets"
         if diagnostic
@@ -1753,6 +1813,9 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
             "two_diagnostic_decode_boundary_sets_captured": len(cases) == 2,
             "two_diagnostic_layer0_linear_attention_boundary_sets_captured": (
                 len(cases) == 2
+            ),
+            "two_diagnostic_selected_linear_attention_sets_captured": (
+                args.first_divergence_linear_attention and len(cases) == 2
             ),
             "two_diagnostic_layer0_tail_boundary_sets_captured": (
                 len(cases) == 2
@@ -1855,6 +1918,14 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
                     if args.first_divergence_full_attention
                     else None
                 ),
+                "first_divergence_linear_attention": (
+                    args.first_divergence_linear_attention
+                ),
+                "first_divergence_linear_attention_layers": (
+                    FIRST_DIVERGENCE_LINEAR_ATTENTION_LAYERS
+                    if args.first_divergence_linear_attention
+                    else None
+                ),
                 "layer3_unified_attention_compact_identity_block_table": True,
                 "product_runtime_dependency": False,
             },
@@ -1905,6 +1976,14 @@ def parse_args() -> argparse.Namespace:
         help=(
             "capture QKV and attention state at each case's first known "
             "divergent full-attention layer"
+        ),
+    )
+    parser.add_argument(
+        "--first-divergence-linear-attention",
+        action="store_true",
+        help=(
+            "capture the resident state boundaries at each case's first "
+            "known divergent linear-attention layer"
         ),
     )
     parser.add_argument(

@@ -979,6 +979,9 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
       static_cast<bool>(request.decode_linear_layer0_observer) ||
       static_cast<bool>(request.decode_layer0_tail_observer) ||
       static_cast<bool>(request.decode_full_attention_observer);
+  const bool has_linear_decode_observer =
+      static_cast<bool>(request.decode_linear_layer0_observer) ||
+      static_cast<bool>(request.decode_layer0_tail_observer);
   if (has_decode_observer !=
           request.decode_layer_observer_output_index.has_value() ||
       (request.decode_layer_observer_output_index.has_value() &&
@@ -987,6 +990,12 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
             request.max_new_tokens))) {
     throw std::invalid_argument(
         "native decode layer observer target is invalid");
+  }
+  if (has_linear_decode_observer &&
+      (request.decode_linear_observer_layer_index >= 40 ||
+       request.decode_linear_observer_layer_index % 4 == 3)) {
+    throw std::invalid_argument(
+        "native decode linear observer layer is invalid");
   }
   if (!valid_native_multimodal_cache_namespace(
           request.multimodal_cache_namespace)) {
@@ -1964,8 +1973,9 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
         position, position + 1, impl_->weights, impl_->lm_head,
         impl_->decode_workspace, impl_->decode_invocations, impl_->executor,
         impl_->attention_state, impl_->cu_count, allowed_token_mask, nullptr,
-        layer_observer, linear_layer0_observer, layer0_tail_observer,
-        full_attention_observer, mrope_plan != nullptr);
+        layer_observer, request.decode_linear_observer_layer_index,
+        linear_layer0_observer, layer0_tail_observer, full_attention_observer,
+        mrope_plan != nullptr);
     ++metrics.decode_tokens_executed;
     metrics.decode_aot_launches += token.aot_launches;
     metrics.decode_native_launches +=
