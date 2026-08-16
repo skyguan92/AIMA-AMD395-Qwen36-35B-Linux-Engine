@@ -25,6 +25,16 @@ from native_text_metrics import text_path_idle_checks
 
 MODEL_ID = "aima-amd395-qwen36-35b"
 ROOT = Path(__file__).resolve().parents[1]
+QUALIFIED_CONTEXT_TOKENS = 8192
+
+
+def require_qualified_context(context_tokens: int) -> None:
+    """Reject runs that cannot exercise all frozen resident prefill buckets."""
+
+    if context_tokens != QUALIFIED_CONTEXT_TOKENS:
+        raise ValueError(
+            "OpenAI feature qualification requires --context-tokens 8192"
+        )
 
 
 def sha256(path: Path) -> str:
@@ -293,8 +303,11 @@ def main() -> None:
     parser.add_argument("--model-dir", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--port", type=int, default=18123)
-    parser.add_argument("--context-tokens", type=int, default=1024)
+    parser.add_argument(
+        "--context-tokens", type=int, default=QUALIFIED_CONTEXT_TOKENS
+    )
     cli = parser.parse_args()
+    require_qualified_context(cli.context_tokens)
 
     engine = cli.engine.expanduser().resolve()
     model_dir = cli.model_dir.expanduser().resolve()
