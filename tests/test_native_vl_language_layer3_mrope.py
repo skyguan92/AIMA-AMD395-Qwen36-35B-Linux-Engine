@@ -130,6 +130,7 @@ class NativeVlLanguageLayer3MropeTest(unittest.TestCase):
         self.assertIn("position, position, input_token_id", decode)
         self.assertIn("decode_rotary_kernel", decode)
         self.assertIn("rotary_position, static_cast<float*>(cosine)", decode)
+        self.assertIn("1.0f / powf(kRopeTheta, exponent)", decode)
         self.assertIn(
             "__bfloat162float(__float2bfloat16(cosf(angle)))", decode
         )

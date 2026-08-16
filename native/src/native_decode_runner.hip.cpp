@@ -20,18 +20,9 @@ namespace {
 constexpr std::size_t kVocabulary = 248320;
 constexpr std::size_t kHidden = 2048;
 constexpr std::size_t kRotaryHalfDimension = 32;
+constexpr std::size_t kRotaryDimension = 64;
 constexpr std::size_t kMaximumPosition = 262144;
-
-__device__ __constant__ float kInverseFrequencies[kRotaryHalfDimension] = {
-    1.0f,          0.604296386f,  0.365174145f,  0.220673427f,
-    0.133352146f,  0.0805842131f, 0.0486967489f, 0.0294272732f,
-    0.0177827943f, 0.0107460786f, 0.00649381615f, 0.00392419007f,
-    0.00237137382f, 0.00143301266f, 0.000865964335f, 0.000523299095f,
-    0.000316227757f, 0.0001910953f, 0.000115478193f, 6.97830546e-05f,
-    4.21696495e-05f, 2.54829702e-05f, 1.53992642e-05f, 9.3057206e-06f,
-    5.62341347e-06f, 3.39820826e-06f, 2.0535249e-06f, 1.24093776e-06f,
-    7.49894241e-07f, 4.53158378e-07f, 2.73841977e-07f, 1.65481708e-07f,
-};
+constexpr float kRopeTheta = 1000000.0f;
 
 void check_hip(hipError_t status, const char* operation) {
   if (status != hipSuccess) {
@@ -53,8 +44,10 @@ __global__ void decode_rotary_kernel(std::size_t position, float* cosine,
                                      float* sine) {
   const std::size_t index = threadIdx.x;
   if (index >= kRotaryHalfDimension) return;
-  const float angle =
-      static_cast<float>(position) * kInverseFrequencies[index];
+  const float exponent =
+      static_cast<float>(2 * index) / static_cast<float>(kRotaryDimension);
+  const float inverse_frequency = 1.0f / powf(kRopeTheta, exponent);
+  const float angle = static_cast<float>(position) * inverse_frequency;
   // current-vLLM materializes the FP32 rotary cache, converts it to the
   // BF16 query dtype, then the captured Triton consumer promotes it back to
   // FP32. Preserve that boundary: unrounded FP32 trigonometry changes only
