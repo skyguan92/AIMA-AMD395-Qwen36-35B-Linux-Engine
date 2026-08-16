@@ -202,6 +202,18 @@ class NativeVlGenerationQualificationTest(unittest.TestCase):
         self.assertIn("reference_decode_full_attention_dir", source)
         self.assertIn("decode_layer0_tail_boundaries", source)
 
+    def test_qualification_binds_decode_norm_owners(self) -> None:
+        source = (ROOT / "scripts/qualify-native-vl-generation.py").read_text(
+            encoding="utf-8"
+        )
+        for relative in (
+            "native/include/aima/native_pointwise.h",
+            "native/src/native_full_layer.hip.cpp",
+            "native/src/native_linear_layer.hip.cpp",
+            "native/src/native_pointwise.hip.cpp",
+        ):
+            self.assertIn(f'ROOT / "{relative}"', source)
+
     def test_checks_separate_setup_from_current_native_mismatch(self) -> None:
         oracle_cases = []
         probe_cases = []

@@ -909,3 +909,25 @@ and simultaneous use of the historical first-divergence preset. Explicit
 selection captures QKV, cache, unified-attention output, projected attention,
 residual, post-attention norm, and routed-MoE boundaries at the selected layer,
 and seals both the explicit and effective maps into the diagnostic manifest.
+
+Current-vLLM singleton Gemma RMSNorm requires a different reduction topology
+from the already-qualified multi-row prefill kernel. For a contiguous
+`[1,2048]` FP32 `pow(2).mean(-1)`, the pinned PyTorch/ROCm implementation uses
+one 512-thread vec4 block on gfx1151: local four-value accumulation, shared
+combines at offsets 256, 128, 64 and 32, then an ascending-offset wave32
+shuffle. The q1024 prefill path remains 32-by-16 vec4 because its many output
+rows change ATen's block geometry. Reusing that prefill tree for singleton
+decode produced a variance one FP32 ULP low on an observed layer-20 row; its
+inverse RMS moved one ULP high and crossed a BF16 rounding midpoint in exactly
+one output element.
+
+Native decode now dispatches `token_count == 1` to the dedicated singleton
+tree and uses it for both input and post-attention Gemma RMSNorm in linear and
+full-attention VL layers. The historical AOT norms remain unchanged for the
+text path. Aligned diagnostic replays on clean `b76653f` cover output indices
+1, 2, 3 and 6 for both frozen tool cases. Every replay has exact prefix,
+selected token and top-1; all compared whole-layer rows are 41/41 exact. The
+selected internal sets are also exact: 13/13 linear and 15/15 tail boundaries
+where present, plus 24/24 full-attention boundaries at output indices 3 and 6.
+These are attribution scouts, not promotion evidence; the divergence-index
+oracle and formal qualification must be recaptured on the final source commit.

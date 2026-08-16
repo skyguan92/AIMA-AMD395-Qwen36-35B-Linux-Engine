@@ -648,8 +648,11 @@ def qualify(args: argparse.Namespace) -> dict[str, Any]:
                     file_component(path, path.relative_to(ROOT).as_posix())
                     for path in (
                         ROOT / "native/include/aima/native_http_server.h",
+                        ROOT / "native/include/aima/native_pointwise.h",
                         ROOT / "native/src/native_http_server.cpp",
+                        ROOT / "native/src/native_full_layer.hip.cpp",
                         ROOT / "native/src/native_linear_layer.hip.cpp",
+                        ROOT / "native/src/native_pointwise.hip.cpp",
                         ROOT / "native/src/main.cpp",
                         Path(__file__).resolve(),
                         ROOT / "aima_engine/vl_generation_oracle.py",
