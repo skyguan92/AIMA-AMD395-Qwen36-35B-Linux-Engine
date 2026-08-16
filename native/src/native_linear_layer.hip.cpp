@@ -3,6 +3,7 @@
 
 #include "aima/native_linear_layer.h"
 
+#include "aima/bf16_gemm.h"
 #include "aima/bf16_wvsplitk.h"
 #include "aima/native_pointwise.h"
 #include "aima/native_routed_moe.h"
@@ -197,6 +198,7 @@ NativeLinearLayerMetrics run_native_linear_layer(
     const NativeDecodeInvocations& invocations,
     NativeDecodeExecutor& executor, int cu_count, void* stream_value,
     bool synchronize, bool use_current_vllm_projections,
+    const Bf16GemmPlan* shared_gate_plan,
     const NativeDecodeLinearLayer0Observer* observer,
     const NativeDecodeLinearLayer0Observer* tail_observer) {
   const auto& launches = invocations.launches();
@@ -345,6 +347,9 @@ NativeLinearLayerMetrics run_native_linear_layer(
   const auto& shared_down_weight = require_weight(
       weights, prefix + ".mlp.shared_expert.down_proj.weight",
       kHidden * kSharedIntermediate * sizeof(__hip_bfloat16));
+  const auto& shared_expert_gate_weight = require_weight(
+      weights, prefix + ".mlp.shared_expert_gate.weight",
+      kHidden * sizeof(__hip_bfloat16));
   const auto& shared_gate_weight = require_weight(
       weights, prefix + ".mlp.shared_expert.gate_proj.weight",
       kSharedIntermediate * kHidden * sizeof(__hip_bfloat16));
@@ -471,8 +476,19 @@ NativeLinearLayerMetrics run_native_linear_layer(
   executor.launch(launches[base + 5], stream);
   ++metrics.aot_launches;
   if (use_current_vllm_projections) {
+    if (shared_gate_plan == nullptr || shared_gate_plan->m() != 1 ||
+        shared_gate_plan->n() != 1 || shared_gate_plan->k() != kHidden) {
+      throw std::runtime_error(
+          "native VL singleton shared-gate plan is incomplete");
+    }
     auto* shared_input_bytes =
         static_cast<unsigned char*>(shared_input.device_pointer);
+    // Current vLLM routes [1,2048] x [1,2048]^T through PyTorch's
+    // hipBLASLt fallback.  The historical fused matvec and wvSplitK both use
+    // different reductions for this scalar edge shape.
+    shared_gate_plan->launch(
+        post_attention_norm, shared_expert_gate_weight.device_pointer,
+        shared_input_bytes, stream);
     launch_bf16_wvsplitk(
         shared_gate_weight.device_pointer, post_attention_norm, nullptr,
         shared_input_bytes + sizeof(__hip_bfloat16), kSharedIntermediate,
@@ -482,7 +498,7 @@ NativeLinearLayerMetrics run_native_linear_layer(
         shared_input_bytes +
             (1 + kSharedIntermediate) * sizeof(__hip_bfloat16),
         kSharedIntermediate, kHidden, cu_count, stream);
-    metrics.native_projection_launches += 2;
+    metrics.native_projection_launches += 3;
   }
   observe_boundary(tail_observer, "shared_gate_logits",
                    shared_input.device_pointer,

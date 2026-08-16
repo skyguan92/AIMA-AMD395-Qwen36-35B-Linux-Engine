@@ -3,6 +3,7 @@
 
 #include "aima/native_full_layer.h"
 
+#include "aima/bf16_gemm.h"
 #include "aima/bf16_wvsplitk.h"
 #include "aima/native_pointwise.h"
 #include "aima/native_routed_moe.h"
@@ -91,6 +92,7 @@ NativeFullLayerMetrics run_native_full_layer(
     NativeDecodeExecutor& executor, NativeFullAttentionState& attention_state,
     int cu_count, void* stream_value, bool synchronize,
     bool use_mrope,
+    const Bf16GemmPlan* shared_gate_plan,
     const NativeDecodeFullAttentionObserver* attention_observer) {
   const auto& launches = invocations.launches();
   const std::size_t base = layer_index * 10;
@@ -207,6 +209,9 @@ NativeFullLayerMetrics run_native_full_layer(
   const auto& shared_down_weight = require_weight(
       weights, prefix + ".mlp.shared_expert.down_proj.weight",
       kHidden * kSharedIntermediate * sizeof(__hip_bfloat16));
+  const auto& shared_expert_gate_weight = require_weight(
+      weights, prefix + ".mlp.shared_expert_gate.weight",
+      kHidden * sizeof(__hip_bfloat16));
   const auto& shared_gate_weight = require_weight(
       weights, prefix + ".mlp.shared_expert.gate_proj.weight",
       kSharedIntermediate * kHidden * sizeof(__hip_bfloat16));
@@ -314,10 +319,18 @@ NativeFullLayerMetrics run_native_full_layer(
   executor.launch(launches[base + 5], stream);
   ++metrics.aot_launches;
   if (use_mrope) {
-    // Keep the exact scalar shared-expert gate from the historical fused
-    // launch, then match current vLLM's singleton gate/up projections.
+    if (shared_gate_plan == nullptr || shared_gate_plan->m() != 1 ||
+        shared_gate_plan->n() != 1 || shared_gate_plan->k() != kHidden) {
+      throw std::runtime_error(
+          "native VL singleton shared-gate plan is incomplete");
+    }
     auto* shared_input_bytes =
         static_cast<unsigned char*>(shared_input.device_pointer);
+    // Match the PyTorch hipBLASLt fallback used by the scalar shared gate;
+    // gate/up retain current vLLM's singleton wvSplitK provider.
+    shared_gate_plan->launch(
+        post_attention_norm, shared_expert_gate_weight.device_pointer,
+        shared_input_bytes, stream);
     launch_bf16_wvsplitk(
         shared_gate_weight.device_pointer, post_attention_norm, nullptr,
         shared_input_bytes + sizeof(__hip_bfloat16), kSharedIntermediate,
@@ -327,7 +340,7 @@ NativeFullLayerMetrics run_native_full_layer(
         shared_input_bytes +
             (1 + kSharedIntermediate) * sizeof(__hip_bfloat16),
         kSharedIntermediate, kHidden, cu_count, stream);
-    metrics.native_projection_launches += 2;
+    metrics.native_projection_launches += 3;
   }
   launch_shared_silu_multiply(shared_input.device_pointer,
                               activated.device_pointer, stream);

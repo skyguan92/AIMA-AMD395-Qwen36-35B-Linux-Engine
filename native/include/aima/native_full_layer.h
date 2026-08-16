@@ -14,6 +14,8 @@
 
 namespace aima {
 
+class Bf16GemmPlan;
+
 struct NativeFullLayerMetrics {
   std::size_t layer_index = 0;
   std::size_t cache_end = 0;
@@ -67,6 +69,7 @@ NativeFullLayerMetrics run_native_full_layer(
     NativeDecodeExecutor& executor, NativeFullAttentionState& attention_state,
     int cu_count, void* stream = nullptr, bool synchronize = true,
     bool use_mrope = false,
+    const Bf16GemmPlan* shared_gate_plan = nullptr,
     const NativeDecodeFullAttentionObserver* attention_observer = nullptr);
 
 }  // namespace aima

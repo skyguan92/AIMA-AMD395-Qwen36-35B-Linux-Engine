@@ -206,7 +206,7 @@ NativeDecodeRunMetrics run_native_decode_token(
     const NativeDecodeLinearLayer0Observer* linear_layer0_observer,
     const NativeDecodeLinearLayer0Observer* layer0_tail_observer,
     const NativeDecodeFullAttentionObserver* full_attention_observer,
-    bool use_mrope) {
+    bool use_mrope, const Bf16GemmPlan* shared_gate_plan) {
   const auto& launches = invocations.launches();
   if (launches.size() != 402 || !executor.loaded() || !lm_head.built() ||
       cu_count <= 0 ||
@@ -222,7 +222,7 @@ NativeDecodeRunMetrics run_native_decode_token(
         "triton_fused_input_proj_conv_kernel") {
       const NativeLinearLayerMetrics layer = run_native_linear_layer(
           layer_index, weights, workspace, invocations, executor, cu_count,
-          stream, false, use_mrope,
+          stream, false, use_mrope, shared_gate_plan,
           layer_index == linear_observer_layer_index
               ? linear_layer0_observer
               : nullptr,
@@ -236,7 +236,7 @@ NativeDecodeRunMetrics run_native_decode_token(
       const NativeFullLayerMetrics layer = run_native_full_layer(
           layer_index, position, cache_end, weights, workspace, invocations,
           executor, attention_state, cu_count, stream, false,
-          use_mrope,
+          use_mrope, shared_gate_plan,
           full_attention_observer);
       ++metrics.full_layer_count;
       metrics.aot_launches += layer.aot_launches;

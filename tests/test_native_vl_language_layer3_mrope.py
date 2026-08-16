@@ -173,10 +173,18 @@ class NativeVlLanguageLayer3MropeTest(unittest.TestCase):
             'prefix + ".mlp.shared_expert.up_proj.weight"', decode_full
         )
         self.assertIn(
+            'prefix + ".mlp.shared_expert_gate.weight"', decode_full
+        )
+        self.assertIn("shared_gate_plan->launch(", decode_full)
+        self.assertIn(
+            "post_attention_norm, shared_expert_gate_weight.device_pointer",
+            decode_full,
+        )
+        self.assertIn(
             "(1 + kSharedIntermediate) * sizeof(__hip_bfloat16)",
             decode_full,
         )
-        self.assertIn("metrics.native_projection_launches += 2", decode_full)
+        self.assertIn("metrics.native_projection_launches += 3", decode_full)
         self.assertIn(
             'prefix + ".input_layernorm.weight"', decode_full
         )
@@ -194,6 +202,14 @@ class NativeVlLanguageLayer3MropeTest(unittest.TestCase):
             'prefix + ".mlp.shared_expert.up_proj.weight"', decode_linear
         )
         self.assertIn(
+            'prefix + ".mlp.shared_expert_gate.weight"', decode_linear
+        )
+        self.assertIn("shared_gate_plan->launch(", decode_linear)
+        self.assertIn(
+            "post_attention_norm, shared_expert_gate_weight.device_pointer",
+            decode_linear,
+        )
+        self.assertIn(
             'prefix + ".input_layernorm.weight"', decode_linear
         )
         self.assertIn(
@@ -202,7 +218,18 @@ class NativeVlLanguageLayer3MropeTest(unittest.TestCase):
         self.assertEqual(
             decode_linear.count("launch_prefill_rmsnorm_2048("), 2
         )
-        self.assertIn("stream, false, use_mrope", decode)
+        self.assertIn(
+            "stream, false, use_mrope, shared_gate_plan", decode
+        )
+        self.assertIn(
+            "std::make_unique<Bf16GemmPlan>(\n"
+            "      1, 1, kHidden, 76ULL * 1024ULL * 1024ULL, true)",
+            resident,
+        )
+        self.assertIn(
+            "mrope_plan != nullptr, impl_->decode_shared_gate_plan.get()",
+            resident,
+        )
 
     def test_unified_attention_artifact_is_embedded_and_hash_bound(self) -> None:
         import hashlib

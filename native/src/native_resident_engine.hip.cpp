@@ -3,6 +3,7 @@
 
 #include "aima/native_resident_engine.h"
 
+#include "aima/bf16_gemm.h"
 #include "aima/native_decode_bindings.h"
 #include "aima/native_decode_executor.h"
 #include "aima/native_decode_invocation.h"
@@ -357,6 +358,7 @@ struct NativeResidentEngine::Impl {
   NativePrefillWorkspace tail_prefill_workspace;
   NativePrefillInvocations tail_prefill_invocations;
   std::unique_ptr<NativeQ8192PrefillGemmPlans> tail_prefill_gemm_plans;
+  std::unique_ptr<Bf16GemmPlan> decode_shared_gate_plan;
   NativeDecodeWorkspace decode_workspace;
   NativeDecodeInvocations decode_invocations;
   NativeDecodeExecutor executor;
@@ -689,6 +691,10 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
         std::make_unique<NativeQ8192PrefillGemmPlans>(
             impl_->tail_prefill_tokens);
   }
+  // vLLM's singleton shared-expert gate falls through to PyTorch hipBLASLt.
+  // Build the matching N=1 plan once; decode only reuses resident pointers.
+  impl_->decode_shared_gate_plan = std::make_unique<Bf16GemmPlan>(
+      1, 1, kHidden, 76ULL * 1024ULL * 1024ULL, true);
   const NativeWeightLoadMetrics weight_metrics =
       impl_->weights.load_resident(options.weights);
   const NativeVlLogicalProjectionLoadMetrics vl_logical_load_metrics =
@@ -1975,7 +1981,7 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
         impl_->attention_state, impl_->cu_count, allowed_token_mask, nullptr,
         layer_observer, request.decode_linear_observer_layer_index,
         linear_layer0_observer, layer0_tail_observer, full_attention_observer,
-        mrope_plan != nullptr);
+        mrope_plan != nullptr, impl_->decode_shared_gate_plan.get());
     ++metrics.decode_tokens_executed;
     metrics.decode_aot_launches += token.aot_launches;
     metrics.decode_native_launches +=

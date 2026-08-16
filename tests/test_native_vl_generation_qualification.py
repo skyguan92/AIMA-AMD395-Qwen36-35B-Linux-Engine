@@ -239,10 +239,17 @@ class NativeVlGenerationQualificationTest(unittest.TestCase):
             encoding="utf-8"
         )
         for relative in (
+            "native/include/aima/bf16_gemm.h",
+            "native/include/aima/native_decode_runner.h",
+            "native/include/aima/native_full_layer.h",
+            "native/include/aima/native_linear_layer.h",
             "native/include/aima/native_pointwise.h",
+            "native/src/bf16_gemm.hip.cpp",
+            "native/src/native_decode_runner.hip.cpp",
             "native/src/native_full_layer.hip.cpp",
             "native/src/native_linear_layer.hip.cpp",
             "native/src/native_pointwise.hip.cpp",
+            "native/src/native_resident_engine.hip.cpp",
         ):
             self.assertIn(f'ROOT / "{relative}"', source)
 

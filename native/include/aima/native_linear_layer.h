@@ -14,6 +14,8 @@
 
 namespace aima {
 
+class Bf16GemmPlan;
+
 struct NativeLinearLayerMetrics {
   std::size_t layer_index = 0;
   std::size_t aot_launches = 0;
@@ -44,6 +46,7 @@ NativeLinearLayerMetrics run_native_linear_layer(
     void* stream = nullptr,
     bool synchronize = true,
     bool use_current_vllm_projections = false,
+    const Bf16GemmPlan* shared_gate_plan = nullptr,
     const NativeDecodeLinearLayer0Observer* observer = nullptr,
     const NativeDecodeLinearLayer0Observer* tail_observer = nullptr);
 

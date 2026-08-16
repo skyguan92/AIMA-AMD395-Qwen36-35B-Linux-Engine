@@ -651,7 +651,14 @@ def qualify(args: argparse.Namespace) -> dict[str, Any]:
                     file_component(path, path.relative_to(ROOT).as_posix())
                     for path in (
                         ROOT / "native/include/aima/native_http_server.h",
+                        ROOT / "native/include/aima/bf16_gemm.h",
+                        ROOT / "native/include/aima/native_decode_runner.h",
+                        ROOT / "native/include/aima/native_full_layer.h",
+                        ROOT / "native/include/aima/native_linear_layer.h",
                         ROOT / "native/include/aima/native_pointwise.h",
+                        ROOT / "native/src/bf16_gemm.hip.cpp",
+                        ROOT / "native/src/native_decode_runner.hip.cpp",
+                        ROOT / "native/src/native_resident_engine.hip.cpp",
                         ROOT / "native/src/native_http_server.cpp",
                         ROOT / "native/src/native_full_layer.hip.cpp",
                         ROOT / "native/src/native_linear_layer.hip.cpp",

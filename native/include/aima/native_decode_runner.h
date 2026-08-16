@@ -17,6 +17,8 @@
 
 namespace aima {
 
+class Bf16GemmPlan;
+
 // Qualification-only synchronous observer for the accumulated BF16 hidden row
 // after each decode layer (0..39) and the final normalized row (40).  Product
 // execution passes nullptr and pays no device-to-host transfer or synchronization.
@@ -103,6 +105,7 @@ NativeDecodeRunMetrics run_native_decode_token(
     const NativeDecodeLinearLayer0Observer* linear_layer0_observer = nullptr,
     const NativeDecodeLinearLayer0Observer* layer0_tail_observer = nullptr,
     const NativeDecodeFullAttentionObserver* full_attention_observer = nullptr,
-    bool use_mrope = false);
+    bool use_mrope = false,
+    const Bf16GemmPlan* shared_gate_plan = nullptr);
 
 }  // namespace aima
