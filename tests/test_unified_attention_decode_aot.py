@@ -178,6 +178,42 @@ class UnifiedAttentionDecodeAotTests(unittest.TestCase):
             },
         )
 
+    def test_segmented_decode_is_bound_to_the_resident_attention_state(
+        self,
+    ) -> None:
+        plan_header = (
+            ROOT / "native/include/aima/native_vl_unified_attention.h"
+        ).read_text(encoding="utf-8")
+        plan = (
+            ROOT / "native/src/native_vl_unified_attention.hip.cpp"
+        ).read_text(encoding="utf-8")
+        state = (
+            ROOT / "native/src/native_full_attention.hip.cpp"
+        ).read_text(encoding="utf-8")
+        resident = (
+            ROOT / "native/src/native_resident_engine.hip.cpp"
+        ).read_text(encoding="utf-8")
+        build = (ROOT / "scripts/build-native-runtime.sh").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("void launch_decode", plan_header)
+        self.assertIn(ATTENTION_HASH, plan)
+        self.assertIn(REDUCE_HASH, plan)
+        self.assertIn("kDecodeSequenceThreshold3d = 64", plan)
+        self.assertIn("kDecodeSoftmaxSegments = 16", plan)
+        self.assertIn("metrics.decode_scratch_bytes", plan)
+        self.assertIn("attention_parameters.size() != 30", plan)
+        self.assertIn("reduce_parameters.size() != 10", plan)
+        self.assertIn("bind_decode_unified_attention", state)
+        self.assertIn("state.has_decode_unified_attention()", state)
+        self.assertIn("metrics.aot_launches = 2", state)
+        self.assertIn("metrics.native_kernel_launches = 1", state)
+        self.assertIn("bind_decode_unified_attention", resident)
+        self.assertIn("UNIFIED_ATTENTION_DECODE_MANIFEST", build)
+        self.assertIn(
+            "unified-attention-decode-v0.1.0/manifest.json", build
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

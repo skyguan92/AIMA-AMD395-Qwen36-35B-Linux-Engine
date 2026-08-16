@@ -11,19 +11,21 @@ namespace aima {
 
 class NativeDecodeExecutor;
 
-// Process-resident launcher for the exact vLLM unified-attention prefill
-// specialization used by Qwen3.5-VL on gfx1151. The HSACO is embedded in the
-// native binary; construction loads it once and uploads immutable lookup
-// tables for every admitted query/KV length. Launch performs no allocation,
+// Process-resident launcher for the exact vLLM unified-attention prefill and
+// singleton-decode specializations used by Qwen3.6-VL on gfx1151. The HSACOs
+// are embedded in the native binary; construction loads them once and uploads
+// immutable lookup tables plus decode scratch. Launch performs no allocation,
 // filesystem access, host-to-device copy, or Python/Torch/Triton runtime work.
 struct NativeVlUnifiedAttentionMetrics {
   bool loaded = false;
   std::size_t image_bytes = 0;
   std::size_t metadata_bytes = 0;
+  std::size_t decode_scratch_bytes = 0;
   std::size_t max_query_tokens = 0;
   std::size_t max_kv_tokens = 0;
   std::size_t cache_blocks = 0;
   std::size_t launches = 0;
+  std::size_t decode_launches = 0;
 };
 
 class NativeVlUnifiedAttentionPlan {
@@ -47,6 +49,13 @@ class NativeVlUnifiedAttentionPlan {
               const void* value_cache_bf16, void* output_bf16,
               std::size_t query_tokens, std::size_t kv_tokens,
               void* stream = nullptr);
+
+  // Singleton decode uses the captured segmented 3D attention kernel followed
+  // by its FP32 segment reduction. Q/output are contiguous BF16 [1,16,256];
+  // K/V use the same resident [capacity,2,256] cache as prefill.
+  void launch_decode(const void* query_bf16, const void* key_cache_bf16,
+                     const void* value_cache_bf16, void* output_bf16,
+                     std::size_t kv_tokens, void* stream = nullptr);
 
   const NativeVlUnifiedAttentionMetrics& metrics() const;
 

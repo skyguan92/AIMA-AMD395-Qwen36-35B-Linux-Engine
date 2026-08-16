@@ -4669,6 +4669,8 @@ int run_resident_session_probe(int argc, char** argv) {
             << load.mrope_position_state_bytes << ",\n"
             << "    \"vl_unified_attention_metadata_bytes\": "
             << load.vl_unified_attention_metadata_bytes << ",\n"
+            << "    \"vl_unified_attention_decode_scratch_bytes\": "
+            << load.vl_unified_attention_decode_scratch_bytes << ",\n"
             << "    \"vl_unified_attention_image_bytes\": "
             << load.vl_unified_attention_image_bytes << ",\n"
             << "    \"vl_unified_attention_loaded\": "

@@ -65,6 +65,7 @@ struct NativeResidentLoadMetrics {
   std::uint64_t prefill_workspace_bytes = 0;
   std::uint64_t mrope_position_state_bytes = 0;
   std::uint64_t vl_unified_attention_metadata_bytes = 0;
+  std::uint64_t vl_unified_attention_decode_scratch_bytes = 0;
   std::size_t vl_unified_attention_image_bytes = 0;
   bool vl_unified_attention_loaded = false;
   std::uint64_t vl_logical_projection_weight_bytes = 0;

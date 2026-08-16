@@ -206,6 +206,7 @@ NativeFullLayerMetrics run_native_full_layer(
           layer_index, position, cache_end, q.device_pointer,
           k.device_pointer, raw_v, attention_state, stream);
   metrics.pv_splits = attention.pv_splits;
+  metrics.aot_launches += attention.aot_launches;
   metrics.native_attention_launches = attention.native_kernel_launches;
   launch_full_attention_sigmoid_gate(
       attention_state.attention_output(), qkv.device_pointer,

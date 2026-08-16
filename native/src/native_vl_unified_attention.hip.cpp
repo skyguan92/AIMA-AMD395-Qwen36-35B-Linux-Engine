@@ -21,12 +21,22 @@
 namespace aima {
 namespace {
 
-constexpr char kKernelHash[] =
+constexpr char kPrefillKernelHash[] =
     "85618d461d690f5f7732dfd55b693df8c15642737aa2c1cf66b0674ffd4d7a30";
-constexpr char kKernelSymbol[] = "kernel_unified_attention_2d";
+constexpr char kPrefillKernelSymbol[] = "kernel_unified_attention_2d";
+constexpr char kDecodeAttentionKernelHash[] =
+    "57514aea3981e5fba3e25d46b9dd62fb311a3acfef9ca9ad8fa99b0076c61402";
+constexpr char kDecodeAttentionKernelSymbol[] =
+    "kernel_unified_attention_3d";
+constexpr char kDecodeReduceKernelHash[] =
+    "6ecf435e2f5f8cfa2805d7433192f64a5e5e749e7a93c3ed4ae39e50921fe078";
+constexpr char kDecodeReduceKernelSymbol[] = "reduce_segments";
 constexpr std::size_t kCacheBlockTokens = 1056;
 constexpr std::uint32_t kKvHeads = 2;
+constexpr std::uint32_t kQueryHeads = 16;
 constexpr std::uint32_t kBlockQ = 2;
+constexpr std::uint32_t kDecodeSoftmaxSegments = 16;
+constexpr std::uint32_t kDecodeSequenceThreshold3d = 64;
 constexpr std::int64_t kQueryStride0 = 4096;
 constexpr std::int64_t kQueryStride1 = 256;
 constexpr std::int64_t kCacheStride0 =
@@ -34,6 +44,12 @@ constexpr std::int64_t kCacheStride0 =
 constexpr std::int64_t kCacheStride1 = 2 * 256;
 constexpr std::int64_t kCacheStride2 = 256;
 constexpr std::size_t kAlignment = 256;
+constexpr std::size_t kDecodeSegmentOutputBytes =
+    kDecodeSequenceThreshold3d * kQueryHeads * kDecodeSoftmaxSegments * 256 *
+    sizeof(float);
+constexpr std::size_t kDecodeSegmentStatisticBytes =
+    kDecodeSequenceThreshold3d * kQueryHeads * kDecodeSoftmaxSegments *
+    sizeof(float);
 
 void check_hip(hipError_t status, const char* operation) {
   if (status != hipSuccess) {
@@ -61,15 +77,38 @@ struct NativeVlUnifiedAttentionPlan::Impl {
       throw std::invalid_argument(
           "native VL unified-attention limits are unsupported");
     }
-    const EmbeddedAotImage* image = find_embedded_aot_image(kKernelHash);
-    if (image == nullptr || std::string(image->symbol) != kKernelSymbol ||
-        image->num_warps != 4 || image->warp_size != 32 ||
-        image->shared_memory_bytes != 32768 || image->image_bytes != 34608) {
+    const EmbeddedAotImage* prefill_image =
+        find_embedded_aot_image(kPrefillKernelHash);
+    const EmbeddedAotImage* decode_attention_image =
+        find_embedded_aot_image(kDecodeAttentionKernelHash);
+    const EmbeddedAotImage* decode_reduce_image =
+        find_embedded_aot_image(kDecodeReduceKernelHash);
+    if (prefill_image == nullptr ||
+        std::string(prefill_image->symbol) != kPrefillKernelSymbol ||
+        prefill_image->num_warps != 4 || prefill_image->warp_size != 32 ||
+        prefill_image->shared_memory_bytes != 32768 ||
+        prefill_image->image_bytes != 34608 ||
+        decode_attention_image == nullptr ||
+        std::string(decode_attention_image->symbol) !=
+            kDecodeAttentionKernelSymbol ||
+        decode_attention_image->num_warps != 4 ||
+        decode_attention_image->warp_size != 32 ||
+        decode_attention_image->shared_memory_bytes != 16384 ||
+        decode_attention_image->image_bytes != 18736 ||
+        decode_reduce_image == nullptr ||
+        std::string(decode_reduce_image->symbol) !=
+            kDecodeReduceKernelSymbol ||
+        decode_reduce_image->num_warps != 4 ||
+        decode_reduce_image->warp_size != 32 ||
+        decode_reduce_image->shared_memory_bytes != 2048 ||
+        decode_reduce_image->image_bytes != 7968) {
       throw std::runtime_error(
           "native VL unified-attention embedded image is missing or changed");
     }
 
-    metrics.image_bytes = image->image_bytes;
+    metrics.image_bytes = prefill_image->image_bytes +
+                          decode_attention_image->image_bytes +
+                          decode_reduce_image->image_bytes;
     metrics.max_query_tokens = query_limit;
     metrics.max_kv_tokens = kv_limit;
     metrics.cache_blocks =
@@ -85,6 +124,12 @@ struct NativeVlUnifiedAttentionPlan::Impl {
     seq_length_offset = align_up(block_table_bytes);
     query_start_offset = align_up(seq_length_offset + seq_length_bytes);
     metrics.metadata_bytes = align_up(query_start_offset + query_start_bytes);
+    segment_output_offset = 0;
+    segment_max_offset = align_up(kDecodeSegmentOutputBytes);
+    segment_expsum_offset =
+        align_up(segment_max_offset + kDecodeSegmentStatisticBytes);
+    metrics.decode_scratch_bytes = align_up(
+        segment_expsum_offset + kDecodeSegmentStatisticBytes);
 
     std::vector<std::int32_t> metadata(
         metrics.metadata_bytes / sizeof(std::int32_t), 0);
@@ -113,6 +158,15 @@ struct NativeVlUnifiedAttentionPlan::Impl {
       check_hip(hipMemcpy(metadata_device, metadata.data(),
                           metrics.metadata_bytes, hipMemcpyHostToDevice),
                 "hipMemcpy native VL unified attention metadata");
+      const float descales[] = {1.0f, 1.0f};
+      check_hip(hipMalloc(&decode_descale_device, sizeof(descales)),
+                "hipMalloc native VL decode attention descale");
+      check_hip(hipMemcpy(decode_descale_device, descales, sizeof(descales),
+                          hipMemcpyHostToDevice),
+                "hipMemcpy native VL decode attention descale");
+      check_hip(hipMalloc(&decode_scratch_device,
+                          metrics.decode_scratch_bytes),
+                "hipMalloc native VL decode attention scratch");
       metrics.loaded = true;
     } catch (...) {
       release();
@@ -123,12 +177,25 @@ struct NativeVlUnifiedAttentionPlan::Impl {
   ~Impl() { release(); }
 
   void release() noexcept {
-    if (metadata_device != nullptr) {
+    if (metadata_device != nullptr || decode_descale_device != nullptr ||
+        decode_scratch_device != nullptr) {
       const hipError_t set_status = hipSetDevice(device);
       static_cast<void>(set_status);
-      const hipError_t free_status = hipFree(metadata_device);
-      static_cast<void>(free_status);
+      if (decode_scratch_device != nullptr) {
+        const hipError_t free_status = hipFree(decode_scratch_device);
+        static_cast<void>(free_status);
+      }
+      if (decode_descale_device != nullptr) {
+        const hipError_t free_status = hipFree(decode_descale_device);
+        static_cast<void>(free_status);
+      }
+      if (metadata_device != nullptr) {
+        const hipError_t free_status = hipFree(metadata_device);
+        static_cast<void>(free_status);
+      }
       metadata_device = nullptr;
+      decode_descale_device = nullptr;
+      decode_scratch_device = nullptr;
     }
     metrics.loaded = false;
   }
@@ -138,7 +205,12 @@ struct NativeVlUnifiedAttentionPlan::Impl {
   std::size_t block_table_offset = 0;
   std::size_t seq_length_offset = 0;
   std::size_t query_start_offset = 0;
+  std::size_t segment_output_offset = 0;
+  std::size_t segment_max_offset = 0;
+  std::size_t segment_expsum_offset = 0;
   void* metadata_device = nullptr;
+  void* decode_descale_device = nullptr;
+  void* decode_scratch_device = nullptr;
   NativeVlUnifiedAttentionMetrics metrics;
 };
 
@@ -240,9 +312,124 @@ void NativeVlUnifiedAttentionPlan::launch(
   config.num_warps = 4;
   config.warp_size = 32;
   config.shared_memory_bytes = 32768;
-  impl_->executor->launch_embedded(kKernelHash, config, parameters,
+  impl_->executor->launch_embedded(kPrefillKernelHash, config, parameters,
                                    stream_pointer);
   ++impl_->metrics.launches;
+}
+
+void NativeVlUnifiedAttentionPlan::launch_decode(
+    const void* query_bf16, const void* key_cache_bf16,
+    const void* value_cache_bf16, void* output_bf16,
+    std::size_t kv_tokens, void* stream_pointer) {
+  if (!impl_ || !impl_->metrics.loaded || impl_->executor == nullptr ||
+      query_bf16 == nullptr || key_cache_bf16 == nullptr ||
+      value_cache_bf16 == nullptr || output_bf16 == nullptr ||
+      output_bf16 == query_bf16 || output_bf16 == key_cache_bf16 ||
+      output_bf16 == value_cache_bf16 || kv_tokens == 0 ||
+      kv_tokens > impl_->metrics.max_kv_tokens) {
+    throw std::invalid_argument(
+        "native VL unified-attention decode geometry is invalid");
+  }
+
+  auto* metadata = static_cast<unsigned char*>(impl_->metadata_device);
+  auto* scratch = static_cast<unsigned char*>(impl_->decode_scratch_device);
+  void* segment_output = scratch + impl_->segment_output_offset;
+  void* segment_max = scratch + impl_->segment_max_offset;
+  void* segment_expsum = scratch + impl_->segment_expsum_offset;
+  void* query = const_cast<void*>(query_bf16);
+  void* key_cache = const_cast<void*>(key_cache_bf16);
+  void* value_cache = const_cast<void*>(value_cache_bf16);
+  void* output = output_bf16;
+  void* block_table = metadata + impl_->block_table_offset;
+  void* seq_lengths = metadata + impl_->seq_length_offset +
+                      kv_tokens * sizeof(std::int32_t);
+  void* query_starts = metadata + impl_->query_start_offset +
+                       2 * sizeof(std::int32_t);
+  void* k_descale = impl_->decode_descale_device;
+  void* v_descale = impl_->decode_descale_device;
+
+  float scale = 0.0625f;
+  float softcap = 0.0f;
+  float out_scale_inverse = 1.0f;
+  const std::size_t logical_blocks =
+      (kv_tokens + kCacheBlockTokens - 1) / kCacheBlockTokens;
+  std::int64_t block_table_stride =
+      static_cast<std::int64_t>(logical_blocks);
+  std::int64_t query_stride_0 = kQueryStride0;
+  std::int64_t query_stride_1 = kQueryStride1;
+  std::int64_t output_stride_0 = kQueryStride0;
+  std::int64_t output_stride_1 = kQueryStride1;
+  std::int64_t qq_bias_stride_0 = 0;
+  std::int64_t stride_k_cache_0 = kCacheStride0;
+  std::int64_t stride_k_cache_1 = kCacheStride1;
+  std::int64_t stride_k_cache_2 = kCacheStride2;
+  std::int64_t stride_v_cache_0 = kCacheStride0;
+  std::int64_t stride_v_cache_1 = kCacheStride1;
+  std::int64_t stride_v_cache_2 = kCacheStride2;
+  std::int32_t num_seqs = 1;
+  std::int32_t zero_stride = 0;
+
+  std::vector<void*> attention_parameters{
+      &segment_output,
+      &segment_max,
+      &segment_expsum,
+      &query,
+      &key_cache,
+      &value_cache,
+      &block_table,
+      &seq_lengths,
+      &scale,
+      &k_descale,
+      &v_descale,
+      &softcap,
+      &block_table_stride,
+      &query_stride_0,
+      &query_stride_1,
+      &qq_bias_stride_0,
+      &stride_k_cache_0,
+      &stride_k_cache_1,
+      &stride_k_cache_2,
+      &stride_v_cache_0,
+      &stride_v_cache_1,
+      &stride_v_cache_2,
+      &query_starts,
+      &num_seqs,
+      &zero_stride,
+      &zero_stride,
+      &zero_stride,
+      &zero_stride,
+      &zero_stride,
+      &zero_stride,
+  };
+  if (attention_parameters.size() != 30) {
+    throw std::runtime_error(
+        "native segmented attention regular ABI argument count changed");
+  }
+  impl_->executor->launch_embedded(
+      kDecodeAttentionKernelHash,
+      AotLaunchConfig{1, 2, 16, 4, 32, 16384}, attention_parameters,
+      stream_pointer);
+
+  std::vector<void*> reduce_parameters{
+      &output,
+      &segment_output,
+      &segment_max,
+      &segment_expsum,
+      &seq_lengths,
+      &out_scale_inverse,
+      &output_stride_0,
+      &output_stride_1,
+      &block_table_stride,
+      &query_starts,
+  };
+  if (reduce_parameters.size() != 10) {
+    throw std::runtime_error(
+        "native attention reduce regular ABI argument count changed");
+  }
+  impl_->executor->launch_embedded(
+      kDecodeReduceKernelHash, AotLaunchConfig{1, 16, 1, 4, 32, 2048},
+      reduce_parameters, stream_pointer);
+  impl_->metrics.decode_launches += 2;
 }
 
 const NativeVlUnifiedAttentionMetrics&

@@ -11,6 +11,7 @@ OUTPUT="${OUT_DIR}/native-vl-language-layer3-composed-probe"
 Q1024_DIR="${ROOT}/native/aot/gfx1151/q1024-output1"
 Q8192_DIR="${ROOT}/native/aot/gfx1151/q8192-output2"
 VL_UNIFIED_ATTENTION_DIR="${ROOT}/native/aot/gfx1151/vl-unified-attention-v0.1.0"
+UNIFIED_ATTENTION_DECODE_DIR="${ROOT}/native/aot/gfx1151/unified-attention-decode-v0.1.0"
 VL_RECOMPUTE_WU_DIR="${ROOT}/native/aot/gfx1151/vl-recompute-w-u-q131-v0.1.0"
 AOT_REGISTRY_CPP="${OUT_DIR}/vl-layer3-composed-aot-registry.cpp"
 AOT_OBJECT_PLAN="${OUT_DIR}/vl-layer3-composed-aot-objects.tsv"
@@ -27,6 +28,7 @@ python3 "${ROOT}/scripts/generate-native-aot-registry.py" \
   --manifest "${Q1024_DIR}/manifest.json" \
   --manifest "${VL_RECOMPUTE_WU_DIR}/manifest.json" \
   --manifest "${VL_UNIFIED_ATTENTION_DIR}/manifest.json" \
+  --manifest "${UNIFIED_ATTENTION_DECODE_DIR}/manifest.json" \
   --output-cpp "${AOT_REGISTRY_CPP}" \
   --output-plan "${AOT_OBJECT_PLAN}"
 python3 "${ROOT}/scripts/generate-native-decode-registry.py" \

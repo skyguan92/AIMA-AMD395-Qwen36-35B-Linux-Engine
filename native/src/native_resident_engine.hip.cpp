@@ -776,6 +776,8 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
   }
   const NativeFullAttentionStateMetrics attention_metrics =
       impl_->attention_state.build(options.cache_capacity, impl_->device);
+  impl_->attention_state.bind_decode_unified_attention(
+      impl_->vl_unified_attention.get());
   impl_->prefix_cache_entries =
       options.cache_capacity <= 32768
           ? 4
@@ -896,6 +898,8 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
       impl_->mrope_position_state_bytes;
   impl_->metrics.vl_unified_attention_metadata_bytes =
       impl_->vl_unified_attention->metrics().metadata_bytes;
+  impl_->metrics.vl_unified_attention_decode_scratch_bytes =
+      impl_->vl_unified_attention->metrics().decode_scratch_bytes;
   impl_->metrics.vl_unified_attention_image_bytes =
       impl_->vl_unified_attention->metrics().image_bytes;
   impl_->metrics.vl_unified_attention_loaded =

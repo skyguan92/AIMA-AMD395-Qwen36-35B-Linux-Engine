@@ -36,6 +36,7 @@ done
 AOT_MANIFEST_Q8192="$(prefill_closure_dir 8192)/manifest.json"
 AOT_MANIFESTS="${AOT_MANIFESTS:-${DEFAULT_AOT_MANIFESTS}}"
 VL_UNIFIED_ATTENTION_MANIFEST="${ROOT}/native/aot/gfx1151/vl-unified-attention-v0.1.0/manifest.json"
+UNIFIED_ATTENTION_DECODE_MANIFEST="${ROOT}/native/aot/gfx1151/unified-attention-decode-v0.1.0/manifest.json"
 VL_RECOMPUTE_WU_MANIFEST="${ROOT}/native/aot/gfx1151/vl-recompute-w-u-q131-v0.1.0/manifest.json"
 PACKED_LINEAR_DECODE_MANIFEST="${ROOT}/native/aot/gfx1151/packed-linear-decode-v0.1.0/manifest.json"
 CAUSAL_CONV_DECODE_MANIFEST="${ROOT}/native/aot/gfx1151/causal-conv-decode-v0.1.0/manifest.json"
@@ -44,6 +45,10 @@ ROUTED_MOE_DECODE_MANIFEST="${ROOT}/native/aot/gfx1151/routed-moe-decode-v0.1.0/
 case ":${AOT_MANIFESTS}:" in
   *":${VL_UNIFIED_ATTENTION_MANIFEST}:"*) ;;
   *) AOT_MANIFESTS="${AOT_MANIFESTS}:${VL_UNIFIED_ATTENTION_MANIFEST}" ;;
+esac
+case ":${AOT_MANIFESTS}:" in
+  *":${UNIFIED_ATTENTION_DECODE_MANIFEST}:"*) ;;
+  *) AOT_MANIFESTS="${AOT_MANIFESTS}:${UNIFIED_ATTENTION_DECODE_MANIFEST}" ;;
 esac
 case ":${AOT_MANIFESTS}:" in
   *":${VL_RECOMPUTE_WU_MANIFEST}:"*) ;;

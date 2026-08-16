@@ -1567,6 +1567,8 @@ int main(int argc, char** argv) {
          vl_unified_attention.metrics().image_bytes},
         {"vl_unified_attention_metadata_bytes",
          vl_unified_attention.metrics().metadata_bytes},
+        {"vl_unified_attention_decode_scratch_bytes",
+         vl_unified_attention.metrics().decode_scratch_bytes},
         {"vl_unified_attention_launches",
          vl_unified_attention.metrics().launches},
         {"language_weight_payload_bytes", load.payload_bytes},

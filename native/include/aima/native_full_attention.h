@@ -10,6 +10,7 @@
 namespace aima {
 
 struct NativeFullAttentionQkPlan;
+class NativeVlUnifiedAttentionPlan;
 
 struct NativeFullAttentionStateMetrics {
   std::size_t cache_capacity = 0;
@@ -52,6 +53,13 @@ class NativeFullAttentionState {
   // live prefix.  Clear the probability scratch once per request so values
   // from a longer previous request cannot leak into a shorter one.
   std::uint64_t clear_request_scratch(void* stream = nullptr);
+  void bind_decode_unified_attention(NativeVlUnifiedAttentionPlan* plan);
+  bool has_decode_unified_attention() const {
+    return decode_unified_attention_ != nullptr;
+  }
+  void launch_decode_unified_attention(
+      const void* q, const void* k_cache, const void* v_cache,
+      void* attention, std::size_t cache_end, void* stream) const;
   void launch_grouped_qk(const void* q, const void* k_cache, void* scores,
                          void* stream) const;
   void launch_grouped_pv(const void* probabilities, const void* v_cache,
@@ -76,12 +84,14 @@ class NativeFullAttentionState {
   void* gated_attention_ = nullptr;
   void* projected_attention_ = nullptr;
   std::unique_ptr<NativeFullAttentionQkPlan> qk_plan_;
+  NativeVlUnifiedAttentionPlan* decode_unified_attention_ = nullptr;
 };
 
 struct NativeFullAttentionCoreMetrics {
   std::size_t layer_index = 0;
   std::size_t cache_end = 0;
   std::size_t pv_splits = 0;
+  std::size_t aot_launches = 0;
   std::size_t native_kernel_launches = 0;
 };
 

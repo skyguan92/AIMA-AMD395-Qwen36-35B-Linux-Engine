@@ -2,6 +2,7 @@
 // Copyright 2026 Approaching AI Authors
 
 #include "aima/native_full_attention.h"
+#include "aima/native_vl_unified_attention.h"
 
 #include <hip/hip_bf16.h>
 #include <hip/hip_runtime.h>
@@ -645,6 +646,27 @@ std::uint64_t NativeFullAttentionState::clear_request_scratch(
   return probabilities_bytes_;
 }
 
+void NativeFullAttentionState::bind_decode_unified_attention(
+    NativeVlUnifiedAttentionPlan* plan) {
+  if (!built() || plan == nullptr || !plan->metrics().loaded ||
+      plan->metrics().max_kv_tokens < cache_capacity_) {
+    throw std::invalid_argument(
+        "native decode unified-attention plan is incompatible");
+  }
+  decode_unified_attention_ = plan;
+}
+
+void NativeFullAttentionState::launch_decode_unified_attention(
+    const void* q, const void* k_cache, const void* v_cache,
+    void* attention, std::size_t cache_end, void* stream) const {
+  if (decode_unified_attention_ == nullptr) {
+    throw std::runtime_error(
+        "native decode unified-attention plan is not bound");
+  }
+  decode_unified_attention_->launch_decode(
+      q, k_cache, v_cache, attention, cache_end, stream);
+}
+
 void NativeFullAttentionState::launch_grouped_qk(
     const void* q, const void* k_cache, void* scores,
     void* stream_value) const {
@@ -672,6 +694,7 @@ void NativeFullAttentionState::reset() noexcept {
   cache_capacity_ = 0;
   maximum_pv_splits_ = 0;
   probabilities_bytes_ = 0;
+  decode_unified_attention_ = nullptr;
   k_caches_.fill(nullptr);
   v_caches_.fill(nullptr);
   scores_ = probabilities_ = softmax_exponentials_ = pv_partials_ = nullptr;
@@ -701,6 +724,17 @@ NativeFullAttentionCoreMetrics launch_native_grouped_full_attention(
       static_cast<const __hip_bfloat16*>(normalized_k),
       static_cast<const __hip_bfloat16*>(raw_v), k_cache, v_cache, position);
   check_hip(hipGetLastError(), "write_kv_kernel");
+  if (state.has_decode_unified_attention()) {
+    state.launch_decode_unified_attention(
+        q, k_cache, v_cache, attention, cache_end, stream);
+    NativeFullAttentionCoreMetrics metrics;
+    metrics.layer_index = layer_index;
+    metrics.cache_end = cache_end;
+    metrics.pv_splits = 1;
+    metrics.aot_launches = 2;
+    metrics.native_kernel_launches = 1;
+    return metrics;
+  }
   state.launch_grouped_qk(q, k_cache, scores, stream);
   std::size_t attention_launches = 4;
   if (cache_end < kSplitSoftmaxMinimumTokens) {
