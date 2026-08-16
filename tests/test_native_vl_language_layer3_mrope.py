@@ -148,6 +148,21 @@ class NativeVlLanguageLayer3MropeTest(unittest.TestCase):
         self.assertIn(
             "launch_full_attention_head_norm_mrope_prefill", decode_full
         )
+        self.assertIn(
+            'prefix + ".self_attn.q_proj.weight"', decode_full
+        )
+        self.assertIn(
+            'prefix + ".self_attn.k_proj.weight"', decode_full
+        )
+        self.assertIn(
+            'prefix + ".self_attn.v_proj.weight"', decode_full
+        )
+        self.assertIn("if (use_mrope) {", decode_full)
+        self.assertIn(
+            "normalized_input.device_pointer", decode_full
+        )
+        self.assertIn("metrics.native_projection_launches += 3", decode_full)
+        self.assertIn("executor.launch(launches[base + 1]", decode_full)
 
     def test_unified_attention_artifact_is_embedded_and_hash_bound(self) -> None:
         import hashlib

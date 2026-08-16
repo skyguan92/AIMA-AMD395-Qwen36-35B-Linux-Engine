@@ -126,6 +126,9 @@ NativeFullLayerMetrics run_native_full_layer(
   const auto& qkv = require_workspace(
       workspace, require_argument_binding(launches[base + 1], "out"),
       9216 * sizeof(__hip_bfloat16));
+  const auto& normalized_input = require_workspace(
+      workspace, require_argument_binding(launches[base + 1], "x"),
+      kHidden * sizeof(__hip_bfloat16));
   const auto& q = require_workspace(
       workspace, require_argument_binding(launches[base + 2], "out"),
       kQueryDimension * sizeof(__hip_bfloat16));
@@ -177,6 +180,15 @@ NativeFullLayerMetrics run_native_full_layer(
 
   const std::string prefix =
       "model.language_model.layers." + std::to_string(layer_index);
+  const auto& q_weight = require_weight(
+      weights, prefix + ".self_attn.q_proj.weight",
+      8192ULL * kHidden * sizeof(__hip_bfloat16));
+  const auto& k_weight = require_weight(
+      weights, prefix + ".self_attn.k_proj.weight",
+      512ULL * kHidden * sizeof(__hip_bfloat16));
+  const auto& v_weight = require_weight(
+      weights, prefix + ".self_attn.v_proj.weight",
+      512ULL * kHidden * sizeof(__hip_bfloat16));
   const auto& output_weight = require_weight(
       weights, prefix + ".self_attn.o_proj.weight",
       kHidden * kQueryDimension * sizeof(__hip_bfloat16));
@@ -204,8 +216,27 @@ NativeFullLayerMetrics run_native_full_layer(
   NativeFullLayerMetrics metrics;
   metrics.layer_index = layer_index;
   metrics.cache_end = cache_end;
-  for (std::size_t offset = 0; offset < 2; ++offset) {
-    executor.launch(launches[base + offset], stream);
+  executor.launch(launches[base], stream);
+  ++metrics.aot_launches;
+  if (use_mrope) {
+    // Current vLLM evaluates singleton QKV projections through its wvSplitK
+    // provider. Preserve the historical fused AOT launch for the frozen text
+    // path, while matching that reduction boundary for native VL decode.
+    auto* qkv_bytes = static_cast<unsigned char*>(qkv.device_pointer);
+    launch_bf16_wvsplitk(q_weight.device_pointer,
+                         normalized_input.device_pointer, nullptr, qkv_bytes,
+                         8192, kHidden, cu_count, stream);
+    launch_bf16_wvsplitk(
+        k_weight.device_pointer, normalized_input.device_pointer, nullptr,
+        qkv_bytes + kRawKeyOffsetElements * sizeof(__hip_bfloat16), 512,
+        kHidden, cu_count, stream);
+    launch_bf16_wvsplitk(
+        v_weight.device_pointer, normalized_input.device_pointer, nullptr,
+        qkv_bytes + kRawValueOffsetElements * sizeof(__hip_bfloat16), 512,
+        kHidden, cu_count, stream);
+    metrics.native_projection_launches += 3;
+  } else {
+    executor.launch(launches[base + 1], stream);
     ++metrics.aot_launches;
   }
   const auto* raw_k = static_cast<const __hip_bfloat16*>(qkv.device_pointer) +
