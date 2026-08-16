@@ -1,0 +1,66 @@
+{
+  "attention_image_sha256": "39e2b17f68f8c23ae6ed757a7878277ea53bc10caf62328bd3da470c4e9a119f",
+  "attention_set": "full_attention",
+  "capture_manifest_sha256": "33fd70fb9f04bd28f00a92b77399e9f2462816df9b0d9bc73748f9982eefc03a",
+  "capture_source_commit": "3ff1ebbdf0119cc4aae5dfe6f010cfe09c5365e9",
+  "case_id": "tool_forced_image",
+  "comparisons": {
+    "output": {
+      "actual_sha256": "f39ad33a253232debbc4b538b7b7a88fc1c7e24760a75226459ce604ed39af5a",
+      "bit_exact": true,
+      "elements": 4096,
+      "exact_elements": 4096,
+      "expected_sha256": "f39ad33a253232debbc4b538b7b7a88fc1c7e24760a75226459ce604ed39af5a",
+      "first_mismatch_index": null
+    },
+    "repeat_output": {
+      "actual_sha256": "f39ad33a253232debbc4b538b7b7a88fc1c7e24760a75226459ce604ed39af5a",
+      "bit_exact": true,
+      "elements": 4096,
+      "exact_elements": 4096,
+      "expected_sha256": "f39ad33a253232debbc4b538b7b7a88fc1c7e24760a75226459ce604ed39af5a",
+      "first_mismatch_index": null
+    }
+  },
+  "complete": true,
+  "decision": {
+    "g1_passed": false,
+    "g2_passed": false,
+    "g3_passed": false,
+    "g4_passed": false,
+    "g5_passed": false,
+    "model_tensor_numerical_closure": true,
+    "promotion_result": false,
+    "qualified_for_native_decode_replacement": false
+  },
+  "gpu_arch": "gfx1151",
+  "launches": [
+    {
+      "grid": [
+        1,
+        2,
+        16
+      ],
+      "num_warps": 4,
+      "shared_memory_bytes": 16384,
+      "symbol": "kernel_unified_attention_3d",
+      "warp_size": 32
+    },
+    {
+      "grid": [
+        1,
+        16,
+        1
+      ],
+      "num_warps": 4,
+      "shared_memory_bytes": 2048,
+      "symbol": "reduce_segments",
+      "warp_size": 32
+    }
+  ],
+  "logical_blocks": 1,
+  "reduce_image_sha256": "a5339fd0563297b377dba12b2493e35622660843febfe41556b6bdafb2e9d184",
+  "schema": "aima-amd395-qwen36/unified-attention-decode-aot-model-probe/v1",
+  "sequence_length": 361,
+  "source_commit": "9b4a56321b857863d90295796194664d7c69f197"
+}

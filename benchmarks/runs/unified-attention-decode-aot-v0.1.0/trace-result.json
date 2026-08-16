@@ -1,0 +1,37 @@
+{
+  "checks": {
+    "output_finite": true,
+    "output_sha256": "40a9f0f0a70baec662577a38bd667acf347886a8b76d81a20943cefd9e0d4f04",
+    "repeat_exact": true
+  },
+  "complete": true,
+  "geometry": {
+    "attention_path": "segmented_3d_plus_reduce",
+    "block_size": 1056,
+    "causal": true,
+    "dtype": "torch.bfloat16",
+    "head_size": 256,
+    "kv_heads": 2,
+    "physical_blocks": 1,
+    "query_heads": 16,
+    "query_tokens": 1,
+    "sequence_length": 350,
+    "sequence_threshold_3d": 64,
+    "sequences": 1,
+    "sliding_window": [
+      -1,
+      -1
+    ],
+    "softmax_scale": 0.0625,
+    "softmax_segments": 16
+  },
+  "non_claims": [
+    "not_a_model_weight_correctness_oracle",
+    "not_yet_integrated_into_native_decode",
+    "not_a_promotion_result"
+  ],
+  "qualified_for_aot_capture": true,
+  "qualified_for_native_decode_replacement": false,
+  "schema": "aima-amd395-qwen36/unified-attention-decode-aot-trace/v1",
+  "source_api": "vllm.v1.attention.ops.triton_unified_attention.unified_attention"
+}

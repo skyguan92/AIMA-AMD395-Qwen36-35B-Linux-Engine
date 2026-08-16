@@ -1,0 +1,925 @@
+{
+  "abi": {
+    "hidden_argument_values": [
+      0,
+      0
+    ],
+    "hidden_arguments": [
+      "global_scratch",
+      "profile_scratch"
+    ],
+    "launch": "hipModuleLaunchKernel"
+  },
+  "coverage": {
+    "cache_state": "warm_compilation_cache_cold_prefix_request",
+    "completion_tokens": 1,
+    "context_tokens": 350,
+    "full_matrix_complete": false
+  },
+  "kernel_count": 2,
+  "kernel_symbol_count": 2,
+  "kernels": [
+    {
+      "audit_artifacts": [
+        {
+          "bytes": 234834,
+          "name": "kernel_unified_attention_3d.llir",
+          "sha256": "3cb09cc014363eae3d8d7914c7c8942f4e41df9d3daf19499393cafd27818784"
+        },
+        {
+          "bytes": 55276,
+          "name": "kernel_unified_attention_3d.ttir",
+          "sha256": "42ce40b98c7341ba34183348de512037df1d7ccf47bfaa5818ffafc91d6ddcae"
+        },
+        {
+          "bytes": 128430,
+          "name": "kernel_unified_attention_3d.amdgcn",
+          "sha256": "4e20efe2df847c4b0399b723030d910ce6057260ab815a3e3b65fb6f8b01d15b"
+        },
+        {
+          "bytes": 23152,
+          "name": "kernel_unified_attention_3d.hsaco",
+          "sha256": "501979abdffb96c8ca89587f1dba7b372e46736b6ca679f9d8840f985dd5730e"
+        },
+        {
+          "bytes": 109885,
+          "name": "kernel_unified_attention_3d.source",
+          "sha256": "7af2da76563829fba27eebbb85571b64be77752b33230fff629d614b9368a013"
+        },
+        {
+          "bytes": 1143,
+          "name": "kernel_unified_attention_3d.json",
+          "sha256": "84bbe0d910704adfcb1ba6e295963c9638ed48469c501e7a418a53d273d028c4"
+        },
+        {
+          "bytes": 85300,
+          "name": "kernel_unified_attention_3d.ttgir",
+          "sha256": "973a21411b55d1753e0f5ef9e286d7fa889995bcec580fb8bb8e6521b5db3c04"
+        }
+      ],
+      "compile_constants": {
+        "BLOCK_M": 16,
+        "BLOCK_Q": 2,
+        "BLOCK_SIZE": 1056,
+        "HEAD_SIZE": 256,
+        "HEAD_SIZE_PADDED": 256,
+        "KV_QUANT_MODE": 0,
+        "MAX_MM_RANGES": 0,
+        "NUM_SEGMENTS_PER_SEQ": 16,
+        "SLIDING_WINDOW": 0,
+        "TILE_SIZE": 16,
+        "USE_ALIBI_SLOPES": false,
+        "USE_ALIBI_SQRT": false,
+        "USE_MM_PREFIX": false,
+        "USE_QQ_BIAS": false,
+        "USE_SINKS": false,
+        "USE_SOFTCAP": false,
+        "alibi_slopes_ptr": null,
+        "k_scale_cache_ptr": null,
+        "mm_prefix_range_ptr": null,
+        "num_queries_per_kv": 8,
+        "num_query_heads": 16,
+        "qq_bias_ptr": null,
+        "sink_ptr": null,
+        "stride_k_cache_3": 1,
+        "stride_v_cache_3": 1,
+        "v_scale_cache_ptr": null
+      },
+      "image": {
+        "bytes": 18736,
+        "path": "kernels/57514aea3981e5fb-kernel_unified_attention_3d.hsaco",
+        "raw_bytes": 23152,
+        "raw_sha256": "501979abdffb96c8ca89587f1dba7b372e46736b6ca679f9d8840f985dd5730e",
+        "sha256": "39e2b17f68f8c23ae6ed757a7878277ea53bc10caf62328bd3da470c4e9a119f",
+        "transformation": "llvm-strip --strip-debug"
+      },
+      "kernel_hash": "57514aea3981e5fba3e25d46b9dd62fb311a3acfef9ca9ad8fa99b0076c61402",
+      "launch_variants": [
+        {
+          "arguments": [
+            {
+              "abi_type": "*fp32",
+              "dtype": "torch.float32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "segm_output_ptr",
+              "shape": [
+                64,
+                16,
+                16,
+                256
+              ],
+              "stride": [
+                65536,
+                4096,
+                256,
+                1
+              ]
+            },
+            {
+              "abi_type": "*fp32",
+              "dtype": "torch.float32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "segm_max_ptr",
+              "shape": [
+                64,
+                16,
+                16
+              ],
+              "stride": [
+                256,
+                16,
+                1
+              ]
+            },
+            {
+              "abi_type": "*fp32",
+              "dtype": "torch.float32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "segm_expsum_ptr",
+              "shape": [
+                64,
+                16,
+                16
+              ],
+              "stride": [
+                256,
+                16,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "query_ptr",
+              "shape": [
+                1,
+                16,
+                256
+              ],
+              "stride": [
+                4096,
+                256,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "key_cache_ptr",
+              "shape": [
+                1,
+                1056,
+                2,
+                256
+              ],
+              "stride": [
+                540672,
+                512,
+                256,
+                1
+              ]
+            },
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "value_cache_ptr",
+              "shape": [
+                1,
+                1056,
+                2,
+                256
+              ],
+              "stride": [
+                540672,
+                512,
+                256,
+                1
+              ]
+            },
+            {
+              "abi_type": "*i32",
+              "dtype": "torch.int32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "block_tables_ptr",
+              "shape": [
+                1,
+                1
+              ],
+              "stride": [
+                1,
+                1
+              ]
+            },
+            {
+              "abi_type": "*i32",
+              "dtype": "torch.int32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "seq_lens_ptr",
+              "shape": [
+                1
+              ],
+              "stride": [
+                1
+              ]
+            },
+            {
+              "abi_type": "fp32",
+              "kind": "scalar",
+              "name": "scale",
+              "value": 0.0625
+            },
+            {
+              "abi_type": "*fp32",
+              "dtype": "torch.float32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "k_scale",
+              "shape": [
+                1,
+                2
+              ],
+              "stride": [
+                0,
+                0
+              ]
+            },
+            {
+              "abi_type": "*fp32",
+              "dtype": "torch.float32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "v_scale",
+              "shape": [
+                1,
+                2
+              ],
+              "stride": [
+                0,
+                0
+              ]
+            },
+            {
+              "abi_type": "fp32",
+              "kind": "scalar",
+              "name": "softcap",
+              "value": 0.0
+            },
+            {
+              "abi_type": "i64",
+              "kind": "scalar",
+              "name": "block_table_stride",
+              "value": 1
+            },
+            {
+              "abi_type": "i64",
+              "kind": "scalar",
+              "name": "query_stride_0",
+              "value": 4096
+            },
+            {
+              "abi_type": "i64",
+              "kind": "scalar",
+              "name": "query_stride_1",
+              "value": 256
+            },
+            {
+              "abi_type": "i64",
+              "kind": "scalar",
+              "name": "qq_bias_stride_0",
+              "value": 0
+            },
+            {
+              "abi_type": "i64",
+              "kind": "scalar",
+              "name": "stride_k_cache_0",
+              "value": 540672
+            },
+            {
+              "abi_type": "i64",
+              "kind": "scalar",
+              "name": "stride_k_cache_1",
+              "value": 512
+            },
+            {
+              "abi_type": "i64",
+              "kind": "scalar",
+              "name": "stride_k_cache_2",
+              "value": 256
+            },
+            {
+              "abi_type": "i64",
+              "kind": "scalar",
+              "name": "stride_v_cache_0",
+              "value": 540672
+            },
+            {
+              "abi_type": "i64",
+              "kind": "scalar",
+              "name": "stride_v_cache_1",
+              "value": 512
+            },
+            {
+              "abi_type": "i64",
+              "kind": "scalar",
+              "name": "stride_v_cache_2",
+              "value": 256
+            },
+            {
+              "abi_type": "*i32",
+              "dtype": "torch.int32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "query_start_len_ptr",
+              "shape": [
+                2
+              ],
+              "stride": [
+                1
+              ]
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "num_seqs",
+              "value": 1
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_ks_blk",
+              "value": 0
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_ks_slot",
+              "value": 0
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_ks_head",
+              "value": 0
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_vs_blk",
+              "value": 0
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_vs_slot",
+              "value": 0
+            },
+            {
+              "abi_type": "i32",
+              "kind": "scalar",
+              "name": "stride_vs_head",
+              "value": 0
+            }
+          ],
+          "grid": [
+            1,
+            2,
+            16
+          ]
+        }
+      ],
+      "metadata": {
+        "launch_cooperative_grid": false,
+        "name": "kernel_unified_attention_3d",
+        "num_ctas": 1,
+        "num_stages": 2,
+        "num_warps": 4,
+        "shared": 16384,
+        "target": {
+          "arch": "gfx1151",
+          "backend": "hip",
+          "warp_size": 32
+        },
+        "warp_size": 32
+      },
+      "regular_abi": [
+        {
+          "name": "segm_output_ptr",
+          "type": "*fp32"
+        },
+        {
+          "name": "segm_max_ptr",
+          "type": "*fp32"
+        },
+        {
+          "name": "segm_expsum_ptr",
+          "type": "*fp32"
+        },
+        {
+          "name": "query_ptr",
+          "type": "*bf16"
+        },
+        {
+          "name": "key_cache_ptr",
+          "type": "*bf16"
+        },
+        {
+          "name": "value_cache_ptr",
+          "type": "*bf16"
+        },
+        {
+          "name": "block_tables_ptr",
+          "type": "*i32"
+        },
+        {
+          "name": "seq_lens_ptr",
+          "type": "*i32"
+        },
+        {
+          "name": "scale",
+          "type": "fp32"
+        },
+        {
+          "name": "k_scale",
+          "type": "*fp32"
+        },
+        {
+          "name": "v_scale",
+          "type": "*fp32"
+        },
+        {
+          "name": "softcap",
+          "type": "fp32"
+        },
+        {
+          "name": "block_table_stride",
+          "type": "i64"
+        },
+        {
+          "name": "query_stride_0",
+          "type": "i64"
+        },
+        {
+          "name": "query_stride_1",
+          "type": "i64"
+        },
+        {
+          "name": "qq_bias_stride_0",
+          "type": "i64"
+        },
+        {
+          "name": "stride_k_cache_0",
+          "type": "i64"
+        },
+        {
+          "name": "stride_k_cache_1",
+          "type": "i64"
+        },
+        {
+          "name": "stride_k_cache_2",
+          "type": "i64"
+        },
+        {
+          "name": "stride_v_cache_0",
+          "type": "i64"
+        },
+        {
+          "name": "stride_v_cache_1",
+          "type": "i64"
+        },
+        {
+          "name": "stride_v_cache_2",
+          "type": "i64"
+        },
+        {
+          "name": "query_start_len_ptr",
+          "type": "*i32"
+        },
+        {
+          "name": "num_seqs",
+          "type": "i32"
+        },
+        {
+          "name": "stride_ks_blk",
+          "type": "i32"
+        },
+        {
+          "name": "stride_ks_slot",
+          "type": "i32"
+        },
+        {
+          "name": "stride_ks_head",
+          "type": "i32"
+        },
+        {
+          "name": "stride_vs_blk",
+          "type": "i32"
+        },
+        {
+          "name": "stride_vs_slot",
+          "type": "i32"
+        },
+        {
+          "name": "stride_vs_head",
+          "type": "i32"
+        }
+      ],
+      "signature": {
+        "BLOCK_M": "constexpr",
+        "BLOCK_Q": "constexpr",
+        "BLOCK_SIZE": "constexpr",
+        "HEAD_SIZE": "constexpr",
+        "HEAD_SIZE_PADDED": "constexpr",
+        "KV_QUANT_MODE": "constexpr",
+        "MAX_MM_RANGES": "constexpr",
+        "NUM_SEGMENTS_PER_SEQ": "constexpr",
+        "SLIDING_WINDOW": "constexpr",
+        "TILE_SIZE": "constexpr",
+        "USE_ALIBI_SLOPES": "constexpr",
+        "USE_ALIBI_SQRT": "constexpr",
+        "USE_MM_PREFIX": "constexpr",
+        "USE_QQ_BIAS": "constexpr",
+        "USE_SINKS": "constexpr",
+        "USE_SOFTCAP": "constexpr",
+        "alibi_slopes_ptr": "constexpr",
+        "block_table_stride": "i64",
+        "block_tables_ptr": "*i32",
+        "k_scale": "*fp32",
+        "k_scale_cache_ptr": "constexpr",
+        "key_cache_ptr": "*bf16",
+        "mm_prefix_range_ptr": "constexpr",
+        "num_queries_per_kv": "constexpr",
+        "num_query_heads": "constexpr",
+        "num_seqs": "i32",
+        "qq_bias_ptr": "constexpr",
+        "qq_bias_stride_0": "i64",
+        "query_ptr": "*bf16",
+        "query_start_len_ptr": "*i32",
+        "query_stride_0": "i64",
+        "query_stride_1": "i64",
+        "scale": "fp32",
+        "segm_expsum_ptr": "*fp32",
+        "segm_max_ptr": "*fp32",
+        "segm_output_ptr": "*fp32",
+        "seq_lens_ptr": "*i32",
+        "sink_ptr": "constexpr",
+        "softcap": "fp32",
+        "stride_k_cache_0": "i64",
+        "stride_k_cache_1": "i64",
+        "stride_k_cache_2": "i64",
+        "stride_k_cache_3": "constexpr",
+        "stride_ks_blk": "i32",
+        "stride_ks_head": "i32",
+        "stride_ks_slot": "i32",
+        "stride_v_cache_0": "i64",
+        "stride_v_cache_1": "i64",
+        "stride_v_cache_2": "i64",
+        "stride_v_cache_3": "constexpr",
+        "stride_vs_blk": "i32",
+        "stride_vs_head": "i32",
+        "stride_vs_slot": "i32",
+        "v_scale": "*fp32",
+        "v_scale_cache_ptr": "constexpr",
+        "value_cache_ptr": "*bf16"
+      },
+      "source_provenance": [
+        {
+          "license": "MIT",
+          "owner": "Triton",
+          "path": "triton/language/standard.py"
+        },
+        {
+          "license": "Apache-2.0",
+          "owner": "vLLM",
+          "path": "vllm/v1/attention/ops/triton_unified_attention.py"
+        }
+      ],
+      "symbol": "kernel_unified_attention_3d"
+    },
+    {
+      "audit_artifacts": [
+        {
+          "bytes": 26810,
+          "name": "reduce_segments.ttir",
+          "sha256": "134219aae9638dd38c9647859ce9e0e8c7e4b05734b5504f239d3b51c5c824f9"
+        },
+        {
+          "bytes": 1130,
+          "name": "reduce_segments.json",
+          "sha256": "171575bdb9bc570fc6fcf612c8be098537c13956502f4b4ff334d2fd654db249"
+        },
+        {
+          "bytes": 10912,
+          "name": "reduce_segments.hsaco",
+          "sha256": "40a44d75acab4fd03ed5243f6a3b5fea250ba78d267365908f95344ba55c633f"
+        },
+        {
+          "bytes": 41982,
+          "name": "reduce_segments.source",
+          "sha256": "5a91701340aff7012a4bfb70c4f5001f1070d9084f1bf9e772a29661c3953fa9"
+        },
+        {
+          "bytes": 29923,
+          "name": "reduce_segments.ttgir",
+          "sha256": "6e37b01ca360606a5ecfaa0c7859a0f32f32b37933b9889b1ec1a4df05c9759c"
+        },
+        {
+          "bytes": 33889,
+          "name": "reduce_segments.llir",
+          "sha256": "84f522b8de7975d0939def87b29cd0747cd6c8ce0dcaf8c68c243219dade8c78"
+        },
+        {
+          "bytes": 53503,
+          "name": "reduce_segments.amdgcn",
+          "sha256": "c9ae93ad8cd4b2441bd752c4c0389b0c392ec771451a369198400ec2a6850122"
+        }
+      ],
+      "compile_constants": {
+        "BLOCK_Q": 2,
+        "FP8_MAX": 448.0,
+        "FP8_MIN": -448.0,
+        "HEAD_SIZE": 256,
+        "HEAD_SIZE_PADDED": 256,
+        "NUM_SEGMENTS_PER_SEQ": 16,
+        "TILE_SIZE": 16,
+        "USE_FP8": false,
+        "num_query_heads": 16,
+        "num_seqs": 1
+      },
+      "image": {
+        "bytes": 7968,
+        "path": "kernels/6ecf435e2f5f8cfa-reduce_segments.hsaco",
+        "raw_bytes": 10912,
+        "raw_sha256": "40a44d75acab4fd03ed5243f6a3b5fea250ba78d267365908f95344ba55c633f",
+        "sha256": "a5339fd0563297b377dba12b2493e35622660843febfe41556b6bdafb2e9d184",
+        "transformation": "llvm-strip --strip-debug"
+      },
+      "kernel_hash": "6ecf435e2f5f8cfa2805d7433192f64a5e5e749e7a93c3ed4ae39e50921fe078",
+      "launch_variants": [
+        {
+          "arguments": [
+            {
+              "abi_type": "*bf16",
+              "dtype": "torch.bfloat16",
+              "element_size": 2,
+              "kind": "tensor",
+              "name": "output_ptr",
+              "shape": [
+                1,
+                16,
+                256
+              ],
+              "stride": [
+                4096,
+                256,
+                1
+              ]
+            },
+            {
+              "abi_type": "*fp32",
+              "dtype": "torch.float32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "segm_output_ptr",
+              "shape": [
+                64,
+                16,
+                16,
+                256
+              ],
+              "stride": [
+                65536,
+                4096,
+                256,
+                1
+              ]
+            },
+            {
+              "abi_type": "*fp32",
+              "dtype": "torch.float32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "segm_max_ptr",
+              "shape": [
+                64,
+                16,
+                16
+              ],
+              "stride": [
+                256,
+                16,
+                1
+              ]
+            },
+            {
+              "abi_type": "*fp32",
+              "dtype": "torch.float32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "segm_expsum_ptr",
+              "shape": [
+                64,
+                16,
+                16
+              ],
+              "stride": [
+                256,
+                16,
+                1
+              ]
+            },
+            {
+              "abi_type": "*i32",
+              "dtype": "torch.int32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "seq_lens_ptr",
+              "shape": [
+                1
+              ],
+              "stride": [
+                1
+              ]
+            },
+            {
+              "abi_type": "fp32",
+              "kind": "scalar",
+              "name": "out_scale_inv",
+              "value": 1.0
+            },
+            {
+              "abi_type": "i64",
+              "kind": "scalar",
+              "name": "output_stride_0",
+              "value": 4096
+            },
+            {
+              "abi_type": "i64",
+              "kind": "scalar",
+              "name": "output_stride_1",
+              "value": 256
+            },
+            {
+              "abi_type": "i64",
+              "kind": "scalar",
+              "name": "block_table_stride",
+              "value": 1
+            },
+            {
+              "abi_type": "*i32",
+              "dtype": "torch.int32",
+              "element_size": 4,
+              "kind": "tensor",
+              "name": "query_start_len_ptr",
+              "shape": [
+                2
+              ],
+              "stride": [
+                1
+              ]
+            }
+          ],
+          "grid": [
+            1,
+            16,
+            1
+          ]
+        }
+      ],
+      "metadata": {
+        "launch_cooperative_grid": false,
+        "name": "reduce_segments",
+        "num_ctas": 1,
+        "num_stages": 2,
+        "num_warps": 4,
+        "shared": 2048,
+        "target": {
+          "arch": "gfx1151",
+          "backend": "hip",
+          "warp_size": 32
+        },
+        "warp_size": 32
+      },
+      "regular_abi": [
+        {
+          "name": "output_ptr",
+          "type": "*bf16"
+        },
+        {
+          "name": "segm_output_ptr",
+          "type": "*fp32"
+        },
+        {
+          "name": "segm_max_ptr",
+          "type": "*fp32"
+        },
+        {
+          "name": "segm_expsum_ptr",
+          "type": "*fp32"
+        },
+        {
+          "name": "seq_lens_ptr",
+          "type": "*i32"
+        },
+        {
+          "name": "out_scale_inv",
+          "type": "fp32"
+        },
+        {
+          "name": "output_stride_0",
+          "type": "i64"
+        },
+        {
+          "name": "output_stride_1",
+          "type": "i64"
+        },
+        {
+          "name": "block_table_stride",
+          "type": "i64"
+        },
+        {
+          "name": "query_start_len_ptr",
+          "type": "*i32"
+        }
+      ],
+      "signature": {
+        "BLOCK_Q": "constexpr",
+        "FP8_MAX": "constexpr",
+        "FP8_MIN": "constexpr",
+        "HEAD_SIZE": "constexpr",
+        "HEAD_SIZE_PADDED": "constexpr",
+        "NUM_SEGMENTS_PER_SEQ": "constexpr",
+        "TILE_SIZE": "constexpr",
+        "USE_FP8": "constexpr",
+        "block_table_stride": "i64",
+        "num_query_heads": "constexpr",
+        "num_seqs": "constexpr",
+        "out_scale_inv": "fp32",
+        "output_ptr": "*bf16",
+        "output_stride_0": "i64",
+        "output_stride_1": "i64",
+        "query_start_len_ptr": "*i32",
+        "segm_expsum_ptr": "*fp32",
+        "segm_max_ptr": "*fp32",
+        "segm_output_ptr": "*fp32",
+        "seq_lens_ptr": "*i32"
+      },
+      "source_provenance": [
+        {
+          "license": "MIT",
+          "owner": "Triton",
+          "path": "triton/language/standard.py"
+        },
+        {
+          "license": "Apache-2.0",
+          "owner": "vLLM",
+          "path": "vllm/v1/attention/ops/triton_unified_attention.py"
+        }
+      ],
+      "symbol": "reduce_segments"
+    }
+  ],
+  "launch_variant_count": 2,
+  "non_claims": [
+    "not_yet_a_complete_native_model_executor",
+    "not_yet_full_context_matrix_coverage",
+    "not_yet_a_correctness_or_performance_promotion"
+  ],
+  "packaged_hsaco_bytes": 26704,
+  "raw_hsaco_bytes": 34064,
+  "schema": "aima-amd395-qwen36/native-aot-closure/v1",
+  "source": {
+    "commit": "3ff1ebbdf0119cc4aae5dfe6f010cfe09c5365e9",
+    "compiler": {
+      "license": "MIT",
+      "name": "Triton",
+      "version": "3.6.0"
+    },
+    "engine_sha256": "c08e2e46a28e02699f020e2b7e2446a88edd85139ec8f8491a18042562176b83",
+    "traces": [
+      {
+        "bytes": 13977,
+        "records": 3,
+        "sha256": "a0fc0e85b0494d6283d9a566a5ae6edaaf420241188f28ab7ba821ffd0def8b6"
+      }
+    ],
+    "vllm_license": "Apache-2.0",
+    "vllm_version": "0.19.1rc1.dev300+g29e5d1020.rocm721"
+  },
+  "status": "bounded_q350_output1_executor_migration_evidence",
+  "target": {
+    "arch": "gfx1151",
+    "backend": "HIP",
+    "warp_size": 32
+  }
+}
