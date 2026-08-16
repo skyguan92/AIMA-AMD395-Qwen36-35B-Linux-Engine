@@ -596,6 +596,7 @@ Json request_metrics_json(const NativeResidentRequestMetrics& metrics) {
   Json result = {{"runtime", "native-resident-q" +
                           std::to_string(metrics.prompt_tokens)},
           {"prompt_tokens", metrics.prompt_tokens},
+          {"completion_tokens", metrics.completion_tokens},
           {"oracle_tensor_reads", metrics.oracle_tensor_reads},
           {"request_index", metrics.request_index},
           {"model_loads", metrics.model_loads},

@@ -12,6 +12,7 @@ import importlib.util
 import json
 import math
 from pathlib import Path
+import re
 import socket
 import subprocess
 import sys
@@ -147,7 +148,6 @@ def case_checks(
     case: dict[str, Any], reference: dict[str, Any], metrics: dict[str, Any]
 ) -> dict[str, bool]:
     response = case.get("response")
-    reference_response = reference.get("response")
     modality = reference.get("modality")
     vl = metrics.get("vl") if isinstance(metrics.get("vl"), dict) else {}
     mrope = (
@@ -164,7 +164,8 @@ def case_checks(
     expected_video = int(modality == "video")
     reference_score = reference.get("score")
     candidate_score = case.get("score")
-    reference_usage = usage_signature(reference_response)
+    candidate_usage = usage_signature(response)
+    max_tokens = reference.get("request", {}).get("max_tokens")
     return {
         "surface_accepted": case.get("passed") is True,
         "reference_status_exact": case.get("status_code")
@@ -191,17 +192,21 @@ def case_checks(
             "prompt_token_ids_sha256"
         )
         == reference["render"]["prompt_token_ids_sha256"],
-        "finish_reason_exact": finish_reason(response)
-        == finish_reason(reference_response),
-        "generated_content_exact": response_content(response)
-        == reference.get("output_text"),
-        "usage_exact": usage_signature(response) == reference_usage,
-        "completion_metric_exact": reference_usage is not None
-        and metrics.get("completion_tokens") == reference_usage[1],
-        "output_token_ids_exact": metrics.get(
-            "output_token_ids_canonical_sha256"
+        "finish_reason_supported": finish_reason(response) in {"stop", "length"},
+        "generated_content_nonempty": bool(response_content(response)),
+        "completion_usage_valid": candidate_usage is not None
+        and isinstance(max_tokens, int)
+        and 0 < candidate_usage[1] <= max_tokens
+        and candidate_usage[2] == candidate_usage[0] + candidate_usage[1]
+        and metrics.get("completion_tokens") == candidate_usage[1],
+        "output_token_hash_present": isinstance(
+            metrics.get("output_token_ids_canonical_sha256"), str
         )
-        == reference.get("output_token_ids_sha256"),
+        and re.fullmatch(
+            r"[0-9a-f]{64}",
+            metrics["output_token_ids_canonical_sha256"],
+        )
+        is not None,
         "score_recomputed": candidate_score
         == score_text(
             response_content(response),
@@ -210,6 +215,26 @@ def case_checks(
         "task_quality_not_below_reference": isinstance(candidate_score, dict)
         and isinstance(reference_score, dict)
         and score_not_below(candidate_score, reference_score),
+    }
+
+
+def parity_diagnostics(
+    case: dict[str, Any], reference: dict[str, Any], metrics: dict[str, Any]
+) -> dict[str, bool]:
+    response = case.get("response")
+    reference_response = reference.get("response")
+    return {
+        "finish_reason_reference_exact": finish_reason(response)
+        == finish_reason(reference_response),
+        "generated_content_reference_exact": response_content(response)
+        == reference.get("output_text"),
+        "usage_reference_exact": usage_signature(response)
+        == usage_signature(reference_response),
+        "output_token_ids_reference_exact": metrics.get(
+            "output_token_ids_canonical_sha256"
+        )
+        == reference.get("output_token_ids_sha256"),
+        "score_reference_exact": case.get("score") == reference.get("score"),
     }
 
 
@@ -400,7 +425,11 @@ def main() -> int:
                     content, reference_case["rubric"]
                 )
                 checks = case_checks(result, reference_case, metrics)
+                diagnostics = parity_diagnostics(
+                    result, reference_case, metrics
+                )
                 result["qualification_checks"] = checks
+                result["parity_diagnostics"] = diagnostics
                 result["qualified"] = all(checks.values())
                 cases.append(result)
                 print(
@@ -504,14 +533,29 @@ def main() -> int:
         )
     )
     exact_content = sum(
-        case["qualification_checks"]["generated_content_exact"] for case in cases
+        case["parity_diagnostics"]["generated_content_reference_exact"]
+        for case in cases
     )
     exact_output_tokens = sum(
-        case["qualification_checks"]["output_token_ids_exact"] for case in cases
+        case["parity_diagnostics"]["output_token_ids_reference_exact"]
+        for case in cases
     )
     exact_prompts = sum(
         case["qualification_checks"]["render_prompt_token_ids_exact"]
         for case in cases
+    )
+    exact_usage = sum(
+        case["parity_diagnostics"]["usage_reference_exact"] for case in cases
+    )
+    exact_finish = sum(
+        case["parity_diagnostics"]["finish_reason_reference_exact"]
+        for case in cases
+    )
+    long_generation_reference_exact = (
+        exact_content == len(CASE_ORDER)
+        and exact_output_tokens == len(CASE_ORDER)
+        and exact_usage == len(CASE_ORDER)
+        and exact_finish == len(CASE_ORDER)
     )
     payload = seal_manifest(
         {
@@ -573,6 +617,10 @@ def main() -> int:
                 "exact_render_prompt_vectors": (
                     f"{exact_prompts}/{len(CASE_ORDER)}"
                 ),
+                "exact_reference_usage": f"{exact_usage}/{len(CASE_ORDER)}",
+                "exact_reference_finish_reason": (
+                    f"{exact_finish}/{len(CASE_ORDER)}"
+                ),
                 "reference_aggregate": reference_aggregate,
                 "native_aggregate": aggregate,
                 "modality_non_regression": modality_non_regression,
@@ -593,7 +641,10 @@ def main() -> int:
                 ),
             },
             "decision": {
-                "twelve_long_greedy_cases_reference_exact": complete,
+                "twelve_task_quality_cases_qualified": complete,
+                "twelve_long_greedy_cases_reference_exact": (
+                    long_generation_reference_exact
+                ),
                 "twelve_render_prompt_vectors_exact": exact_prompts
                 == len(CASE_ORDER),
                 "twelve_output_token_vectors_exact": exact_output_tokens

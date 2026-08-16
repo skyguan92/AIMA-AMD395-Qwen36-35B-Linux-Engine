@@ -11,6 +11,7 @@ from aima_engine.vl_task_quality import score_text
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts/qualify-native-vl-task-quality.py"
 CAPTURE = ROOT / "scripts/capture-vllm-vl-task-quality.py"
+HTTP_SERVER = ROOT / "native/src/native_http_server.cpp"
 
 
 def load_module():
@@ -43,7 +44,7 @@ def inputs() -> tuple[dict, dict, dict]:
             "total_tokens": 18,
         },
     }
-    request = {"model": "${AIMA_SERVED_MODEL}"}
+    request = {"model": "${AIMA_SERVED_MODEL}", "max_tokens": 192}
     reference = {
         "case_id": "image_central_red_circle",
         "modality": "image",
@@ -104,8 +105,23 @@ class NativeVlTaskQualityQualifierTest(unittest.TestCase):
         metrics["output_token_ids_canonical_sha256"] = "c" * 64
         metrics["prompt_token_ids_sha256"] = "d" * 64
         checks = self.module.case_checks(case, reference, metrics)
-        self.assertFalse(checks["output_token_ids_exact"])
         self.assertFalse(checks["render_prompt_token_ids_exact"])
+        diagnostics = self.module.parity_diagnostics(case, reference, metrics)
+        self.assertFalse(diagnostics["output_token_ids_reference_exact"])
+
+    def test_semantically_equivalent_text_is_quality_not_exact_generation(
+        self,
+    ) -> None:
+        case, reference, metrics = inputs()
+        replacement = "A red circle is visible in the image."
+        case["response"]["choices"][0]["message"]["content"] = replacement
+        case["score"] = score_text(replacement, reference["rubric"])
+        metrics["output_token_ids_canonical_sha256"] = "c" * 64
+        checks = self.module.case_checks(case, reference, metrics)
+        diagnostics = self.module.parity_diagnostics(case, reference, metrics)
+        self.assertTrue(all(checks.values()), checks)
+        self.assertFalse(diagnostics["generated_content_reference_exact"])
+        self.assertFalse(diagnostics["output_token_ids_reference_exact"])
 
     def test_score_is_recomputed_and_compared_as_exact_rational(self) -> None:
         case, reference, metrics = inputs()
@@ -139,6 +155,10 @@ class NativeVlTaskQualityQualifierTest(unittest.TestCase):
         source = CAPTURE.read_text(encoding="utf-8")
         self.assertIn('endpoint + "/tokenize"', source)
         self.assertIn("complete_output_token_ids", source)
+
+    def test_native_metrics_expose_completion_accounting(self) -> None:
+        source = HTTP_SERVER.read_text(encoding="utf-8")
+        self.assertIn('{"completion_tokens", metrics.completion_tokens}', source)
 
 
 if __name__ == "__main__":
