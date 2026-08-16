@@ -241,6 +241,20 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
         self.assertIn("instrumented_moe_sum", source)
         self.assertIn('"routed_weighted_expert_outputs"', source)
         self.assertIn('"first-decode-layer0-tail"', source)
+        self.assertIn("FULL_ATTENTION_DECODE_COMPONENT_NAMES", source)
+        self.assertIn("instrumented_unified_attention", source)
+        self.assertIn('"first-decode-full-attention"', source)
+        self.assertIn(
+            '"two_diagnostic_layer3_unified_attention_sets_captured"',
+            source,
+        )
+        self.assertIn(
+            '"two_first_decode_layer3_unified_attention_sets_captured"',
+            source,
+        )
+        self.assertIn(
+            "triton_attention_module.unified_attention = state[", source
+        )
         self.assertIn("FIRST_DECODE_LINEAR_OUTPUT_INDEX", source)
         self.assertIn("--diagnostic-output-index", source)
         self.assertIn("vl-generation-layer-diagnostic/v1", source)

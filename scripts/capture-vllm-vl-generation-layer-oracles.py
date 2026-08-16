@@ -58,6 +58,16 @@ STATE_ATTRIBUTE = "_aima_vl_generation_layer_oracle_state"
 GENERATION_LAYER_DIAGNOSTIC_SCHEMA = (
     "aima-amd395-qwen36/vl-generation-layer-diagnostic/v1"
 )
+FULL_ATTENTION_LAYER = 3
+FULL_ATTENTION_DECODE_COMPONENT_NAMES = (
+    "query",
+    "key_cache",
+    "value_cache",
+    "block_table",
+    "sequence_lengths",
+    "query_starts",
+    "output",
+)
 
 
 def load_module(path: Path, name: str) -> ModuleType:
@@ -133,6 +143,11 @@ def _remove_hooks(root: Any, state: dict[str, Any]) -> None:
     custom_ops = state.get("custom_ops")
     if custom_ops is not None:
         custom_ops.moe_sum = state["original_moe_sum"]
+    triton_attention_module = state.get("triton_attention_module")
+    if triton_attention_module is not None:
+        triton_attention_module.unified_attention = state[
+            "original_unified_attention"
+        ]
     if hasattr(root, STATE_ATTRIBUTE):
         delattr(root, STATE_ATTRIBUTE)
 
@@ -165,8 +180,14 @@ class InstallGenerationLayerHooks:
             "first_decode_linear_captures": {},
             "layer0_tail_captures": {},
             "first_decode_layer0_tail_captures": {},
+            "full_attention_captures": {},
+            "first_decode_full_attention_captures": {},
+            "full_attention_metadata": {},
+            "first_decode_full_attention_metadata": {},
             "linear_singleton_calls": 0,
             "linear_capture_kind": None,
+            "full_attention_singleton_calls": 0,
+            "full_attention_capture_kind": None,
             "boundary_singleton_calls": {name: 0 for name in BOUNDARY_NAMES},
             "logits_prefill_calls": 0,
             "logits_decode_calls": 0,
@@ -185,6 +206,9 @@ class InstallGenerationLayerHooks:
         if shared_expert is None:
             raise RuntimeError("generation layer-0 shared expert is missing")
         router = mlp.experts.router
+        layer3 = language.model.layers[FULL_ATTENTION_LAYER]
+        if getattr(layer3, "layer_type", None) != "full_attention":
+            raise RuntimeError("generation language layer 3 is not full attention")
         gdn_module = __import__(
             "vllm.model_executor.layers.mamba.gdn_linear_attn",
             fromlist=["causal_conv1d_update"],
@@ -198,6 +222,10 @@ class InstallGenerationLayerHooks:
             fromlist=["apply_moe_activation"],
         )
         custom_ops = __import__("vllm._custom_ops", fromlist=["moe_sum"])
+        triton_attention_module = __import__(
+            "vllm.v1.attention.backends.triton_attn",
+            fromlist=["unified_attention"],
+        )
         state.update(
             {
                 "gdn_module": gdn_module,
@@ -221,6 +249,10 @@ class InstallGenerationLayerHooks:
                 ),
                 "custom_ops": custom_ops,
                 "original_moe_sum": custom_ops.moe_sum,
+                "triton_attention_module": triton_attention_module,
+                "original_unified_attention": (
+                    triton_attention_module.unified_attention
+                ),
             }
         )
 
@@ -285,6 +317,158 @@ class InstallGenerationLayerHooks:
             captures[name] = (
                 tensor.detach().reshape(expected_shape).contiguous().cpu()
             )
+
+        def capture_full_attention(name: str, value: Any) -> None:
+            capture_kind = state["full_attention_capture_kind"]
+            if capture_kind is None:
+                return
+            captures = (
+                state["full_attention_captures"]
+                if capture_kind == "target"
+                else state["first_decode_full_attention_captures"]
+            )
+            if name in captures:
+                return
+            tensor = _first_tensor(value)
+            if tensor is None:
+                raise RuntimeError(
+                    f"generation full-attention boundary has no tensor: {name}"
+                )
+            expected_dtype = (
+                torch.int32
+                if name in {"block_table", "sequence_lengths", "query_starts"}
+                else torch.bfloat16
+            )
+            if tensor.dtype != expected_dtype:
+                raise RuntimeError(
+                    "generation full-attention boundary dtype changed: "
+                    f"{name}/{tensor.dtype}"
+                )
+            captures[name] = tensor.detach().contiguous().cpu()
+
+        def layer3_input_norm_hook(
+            _module: Any, _args: Any, output: Any
+        ) -> None:
+            tensor = _first_tensor(output)
+            if tensor is None or tensor.ndim != 2 or tensor.shape[-1] != HIDDEN_SIZE:
+                raise RuntimeError("generation layer-3 input norm geometry changed")
+            if tensor.shape[0] != 1:
+                return
+            state["full_attention_singleton_calls"] += 1
+            decode_call = state["full_attention_singleton_calls"]
+            if decode_call == FIRST_DECODE_LINEAR_OUTPUT_INDEX:
+                state["full_attention_capture_kind"] = "first_decode"
+            elif decode_call == self.output_index:
+                state["full_attention_capture_kind"] = "target"
+            else:
+                state["full_attention_capture_kind"] = None
+
+        def layer3_output_hook(_module: Any, _args: Any, _output: Any) -> None:
+            state["full_attention_capture_kind"] = None
+
+        def instrumented_unified_attention(*args: Any, **kwargs: Any) -> Any:
+            result = state["original_unified_attention"](*args, **kwargs)
+            capture_kind = state["full_attention_capture_kind"]
+            if capture_kind is None:
+                return result
+
+            def argument(index: int, name: str) -> Any:
+                return kwargs.get(name, args[index] if len(args) > index else None)
+
+            query = argument(0, "q")
+            key_cache = argument(1, "k")
+            value_cache = argument(2, "v")
+            output = argument(3, "out")
+            query_starts = argument(4, "cu_seqlens_q")
+            max_seqlen_q = argument(5, "max_seqlen_q")
+            sequence_lengths = argument(6, "seqused_k")
+            max_seqlen_k = argument(7, "max_seqlen_k")
+            softmax_scale = argument(8, "softmax_scale")
+            causal = argument(9, "causal")
+            window_size = argument(10, "window_size")
+            block_table = argument(11, "block_table")
+            softcap = argument(12, "softcap")
+            tensors = (
+                query,
+                key_cache,
+                value_cache,
+                output,
+                query_starts,
+                sequence_lengths,
+                block_table,
+            )
+            if not all(isinstance(value, torch.Tensor) for value in tensors):
+                raise RuntimeError(
+                    "generation unified-attention tensor ABI changed"
+                )
+            if (
+                query.shape != (1, 16, 256)
+                or output.shape != query.shape
+                or key_cache.ndim != 4
+                or value_cache.shape != key_cache.shape
+                or key_cache.shape[2:] != (2, 256)
+                or block_table.ndim != 2
+                or block_table.shape[0] != 1
+                or sequence_lengths.numel() != 1
+                or query_starts.numel() != 2
+            ):
+                raise RuntimeError(
+                    "generation unified-attention singleton geometry changed"
+                )
+            sequence_length = int(sequence_lengths.reshape(-1)[0].item())
+            block_size = int(key_cache.shape[1])
+            logical_blocks = (sequence_length + block_size - 1) // block_size
+            physical_blocks = block_table[0, :logical_blocks].to(torch.int64)
+            if (
+                logical_blocks == 0
+                or physical_blocks.numel() != logical_blocks
+                or int(physical_blocks.min().item()) < 0
+                or int(physical_blocks.max().item()) >= key_cache.shape[0]
+            ):
+                raise RuntimeError(
+                    "generation unified-attention block table changed"
+                )
+            compact_key = key_cache.index_select(0, physical_blocks)
+            compact_value = value_cache.index_select(0, physical_blocks)
+            identity_table = torch.arange(
+                logical_blocks, device=block_table.device, dtype=torch.int32
+            ).reshape(1, logical_blocks)
+            capture_full_attention("query", query)
+            capture_full_attention("key_cache", compact_key)
+            capture_full_attention("value_cache", compact_value)
+            capture_full_attention("block_table", identity_table)
+            capture_full_attention("sequence_lengths", sequence_lengths)
+            capture_full_attention("query_starts", query_starts)
+            capture_full_attention("output", output)
+            metadata = {
+                "layer_index": FULL_ATTENTION_LAYER,
+                "sequence_length": sequence_length,
+                "block_size": block_size,
+                "logical_blocks": logical_blocks,
+                "query_heads": int(query.shape[1]),
+                "kv_heads": int(key_cache.shape[2]),
+                "head_size": int(query.shape[2]),
+                "max_seqlen_q": int(max_seqlen_q),
+                "max_seqlen_k": int(max_seqlen_k),
+                "softmax_scale": float(softmax_scale),
+                "causal": bool(causal),
+                "window_size": [int(value) for value in window_size],
+                "softcap": float(softcap),
+                "physical_block_ids": [
+                    int(value) for value in physical_blocks.detach().cpu().tolist()
+                ],
+            }
+            destination = (
+                state["full_attention_metadata"]
+                if capture_kind == "target"
+                else state["first_decode_full_attention_metadata"]
+            )
+            if destination and destination != metadata:
+                raise RuntimeError(
+                    "generation unified-attention metadata changed within a decode"
+                )
+            destination.update(metadata)
+            return result
 
         def layer0_input_norm_hook(
             _module: Any, _args: Any, output: Any
@@ -505,6 +689,12 @@ class InstallGenerationLayerHooks:
         handles.append(mlp.experts.register_forward_hook(experts_hook))
         handles.append(mlp.register_forward_hook(mlp_hook))
         handles.append(layer0.register_forward_hook(layer0_output_hook))
+        handles.append(
+            layer3.input_layernorm.register_forward_hook(
+                layer3_input_norm_hook
+            )
+        )
+        handles.append(layer3.register_forward_hook(layer3_output_hook))
         gdn_module.causal_conv1d_update = instrumented_causal_conv1d_update
         gdn_module.fused_recurrent_gated_delta_rule_packed_decode = (
             instrumented_packed_decode
@@ -517,6 +707,9 @@ class InstallGenerationLayerHooks:
             instrumented_apply_moe_activation
         )
         custom_ops.moe_sum = instrumented_moe_sum
+        triton_attention_module.unified_attention = (
+            instrumented_unified_attention
+        )
 
         def capture_boundary(name: str, value: Any) -> None:
             tensor = _first_tensor(value)
@@ -673,6 +866,35 @@ class FinalizeGenerationLayerHooks:
                 "missing first-decode layer-0 tail boundaries: "
                 + ", ".join(sorted(missing_first_decode_layer0_tail))
             )
+        full_attention_captures = state["full_attention_captures"]
+        missing_full_attention = set(
+            FULL_ATTENTION_DECODE_COMPONENT_NAMES
+        ) - set(full_attention_captures)
+        if missing_full_attention:
+            _remove_hooks(root, state)
+            raise RuntimeError(
+                "missing target layer-3 unified-attention boundaries: "
+                + ", ".join(sorted(missing_full_attention))
+            )
+        first_decode_full_attention_captures = state[
+            "first_decode_full_attention_captures"
+        ]
+        missing_first_decode_full_attention = set(
+            FULL_ATTENTION_DECODE_COMPONENT_NAMES
+        ) - set(first_decode_full_attention_captures)
+        if missing_first_decode_full_attention:
+            _remove_hooks(root, state)
+            raise RuntimeError(
+                "missing first-decode layer-3 unified-attention boundaries: "
+                + ", ".join(sorted(missing_first_decode_full_attention))
+            )
+        if not state["full_attention_metadata"] or not state[
+            "first_decode_full_attention_metadata"
+        ]:
+            _remove_hooks(root, state)
+            raise RuntimeError(
+                "generation layer-3 unified-attention metadata is missing"
+            )
         target_call = state["target_output_index"]
         capture_calls = {
             state["boundary_singleton_calls"][name] for name in BOUNDARY_NAMES
@@ -680,6 +902,11 @@ class FinalizeGenerationLayerHooks:
         if capture_calls != {target_call}:
             _remove_hooks(root, state)
             raise RuntimeError("decode boundary singleton counts are inconsistent")
+        if state["full_attention_singleton_calls"] != target_call:
+            _remove_hooks(root, state)
+            raise RuntimeError(
+                "unified-attention decode singleton count is inconsistent"
+            )
 
         output_root = Path(self.output_root)
         case_id = state["case_id"]
@@ -802,6 +1029,22 @@ class FinalizeGenerationLayerHooks:
             FIRST_DECODE_LINEAR_OUTPUT_INDEX,
             LAYER0_TAIL_BOUNDARY_SPECS,
         )
+        full_attention = write_tensor_boundary_set(
+            "full-attention",
+            full_attention_captures,
+            target_call,
+            FULL_ATTENTION_DECODE_COMPONENT_NAMES,
+        )
+        full_attention["metadata"] = state["full_attention_metadata"]
+        first_decode_full_attention = write_tensor_boundary_set(
+            "first-decode-full-attention",
+            first_decode_full_attention_captures,
+            FIRST_DECODE_LINEAR_OUTPUT_INDEX,
+            FULL_ATTENTION_DECODE_COMPONENT_NAMES,
+        )
+        first_decode_full_attention["metadata"] = state[
+            "first_decode_full_attention_metadata"
+        ]
         result = {
             **target_boundaries,
             "logits_prefill_calls": state["logits_prefill_calls"],
@@ -818,6 +1061,8 @@ class FinalizeGenerationLayerHooks:
             "first_decode_linear_attention": first_decode_linear_attention,
             "layer0_tail": layer0_tail,
             "first_decode_layer0_tail": first_decode_layer0_tail,
+            "full_attention": full_attention,
+            "first_decode_full_attention": first_decode_full_attention,
         }
         _remove_hooks(root, state)
         return result
@@ -1083,10 +1328,12 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
     diagnostic = args.diagnostic_output_index is not None
     scope = (
         "two-fixed-vllm-vl-shared-output-index-layer-and-layer0-linear-"
-        "attention-plus-tail-and-routed-moe-diagnostic-boundary-sets"
+        "attention-plus-tail-routed-moe-and-layer3-unified-attention-"
+        "diagnostic-boundary-sets"
         if diagnostic
         else "two-fixed-vllm-vl-target-decode-layer-plus-target-and-first-"
-        "decode-layer0-linear-attention-boundary-sets"
+        "decode-layer0-linear-attention-tail-and-layer3-unified-attention-"
+        "boundary-sets"
     )
     decision = (
         {
@@ -1103,6 +1350,12 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
                 len(cases) == 2
             ),
             "two_diagnostic_routed_moe_stage_sets_captured": len(cases) == 2,
+            "two_diagnostic_layer3_unified_attention_sets_captured": (
+                len(cases) == 2
+            ),
+            "two_diagnostic_first_decode_layer3_unified_attention_sets_captured": (
+                len(cases) == 2
+            ),
             "promotion_oracle": False,
             "g1_passed": False,
             "g2_passed": False,
@@ -1126,6 +1379,10 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
                 len(cases) == 2
             ),
             "two_routed_moe_stage_sets_captured": len(cases) == 2,
+            "two_layer3_unified_attention_sets_captured": len(cases) == 2,
+            "two_first_decode_layer3_unified_attention_sets_captured": (
+                len(cases) == 2
+            ),
             "g1_passed": False,
             "g2_passed": False,
             "g3_passed": False,
@@ -1176,6 +1433,7 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
                 "skip_mm_profiling": True,
                 "maximum_tokens_per_case": "target_output_index_plus_one",
                 "diagnostic_output_index": args.diagnostic_output_index,
+                "layer3_unified_attention_compact_identity_block_table": True,
                 "product_runtime_dependency": False,
             },
             "oracle_root": args.oracle_root_label,
