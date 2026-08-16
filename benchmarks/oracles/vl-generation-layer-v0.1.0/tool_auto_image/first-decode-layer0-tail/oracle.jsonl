@@ -1,0 +1,15 @@
+{"event":"native_layer_oracle_tensor","file":"components/attention_residual.bin","label":"attention_residual"}
+{"event":"native_layer_oracle_tensor","file":"components/post_attention_norm.bin","label":"post_attention_norm"}
+{"event":"native_layer_oracle_tensor","file":"components/shared_gate_logits.bin","label":"shared_gate_logits"}
+{"event":"native_layer_oracle_tensor","file":"components/shared_gate_up_projection.bin","label":"shared_gate_up_projection"}
+{"event":"native_layer_oracle_tensor","file":"components/shared_activation.bin","label":"shared_activation"}
+{"event":"native_layer_oracle_tensor","file":"components/shared_down_projection.bin","label":"shared_down_projection"}
+{"event":"native_layer_oracle_tensor","file":"components/shared_moe_output.bin","label":"shared_moe_output"}
+{"event":"native_layer_oracle_tensor","file":"components/router_logits.bin","label":"router_logits"}
+{"event":"native_layer_oracle_tensor","file":"components/router_weights.bin","label":"router_weights"}
+{"event":"native_layer_oracle_tensor","file":"components/router_indices.bin","label":"router_indices"}
+{"event":"native_layer_oracle_tensor","file":"components/routed_gate_up_projection.bin","label":"routed_gate_up_projection"}
+{"event":"native_layer_oracle_tensor","file":"components/routed_activation.bin","label":"routed_activation"}
+{"event":"native_layer_oracle_tensor","file":"components/routed_weighted_expert_outputs.bin","label":"routed_weighted_expert_outputs"}
+{"event":"native_layer_oracle_tensor","file":"components/routed_moe_output.bin","label":"routed_moe_output"}
+{"event":"native_layer_oracle_tensor","file":"components/combined_moe_output.bin","label":"combined_moe_output"}

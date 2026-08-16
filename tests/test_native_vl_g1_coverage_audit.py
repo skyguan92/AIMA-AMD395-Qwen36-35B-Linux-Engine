@@ -74,7 +74,7 @@ class NativeVlG1CoverageAuditTest(unittest.TestCase):
         self.assertEqual(coverage["requirements"], 14)
         self.assertEqual(
             coverage["counts"],
-            {"covered": 11, "partial": 3, "missing": 0},
+            {"covered": 12, "partial": 2, "missing": 0},
         )
         items = coverage["items"]
         self.assertEqual(len(items), len({item["requirement_id"] for item in items}))
@@ -84,7 +84,7 @@ class NativeVlG1CoverageAuditTest(unittest.TestCase):
                 for item in items
             )
         )
-        self.assertEqual(len(result["blocking_gaps"]), 3)
+        self.assertEqual(len(result["blocking_gaps"]), 2)
 
     def test_referenced_native_cases_exist_and_are_qualified(self) -> None:
         native = json.loads(
@@ -170,7 +170,7 @@ class NativeVlG1CoverageAuditTest(unittest.TestCase):
 
     def test_next_evidence_names_every_blocking_workstream(self) -> None:
         expected = {
-            "g1-generation-and-current-head-requalification",
+            "g1-long-generation-and-g3-requalification",
         }
         self.assertEqual(
             {item["evidence_id"] for item in self.result["next_evidence"]},
@@ -190,6 +190,9 @@ class NativeVlG1CoverageAuditTest(unittest.TestCase):
         decision = self.result["decision"]
         self.assertTrue(decision["audit_complete"])
         self.assertTrue(decision["all_referenced_cases_qualified"])
+        self.assertTrue(decision["current_head_processor_to_output_qualified"])
+        self.assertTrue(decision["twelve_task_quality_cases_qualified"])
+        self.assertFalse(decision["twelve_long_greedy_cases_reference_exact"])
         self.assertFalse(decision["coverage_complete"])
         self.assertTrue(decision["new_evidence_required"])
         for gate in (

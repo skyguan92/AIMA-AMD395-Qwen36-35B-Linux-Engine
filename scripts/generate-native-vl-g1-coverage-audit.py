@@ -21,11 +21,25 @@ from aima_engine.vl_error_limits import (  # noqa: E402
     NATIVE_REPLAY as ERROR_LIMITS_NATIVE_REPLAY,
     REFERENCE_CASE_ORDER as ERROR_LIMITS_REFERENCE_CASE_ORDER,
 )
+from aima_engine.vl_generation_layer_oracle import (  # noqa: E402
+    validate_generation_layer_oracle_manifest,
+)
+from aima_engine.vl_generation_oracle import (  # noqa: E402
+    validate_generation_oracle_manifest,
+)
+from aima_engine.vl_prefill_state_oracle import (  # noqa: E402
+    validate_vl_prefill_state_oracle_manifest,
+)
 from aima_engine.vl_reference import (  # noqa: E402
     atomic_json,
     file_component,
     load_json_object,
     seal_manifest,
+    verify_manifest_integrity,
+)
+from aima_engine.vl_task_quality import (  # noqa: E402
+    CASE_ORDER as TASK_QUALITY_CASE_ORDER,
+    validate_reference_manifest as validate_task_quality_reference_manifest,
 )
 
 
@@ -73,10 +87,38 @@ ARTIFACT_PATHS = {
     "language_boundary": (
         ROOT / "benchmarks/results/native-vl-language-full-v0.2.0.json"
     ),
+    "task_quality_reference": (
+        ROOT / "benchmarks/results/vl-task-quality-reference-v0.1.0.json"
+    ),
+    "task_quality_native": (
+        ROOT / "benchmarks/results/native-vl-task-quality-v0.1.0.json"
+    ),
+    "generation_oracle": (
+        ROOT / "benchmarks/results/vl-generation-oracle-v0.1.0.json"
+    ),
+    "generation_layer_oracle": (
+        ROOT
+        / "benchmarks/results/vl-generation-layer-oracle-v0.1.0.json"
+    ),
+    "prefill_state_oracle": (
+        ROOT / "benchmarks/results/vl-prefill-state-oracle-v0.1.0.json"
+    ),
+    "generation_native": (
+        ROOT
+        / "benchmarks/results/native-vl-generation-current-head-v0.1.0.json"
+    ),
     "error_limits_contract": ROOT / "aima_engine/vl_error_limits.py",
     "cache_identity_unit": ROOT / "tests/native_multimodal_cache_test.cpp",
     "generator": Path(__file__).resolve(),
 }
+
+GENERATION_ORACLE_ROOT = ROOT / "benchmarks/oracles/vl-generation-v0.1.0"
+GENERATION_LAYER_ORACLE_ROOT = (
+    ROOT / "benchmarks/oracles/vl-generation-layer-v0.1.0"
+)
+PREFILL_STATE_ORACLE_ROOT = (
+    ROOT / "benchmarks/oracles/vl-prefill-state-v0.1.0"
+)
 
 
 def evidence(artifact: str, *case_ids: str, note: str) -> dict[str, Any]:
@@ -296,10 +338,26 @@ def build_requirements() -> list[dict[str, Any]]:
                         "cache enabled and disabled"
                     ),
                 ),
+                evidence(
+                    "generation_native",
+                    note=(
+                        "current-HEAD tool prefixes, selected tokens, full-vocabulary "
+                        "top-1 and internal decode boundaries are qualified"
+                    ),
+                ),
+                evidence(
+                    "task_quality_native",
+                    note=(
+                        "12/12 long image/video tasks meet the fixed-vLLM quality "
+                        "floor; prompt vectors are 12/12 exact"
+                    ),
+                ),
             ],
             [
-                "four capability cases still differ in completion or usage",
-                "task-level longer greedy image/video corpus is not qualified",
+                (
+                    "two long greedy task cases retain generated-content and "
+                    "output-token parity diagnostics"
+                ),
             ],
         ),
         requirement(
@@ -377,7 +435,7 @@ def build_requirements() -> list[dict[str, Any]]:
         requirement(
             "G1.2.2.model_semantics",
             "Processor, vision, injection, M-RoPE and language semantics",
-            "partial",
+            "covered",
             [
                 evidence(
                     "vision_pipeline",
@@ -402,10 +460,14 @@ def build_requirements() -> list[dict[str, Any]]:
                         "prompt tokens, outputs and usage"
                     ),
                 ),
-            ],
-            [
-                "historical numerical evidence is source-hash bound to earlier commits",
-                "current HEAD still requires consolidated processor-to-output requalification",
+                evidence(
+                    "generation_native",
+                    note=(
+                        "current-HEAD processor-to-output replay binds exact prompts, "
+                        "prefill states, decode boundaries, full-attention internals, "
+                        "top-1 logits and selected tokens"
+                    ),
+                ),
             ],
         ),
         requirement(
@@ -594,6 +656,17 @@ def case_map(
     return {item[id_field]: item for item in value}
 
 
+def validate_current_components(
+    label: str, components: list[dict[str, Any]]
+) -> None:
+    for component in components:
+        path = ROOT / component["path"]
+        if not path.is_file() or file_component(path, component["path"]) != component:
+            raise SystemExit(
+                f"{label} component is missing or stale: {component['path']}"
+            )
+
+
 def validate_inputs(payloads: dict[str, dict[str, Any]]) -> None:
     native = payloads["native_capability"]
     execution = payloads["execution_envelope"]
@@ -607,6 +680,12 @@ def validate_inputs(payloads: dict[str, dict[str, Any]]) -> None:
     error_limits_native = payloads["error_limits_native"]
     vision = payloads["vision_pipeline"]
     language = payloads["language_boundary"]
+    task_reference = payloads["task_quality_reference"]
+    task_native = payloads["task_quality_native"]
+    generation_oracle = payloads["generation_oracle"]
+    generation_layer = payloads["generation_layer_oracle"]
+    prefill_state = payloads["prefill_state_oracle"]
+    generation_native = payloads["generation_native"]
     for name, payload in (
         ("native capability", native),
         ("execution envelope", execution),
@@ -629,6 +708,128 @@ def validate_inputs(payloads: dict[str, dict[str, Any]]) -> None:
         "teacher_forced_full_vocabulary_logits_gate"
     ) != "passed-84-of-84-rows-bit-exact":
         raise SystemExit("language boundary evidence is incomplete")
+    for name, payload in (
+        ("task-quality reference", task_reference),
+        ("task-quality native", task_native),
+        ("generation oracle", generation_oracle),
+        ("generation layer oracle", generation_layer),
+        ("prefill-state oracle", prefill_state),
+        ("generation native", generation_native),
+    ):
+        integrity_errors = verify_manifest_integrity(payload)
+        if integrity_errors:
+            raise SystemExit(
+                f"{name} integrity failed: " + "; ".join(integrity_errors)
+            )
+    task_reference_errors = validate_task_quality_reference_manifest(
+        task_reference
+    )
+    if task_reference_errors:
+        raise SystemExit(
+            "task-quality reference is invalid: "
+            + "; ".join(task_reference_errors)
+        )
+    if (
+        task_native.get("complete") is not True
+        or task_native.get("qualified") is not True
+        or tuple(
+            case.get("case_id")
+            for case in task_native.get("matrix", {}).get("cases", [])
+        )
+        != TASK_QUALITY_CASE_ORDER
+        or not all(
+            case.get("qualified") is True
+            and all(case.get("qualification_checks", {}).values())
+            for case in task_native["matrix"]["cases"]
+        )
+    ):
+        raise SystemExit("native task-quality evidence is incomplete")
+    if task_native["dependencies"].get("reference") != file_component(
+        ARTIFACT_PATHS["task_quality_reference"],
+        "benchmarks/results/vl-task-quality-reference-v0.1.0.json",
+    ):
+        raise SystemExit("native task-quality reference binding changed")
+    for decision in (
+        "twelve_task_quality_cases_qualified",
+        "twelve_render_prompt_vectors_exact",
+        "image_task_quality_not_below_reference",
+        "video_task_quality_not_below_reference",
+        "single_resident_model_load",
+    ):
+        if task_native["decision"].get(decision) is not True:
+            raise SystemExit(
+                f"native task-quality evidence is missing: {decision}"
+            )
+    if (
+        task_native["decision"].get(
+            "twelve_long_greedy_cases_reference_exact"
+        )
+        is not False
+        or task_native["matrix"].get("exact_output_token_vectors")
+        != "10/12"
+    ):
+        raise SystemExit("native task-quality generation gap changed")
+    generation_errors = validate_generation_oracle_manifest(
+        generation_oracle, oracle_root=GENERATION_ORACLE_ROOT
+    )
+    layer_errors = validate_generation_layer_oracle_manifest(
+        generation_layer, oracle_root=GENERATION_LAYER_ORACLE_ROOT
+    )
+    state_errors = validate_vl_prefill_state_oracle_manifest(
+        prefill_state, oracle_root=PREFILL_STATE_ORACLE_ROOT
+    )
+    if generation_errors or layer_errors or state_errors:
+        raise SystemExit(
+            "generation oracle closure is invalid: "
+            f"generation={len(generation_errors)}, "
+            f"layer={len(layer_errors)}, state={len(state_errors)}"
+        )
+    if (
+        generation_native.get("complete") is not True
+        or generation_native.get("qualified") is not True
+        or not all(generation_native.get("checks", {}).values())
+    ):
+        raise SystemExit("current-HEAD generation evidence is incomplete")
+    generation_dependencies = {
+        "generation_oracle": (
+            "generation_oracle",
+            "benchmarks/results/vl-generation-oracle-v0.1.0.json",
+        ),
+        "generation_layer_oracle": (
+            "generation_layer_oracle",
+            "benchmarks/results/vl-generation-layer-oracle-v0.1.0.json",
+        ),
+        "vl_prefill_state_oracle": (
+            "prefill_state_oracle",
+            "benchmarks/results/vl-prefill-state-oracle-v0.1.0.json",
+        ),
+    }
+    for dependency, (artifact, relative) in generation_dependencies.items():
+        if generation_native["dependencies"].get(dependency) != file_component(
+            ARTIFACT_PATHS[artifact], relative
+        ):
+            raise SystemExit(
+                f"current-HEAD generation binding changed: {dependency}"
+            )
+    for decision in (
+        "two_shared_prefixes_exact",
+        "two_native_full_vocab_finite",
+        "two_decode_boundary_sets_bit_exact",
+        "two_prefill_state_sets_bit_exact",
+        "two_native_generation_top1_exact",
+        "two_generation_logits_kld_under_0_005",
+        "g1_generation_closed",
+    ):
+        if generation_native["decision"].get(decision) is not True:
+            raise SystemExit(
+                f"current-HEAD generation evidence is missing: {decision}"
+            )
+    validate_current_components(
+        "native task-quality", task_native["source"]["files"]
+    )
+    validate_current_components(
+        "current-HEAD generation", generation_native["source"]["files"]
+    )
     if native["matrix"].get("reference_status_exact") != "30/30":
         raise SystemExit("native capability status parity is incomplete")
     if native["matrix"].get("reference_finish_reason_exact") != "20/20":
@@ -834,7 +1035,7 @@ def build_payload() -> dict[str, Any]:
     ]
     return {
         "schema": "aima-amd395-qwen36/native-vl-g1-coverage-audit/v1",
-        "audited_on": "2026-08-15",
+        "audited_on": "2026-08-16",
         "complete": True,
         "qualified": False,
         "scope": "goal-sections-2.1-through-2.4-requirement-to-evidence",
@@ -850,15 +1051,13 @@ def build_payload() -> dict[str, Any]:
         "blocking_gaps": blockers,
         "next_evidence": [
             {
-                "evidence_id": "g1-generation-and-current-head-requalification",
+                "evidence_id": "g1-long-generation-and-g3-requalification",
                 "requirement_ids": [
                     "G1.2.1.generation",
-                    "G1.2.2.model_semantics",
                     "G1.2.3.product_preservation",
                 ],
                 "cases": [
-                    "resolve_four_usage_completion_differences",
-                    "current_head_processor_to_output_requalification",
+                    "resolve_two_long_greedy_generation_differences",
                     "complete_g3_text_nonregression",
                 ],
             },
@@ -866,6 +1065,9 @@ def build_payload() -> dict[str, Any]:
         "decision": {
             "audit_complete": True,
             "all_referenced_cases_qualified": True,
+            "current_head_processor_to_output_qualified": True,
+            "twelve_task_quality_cases_qualified": True,
+            "twelve_long_greedy_cases_reference_exact": False,
             "coverage_complete": counts["partial"] == 0
             and counts["missing"] == 0,
             "new_evidence_required": counts["partial"] > 0

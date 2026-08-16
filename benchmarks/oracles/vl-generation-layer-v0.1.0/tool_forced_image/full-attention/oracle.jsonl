@@ -1,0 +1,9 @@
+{"event":"native_layer_oracle_tensor","file":"components/query.bin","label":"query"}
+{"event":"native_layer_oracle_tensor","file":"components/key_cache.bin","label":"key_cache"}
+{"event":"native_layer_oracle_tensor","file":"components/value_cache.bin","label":"value_cache"}
+{"event":"native_layer_oracle_tensor","file":"components/block_table.bin","label":"block_table"}
+{"event":"native_layer_oracle_tensor","file":"components/sequence_lengths.bin","label":"sequence_lengths"}
+{"event":"native_layer_oracle_tensor","file":"components/query_starts.bin","label":"query_starts"}
+{"event":"native_layer_oracle_tensor","file":"components/k_descale.bin","label":"k_descale"}
+{"event":"native_layer_oracle_tensor","file":"components/v_descale.bin","label":"v_descale"}
+{"event":"native_layer_oracle_tensor","file":"components/output.bin","label":"output"}

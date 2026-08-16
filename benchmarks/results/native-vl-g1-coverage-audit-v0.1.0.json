@@ -1,19 +1,11 @@
 {
-  "audited_on": "2026-08-15",
+  "audited_on": "2026-08-16",
   "blocking_gaps": [
     {
       "gaps": [
-        "four capability cases still differ in completion or usage",
-        "task-level longer greedy image/video corpus is not qualified"
+        "two long greedy task cases retain generated-content and output-token parity diagnostics"
       ],
       "requirement_id": "G1.2.1.generation"
-    },
-    {
-      "gaps": [
-        "historical numerical evidence is source-hash bound to earlier commits",
-        "current HEAD still requires consolidated processor-to-output requalification"
-      ],
-      "requirement_id": "G1.2.2.model_semantics"
     },
     {
       "gaps": [
@@ -25,9 +17,9 @@
   "complete": true,
   "coverage": {
     "counts": {
-      "covered": 11,
+      "covered": 12,
       "missing": 0,
-      "partial": 3
+      "partial": 2
     },
     "items": [
       {
@@ -244,11 +236,18 @@
               "video_content_b_disabled"
             ],
             "note": "8-token video outputs and usage are reference-exact with cache enabled and disabled"
+          },
+          {
+            "artifact": "generation_native",
+            "note": "current-HEAD tool prefixes, selected tokens, full-vocabulary top-1 and internal decode boundaries are qualified"
+          },
+          {
+            "artifact": "task_quality_native",
+            "note": "12/12 long image/video tasks meet the fixed-vLLM quality floor; prompt vectors are 12/12 exact"
           }
         ],
         "gaps": [
-          "four capability cases still differ in completion or usage",
-          "task-level longer greedy image/video corpus is not qualified"
+          "two long greedy task cases retain generated-content and output-token parity diagnostics"
         ],
         "requirement_id": "G1.2.1.generation",
         "status": "partial",
@@ -354,14 +353,15 @@
           {
             "artifact": "transport_cache_native",
             "note": "current runtime binds vLLM-exact sampling, mixed ordering, prompt tokens, outputs and usage"
+          },
+          {
+            "artifact": "generation_native",
+            "note": "current-HEAD processor-to-output replay binds exact prompts, prefill states, decode boundaries, full-attention internals, top-1 logits and selected tokens"
           }
         ],
-        "gaps": [
-          "historical numerical evidence is source-hash bound to earlier commits",
-          "current HEAD still requires consolidated processor-to-output requalification"
-        ],
+        "gaps": [],
         "requirement_id": "G1.2.2.model_semantics",
-        "status": "partial",
+        "status": "covered",
         "title": "Processor, vision, injection, M-RoPE and language semantics"
       },
       {
@@ -544,12 +544,15 @@
     "all_referenced_cases_qualified": true,
     "audit_complete": true,
     "coverage_complete": false,
+    "current_head_processor_to_output_qualified": true,
     "g1_passed": false,
     "g2_passed": false,
     "g3_passed": false,
     "g4_passed": false,
     "g5_passed": false,
-    "new_evidence_required": true
+    "new_evidence_required": true,
+    "twelve_long_greedy_cases_reference_exact": false,
+    "twelve_task_quality_cases_qualified": true
   },
   "inputs": {
     "cache_identity_unit": {
@@ -577,10 +580,25 @@
       "path": "benchmarks/results/native-vl-envelope-v0.1.0.json",
       "sha256": "4f1bb7f0349b9c6b70bd0af876fa70c4b6be3b81f7b3750f45a24eb0d609b910"
     },
+    "generation_layer_oracle": {
+      "bytes": 150190,
+      "path": "benchmarks/results/vl-generation-layer-oracle-v0.1.0.json",
+      "sha256": "70cec2c7884b5e641884037212a34f6ffc6ac1944af08d59c19dc90353915188"
+    },
+    "generation_native": {
+      "bytes": 212909,
+      "path": "benchmarks/results/native-vl-generation-current-head-v0.1.0.json",
+      "sha256": "0c142b13aaa90f4b14ae062c6d0af13664db4293b2767762f3fc14d9a8dbf62b"
+    },
+    "generation_oracle": {
+      "bytes": 26545,
+      "path": "benchmarks/results/vl-generation-oracle-v0.1.0.json",
+      "sha256": "954c6e55389cd90390cb517224df14719f2556555ce7bf44571cae1ad1812888"
+    },
     "generator": {
-      "bytes": 35880,
+      "bytes": 43717,
       "path": "scripts/generate-native-vl-g1-coverage-audit.py",
-      "sha256": "50acba447c40b3e3ea50ac971c430a6a82e58fdbdb27d1005202775321fad6ae"
+      "sha256": "42f9fc6c8c683fcb781bb7034c4c40c0dde4460c813494aa7b196eb3c7a336d1"
     },
     "goal": {
       "bytes": 17981,
@@ -612,6 +630,11 @@
       "path": "benchmarks/results/native-vl-capability-v0.1.0.json",
       "sha256": "53fe6babad27686a4b7a5eb27f800da247352b5bb3cb80a6148a76441e04defa"
     },
+    "prefill_state_oracle": {
+      "bytes": 57689,
+      "path": "benchmarks/results/vl-prefill-state-oracle-v0.1.0.json",
+      "sha256": "ec4d23bef4058dd5f0189f703214caeb006159d3c4937b7e9ea14ba9bfc82782"
+    },
     "reference_capability": {
       "bytes": 86659,
       "path": "benchmarks/results/vl-capability-manifest.json",
@@ -621,6 +644,16 @@
       "bytes": 46499,
       "path": "benchmarks/results/native-vl-serving-v0.1.0.json",
       "sha256": "9a894c5e54b8ca95160629e2fad7ca2eff6fa27a78ba91b83a795b87ec434fe2"
+    },
+    "task_quality_native": {
+      "bytes": 117907,
+      "path": "benchmarks/results/native-vl-task-quality-v0.1.0.json",
+      "sha256": "38585272a5ecc5b401e106f971efad425f8b1b85e87023492108d473341aabe0"
+    },
+    "task_quality_reference": {
+      "bytes": 186682,
+      "path": "benchmarks/results/vl-task-quality-reference-v0.1.0.json",
+      "sha256": "51b3d95e3ce420584d765350bfe6b73f76d5786a8d9d629cf7c3e69ac11b8bce"
     },
     "transport_cache_native": {
       "bytes": 210900,
@@ -640,19 +673,17 @@
   },
   "integrity": {
     "algorithm": "sha256",
-    "canonical_payload_sha256": "2e51bdf5d595807874dc88809abaa8903e2e0bb2f923772ae01c786c120aa583"
+    "canonical_payload_sha256": "30a791bb12581128db0ec25123ce180a3a9c0a39c7f2dc35ebd5beae9726283b"
   },
   "next_evidence": [
     {
       "cases": [
-        "resolve_four_usage_completion_differences",
-        "current_head_processor_to_output_requalification",
+        "resolve_two_long_greedy_generation_differences",
         "complete_g3_text_nonregression"
       ],
-      "evidence_id": "g1-generation-and-current-head-requalification",
+      "evidence_id": "g1-long-generation-and-g3-requalification",
       "requirement_ids": [
         "G1.2.1.generation",
-        "G1.2.2.model_semantics",
         "G1.2.3.product_preservation"
       ]
     }

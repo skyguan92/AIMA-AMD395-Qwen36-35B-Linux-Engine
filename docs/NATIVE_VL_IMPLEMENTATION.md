@@ -14,35 +14,32 @@ blocking condition in the governing goal can move a gate to `passed`.
 
 | Gate | Current state | Evidence required to pass | Next blocking action |
 |---|---|---|---|
-| G1 full VL functional parity | the native HTTP path passes the frozen 30-case status/finish/tool/SSE surface and the corrected deterministic execution envelope passes 23/23 cells; mixed/conversation, verified HTTPS, request-level media I/O, error compatibility and cache identity/invariance have reference-exact resident evidence; the frozen 12-case long image/video corpus passes its task-quality gate without regression, while two long-generation token vectors remain diagnostic mismatches | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | close the two long-generation parity divergences, then run the consolidated current-HEAD and G3 requalification workstream |
-| G2 VL correctness parity | the five private and five independently rendered real-HTTP language prompts pass final norm and 84/84 selected full-vocabulary rows bit-exact; resident serving preserves the five frozen 8-token outputs; the 23-cell envelope and the empty/limit/timeout/access error matrix pass; image task quality is `1.000000` and video task quality is `0.947368`, equal to the fixed vLLM reference, with prompt vectors exact for 12/12 cases and long generated token vectors exact for 10/12 | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | seal current-HEAD processor-to-output evidence and resolve the two remaining deterministic-generation divergences |
+| G1 full VL functional parity | the native HTTP path passes the frozen 30-case status/finish/tool/SSE surface and the corrected deterministic execution envelope passes 23/23 cells; mixed/conversation, verified HTTPS, request-level media I/O, error compatibility and cache identity/invariance have reference-exact resident evidence; the frozen 12-case long image/video corpus passes its task-quality gate without regression; consolidated current-HEAD processor-to-output generation is qualified, while two long-generation token vectors remain diagnostic mismatches | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | close the two long-generation parity divergences and run the complete G3 text/release no-regression protocol |
+| G2 VL correctness parity | the five private and five independently rendered real-HTTP language prompts pass final norm and 84/84 selected full-vocabulary rows bit-exact; current-HEAD tool generation binds exact prompt prefixes, 120/120 prefill states, 82/82 whole-layer rows, 26/26 linear, 30/30 tail and 12/12 full-attention boundaries, with exact top-1 and selected tokens; image task quality is `1.000000` and video task quality is `0.947368`, equal to the fixed vLLM reference, with long generated token vectors exact for 10/12 | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | resolve the two remaining long deterministic-generation divergences, then run the final G2/G3 correctness gates |
 | G3 text product no regression | frozen baseline identified; the resident engine and certified lm_head now have an optional mask path that is disabled for ordinary requests, but the complete paired release matrix has not run | paired 19-cell, maximum-window, correctness, MMLU, API, cache, startup and memory requalification | retain `v1.5.1` as an immutable paired binary and run the complete paired matrix after language integration stabilizes |
 | G4 native VL performance | the 23-cell native execution envelope now records per-request stage timings, but it is a single candidate qualification rather than paired performance evidence | paired per-cell stage timings and memory records against the fixed VL-enabled vLLM | run the same frozen cells with the alternating paired vLLM/candidate timing protocol |
 | G5 native release product | the full runtime includes all qualified vision sources, loads the 333 visual tensors in one resident native process and survives the complete execution envelope; the external vision-attention code object is hash-checked and wired into the portable package contract, but final package qualification has not run | native-only package, security, isolated bundle, second-host, soak and rollback evidence | generate a clean product qualification containing the vision code object, then run isolated bundle, second-host, soak and rollback gates |
 
-## G1 coverage audit (2026-08-15)
+## G1 coverage audit (2026-08-16)
 
 The first requirement-to-evidence audit is sealed at
 `benchmarks/results/native-vl-g1-coverage-audit-v0.1.0.json`, SHA-256
-`403b615db3319ec81fd5f48e36953fd11aa3213c03283c294e9fb99bea3eb94c`.
+`8b21e90859756b66fd20ac0ea4d1a6d793166c3e4fa3a1d46998265ad345545c`.
 It binds the governing goal, frozen reference surface, native 30-case surface,
 23-cell execution result, resident-serving/cache evidence, visual pipeline,
 language boundary, the new mixed/conversation reference/native pair,
 the verified-HTTPS/sampling/cache reference/native pair, the image-I/O and
-error/limit reference/native evidence, cache-identity unit contract and its
-generator.
+error/limit reference/native evidence, the long task-quality pair, the
+generation/layer/prefill-state oracle closure, the current-HEAD native
+generation result, cache-identity unit contract and its generator.
 
-The audit deliberately does not promote G1. At capture time, eleven of fourteen
-requirement groups were fully covered: image, video, mixed media, conversation,
-OpenAI API, tools, transport, single-process residency, error parity, cache
-identity and cache invariance. Three were partial. The longer image/video
-task-quality portion is now qualified by the 2026-08-16 result below, but the
-remaining replayable workstream still has three explicit blockers:
+The audit deliberately does not promote G1. Twelve of fourteen requirement
+groups are fully covered, including the current-HEAD processor-to-output model
+semantics group. Two are partial. The remaining replayable workstream has two
+explicit blockers:
 
-1. exact closure of the two remaining long greedy generation divergences and a
-   final current-HEAD deterministic-generation seal;
-2. consolidated current-HEAD processor-to-output numerical requalification;
-3. the complete G3 text and release no-regression protocol.
+1. exact closure of the two remaining long greedy generation divergences;
+2. the complete G3 text and release no-regression protocol.
 
 This replaces the ambiguous instruction to “add more coverage” with named
 cases and preserves every existing passing observation as evidence rather
@@ -888,10 +885,9 @@ object, and the portable package contract includes it in the deterministic
 bundle identity. These records now close the frozen API/render,
 deterministic-resident-serving and min/typical/max execution-envelope slices.
 The task-quality slice is closed by the 12-case result below; deterministic
-generation exactness, consolidated current-HEAD numerical requalification,
-complete text no-regression, paired performance, portable-package,
-second-host, soak and rollback qualifications remain blocking. Therefore G1
-through G5 all remain false.
+generation exactness, complete text no-regression, paired performance,
+portable-package, second-host, soak and rollback qualifications remain
+blocking. Therefore G1 through G5 all remain false.
 
 Generation attribution now binds time as well as tensor identity. Each layer
 capture writes the full-vocabulary FP32 rows for both its target output index
@@ -980,3 +976,34 @@ explicit long-generation diagnostics are `image_central_red_circle` and
 `video_blue_square_moves_down`; both retain the same rubric score as the
 reference. The task-quality subgate is therefore qualified, while the
 long-greedy reference-exact decision and G1 through G5 remain false.
+
+## Current-HEAD processor-to-output qualification (2026-08-16)
+
+The two frozen tool-generation cases now have a durable attribution closure:
+the generation oracle SHA-256 is
+`954c6e55389cd90390cb517224df14719f2556555ce7bf44571cae1ad1812888`,
+the 31-MB layer-oracle manifest SHA-256 is
+`70cec2c7884b5e641884037212a34f6ffc6ac1944af08d59c19dc90353915188`,
+and the 129-MB prefill-state manifest SHA-256 is
+`ec4d23bef4058dd5f0189f703214caeb006159d3c4937b7e9ea14ba9bfc82782`.
+All referenced binary components are committed under `benchmarks/oracles` and
+revalidate without errors.
+
+An independent native binary built from clean commit
+`c7bae9436339b3794a627e40d432158a89b00805`, SHA-256
+`5f14765dba20b146fd7828253c151618c0f4f24997be3dcbbd21ddb83abffa9e`,
+ran both cases in one resident model load. All 62 qualification checks passed:
+both shared prompt prefixes; 120 prefill-state tensors; 82 whole-layer rows;
+26 linear-attention, 30 routed-tail and 12 full-attention internal boundaries;
+and both 248,320-element full-vocabulary rows were finite. Every compared
+boundary element was bit-exact, both native top-1 and selected tokens matched,
+and KLD was `0.0000657115` and `0.0000020521`, below the fixed `0.005` gate.
+Stderr was empty.
+
+The sealed result is
+`benchmarks/results/native-vl-generation-current-head-v0.1.0.json`, SHA-256
+`0c142b13aaa90f4b14ae062c6d0af13664db4293b2767762f3fc14d9a8dbf62b`.
+It sets `g1_generation_closed=true` for the two frozen tool divergences and
+closes the audit's current-HEAD model-semantics gap. It does not erase the
+separate 10/12 long-greedy parity diagnostic and does not promote G1 through
+G5.

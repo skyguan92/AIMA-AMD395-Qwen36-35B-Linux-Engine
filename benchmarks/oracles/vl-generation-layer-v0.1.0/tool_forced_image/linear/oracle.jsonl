@@ -1,0 +1,13 @@
+{"event":"native_layer_oracle_tensor","file":"components/input_norm.bin","label":"input_norm"}
+{"event":"native_layer_oracle_tensor","file":"components/qkv_projection.bin","label":"qkv_projection"}
+{"event":"native_layer_oracle_tensor","file":"components/z_projection.bin","label":"z_projection"}
+{"event":"native_layer_oracle_tensor","file":"components/a_projection.bin","label":"a_projection"}
+{"event":"native_layer_oracle_tensor","file":"components/b_projection.bin","label":"b_projection"}
+{"event":"native_layer_oracle_tensor","file":"components/post_conv_mixed_qkv.bin","label":"post_conv_mixed_qkv"}
+{"event":"native_layer_oracle_tensor","file":"components/conv_state_before.bin","label":"conv_state_before"}
+{"event":"native_layer_oracle_tensor","file":"components/conv_state_after.bin","label":"conv_state_after"}
+{"event":"native_layer_oracle_tensor","file":"components/recurrent_state_before.bin","label":"recurrent_state_before"}
+{"event":"native_layer_oracle_tensor","file":"components/recurrent_output.bin","label":"recurrent_output"}
+{"event":"native_layer_oracle_tensor","file":"components/recurrent_state_after.bin","label":"recurrent_state_after"}
+{"event":"native_layer_oracle_tensor","file":"components/gated_norm.bin","label":"gated_norm"}
+{"event":"native_layer_oracle_tensor","file":"components/attention_output.bin","label":"attention_output"}

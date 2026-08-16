@@ -1,0 +1,4024 @@
+{
+  "capture_control_plane": {
+    "diagnostic_full_attention_layers": null,
+    "diagnostic_linear_attention_layers": null,
+    "diagnostic_output_index": null,
+    "first_divergence_full_attention": false,
+    "first_divergence_full_attention_layers": null,
+    "first_divergence_linear_attention": false,
+    "first_divergence_linear_attention_layers": null,
+    "layer3_unified_attention_compact_identity_block_table": true,
+    "maximum_tokens_per_case": "target_output_index_plus_one",
+    "product_runtime_dependency": false,
+    "selected_full_attention_layers": null,
+    "selected_linear_attention_layers": null,
+    "skip_mm_profiling": true,
+    "vllm_allow_insecure_serialization": true
+  },
+  "captured_at": "2026-08-16T06:13:23+00:00",
+  "cases": [
+    {
+      "captured_logits_output_index": 14,
+      "case_id": "tool_forced_image",
+      "components": {
+        "language_final_norm": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_forced_image/components/language_final_norm.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "15883beabc940415362c7148aa75cc10668f8b53828744a78333fd2ca8fdb3bb",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_000_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_forced_image/components/layer_000_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "63d38ce3355dd33332fffda7a587b01f7a2303bdf79d3bfedaacf07e4bf5ce63",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_001_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_forced_image/components/layer_001_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "b64ccc701de517216c97c79e3758436ac9b802b73def793c23143382880fe6ff",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_002_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_forced_image/components/layer_002_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "ce77724aab63c3eaac0587d5f7d65a1de6a9fc5d7c4cd99145f070eae7ff0c37",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_003_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_forced_image/components/layer_003_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "2bee10d25d8823f3c4cde1697273f2465f8cbae48e70bbada673ab24737f38c3",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_004_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_forced_image/components/layer_004_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "36a63056aeb81766b248ddc731df80e757f4f3282b12803b08fbbc3df1eb81cc",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_005_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_forced_image/components/layer_005_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "59d4d0cecfee0b6b7969307da9463650c1d3a5a4432f756c95b3c3c8411ecd51",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_006_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_forced_image/components/layer_006_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "11fb8ee3799cd49e4ec9067b2ac3c98ecafd97da88751e1c01eb4f99376eb2cd",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_007_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_forced_image/components/layer_007_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "61387e26bb361c7d0bcf2d4e23ab2cfc50058466bd700c2c9e7d6b553fa6187b",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_008_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_forced_image/components/layer_008_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "797dd9e298b5f298f0b77b581e0ed584fc4292f3959569514a54fc68d7e263ba",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_009_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_forced_image/components/layer_009_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "0969e1a155f603912b96ea540973e672541ea3b42fa11006cc2749e9c4ba0945",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_010_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_forced_image/components/layer_010_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "caa1e3a94d0e6c71474457203b0616aaa3f508aa173d5411e7d861cb9329e72d",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_011_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_forced_image/components/layer_011_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "4afb957faae74dc179ce72ba060f4b963bf0c4e4db87136f36a9417c7f8bd9ed",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_012_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_forced_image/components/layer_012_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "4296796963035f394355f15f769baa71f31bb6debc000649bf92ac4252f8434c",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_013_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_forced_image/components/layer_013_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "9c40d30b5fc17eb3bf5d889c375197163b13781b1c8ae3268cb1bf7fc2283b42",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_014_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_forced_image/components/layer_014_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "e6a3b06ad2d532edce05acbf374fcf55674c565bd065076a4e0b1fd3e96af6bb",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_015_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_forced_image/components/layer_015_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "d2f35c6b42c158f74632e03652476eae9a391097eb90f242bf7a94d2d97f3b22",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_016_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_forced_image/components/layer_016_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "0acaf3faf8426b60b35a2c4b55bf93a7cf883e31ef7d465b338978b5c0b9ea23",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_017_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_forced_image/components/layer_017_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "d06b95bfd372beecb27b31f3a5b1266f1b3c614684f1a49e2bff8c5093a58402",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_018_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_forced_image/components/layer_018_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "57bf59b1abca2e00f18dcd14d594ce30c41ad8b330da0bf75d075f698bfc5f76",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_019_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_forced_image/components/layer_019_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "8560ccc52e57acf585a2929d1d375e3ce99f99deaa3dac5e12196cc018bc5ddf",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_020_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_forced_image/components/layer_020_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "e087da1a9e1e9f7e3407a3060b2eb543e247887908b202acf99ce601ca41c79c",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_021_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_forced_image/components/layer_021_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "a98cb5c6f05e76bcc418b3fa18c087ddcde1231b265842f0286bed12d5147c92",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_022_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_forced_image/components/layer_022_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "956ffaec132135455050dabac74daa713814428ef753114e0cb9e6b4d8c8c964",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_023_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_forced_image/components/layer_023_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "b0338256079055b9ca470a77db996c1936e739d5b8653e278b3989e02251aec0",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_024_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_forced_image/components/layer_024_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "5dcde88561c325106f71dcf364554c274dd689387486329da431e0c7f52f6258",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_025_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_forced_image/components/layer_025_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "7d9934a3e3bfa231c280ef49280c96ad94c2f5d46b6def897ff1c6162283122f",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_026_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_forced_image/components/layer_026_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "f1eb75e9e648d278733f4667cc21c534bba373fcd1ab69887c76e555f3b5a8ce",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_027_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_forced_image/components/layer_027_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "83a34950ead841a5775f9e70e71716695de398b7d6b54fc7dcf2b16abae04e39",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_028_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_forced_image/components/layer_028_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "595e8287ee5708d2c8a37e703f3d36be117d77c8f95d41254f3e3218b5cf3f24",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_029_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_forced_image/components/layer_029_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "939725af3d37a9f474a20cbe63dd61a441ee3b4594b71b6f05a7d91bf292c328",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_030_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_forced_image/components/layer_030_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "ecb26b31c18d8668b4d8aa952f67dbec21f615219d1bbc34d911ea18b2fb79b1",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_031_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_forced_image/components/layer_031_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "8b1e78e7689271832b39f887dbd26ce629865382875efcef9288650caf2dce89",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_032_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_forced_image/components/layer_032_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "d1bb44eee3e7beb5012c471a56d05b642145cdb61eed16332f191c2d77536ad1",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_033_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_forced_image/components/layer_033_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "b9eebbea5627539745444ade7a312fce0c98d928419e78f788503fdb732fc842",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_034_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_forced_image/components/layer_034_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "feb2e08a12acb2222f54915250ae3f740ff26ff4ef37eec381f76ea126263986",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_035_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_forced_image/components/layer_035_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "0385fb7846f43d874e90978597a7c4a4bf8d74a44f5be2370216f646575dc38e",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_036_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_forced_image/components/layer_036_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "48582c5e6c0334adf9c31f80a3e82ebcd3a28ecca6516ecb981a069495f818a5",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_037_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_forced_image/components/layer_037_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "196a4ea0aa8bd38a4b1fb7b39c51eff8b05b3b060b229a31334b885f5ade9ae0",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_038_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_forced_image/components/layer_038_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "10eb5dd1063424a456e3982b68588aaa3704b94521b5cf3149a100d47074cd66",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_039_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_forced_image/components/layer_039_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "cbaeefeddfd193b0ad3a40332baa34be56e2733960ded1972bfc834012b62d7a",
+          "shape": [
+            2048
+          ]
+        }
+      },
+      "first_decode": {
+        "components": {
+          "language_final_norm": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode/components/language_final_norm.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "cd94e90d593f84719ee616888c19463834b9a8d98cd35903803df672c40121b2",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_000_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode/components/layer_000_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "209b3ed3ce20f36f953858db01b288b546ea16664f1cf121e1e694656c8c270e",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_001_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode/components/layer_001_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "a828cf6a78612181d926be3560ba5a6ccd8061161f55c2fbe170639cc37a793f",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_002_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode/components/layer_002_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "d42cf6407de23fc8240759cffbeaaddbde3b7e637131156aa354c1087958abc7",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_003_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode/components/layer_003_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "8fba267d5cdfde54008246663eab2c23aa5067b05a14f2c9995748fc4d2efdb7",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_004_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode/components/layer_004_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "1a0976c7865780df47acfb6edb84351e94c7d947d14974202b79f179648164a7",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_005_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode/components/layer_005_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "dac32fc944f9ff3c96eb247fe954061280969ceb503f5e3ca67486ca65f83d3d",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_006_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode/components/layer_006_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "e0971243661ac9050bf7641b6caad5938deb956ce577a0231674cb856590c31a",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_007_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode/components/layer_007_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "e53f40e5c02e3b4b0dc28dbb57a022fb88533bde5d47e593a6bad1d093c86e29",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_008_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode/components/layer_008_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "190856bceb20034cd6b7f80b06c1f98f7a37be9c7d83e8a84f091ff6f3ff5fce",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_009_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode/components/layer_009_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "4aa38c93455b615914243a931dcb05ce378be45908cee3aa65447e53f6e5a038",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_010_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode/components/layer_010_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "9be1d47fe77a47d33b7ce7b412cec40d11820359380a19ed931dcca8e31676ae",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_011_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode/components/layer_011_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "7b73407a73b0b80b16dffd80029255af36100b7072b25d5acec75d952476bb41",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_012_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode/components/layer_012_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "5db06cd4b6b329b5e0a5a1ead29b3d507c780167af598db8d69fef959c1a59c0",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_013_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode/components/layer_013_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "35d8a0b191e81d379dd31b346ac72f1dec4b8dc0a099f9cc5d1d318469a0efca",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_014_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode/components/layer_014_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "84ff5d44441dd562c609200e4d5c5857f0924bf11e7bc87953e15dc0232e7e63",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_015_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode/components/layer_015_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "bc0b34c1127527d21d963f0781fe653fdcb43ced0392c5822c5fb65c67cf7391",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_016_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode/components/layer_016_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "9074ab2a17d685c1fe04cc2035ced05834364326d083d54ae84972c5a1617edf",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_017_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode/components/layer_017_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "1f04fc79a3d6df0c0a1eb2779b1e858768eba95a9ce6a33a3c70b5f7f2dc95d7",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_018_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode/components/layer_018_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "0f04fbbe3d3d735c25b5e90cdf51d57e4383de2eeda56b4082687e5bd069ee45",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_019_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode/components/layer_019_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "0b149c89d7525528eeba941d65a29c8b3add9f872c5765e366e02bfe1c23a51f",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_020_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode/components/layer_020_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "09bb57fb0c9f37150510f721d1c6902973d664530e296646d176453eb034d3ea",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_021_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode/components/layer_021_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "cc7c3d5408d9cd81052c2c6f9f0e17d28fcb603233042d758e1b04ff746e6c12",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_022_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode/components/layer_022_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "99ab87991ca96ed191e7bbb3ec0a0c662292110a6eaf3953330e4f53283ccd65",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_023_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode/components/layer_023_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "7a3ff54704a88371816c5d4297cf52c451b7bc9a0fab3368a692e80e225d5f0f",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_024_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode/components/layer_024_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "deee2e13be16ccf6562525fc26ca62e829d4c4d6934ea39a641525072d678e31",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_025_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode/components/layer_025_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "ab376d44a012de0e898f46f2010af71b2ddade75a5905063289dc31a0c1b3581",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_026_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode/components/layer_026_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "7e9a44941ca8c8a98bd39a6f5fa061aef194a50682725e09beb99a63816160b9",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_027_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode/components/layer_027_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "dc4dcb9306e7ed5645cc6b96147a334c4b53f0f42fae467bd1afd993d09e28ca",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_028_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode/components/layer_028_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "47ee7dc41baf40072cee003249a38526ba4b9a246b072e29c74ae348c768c984",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_029_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode/components/layer_029_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "0184a035904b4c1579c48893b6f9407c40e03376e75997c6102f7d778925afdb",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_030_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode/components/layer_030_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "2285597ec05dd387b2ee86856800b611d6ca8aaaa935c1e1db18c9071f993464",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_031_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode/components/layer_031_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "b0b5b46838c45c665f453fbcbe15f47802d05c460196d6e4fb787237d3c212b4",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_032_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode/components/layer_032_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "b2a29c26d7adb5945b3ad38e8eae0a43931ba87e148cd72de12ed27c11c1ecc7",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_033_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode/components/layer_033_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "36ad64431b80f05c0dd9f676f576f284bc58b7a844168c4bd5522c6fd5e5d833",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_034_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode/components/layer_034_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "207fa0ce874f0e390de158230e2a1a7e7b84d5bfdcaed0e8438d6ced04b2a81a",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_035_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode/components/layer_035_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "95cc0d006cd97416b5158d492935bc95a7f2746efe112e1a8ea05985922d9aca",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_036_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode/components/layer_036_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "c991a0a017b6856cd948fcd8ae289e0e39a7297f4ffaa5f9625a66db2e86861c",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_037_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode/components/layer_037_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "ee58ec49c2c0e9200ba04580b8492415e9f90e4164cd693f95677ad07f541682",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_038_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode/components/layer_038_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "9177f06dfa92746aa6e3d8c4237a4526828a210ef4dcff88153c5ea81ae1f163",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_039_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode/components/layer_039_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "c0fec3192f6642389efbc54794525b5be2c6b1ed35db9396571edc936f3d6617",
+            "shape": [
+              2048
+            ]
+          }
+        },
+        "oracle_jsonl": {
+          "bytes": 4393,
+          "path": "tool_forced_image/first-decode/oracle.jsonl",
+          "sha256": "5f7a8e19933af6b989cd9fd910e2cba10e083a929d77a9104f66423cfc39e15b"
+        },
+        "target_layer_decode_call": 1
+      },
+      "first_decode_full_attention": {
+        "components": {
+          "block_table": {
+            "bytes": 4,
+            "dtype": "torch.int32",
+            "element_size": 4,
+            "path": "tool_forced_image/first-decode-full-attention/components/block_table.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+            "shape": [
+              1,
+              1
+            ]
+          },
+          "k_descale": {
+            "bytes": 8,
+            "dtype": "torch.float32",
+            "element_size": 4,
+            "path": "tool_forced_image/first-decode-full-attention/components/k_descale.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "80b8fd6d60fa85fd14a38b5295cb92abd80dfec5ca406c9f969609a79d36809d",
+            "shape": [
+              1,
+              2
+            ]
+          },
+          "key_cache": {
+            "bytes": 1081344,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode-full-attention/components/key_cache.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "f1dbb3f71e5e631b63256ccd7b2f600f41de9fa6082ba4e1816d7813f6b19768",
+            "shape": [
+              1,
+              1056,
+              2,
+              256
+            ]
+          },
+          "output": {
+            "bytes": 8192,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode-full-attention/components/output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "d5f8b50e4b09b27f18835f5aa816d0157dc4f9e1696a3b9bc56f39b242ff5cf2",
+            "shape": [
+              1,
+              16,
+              256
+            ]
+          },
+          "query": {
+            "bytes": 8192,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode-full-attention/components/query.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "a12944137e951cab12f59d580f3ddb1f6cf06b54bdd10a9791696b4ec5be666e",
+            "shape": [
+              1,
+              16,
+              256
+            ]
+          },
+          "query_starts": {
+            "bytes": 8,
+            "dtype": "torch.int32",
+            "element_size": 4,
+            "path": "tool_forced_image/first-decode-full-attention/components/query_starts.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "01acecb507abfe1a354aa8064f4af5d3f1acd019e37db3c11c97523b71c76e9d",
+            "shape": [
+              2
+            ]
+          },
+          "sequence_lengths": {
+            "bytes": 4,
+            "dtype": "torch.int32",
+            "element_size": 4,
+            "path": "tool_forced_image/first-decode-full-attention/components/sequence_lengths.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "9ee37b2482249d763ffd4a9615caddb725367d8c18b6f9b59188d342cdbc6bbf",
+            "shape": [
+              1
+            ]
+          },
+          "v_descale": {
+            "bytes": 8,
+            "dtype": "torch.float32",
+            "element_size": 4,
+            "path": "tool_forced_image/first-decode-full-attention/components/v_descale.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "80b8fd6d60fa85fd14a38b5295cb92abd80dfec5ca406c9f969609a79d36809d",
+            "shape": [
+              1,
+              2
+            ]
+          },
+          "value_cache": {
+            "bytes": 1081344,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode-full-attention/components/value_cache.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "bc308c572fa70d98465fbb8393726997a849a81f157e0bffdaa36e4958faa3df",
+            "shape": [
+              1,
+              1056,
+              2,
+              256
+            ]
+          }
+        },
+        "metadata": {
+          "attention_path": "segmented_3d_plus_reduce",
+          "block_size": 1056,
+          "causal": true,
+          "head_size": 256,
+          "key_cache_source_stride": [
+            1081344,
+            512,
+            256,
+            1
+          ],
+          "kv_heads": 2,
+          "layer_index": 3,
+          "logical_blocks": 1,
+          "max_seqlen_k": 350,
+          "max_seqlen_q": 1,
+          "physical_block_ids": [
+            4
+          ],
+          "query_heads": 16,
+          "sequence_length": 350,
+          "sequence_threshold_3d": 64,
+          "softcap": 0.0,
+          "softmax_scale": 0.0625,
+          "softmax_segments": 16,
+          "value_cache_source_stride": [
+            1081344,
+            512,
+            256,
+            1
+          ],
+          "window_size": [
+            -1,
+            -1
+          ]
+        },
+        "oracle_jsonl": {
+          "bytes": 851,
+          "path": "tool_forced_image/first-decode-full-attention/oracle.jsonl",
+          "sha256": "448c071f27df49693e1d2d10942fab4b052f82f4d5999b50940bb2cb7cadad4e"
+        },
+        "target_decode_call": 1
+      },
+      "first_decode_layer0_tail": {
+        "components": {
+          "attention_residual": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode-layer0-tail/components/attention_residual.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "c26e27e04f7ba901b3e449d7b65ded4bddfb8981f7aae650bcfdf6dd55e42635",
+            "shape": [
+              2048
+            ]
+          },
+          "combined_moe_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode-layer0-tail/components/combined_moe_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "c101df4c94708c79f17deaf7bfe74ce1b5c03b21d23af1a15dbdaee9b07370c0",
+            "shape": [
+              2048
+            ]
+          },
+          "post_attention_norm": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode-layer0-tail/components/post_attention_norm.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "c095a419e5ec210547a4de5b071a9bd5c48898126b3fbf50082ca7a557ce0f7e",
+            "shape": [
+              2048
+            ]
+          },
+          "routed_activation": {
+            "bytes": 8192,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode-layer0-tail/components/routed_activation.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "890692af6f49720afcdf88ba02f6092e3b659c214e46faf542a3ca1b979fe0a8",
+            "shape": [
+              8,
+              512
+            ]
+          },
+          "routed_gate_up_projection": {
+            "bytes": 16384,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode-layer0-tail/components/routed_gate_up_projection.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "2448a2fad586fc12b626c896a57b70e651ed035638b9a7316ccc460f3d6b8ca8",
+            "shape": [
+              8,
+              1024
+            ]
+          },
+          "routed_moe_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode-layer0-tail/components/routed_moe_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "11f983bbe83c902f2bfc74fa3efcb057a9426818b19b4dbcd61bec8d15c55ad9",
+            "shape": [
+              2048
+            ]
+          },
+          "routed_weighted_expert_outputs": {
+            "bytes": 32768,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode-layer0-tail/components/routed_weighted_expert_outputs.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "94865edafdde4e1c9343eeffa83c6abfef186c3fe0f79aae657352bac489f383",
+            "shape": [
+              8,
+              2048
+            ]
+          },
+          "router_indices": {
+            "bytes": 32,
+            "dtype": "torch.int32",
+            "element_size": 4,
+            "path": "tool_forced_image/first-decode-layer0-tail/components/router_indices.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "648b62f584ba6521995307de5ea4598d20a54482677a15217d05785a11590079",
+            "shape": [
+              8
+            ]
+          },
+          "router_logits": {
+            "bytes": 512,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode-layer0-tail/components/router_logits.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "1b33928e506ffd63ecc5fff2749fa5a929a1db749613fcb8d29fd951e84e53a8",
+            "shape": [
+              256
+            ]
+          },
+          "router_weights": {
+            "bytes": 32,
+            "dtype": "torch.float32",
+            "element_size": 4,
+            "path": "tool_forced_image/first-decode-layer0-tail/components/router_weights.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "77ec6eabbf1b233b1a3e19725d9d6e96c02b4e8671db7d65d6be518cccb38eca",
+            "shape": [
+              8
+            ]
+          },
+          "shared_activation": {
+            "bytes": 1024,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode-layer0-tail/components/shared_activation.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "45f7244c0da35ca4ffe02bdd1a5f61d6315d707906345aa09021a2a34ebc0f50",
+            "shape": [
+              512
+            ]
+          },
+          "shared_down_projection": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode-layer0-tail/components/shared_down_projection.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "f80d320b1f13c2c5651cf828c9599de5cecea5b8ec554c87044952671b7c398f",
+            "shape": [
+              2048
+            ]
+          },
+          "shared_gate_logits": {
+            "bytes": 2,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode-layer0-tail/components/shared_gate_logits.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "36cc50543defeb6a7ac679ddb9fcd069d7119780c898ee618b160f5d719a71dc",
+            "shape": [
+              1
+            ]
+          },
+          "shared_gate_up_projection": {
+            "bytes": 2048,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode-layer0-tail/components/shared_gate_up_projection.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "b7d453c84f8fa3739965e81c5fd58f194932979d7b2b724816ac0f5e04a93f0d",
+            "shape": [
+              1024
+            ]
+          },
+          "shared_moe_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode-layer0-tail/components/shared_moe_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "49b6aa4c5519fc43b8438b2e070df8790da174b0981d517b703d85ab5f9790ff",
+            "shape": [
+              2048
+            ]
+          }
+        },
+        "metadata": {
+          "layer_index": 0
+        },
+        "oracle_jsonl": {
+          "bytes": 1695,
+          "path": "tool_forced_image/first-decode-layer0-tail/oracle.jsonl",
+          "sha256": "bf696bc42b9d2c38e9625531a0093a0cf9f9cad4a43162b137814faea81daf86"
+        },
+        "target_decode_call": 1
+      },
+      "first_decode_linear_attention": {
+        "components": {
+          "a_projection": {
+            "bytes": 64,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode-linear/components/a_projection.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "67d5a4a0c4c25bee63e2f4691b88603b0ff240ac2e28f21229ba1025594d32ee",
+            "shape": [
+              32
+            ]
+          },
+          "attention_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode-linear/components/attention_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "571bada47347b2e94cc5575066511381abdac249769fe317aa7e2d74ddbb198d",
+            "shape": [
+              2048
+            ]
+          },
+          "b_projection": {
+            "bytes": 64,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode-linear/components/b_projection.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "149ef80c0c8b3c11ebe4f91a1de78957bedeee58494aa85d316c5e201c30301b",
+            "shape": [
+              32
+            ]
+          },
+          "conv_state_after": {
+            "bytes": 49152,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode-linear/components/conv_state_after.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "821ffb5a9c2397a691f987037479ca24151fc18d1571b57af133ad9b46c768bc",
+            "shape": [
+              8192,
+              3
+            ]
+          },
+          "conv_state_before": {
+            "bytes": 49152,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode-linear/components/conv_state_before.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "753419933ea41014aca3e5ae84e17bdccd8f04dc5efa2106c917abaa209e87a1",
+            "shape": [
+              8192,
+              3
+            ]
+          },
+          "gated_norm": {
+            "bytes": 8192,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode-linear/components/gated_norm.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "7dcc71c425f326cabe3720e401bc827b3ac173ec7661446ac58ada9e37f67883",
+            "shape": [
+              4096
+            ]
+          },
+          "input_norm": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode-linear/components/input_norm.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "4a57963ac4d6fb3067632b281d21c79ad4bb96f949e88575501cf5c7ed448839",
+            "shape": [
+              2048
+            ]
+          },
+          "post_conv_mixed_qkv": {
+            "bytes": 16384,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode-linear/components/post_conv_mixed_qkv.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "9ce1cc749284e6978eaeb724c8b2eb07e409374342b6ac9ac3469d7212b2ee73",
+            "shape": [
+              8192
+            ]
+          },
+          "qkv_projection": {
+            "bytes": 16384,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode-linear/components/qkv_projection.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "602547a4b943f6c1c5cfb4270d05be179587d2a1c4e5c27a5576404ece9e1bcb",
+            "shape": [
+              8192
+            ]
+          },
+          "recurrent_output": {
+            "bytes": 8192,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode-linear/components/recurrent_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "df6b068c84e2987a6e03954df02477e3b92f342f3a83f35b7211f9c9d113862e",
+            "shape": [
+              4096
+            ]
+          },
+          "recurrent_state_after": {
+            "bytes": 2097152,
+            "dtype": "torch.float32",
+            "element_size": 4,
+            "path": "tool_forced_image/first-decode-linear/components/recurrent_state_after.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "92022910b212a212f35e091bf58bc81b15d0984fb2ee04feb42836842e64b0ba",
+            "shape": [
+              32,
+              128,
+              128
+            ]
+          },
+          "recurrent_state_before": {
+            "bytes": 2097152,
+            "dtype": "torch.float32",
+            "element_size": 4,
+            "path": "tool_forced_image/first-decode-linear/components/recurrent_state_before.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "b450947db63247c4202f00713095860db29455541657a4a4b4cd72f8e21c22cd",
+            "shape": [
+              32,
+              128,
+              128
+            ]
+          },
+          "z_projection": {
+            "bytes": 8192,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/first-decode-linear/components/z_projection.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "449de00862b2f8806587c18c7a2542a498ea24392a6789dc35e4afccbf380b83",
+            "shape": [
+              4096
+            ]
+          }
+        },
+        "metadata": {
+          "layer_index": 0
+        },
+        "oracle_jsonl": {
+          "bytes": 1369,
+          "path": "tool_forced_image/first-decode-linear/oracle.jsonl",
+          "sha256": "de973bb5dbfcebda99510fa20ded3c522de38b6f81760fb25339b07a44145a19"
+        },
+        "target_decode_call": 1
+      },
+      "first_decode_logits_component": {
+        "bytes": 993280,
+        "dtype": "torch.float32",
+        "element_size": 4,
+        "path": "tool_forced_image/first-decode-logits.bin",
+        "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+        "sha256": "f294e2f72e4bcc475ac659c94ddbe2d81ef30ae69e2bed945ad03d6e7b10f473",
+        "shape": [
+          248320
+        ]
+      },
+      "first_decode_logits_output_index": 1,
+      "first_decode_logits_top1_token_id": 1448,
+      "full_attention": {
+        "components": {
+          "block_table": {
+            "bytes": 4,
+            "dtype": "torch.int32",
+            "element_size": 4,
+            "path": "tool_forced_image/full-attention/components/block_table.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+            "shape": [
+              1,
+              1
+            ]
+          },
+          "k_descale": {
+            "bytes": 8,
+            "dtype": "torch.float32",
+            "element_size": 4,
+            "path": "tool_forced_image/full-attention/components/k_descale.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "80b8fd6d60fa85fd14a38b5295cb92abd80dfec5ca406c9f969609a79d36809d",
+            "shape": [
+              1,
+              2
+            ]
+          },
+          "key_cache": {
+            "bytes": 1081344,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/full-attention/components/key_cache.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "140a97dd8b0488233a0ad6efe1144f336d4af9be9d8fe2b036d8e45c9046f2af",
+            "shape": [
+              1,
+              1056,
+              2,
+              256
+            ]
+          },
+          "output": {
+            "bytes": 8192,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/full-attention/components/output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "0a49838b5f45463ce3ceb4dabe4187232e789aca56dbfab0854209e35bba9027",
+            "shape": [
+              1,
+              16,
+              256
+            ]
+          },
+          "query": {
+            "bytes": 8192,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/full-attention/components/query.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "04c0454ecc8e5d5ae2ed8013ad0394b77f9e0e5a37f46c591b0bf7f04a26cd9d",
+            "shape": [
+              1,
+              16,
+              256
+            ]
+          },
+          "query_starts": {
+            "bytes": 8,
+            "dtype": "torch.int32",
+            "element_size": 4,
+            "path": "tool_forced_image/full-attention/components/query_starts.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "01acecb507abfe1a354aa8064f4af5d3f1acd019e37db3c11c97523b71c76e9d",
+            "shape": [
+              2
+            ]
+          },
+          "sequence_lengths": {
+            "bytes": 4,
+            "dtype": "torch.int32",
+            "element_size": 4,
+            "path": "tool_forced_image/full-attention/components/sequence_lengths.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "341a912962462e12f3bccc420321c90e73df0d9d76d3ea925656f2777f11b74b",
+            "shape": [
+              1
+            ]
+          },
+          "v_descale": {
+            "bytes": 8,
+            "dtype": "torch.float32",
+            "element_size": 4,
+            "path": "tool_forced_image/full-attention/components/v_descale.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "80b8fd6d60fa85fd14a38b5295cb92abd80dfec5ca406c9f969609a79d36809d",
+            "shape": [
+              1,
+              2
+            ]
+          },
+          "value_cache": {
+            "bytes": 1081344,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/full-attention/components/value_cache.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "f3e7ade007ba0166a15b69924e81e49c30514b5c35f0443c9ecb847356441ab7",
+            "shape": [
+              1,
+              1056,
+              2,
+              256
+            ]
+          }
+        },
+        "metadata": {
+          "attention_path": "segmented_3d_plus_reduce",
+          "block_size": 1056,
+          "causal": true,
+          "head_size": 256,
+          "key_cache_source_stride": [
+            1081344,
+            512,
+            256,
+            1
+          ],
+          "kv_heads": 2,
+          "layer_index": 3,
+          "logical_blocks": 1,
+          "max_seqlen_k": 363,
+          "max_seqlen_q": 1,
+          "physical_block_ids": [
+            4
+          ],
+          "query_heads": 16,
+          "sequence_length": 363,
+          "sequence_threshold_3d": 64,
+          "softcap": 0.0,
+          "softmax_scale": 0.0625,
+          "softmax_segments": 16,
+          "value_cache_source_stride": [
+            1081344,
+            512,
+            256,
+            1
+          ],
+          "window_size": [
+            -1,
+            -1
+          ]
+        },
+        "oracle_jsonl": {
+          "bytes": 851,
+          "path": "tool_forced_image/full-attention/oracle.jsonl",
+          "sha256": "448c071f27df49693e1d2d10942fab4b052f82f4d5999b50940bb2cb7cadad4e"
+        },
+        "target_decode_call": 14
+      },
+      "layer0_tail": {
+        "components": {
+          "attention_residual": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/layer0-tail/components/attention_residual.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "792907cf0da4beafd276c5061c9282084b6eabfd253b4f7b15a1165810a17726",
+            "shape": [
+              2048
+            ]
+          },
+          "combined_moe_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/layer0-tail/components/combined_moe_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "80520aa66466edf443bfe2f09bd7a5bcb81d995b59f25ec6650aff84a8fec4d6",
+            "shape": [
+              2048
+            ]
+          },
+          "post_attention_norm": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/layer0-tail/components/post_attention_norm.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "1b281be9536e88844c47f7ed0def5505393f24013788529f5e54c39196a5c47a",
+            "shape": [
+              2048
+            ]
+          },
+          "routed_activation": {
+            "bytes": 8192,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/layer0-tail/components/routed_activation.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "506022d7e33e7cb5dbb2a708d7a3783f93639fceac940a599f2e84db36d7890f",
+            "shape": [
+              8,
+              512
+            ]
+          },
+          "routed_gate_up_projection": {
+            "bytes": 16384,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/layer0-tail/components/routed_gate_up_projection.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "d715316558ec6b3a55c0ce9504dc6d5bb6cc4a721aa0d09a5ddf07df7d17c0f4",
+            "shape": [
+              8,
+              1024
+            ]
+          },
+          "routed_moe_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/layer0-tail/components/routed_moe_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "5c892dfeba1cc736172361f3076d463e2d00aca808f6cb977add4a0bb243e352",
+            "shape": [
+              2048
+            ]
+          },
+          "routed_weighted_expert_outputs": {
+            "bytes": 32768,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/layer0-tail/components/routed_weighted_expert_outputs.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "5f2fe62515949ef4204daf108fd44f47207bcb712dd93cadffb147525104d177",
+            "shape": [
+              8,
+              2048
+            ]
+          },
+          "router_indices": {
+            "bytes": 32,
+            "dtype": "torch.int32",
+            "element_size": 4,
+            "path": "tool_forced_image/layer0-tail/components/router_indices.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "6dd4f47b514483a9c520d5a1b67793aceca7a82a72401ab28593bffcd1fff4b8",
+            "shape": [
+              8
+            ]
+          },
+          "router_logits": {
+            "bytes": 512,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/layer0-tail/components/router_logits.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "9372266fb646e5dd6c0d31082b98e1eedf931d71eca9463f42c216a5b6d76df4",
+            "shape": [
+              256
+            ]
+          },
+          "router_weights": {
+            "bytes": 32,
+            "dtype": "torch.float32",
+            "element_size": 4,
+            "path": "tool_forced_image/layer0-tail/components/router_weights.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "43e8addcd60afb4a1dcb49155b7467a7fb71b5df8905101bf6230b2080e203a4",
+            "shape": [
+              8
+            ]
+          },
+          "shared_activation": {
+            "bytes": 1024,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/layer0-tail/components/shared_activation.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "9eb4d19f01c7e3565d2e2fb871a90b41272b538c98a761a7b940639870f1dcfd",
+            "shape": [
+              512
+            ]
+          },
+          "shared_down_projection": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/layer0-tail/components/shared_down_projection.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "465fdd2b8f7f49893d552e7b19375cd2e83644401a8f965ad85c3798921bdb19",
+            "shape": [
+              2048
+            ]
+          },
+          "shared_gate_logits": {
+            "bytes": 2,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/layer0-tail/components/shared_gate_logits.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "4c90a75eca13d0d30af775db8d60546e4e68949f2d2d94b7d52c0a9fa4d06aa9",
+            "shape": [
+              1
+            ]
+          },
+          "shared_gate_up_projection": {
+            "bytes": 2048,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/layer0-tail/components/shared_gate_up_projection.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "ae3e92b12f47909970e299c3838dc2b9614bc7e36f3adc8491a3b28b3bccee2d",
+            "shape": [
+              1024
+            ]
+          },
+          "shared_moe_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/layer0-tail/components/shared_moe_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "4b8e130eb98ca7d057870db865cbb64202adc6efff54cd5faa08467f37e026ef",
+            "shape": [
+              2048
+            ]
+          }
+        },
+        "metadata": {
+          "layer_index": 0
+        },
+        "oracle_jsonl": {
+          "bytes": 1695,
+          "path": "tool_forced_image/layer0-tail/oracle.jsonl",
+          "sha256": "bf696bc42b9d2c38e9625531a0093a0cf9f9cad4a43162b137814faea81daf86"
+        },
+        "target_decode_call": 14
+      },
+      "linear_attention": {
+        "components": {
+          "a_projection": {
+            "bytes": 64,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/linear/components/a_projection.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "c1049b410591479bb104d81cf2a7799c687e6daeaace9dde7018365b2cedc839",
+            "shape": [
+              32
+            ]
+          },
+          "attention_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/linear/components/attention_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "56bc8be302d93e663d49cf5ac97160fac358a4067baabe254bfd336110cdd10f",
+            "shape": [
+              2048
+            ]
+          },
+          "b_projection": {
+            "bytes": 64,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/linear/components/b_projection.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "5c93b73aa50ebabfcee5150fa7aa3f4fb9d4d26fff9b1d1aff63e453dde7cabd",
+            "shape": [
+              32
+            ]
+          },
+          "conv_state_after": {
+            "bytes": 49152,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/linear/components/conv_state_after.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "1de00224248398c2ed45afdd052224df8e2d848a17f3033d86f3904408f46d91",
+            "shape": [
+              8192,
+              3
+            ]
+          },
+          "conv_state_before": {
+            "bytes": 49152,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/linear/components/conv_state_before.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "082758c3227258cbbc6ff07ccb3866f6f89f3a2a134b69e305617765531e018e",
+            "shape": [
+              8192,
+              3
+            ]
+          },
+          "gated_norm": {
+            "bytes": 8192,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/linear/components/gated_norm.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "d1f55b8ead70389a6deec7fe4009fcaee246f105cff3c7a31f07b7d8bd75c990",
+            "shape": [
+              4096
+            ]
+          },
+          "input_norm": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/linear/components/input_norm.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "83826ae629d7b7c9d22a06df1c6cbfc6bb7883ffa617f43ac9a9b12315eb2529",
+            "shape": [
+              2048
+            ]
+          },
+          "post_conv_mixed_qkv": {
+            "bytes": 16384,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/linear/components/post_conv_mixed_qkv.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "e3e74eb0d5f3ffab4054dd96f351cceaee08409696315458330f8841cb0c8f1a",
+            "shape": [
+              8192
+            ]
+          },
+          "qkv_projection": {
+            "bytes": 16384,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/linear/components/qkv_projection.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "ff9d7b2fb3749f86df85143ae04803edc585c30a98909fa3b31f9cf4c66291a3",
+            "shape": [
+              8192
+            ]
+          },
+          "recurrent_output": {
+            "bytes": 8192,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/linear/components/recurrent_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "7d9167361dd097a3895dc6611e9c2abc49bcd6df071007c7c017d4abe52cf908",
+            "shape": [
+              4096
+            ]
+          },
+          "recurrent_state_after": {
+            "bytes": 2097152,
+            "dtype": "torch.float32",
+            "element_size": 4,
+            "path": "tool_forced_image/linear/components/recurrent_state_after.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "e351404793cc13e2180d44963b90b92afa134d73f51ddb9067c4b6602f7e3d93",
+            "shape": [
+              32,
+              128,
+              128
+            ]
+          },
+          "recurrent_state_before": {
+            "bytes": 2097152,
+            "dtype": "torch.float32",
+            "element_size": 4,
+            "path": "tool_forced_image/linear/components/recurrent_state_before.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "02ab3f0777ca1ea00bb6f3fbc314eb5074d62c137ebe78a6321c6fcc876951cf",
+            "shape": [
+              32,
+              128,
+              128
+            ]
+          },
+          "z_projection": {
+            "bytes": 8192,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_forced_image/linear/components/z_projection.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "bc21823ee31443f73b22ee7d458fad41e8d26fb639da318a13f7d03f1eb743b0",
+            "shape": [
+              4096
+            ]
+          }
+        },
+        "metadata": {
+          "layer_index": 0
+        },
+        "oracle_jsonl": {
+          "bytes": 1369,
+          "path": "tool_forced_image/linear/oracle.jsonl",
+          "sha256": "de973bb5dbfcebda99510fa20ded3c522de38b6f81760fb25339b07a44145a19"
+        },
+        "target_decode_call": 14
+      },
+      "logits_decode_calls": 15,
+      "logits_prefill_calls": 1,
+      "oracle_jsonl": {
+        "bytes": 4393,
+        "path": "tool_forced_image/oracle.jsonl",
+        "sha256": "5f7a8e19933af6b989cd9fd910e2cba10e083a929d77a9104f66423cfc39e15b"
+      },
+      "passed": true,
+      "prompt_token_ids_sha256": "c00ccaf4063b7a0eb5f30ca053d3484cd2658aac57d1ef7ee79d38287d940566",
+      "prompt_tokens": 349,
+      "target_layer_decode_call": 14,
+      "target_logits_component": {
+        "bytes": 993280,
+        "dtype": "torch.float32",
+        "element_size": 4,
+        "path": "tool_forced_image/target-logits.bin",
+        "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+        "sha256": "54a1e46d96321169930269a29c363a44a28463fac4ab9c55f729074d1e4ca0ab",
+        "shape": [
+          248320
+        ]
+      },
+      "target_logits_sha256": "54a1e46d96321169930269a29c363a44a28463fac4ab9c55f729074d1e4ca0ab",
+      "target_logits_top1_token_id": 1040,
+      "target_output_index": 14,
+      "target_prefix_token_ids_sha256": "1a267e3f026aa329637ce18e7ff67a13481ca66074de3ae18ec7c202a2c03960",
+      "target_token_id": 1040
+    },
+    {
+      "captured_logits_output_index": 93,
+      "case_id": "tool_auto_image",
+      "components": {
+        "language_final_norm": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_auto_image/components/language_final_norm.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "e0b1487eddc389330c65c5bbc34f89c7d44f0f280b761347e63cd8fb8546456e",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_000_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_auto_image/components/layer_000_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "887c3017e503093e3d3f42e95b84e3dbb6f3bbcd997b7fad9d769a6f0daefc66",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_001_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_auto_image/components/layer_001_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "155eb31bb1750107c3a5377a91f73d88be1d03c642d93b2f6574edf0d8832397",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_002_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_auto_image/components/layer_002_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "5c744c8bbdd696f417d3406c6dcf37feea31405a1e5785f46c209d80c9cf7fbe",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_003_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_auto_image/components/layer_003_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "98554ee0c6b90e408d8eeb255cda2ed88aa7ae79a8d1abb97963f1fd39b1cc80",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_004_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_auto_image/components/layer_004_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "3f5519ccd74a0bfeb0240930d32b8cbeb8657deefbd03824451c31a7354a8f31",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_005_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_auto_image/components/layer_005_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "cbd2a6481089c26b42fa9fceda8c03e0e0b27c59516c101f41e9b05dc7a6e1af",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_006_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_auto_image/components/layer_006_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "fa6dd132235b0471835e790300dce0dee4e51f0f311839d07852b225351e2f87",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_007_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_auto_image/components/layer_007_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "014a48aa640cd59c651c0f21ed96d5dd24506cd53a0be18adc8f42eea9c7b8bb",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_008_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_auto_image/components/layer_008_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "f7a4cebe660158bd1fd418780a7dd84b702ff321a25f4f1ed5581c9a4989f73e",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_009_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_auto_image/components/layer_009_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "c628d426ca112ce6f5103d49f8ff8fb00fe0959eb5027aa8af4e7a7bfe05e58e",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_010_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_auto_image/components/layer_010_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "aaea9fd8a954fa99958f5e639e212400594f41032e6ffab710f42fc9b3454163",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_011_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_auto_image/components/layer_011_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "3afdd0f56025985d17cedad40a0bad58f6955acaf676bbd3086a6fd1db829a23",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_012_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_auto_image/components/layer_012_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "de43bfe71ffcd14b0490b327e6a8b90ca378f1a89de622434cf1f05903069e2c",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_013_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_auto_image/components/layer_013_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "b4cf311fe70f43741a6d1e6ed1a80a8f9f9de5cf772eaf6cab0228c3b173e6f7",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_014_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_auto_image/components/layer_014_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "8c8e5b599fef3d0f549b25bdb1ae3697b8aaec088804b5fcabc85587625d757f",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_015_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_auto_image/components/layer_015_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "e047fa51e0bc6c056058feff8494a925188d8100bd8a0e7c36780027ea59a1bd",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_016_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_auto_image/components/layer_016_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "4e38e564dd36ac6c08099c5258d27a51e7da7d290a4e1232e971d5ecdd9dd518",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_017_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_auto_image/components/layer_017_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "874a695e80916b5b19e53d482e63ea887fa50a6814009dac29b6a8905a3c14f5",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_018_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_auto_image/components/layer_018_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "fb9a7f5201b1c1295700f2d8cbf7972f2ed177aa685a743e084b42b9fbba3e47",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_019_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_auto_image/components/layer_019_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "eee12202992fe1c5ad4752c698ba043f1db2e251a42e64ce0d415844fd1f0fdd",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_020_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_auto_image/components/layer_020_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "6da44c9ee7967e730d065a52e0a0617db722d92ae8c67b1696a178a373f2f72b",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_021_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_auto_image/components/layer_021_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "f760634b06fa77220c3f76336aa2d5ab90808e1fdacfe79b0a8d70503ae94589",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_022_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_auto_image/components/layer_022_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "96da4e6f0dbcf7bfb9dc758a163f7fb2ee8807e5292ca58a8397938707d3f14b",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_023_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_auto_image/components/layer_023_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "19b9b9f06661ae18b70b285ccb9a96a4fbb8ffb9c32d40ddeb28f1ea1c9811e3",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_024_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_auto_image/components/layer_024_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "da1b9658521a2cfb410cb9c01487fc1a642bd0432bb236b9d3adbf1d921a893d",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_025_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_auto_image/components/layer_025_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "7490b2219758090bc8648c254f89f129cf141a79c6d925c0beade9db748034fd",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_026_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_auto_image/components/layer_026_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "0cab3b697ec94555031fb5607b2afab72c0eea038642f1ae3c683c40cfc6f416",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_027_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_auto_image/components/layer_027_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "e3791aa5616ec468e26429db6a9a1852da705329888b7baafd8c105a121329a7",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_028_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_auto_image/components/layer_028_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "67a1c1da8a193fbfc054919ff487bffd020df20be7577345a742596bccc8aeaf",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_029_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_auto_image/components/layer_029_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "1fc4de0f25ac22beb4c94cfcf85b06d0462d78a368cdf05f1e013f9c0849ba21",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_030_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_auto_image/components/layer_030_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "da99098d3c7d63f0866b63deb2e95e29ace923a35ea10a34bb36d2929f117621",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_031_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_auto_image/components/layer_031_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "1a50f61d1239842b4c77830f8cc40d1187ec34263a7e7c2b2c982774cfcecbef",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_032_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_auto_image/components/layer_032_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "5c16016e8f9411a324ebda7225c33fa89d47259560e5ca83f57211eb71db3558",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_033_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_auto_image/components/layer_033_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "e0e0eee7855bf98540072e7f79116bf81ac375843ac7fe06e47c935a2e5ec825",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_034_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_auto_image/components/layer_034_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "fe4e0dc98e4ac258ad2054ec2cc8b4c2f2d6a4d92c3d97576581092a670eb3aa",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_035_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_auto_image/components/layer_035_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "724cfbe56d3c43bc12ae379814e71eeb8aac2dea22906cbecbac66d6be9a5628",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_036_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_auto_image/components/layer_036_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "ac198383657a03d25c1a815a265b57f6202ac418479d93a480d9a0ab58359dd2",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_037_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_auto_image/components/layer_037_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "8343fbd78ff1b7def629a6c2dc46dcd5c63394f1d2d4c407351c1721e432e4d2",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_038_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_auto_image/components/layer_038_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "759a3b7029efd5457eb4c1b3b547e2806f1542e13587e8f03a0101d246b889c1",
+          "shape": [
+            2048
+          ]
+        },
+        "layer_039_output": {
+          "bytes": 4096,
+          "dtype": "torch.bfloat16",
+          "element_size": 2,
+          "path": "tool_auto_image/components/layer_039_output.bin",
+          "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+          "sha256": "98020fc76ab7a253c72979cd2f39b860d158726d2939858db637ab632fc609f3",
+          "shape": [
+            2048
+          ]
+        }
+      },
+      "first_decode": {
+        "components": {
+          "language_final_norm": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode/components/language_final_norm.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "e36f087aa099f62eacb2f7ee23825d835b42a9cd16eec1dbfa5e1bba3e44743d",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_000_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode/components/layer_000_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "410b9cc51eec6e5a0666a1879526fd2c6de24ef2178aa16a7b71c98af83da041",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_001_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode/components/layer_001_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "a6b688dfbb5db7316528f230346b30d8a758870f8059865ab917aba6101c3f11",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_002_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode/components/layer_002_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "f668706f0acd5e492c851ca36cdfe89d42477b24fa668471b8937f692364f467",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_003_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode/components/layer_003_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "adc7ed1a498529d3450fb66150763ef9b2f7915c47b8a051a0e71ae2269f70a3",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_004_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode/components/layer_004_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "e50fa174f3cb6bc2ee0d565c086a1ca122f4f73a531f2009bfd2e198e67a7774",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_005_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode/components/layer_005_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "ca16275c0ec22049e4791192116c115506add19158d8a255f69218f178c94f3f",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_006_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode/components/layer_006_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "cd125a3112ba461d6f7cbd22614858837cfc6b2c2395f5dce569d19003e219a2",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_007_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode/components/layer_007_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "c7ab3ddd5dc4163ef1018d8e47f133b5c9102d1c25e4540d256c8953fbf4b4ec",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_008_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode/components/layer_008_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "43f3f8015c6f646035ffa13ba5f69243d496ed6c3b7980109831b7bba07f786e",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_009_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode/components/layer_009_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "5f0e913549b01009763ceb94db4ecb1016d95b05c08c4b6c49ca646c8e8b8491",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_010_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode/components/layer_010_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "7281c399fd4f22f8bf320b817f257bfc2ea1be496fe8b28728d1eeb93472cb5e",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_011_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode/components/layer_011_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "e6715510515b35eff18ab64541c33ab240e811ee467a879dc53e3b4f557a4f89",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_012_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode/components/layer_012_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "57ddd3245eac0a12cc6c3c052e2f41b0e9702d7aa1b3e1d3dc03f077bcaa6127",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_013_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode/components/layer_013_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "851437c1a37f8b8860c93e9b8c57dd6267d8cc6c1f9f09cacb5c85678964085a",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_014_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode/components/layer_014_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "3d803dff948c5edbf5a16e438bfe9d5e6e4b7e4ae9dd811b2ff966298c0c02c6",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_015_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode/components/layer_015_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "435e2ec2437b450f4ab54b1cb43f29e3d30c4699b0aa380fbbe010ae7be164b2",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_016_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode/components/layer_016_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "9f1d5ad0da59537e3279c608562b88f57c1f65313676864a861d3a69d49a22fa",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_017_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode/components/layer_017_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "55ea34576ee25b1f643418326a032c18add87d6d2678a9f5930fb42febdba5bc",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_018_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode/components/layer_018_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "deca07fad543ed5f787bd274edbe046868c4ff2bb8267825570dfb76a5d82cb4",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_019_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode/components/layer_019_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "0a1e92aa1acc53b2c67e95864bb6846a439682736bacd05e5e577b280469c029",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_020_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode/components/layer_020_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "5d0eeb8441f88c9bb33ba72c87022ff7b5df5f65729c3f34af9d36742bae510a",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_021_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode/components/layer_021_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "a7b5027b94cbaeeef13c0c709dbf0250aea8fcfcd9c40e1390806cb0a1e28d60",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_022_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode/components/layer_022_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "ddbcd599f865345d6867dffe1f7780c048a50230fc983800ca6911f0d82378fd",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_023_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode/components/layer_023_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "05eba2da44de3e11dc4204d90e30821b0c198966cd364d44712d613f68255c71",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_024_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode/components/layer_024_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "1884cc6a3f8d5534764dba9fc658d343beeab9a76878be7f9140eb35b7e1055c",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_025_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode/components/layer_025_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "2494c1f9e9ae7d13efa04839a067350a12de8a1c132dfc75882872dfc90c6394",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_026_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode/components/layer_026_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "53c095312d79aa991808abed6dc762682b6e172583c873f71ab0442a57d37c3d",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_027_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode/components/layer_027_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "bdb5f546b17ae1091957316dd5c747dbbf79b75a964418c87c66d971457fbfaa",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_028_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode/components/layer_028_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "bbf803bc34c2b318f67aeb982bc4daac2d5c8c34ef83e4836de5a15d46723212",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_029_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode/components/layer_029_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "4799b3f6db567b91d53cddfee5def881b568b45b914f71aea25e3febda2a7216",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_030_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode/components/layer_030_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "7e0fd6a8953b2f34cf90c5d2e1fe18d2ca7ce03ef33c98b8a04532b77632a625",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_031_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode/components/layer_031_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "3caa1a3282f32b76b2c42a8004f02b6a7eade54c8ddcaa432056325bc282c0fd",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_032_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode/components/layer_032_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "ab401a1266077dd0f5c61f7565f5de2ad3c49e0a69be4615f8f8aa3152f73224",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_033_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode/components/layer_033_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "9c672550f1c38f954686bb268660bc854f7980ea922f13316daa5af411977424",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_034_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode/components/layer_034_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "a24b14c47f93fb5c2e222faffe30353d1ffcca1476ae97af18cc37ba773aa721",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_035_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode/components/layer_035_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "e99e5417414dab4af14de4dc6a8c4c54ac818d9a6cf99d7cd6ee5c1576556c67",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_036_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode/components/layer_036_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "560fa8c175de5a1ef3c87a548d2c90ad4d2486c396fc82dba35f23f5a937325b",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_037_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode/components/layer_037_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "e1f9900bbd0ea4f94f12c2c99031c77a7b89b1017c6f31de6a21e05b0f534012",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_038_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode/components/layer_038_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "628cab58095e3e5191ec79c14a0c3d461c693c7fd2977550ac24fb5e314bb711",
+            "shape": [
+              2048
+            ]
+          },
+          "layer_039_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode/components/layer_039_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "ca3984d28ba7834e6d5736593e7153480072a875f1f60a6fa9bf551974768f7e",
+            "shape": [
+              2048
+            ]
+          }
+        },
+        "oracle_jsonl": {
+          "bytes": 4393,
+          "path": "tool_auto_image/first-decode/oracle.jsonl",
+          "sha256": "5f7a8e19933af6b989cd9fd910e2cba10e083a929d77a9104f66423cfc39e15b"
+        },
+        "target_layer_decode_call": 1
+      },
+      "first_decode_full_attention": {
+        "components": {
+          "block_table": {
+            "bytes": 4,
+            "dtype": "torch.int32",
+            "element_size": 4,
+            "path": "tool_auto_image/first-decode-full-attention/components/block_table.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+            "shape": [
+              1,
+              1
+            ]
+          },
+          "k_descale": {
+            "bytes": 8,
+            "dtype": "torch.float32",
+            "element_size": 4,
+            "path": "tool_auto_image/first-decode-full-attention/components/k_descale.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "80b8fd6d60fa85fd14a38b5295cb92abd80dfec5ca406c9f969609a79d36809d",
+            "shape": [
+              1,
+              2
+            ]
+          },
+          "key_cache": {
+            "bytes": 1081344,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode-full-attention/components/key_cache.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "ff4b280b2a9b560151fbbe253f750d0f7492661f4efc90353fe59011cf377bc6",
+            "shape": [
+              1,
+              1056,
+              2,
+              256
+            ]
+          },
+          "output": {
+            "bytes": 8192,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode-full-attention/components/output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "023f0c439394347f29b906226a83bd855dba4af3a18c7f4fb35c2e78d856df97",
+            "shape": [
+              1,
+              16,
+              256
+            ]
+          },
+          "query": {
+            "bytes": 8192,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode-full-attention/components/query.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "6c6dc887076afc34c5782cab6026d9ff5815325730ef2710c2ac125832dc2d0a",
+            "shape": [
+              1,
+              16,
+              256
+            ]
+          },
+          "query_starts": {
+            "bytes": 8,
+            "dtype": "torch.int32",
+            "element_size": 4,
+            "path": "tool_auto_image/first-decode-full-attention/components/query_starts.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "01acecb507abfe1a354aa8064f4af5d3f1acd019e37db3c11c97523b71c76e9d",
+            "shape": [
+              2
+            ]
+          },
+          "sequence_lengths": {
+            "bytes": 4,
+            "dtype": "torch.int32",
+            "element_size": 4,
+            "path": "tool_auto_image/first-decode-full-attention/components/sequence_lengths.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "f108038c137a7251e16416ef0a4e7292c1fea01cb657aeb076b05a5f07689a19",
+            "shape": [
+              1
+            ]
+          },
+          "v_descale": {
+            "bytes": 8,
+            "dtype": "torch.float32",
+            "element_size": 4,
+            "path": "tool_auto_image/first-decode-full-attention/components/v_descale.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "80b8fd6d60fa85fd14a38b5295cb92abd80dfec5ca406c9f969609a79d36809d",
+            "shape": [
+              1,
+              2
+            ]
+          },
+          "value_cache": {
+            "bytes": 1081344,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode-full-attention/components/value_cache.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "c896c16dc835fbae19b286265a0e2520b16bb287b6da41eae62d9d7a8f66cdbd",
+            "shape": [
+              1,
+              1056,
+              2,
+              256
+            ]
+          }
+        },
+        "metadata": {
+          "attention_path": "segmented_3d_plus_reduce",
+          "block_size": 1056,
+          "causal": true,
+          "head_size": 256,
+          "key_cache_source_stride": [
+            1081344,
+            512,
+            256,
+            1
+          ],
+          "kv_heads": 2,
+          "layer_index": 3,
+          "logical_blocks": 1,
+          "max_seqlen_k": 353,
+          "max_seqlen_q": 1,
+          "physical_block_ids": [
+            8
+          ],
+          "query_heads": 16,
+          "sequence_length": 353,
+          "sequence_threshold_3d": 64,
+          "softcap": 0.0,
+          "softmax_scale": 0.0625,
+          "softmax_segments": 16,
+          "value_cache_source_stride": [
+            1081344,
+            512,
+            256,
+            1
+          ],
+          "window_size": [
+            -1,
+            -1
+          ]
+        },
+        "oracle_jsonl": {
+          "bytes": 851,
+          "path": "tool_auto_image/first-decode-full-attention/oracle.jsonl",
+          "sha256": "448c071f27df49693e1d2d10942fab4b052f82f4d5999b50940bb2cb7cadad4e"
+        },
+        "target_decode_call": 1
+      },
+      "first_decode_layer0_tail": {
+        "components": {
+          "attention_residual": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode-layer0-tail/components/attention_residual.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "1acad029dae1146e0cd6e0ec128b7a10dbcbb34c9a109c6a5ee8ae491670f67e",
+            "shape": [
+              2048
+            ]
+          },
+          "combined_moe_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode-layer0-tail/components/combined_moe_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "b30bdba1381e867e4724d9649c5c365fb588453554eb97651d6b16e80fbbd472",
+            "shape": [
+              2048
+            ]
+          },
+          "post_attention_norm": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode-layer0-tail/components/post_attention_norm.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "85979c432ae171df767f04653844185352f1d434c6df49457110d0254f0e9e48",
+            "shape": [
+              2048
+            ]
+          },
+          "routed_activation": {
+            "bytes": 8192,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode-layer0-tail/components/routed_activation.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "de105618d08f32157c07f39e8632115b85c485931bf298ad81661e47ae2b9d40",
+            "shape": [
+              8,
+              512
+            ]
+          },
+          "routed_gate_up_projection": {
+            "bytes": 16384,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode-layer0-tail/components/routed_gate_up_projection.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "13cec38e70890c78a1bc38c6499ecca5f5c1e238dd563cc75ed8873fbf7403de",
+            "shape": [
+              8,
+              1024
+            ]
+          },
+          "routed_moe_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode-layer0-tail/components/routed_moe_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "8f39ae17ed35c3224d6aef1c98dbd55d9e8125d707ec5b8f5250dc5b11d3c6c5",
+            "shape": [
+              2048
+            ]
+          },
+          "routed_weighted_expert_outputs": {
+            "bytes": 32768,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode-layer0-tail/components/routed_weighted_expert_outputs.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "632e5121cb0128ad465f529921e8bc56dbcb9d9a7e163bd793c3455b639c5f95",
+            "shape": [
+              8,
+              2048
+            ]
+          },
+          "router_indices": {
+            "bytes": 32,
+            "dtype": "torch.int32",
+            "element_size": 4,
+            "path": "tool_auto_image/first-decode-layer0-tail/components/router_indices.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "a55b34a8dc700f1ac4dcf230806a844b740f65b1efa726203a31249db75f8d84",
+            "shape": [
+              8
+            ]
+          },
+          "router_logits": {
+            "bytes": 512,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode-layer0-tail/components/router_logits.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "e0be04b1c7bfc5adbb5fedfc5111a37f6222148a4c450540269d11a031076bc3",
+            "shape": [
+              256
+            ]
+          },
+          "router_weights": {
+            "bytes": 32,
+            "dtype": "torch.float32",
+            "element_size": 4,
+            "path": "tool_auto_image/first-decode-layer0-tail/components/router_weights.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "0ba25dcbf06b0d8f9bfa9f746acfcd94bb2c670bff5e680b0c7679bdbceb8cfa",
+            "shape": [
+              8
+            ]
+          },
+          "shared_activation": {
+            "bytes": 1024,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode-layer0-tail/components/shared_activation.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "2620acbf03c6d27f4e00b3fb51cd2c8b75bd07698398f6fa97da282dd24e59fc",
+            "shape": [
+              512
+            ]
+          },
+          "shared_down_projection": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode-layer0-tail/components/shared_down_projection.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "9a65b5d0676f60641306e773dddbe674981c300ed59019cb51141055be0392e3",
+            "shape": [
+              2048
+            ]
+          },
+          "shared_gate_logits": {
+            "bytes": 2,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode-layer0-tail/components/shared_gate_logits.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "8359c8f2ab7af5c7569d43a68ce42c771d8e5c6e1349821ed39c1c0234f3785d",
+            "shape": [
+              1
+            ]
+          },
+          "shared_gate_up_projection": {
+            "bytes": 2048,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode-layer0-tail/components/shared_gate_up_projection.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "c8cebb3829dfcfb8fd38de03e2378d485102d80c49986d8fe617519ea54b87f9",
+            "shape": [
+              1024
+            ]
+          },
+          "shared_moe_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode-layer0-tail/components/shared_moe_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "db2092deadc328fe541dd2f10389bdd91b833016985034b9c397da62cadcae96",
+            "shape": [
+              2048
+            ]
+          }
+        },
+        "metadata": {
+          "layer_index": 0
+        },
+        "oracle_jsonl": {
+          "bytes": 1695,
+          "path": "tool_auto_image/first-decode-layer0-tail/oracle.jsonl",
+          "sha256": "bf696bc42b9d2c38e9625531a0093a0cf9f9cad4a43162b137814faea81daf86"
+        },
+        "target_decode_call": 1
+      },
+      "first_decode_linear_attention": {
+        "components": {
+          "a_projection": {
+            "bytes": 64,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode-linear/components/a_projection.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "3f4039465bc6289dfd187a2dbd30f73c45d4f056551a26c6f4092e156143a902",
+            "shape": [
+              32
+            ]
+          },
+          "attention_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode-linear/components/attention_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "719f006b7de2ebdc31125a275a18eadd95385104dcab56cd98803f2e5f596ffc",
+            "shape": [
+              2048
+            ]
+          },
+          "b_projection": {
+            "bytes": 64,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode-linear/components/b_projection.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "c93f623700a9df8a15f60b194bd47ec9023fc7deaf2348a00cbec23cc5e90e0a",
+            "shape": [
+              32
+            ]
+          },
+          "conv_state_after": {
+            "bytes": 49152,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode-linear/components/conv_state_after.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "c6bae4ce63ef2cb5ac95b7ee4a335f0cb6501c0f99bccc3708c5e23c69b7a7b7",
+            "shape": [
+              8192,
+              3
+            ]
+          },
+          "conv_state_before": {
+            "bytes": 49152,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode-linear/components/conv_state_before.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "753419933ea41014aca3e5ae84e17bdccd8f04dc5efa2106c917abaa209e87a1",
+            "shape": [
+              8192,
+              3
+            ]
+          },
+          "gated_norm": {
+            "bytes": 8192,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode-linear/components/gated_norm.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "8ca1d615826e9327e2c86dffa1e41b9686311f5d8a450be16fddd8e24a1be916",
+            "shape": [
+              4096
+            ]
+          },
+          "input_norm": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode-linear/components/input_norm.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "0a7d9ff80d3339254192c95c4a870494e57bb4cef36fc9862a1515dd2914daf7",
+            "shape": [
+              2048
+            ]
+          },
+          "post_conv_mixed_qkv": {
+            "bytes": 16384,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode-linear/components/post_conv_mixed_qkv.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "9255956de776acd21db03f8ac67b1f2dd8c73a7838644797cdb3e6118401bf02",
+            "shape": [
+              8192
+            ]
+          },
+          "qkv_projection": {
+            "bytes": 16384,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode-linear/components/qkv_projection.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "d4d8a3f49ff0bd9ee7b2090fd1338fafe3b35bd5ae4e0b8a2d43596aad13b5c8",
+            "shape": [
+              8192
+            ]
+          },
+          "recurrent_output": {
+            "bytes": 8192,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode-linear/components/recurrent_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "29a3bf308de06951e342960336581b3401b943f0ef8791f7a4fe2b906841dec1",
+            "shape": [
+              4096
+            ]
+          },
+          "recurrent_state_after": {
+            "bytes": 2097152,
+            "dtype": "torch.float32",
+            "element_size": 4,
+            "path": "tool_auto_image/first-decode-linear/components/recurrent_state_after.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "730735ee6ebe19405de38656f6409e65938adc2f43eb81c10d1ba4a8df93aeb8",
+            "shape": [
+              32,
+              128,
+              128
+            ]
+          },
+          "recurrent_state_before": {
+            "bytes": 2097152,
+            "dtype": "torch.float32",
+            "element_size": 4,
+            "path": "tool_auto_image/first-decode-linear/components/recurrent_state_before.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "0d00bb1778943c3841c36f71ec04bab031fb27ca1964202646045931aadf3627",
+            "shape": [
+              32,
+              128,
+              128
+            ]
+          },
+          "z_projection": {
+            "bytes": 8192,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/first-decode-linear/components/z_projection.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "1d71ed141d8e8691605454ec1640d99c257cf9a1ebb4efd177102a8825dfaa4c",
+            "shape": [
+              4096
+            ]
+          }
+        },
+        "metadata": {
+          "layer_index": 0
+        },
+        "oracle_jsonl": {
+          "bytes": 1369,
+          "path": "tool_auto_image/first-decode-linear/oracle.jsonl",
+          "sha256": "de973bb5dbfcebda99510fa20ded3c522de38b6f81760fb25339b07a44145a19"
+        },
+        "target_decode_call": 1
+      },
+      "first_decode_logits_component": {
+        "bytes": 993280,
+        "dtype": "torch.float32",
+        "element_size": 4,
+        "path": "tool_auto_image/first-decode-logits.bin",
+        "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+        "sha256": "fde0de55b6d104976b83274888b8ea5c0b1fb55069bf830790a337a507623cbc",
+        "shape": [
+          248320
+        ]
+      },
+      "first_decode_logits_output_index": 1,
+      "first_decode_logits_top1_token_id": 1156,
+      "full_attention": {
+        "components": {
+          "block_table": {
+            "bytes": 4,
+            "dtype": "torch.int32",
+            "element_size": 4,
+            "path": "tool_auto_image/full-attention/components/block_table.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+            "shape": [
+              1,
+              1
+            ]
+          },
+          "k_descale": {
+            "bytes": 8,
+            "dtype": "torch.float32",
+            "element_size": 4,
+            "path": "tool_auto_image/full-attention/components/k_descale.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "80b8fd6d60fa85fd14a38b5295cb92abd80dfec5ca406c9f969609a79d36809d",
+            "shape": [
+              1,
+              2
+            ]
+          },
+          "key_cache": {
+            "bytes": 1081344,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/full-attention/components/key_cache.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "199498c34ce40877f18c8446f4fc1f95581695a8e07e1930dd566a30d86e9c21",
+            "shape": [
+              1,
+              1056,
+              2,
+              256
+            ]
+          },
+          "output": {
+            "bytes": 8192,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/full-attention/components/output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "c997711cb9c886de23b5c4cf62714049884d4d6bf8655ac0e0a0339be2faa449",
+            "shape": [
+              1,
+              16,
+              256
+            ]
+          },
+          "query": {
+            "bytes": 8192,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/full-attention/components/query.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "75e5026d59aabcd159425c0a6bd32a4c9ec8644c8c58fa77d39485e40cfc9181",
+            "shape": [
+              1,
+              16,
+              256
+            ]
+          },
+          "query_starts": {
+            "bytes": 8,
+            "dtype": "torch.int32",
+            "element_size": 4,
+            "path": "tool_auto_image/full-attention/components/query_starts.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "01acecb507abfe1a354aa8064f4af5d3f1acd019e37db3c11c97523b71c76e9d",
+            "shape": [
+              2
+            ]
+          },
+          "sequence_lengths": {
+            "bytes": 4,
+            "dtype": "torch.int32",
+            "element_size": 4,
+            "path": "tool_auto_image/full-attention/components/sequence_lengths.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "e2ebaacc452747ed4f315e48e4469340fbadcc6f7229c3d17b3f885066249165",
+            "shape": [
+              1
+            ]
+          },
+          "v_descale": {
+            "bytes": 8,
+            "dtype": "torch.float32",
+            "element_size": 4,
+            "path": "tool_auto_image/full-attention/components/v_descale.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "80b8fd6d60fa85fd14a38b5295cb92abd80dfec5ca406c9f969609a79d36809d",
+            "shape": [
+              1,
+              2
+            ]
+          },
+          "value_cache": {
+            "bytes": 1081344,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/full-attention/components/value_cache.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "26fc24979d7e1a238e2d0f69b9305e762596924c5922db4d8f21410a92123cfe",
+            "shape": [
+              1,
+              1056,
+              2,
+              256
+            ]
+          }
+        },
+        "metadata": {
+          "attention_path": "segmented_3d_plus_reduce",
+          "block_size": 1056,
+          "causal": true,
+          "head_size": 256,
+          "key_cache_source_stride": [
+            1081344,
+            512,
+            256,
+            1
+          ],
+          "kv_heads": 2,
+          "layer_index": 3,
+          "logical_blocks": 1,
+          "max_seqlen_k": 445,
+          "max_seqlen_q": 1,
+          "physical_block_ids": [
+            8
+          ],
+          "query_heads": 16,
+          "sequence_length": 445,
+          "sequence_threshold_3d": 64,
+          "softcap": 0.0,
+          "softmax_scale": 0.0625,
+          "softmax_segments": 16,
+          "value_cache_source_stride": [
+            1081344,
+            512,
+            256,
+            1
+          ],
+          "window_size": [
+            -1,
+            -1
+          ]
+        },
+        "oracle_jsonl": {
+          "bytes": 851,
+          "path": "tool_auto_image/full-attention/oracle.jsonl",
+          "sha256": "448c071f27df49693e1d2d10942fab4b052f82f4d5999b50940bb2cb7cadad4e"
+        },
+        "target_decode_call": 93
+      },
+      "layer0_tail": {
+        "components": {
+          "attention_residual": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/layer0-tail/components/attention_residual.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "1e090bd51df33d416a589ae3c3a4699154088fdc5b2f7ce03d86a3e205ae092f",
+            "shape": [
+              2048
+            ]
+          },
+          "combined_moe_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/layer0-tail/components/combined_moe_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "09d96348ffbe46aa884943838a568bd903dc27c990f86abe12afaf593042418a",
+            "shape": [
+              2048
+            ]
+          },
+          "post_attention_norm": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/layer0-tail/components/post_attention_norm.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "71306883ef0858764d87037e2fbc98804f738b91b3d3339112c20aca26b88b28",
+            "shape": [
+              2048
+            ]
+          },
+          "routed_activation": {
+            "bytes": 8192,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/layer0-tail/components/routed_activation.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "2ad3157c953595ab1972efdc268d627a0c05386b826437ddd22c75ac8346d540",
+            "shape": [
+              8,
+              512
+            ]
+          },
+          "routed_gate_up_projection": {
+            "bytes": 16384,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/layer0-tail/components/routed_gate_up_projection.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "d9ca49d9361bc3e8e24596996c63ec23a349711c641723e42e91bef7eb2cfbc9",
+            "shape": [
+              8,
+              1024
+            ]
+          },
+          "routed_moe_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/layer0-tail/components/routed_moe_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "36fbc79b7df5a73e8cfc30ebf029057a8ffd48eb4d914f89261c2621378fbd47",
+            "shape": [
+              2048
+            ]
+          },
+          "routed_weighted_expert_outputs": {
+            "bytes": 32768,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/layer0-tail/components/routed_weighted_expert_outputs.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "761852792c6974b452dd3b9c5ed7b0867cde61afed240204d2a99f4abd1d8182",
+            "shape": [
+              8,
+              2048
+            ]
+          },
+          "router_indices": {
+            "bytes": 32,
+            "dtype": "torch.int32",
+            "element_size": 4,
+            "path": "tool_auto_image/layer0-tail/components/router_indices.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "cf9b5823bdd1058ca81c4953da3c95c0a216391a9e481eddcdfc1a9bc9ed3fb5",
+            "shape": [
+              8
+            ]
+          },
+          "router_logits": {
+            "bytes": 512,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/layer0-tail/components/router_logits.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "a51a15c4e38f6795093fcea3c5679f1d4764935872ff5ecd529a83a042368c3a",
+            "shape": [
+              256
+            ]
+          },
+          "router_weights": {
+            "bytes": 32,
+            "dtype": "torch.float32",
+            "element_size": 4,
+            "path": "tool_auto_image/layer0-tail/components/router_weights.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "db34b1995dd8023fd3f5365cf25f25a3302911d0dabc0b7806c24ef7ad6f7c97",
+            "shape": [
+              8
+            ]
+          },
+          "shared_activation": {
+            "bytes": 1024,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/layer0-tail/components/shared_activation.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "5a3cb9e66e4d7c9d759f4c7521e949fd010fbd32a547c1e362adfd8427a9b55d",
+            "shape": [
+              512
+            ]
+          },
+          "shared_down_projection": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/layer0-tail/components/shared_down_projection.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "d811c9e8c4b38d246b72c0ebb42601bb3fd4931f8c9d15cf7b132be4590c5fb9",
+            "shape": [
+              2048
+            ]
+          },
+          "shared_gate_logits": {
+            "bytes": 2,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/layer0-tail/components/shared_gate_logits.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "c8cba9396db03628396d751970cd9a1fbcaba577843e22b2db0712bb9b89b49b",
+            "shape": [
+              1
+            ]
+          },
+          "shared_gate_up_projection": {
+            "bytes": 2048,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/layer0-tail/components/shared_gate_up_projection.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "435e4f063a74ea83b613ba8882a05617b76e0127b8fb477b6b6794af80b8e0e0",
+            "shape": [
+              1024
+            ]
+          },
+          "shared_moe_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/layer0-tail/components/shared_moe_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "d2f9cb7d76f91bfda0d900c315de1faf674c9647d05dfb02677fe77ae126adef",
+            "shape": [
+              2048
+            ]
+          }
+        },
+        "metadata": {
+          "layer_index": 0
+        },
+        "oracle_jsonl": {
+          "bytes": 1695,
+          "path": "tool_auto_image/layer0-tail/oracle.jsonl",
+          "sha256": "bf696bc42b9d2c38e9625531a0093a0cf9f9cad4a43162b137814faea81daf86"
+        },
+        "target_decode_call": 93
+      },
+      "linear_attention": {
+        "components": {
+          "a_projection": {
+            "bytes": 64,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/linear/components/a_projection.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "71fc65104bc36c7b3b6dfe3b7e6dea5bc8aa7c48ca15a3c0dc3c054fd2ec9b53",
+            "shape": [
+              32
+            ]
+          },
+          "attention_output": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/linear/components/attention_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "d10abf7fe9237e2e73e439f3ac23e2ca2c5b2ed376db05f4839043a29a1e5246",
+            "shape": [
+              2048
+            ]
+          },
+          "b_projection": {
+            "bytes": 64,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/linear/components/b_projection.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "668b9330dbd6c9a352b662f16ecd5b13c48e1b2a318acfa306c398db39d70f14",
+            "shape": [
+              32
+            ]
+          },
+          "conv_state_after": {
+            "bytes": 49152,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/linear/components/conv_state_after.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "747380bad54b63d9bcff2e96b758584c0ddfcbd20fa33e8f49f2fbb188479bcd",
+            "shape": [
+              8192,
+              3
+            ]
+          },
+          "conv_state_before": {
+            "bytes": 49152,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/linear/components/conv_state_before.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "77246165bd62827d0f2a563e463fc936cc7b255fc9a8f8d525c669e0b487e840",
+            "shape": [
+              8192,
+              3
+            ]
+          },
+          "gated_norm": {
+            "bytes": 8192,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/linear/components/gated_norm.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "4a25c243e819d880e227a39db752de801e1755901d33eb25914f4e8116aaf0c5",
+            "shape": [
+              4096
+            ]
+          },
+          "input_norm": {
+            "bytes": 4096,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/linear/components/input_norm.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "2022e58c2550e5fa928345148617c545bfc0e2c9af067f11cbd8ec68a65269b2",
+            "shape": [
+              2048
+            ]
+          },
+          "post_conv_mixed_qkv": {
+            "bytes": 16384,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/linear/components/post_conv_mixed_qkv.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "340056d929c5ad9ef4a300311e12d8988140962f9b4f8c4710d59409c1389d83",
+            "shape": [
+              8192
+            ]
+          },
+          "qkv_projection": {
+            "bytes": 16384,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/linear/components/qkv_projection.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "9548c39206a2400611dcaea58a8768939d5ebd9d94baa9b81e65597b6b1040fc",
+            "shape": [
+              8192
+            ]
+          },
+          "recurrent_output": {
+            "bytes": 8192,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/linear/components/recurrent_output.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "184df7741d6cdd31c746e38e040b75bded583b3467b80733f6424e25aaac48e0",
+            "shape": [
+              4096
+            ]
+          },
+          "recurrent_state_after": {
+            "bytes": 2097152,
+            "dtype": "torch.float32",
+            "element_size": 4,
+            "path": "tool_auto_image/linear/components/recurrent_state_after.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "8d02b6a3c1a5d921c4bf079f24fc266c44b042e913439b9287c021721dc606d2",
+            "shape": [
+              32,
+              128,
+              128
+            ]
+          },
+          "recurrent_state_before": {
+            "bytes": 2097152,
+            "dtype": "torch.float32",
+            "element_size": 4,
+            "path": "tool_auto_image/linear/components/recurrent_state_before.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "6e66e010bbbbd80ffd308f8e122fd0fcea4cca88ae3572e0238028a78e6e63fe",
+            "shape": [
+              32,
+              128,
+              128
+            ]
+          },
+          "z_projection": {
+            "bytes": 8192,
+            "dtype": "torch.bfloat16",
+            "element_size": 2,
+            "path": "tool_auto_image/linear/components/z_projection.bin",
+            "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+            "sha256": "abd90cbc919492fa7060ebf25e4b61b29aac5b0c27a458683e0479730ae39ac2",
+            "shape": [
+              4096
+            ]
+          }
+        },
+        "metadata": {
+          "layer_index": 0
+        },
+        "oracle_jsonl": {
+          "bytes": 1369,
+          "path": "tool_auto_image/linear/oracle.jsonl",
+          "sha256": "de973bb5dbfcebda99510fa20ded3c522de38b6f81760fb25339b07a44145a19"
+        },
+        "target_decode_call": 93
+      },
+      "logits_decode_calls": 94,
+      "logits_prefill_calls": 1,
+      "oracle_jsonl": {
+        "bytes": 4393,
+        "path": "tool_auto_image/oracle.jsonl",
+        "sha256": "5f7a8e19933af6b989cd9fd910e2cba10e083a929d77a9104f66423cfc39e15b"
+      },
+      "passed": true,
+      "prompt_token_ids_sha256": "36946ec2e298a02ef43f7c7d33f01d04a26479a2944ef8b0b55148838f77867b",
+      "prompt_tokens": 352,
+      "target_layer_decode_call": 93,
+      "target_logits_component": {
+        "bytes": 993280,
+        "dtype": "torch.float32",
+        "element_size": 4,
+        "path": "tool_auto_image/target-logits.bin",
+        "schema": "aima-amd395-qwen36/vl-raw-tensor/v1",
+        "sha256": "fe4a45200fddffb63a8aa9ebc7e2a45f20a906ed418292587434f8f3a4e7877e",
+        "shape": [
+          248320
+        ]
+      },
+      "target_logits_sha256": "fe4a45200fddffb63a8aa9ebc7e2a45f20a906ed418292587434f8f3a4e7877e",
+      "target_logits_top1_token_id": 52850,
+      "target_output_index": 93,
+      "target_prefix_token_ids_sha256": "b273e74f9b00682deb03748e5a383e6e810a58bc9d473ec23f4e2d9571f0a311",
+      "target_token_id": 52850
+    }
+  ],
+  "complete": true,
+  "decision": {
+    "g1_passed": false,
+    "g2_passed": false,
+    "g3_passed": false,
+    "g4_passed": false,
+    "g5_passed": false,
+    "two_decode_boundary_sets_captured": true,
+    "two_first_decode_layer0_linear_attention_boundary_sets_captured": true,
+    "two_first_decode_layer0_tail_boundary_sets_captured": true,
+    "two_first_decode_layer3_unified_attention_sets_captured": true,
+    "two_layer0_linear_attention_boundary_sets_captured": true,
+    "two_layer0_tail_boundary_sets_captured": true,
+    "two_layer3_unified_attention_sets_captured": true,
+    "two_routed_moe_stage_sets_captured": true,
+    "two_target_logits_bound": true,
+    "two_target_prefixes_exact": true
+  },
+  "generation_oracle": {
+    "bytes": 26545,
+    "path": "benchmarks/results/vl-generation-oracle-v0.1.0.json",
+    "sha256": "954c6e55389cd90390cb517224df14719f2556555ce7bf44571cae1ad1812888"
+  },
+  "host": {
+    "hostname": "quings",
+    "label": "amd395"
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "canonical_payload_sha256": "e7a6c68f2e3ef3b0cde9d2fe1ea0fea8ce7e8cfab688423c4f2e55036bcaef93"
+  },
+  "model": {
+    "dtype": "bfloat16",
+    "repository": "Qwen/Qwen3.6-35B-A3B",
+    "revision": "995ad96eacd98c81ed38be0c5b274b04031597b0"
+  },
+  "oracle_root": "benchmarks/oracles/vl-generation-layer-v0.1.0",
+  "qualified_for_decode_attribution": true,
+  "runtime": {
+    "packages": {
+      "numpy": "2.1.3",
+      "opencv-python-headless": "4.13.0.92",
+      "pillow": "12.2.0",
+      "torch": "2.10.0+git8514f05",
+      "transformers": "4.57.6",
+      "vllm": "0.19.1rc1.dev300+g29e5d1020.rocm721"
+    },
+    "python_version": "3.12.3"
+  },
+  "schema": "aima-amd395-qwen36/vl-generation-layer-oracle/v4",
+  "scope": "two-fixed-vllm-vl-target-decode-layer-plus-target-and-first-decode-layer0-linear-attention-tail-and-layer3-unified-attention-boundary-sets",
+  "source": {
+    "commit": "de663c76eddb4e55085cfa692ad790bf56512736",
+    "dirty": false,
+    "files": [
+      {
+        "bytes": 86536,
+        "path": "scripts/capture-vllm-vl-generation-layer-oracles.py",
+        "sha256": "8e842e387fc7e2bc1ab48969651dda727d875bad39dc9d0d4109bd658c6f0b67"
+      },
+      {
+        "bytes": 15470,
+        "path": "aima_engine/vl_generation_layer_oracle.py",
+        "sha256": "4799a7e4616335a28d35c56facaf85c09247cbfcd80ad25f8703d4fce29b41e8"
+      },
+      {
+        "bytes": 22674,
+        "path": "scripts/capture-vllm-vl-generation-oracles.py",
+        "sha256": "96f385f5ce8343bf6b77caed8a7361ea9c2e735aa40645209a6d1bf6761f1dfb"
+      },
+      {
+        "bytes": 34310,
+        "path": "scripts/capture-vllm-vl-oracles.py",
+        "sha256": "b4077b032d81c2bccc91a2501024491b440aec5f451062a4d5e7862f4745dc01"
+      },
+      {
+        "bytes": 23168,
+        "path": "scripts/probe-vllm-vl-api-capabilities.py",
+        "sha256": "2762c30b98119dbe87fe93f11db39523d26a4d43f2144f74b2479050aa90ebd1"
+      }
+    ],
+    "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}
