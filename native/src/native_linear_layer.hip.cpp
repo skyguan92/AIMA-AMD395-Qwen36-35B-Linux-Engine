@@ -318,6 +318,9 @@ NativeLinearLayerMetrics run_native_linear_layer(
   const auto& input_norm_weight = require_weight(
       weights, prefix + ".input_layernorm.weight",
       kHidden * sizeof(__hip_bfloat16));
+  const auto& post_attention_norm_weight = require_weight(
+      weights, prefix + ".post_attention_layernorm.weight",
+      kHidden * sizeof(__hip_bfloat16));
   const auto& output_weight = require_weight(
       weights, prefix + ".linear_attn.out_proj.weight",
       kHidden * kLinearValue * sizeof(__hip_bfloat16));
@@ -452,13 +455,21 @@ NativeLinearLayerMetrics run_native_linear_layer(
                    kHidden * sizeof(__hip_bfloat16),
                    DecodeTensorDtype::kBfloat16);
 
-  executor.launch(launches[base + 4], stream);
+  if (use_current_vllm_projections) {
+    launch_prefill_rmsnorm_2048(
+        after_attn.device_pointer, post_attention_norm_weight.device_pointer,
+        post_attention_norm, 1, stream);
+    ++metrics.native_pointwise_launches;
+  } else {
+    executor.launch(launches[base + 4], stream);
+    ++metrics.aot_launches;
+  }
   observe_boundary(tail_observer, "post_attention_norm",
                    post_attention_norm,
                    kHidden * sizeof(__hip_bfloat16),
                    DecodeTensorDtype::kBfloat16);
   executor.launch(launches[base + 5], stream);
-  metrics.aot_launches += 2;
+  ++metrics.aot_launches;
   if (use_current_vllm_projections) {
     auto* shared_input_bytes =
         static_cast<unsigned char*>(shared_input.device_pointer);

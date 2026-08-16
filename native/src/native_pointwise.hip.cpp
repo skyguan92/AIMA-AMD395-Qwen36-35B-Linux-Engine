@@ -174,6 +174,65 @@ __global__ void prefill_rmsnorm_2048_kernel(
   }
 }
 
+__global__ void singleton_rmsnorm_2048_kernel(
+    const __hip_bfloat16* input, const __hip_bfloat16* weight,
+    __hip_bfloat16* output) {
+  constexpr unsigned kVectorWidth = 4;
+  constexpr unsigned kBlockThreads = kHidden / kVectorWidth;
+  static_assert(kBlockThreads == 512);
+  __shared__ float partials[kBlockThreads];
+
+  const unsigned lane = threadIdx.x;
+  const unsigned vector_base = lane * kVectorWidth;
+  float sum = 0.0f;
+#pragma unroll
+  for (unsigned component = 0; component < kVectorWidth; ++component) {
+    const float value =
+        __bfloat162float(input[vector_base + component]);
+    // Eager PyTorch materializes pow(2) before MeanOps reduction.
+    volatile float squared = value * value;
+    sum = sum + squared;
+  }
+  partials[lane] = sum;
+
+  // ATen's singleton [1, 2048] reduction vectorizes the input across one
+  // 512-thread block. Reduce its eight AMD wavefronts through shared memory,
+  // then preserve ROCm's ascending-offset shuffle tree inside wavefront 0.
+  for (unsigned offset = kBlockThreads / 2; offset >= 64; offset >>= 1) {
+    __syncthreads();
+    if (lane < offset) {
+      sum = sum + partials[lane + offset];
+      partials[lane] = sum;
+    }
+  }
+  __syncthreads();
+  if (lane < 64) {
+    sum = partials[lane];
+    for (unsigned offset = 1; offset < 64; offset <<= 1) {
+      sum = sum + __shfl_down(sum, offset, 64);
+    }
+    if (lane == 0) {
+      volatile float variance =
+          sum * (1.0f / static_cast<float>(kHidden));
+      volatile float variance_with_epsilon = variance + 1.0e-6f;
+      partials[0] = pytorch_rounded_rsqrtf(variance_with_epsilon);
+    }
+  }
+  __syncthreads();
+  const float inverse_rms = partials[0];
+
+#pragma unroll
+  for (unsigned component = 0; component < kVectorWidth; ++component) {
+    const unsigned hidden = vector_base + component;
+    const float value = __bfloat162float(input[hidden]);
+    volatile float scaled = value * inverse_rms;
+    volatile float weight_plus_one =
+        __bfloat162float(weight[hidden]) + 1.0f;
+    volatile float weighted = scaled * weight_plus_one;
+    output[hidden] = __float2bfloat16(weighted);
+  }
+}
+
 __global__ void prefill_add_rmsnorm_2048_kernel(
     const __hip_bfloat16* input, const __hip_bfloat16* residual,
     const __hip_bfloat16* weight, __hip_bfloat16* residual_output,
@@ -761,14 +820,24 @@ void launch_prefill_rmsnorm_2048(const void* input_bf16,
       token_count == 0 || token_count > kMaxPrefillTokens) {
     throw std::invalid_argument("native prefill RMSNorm geometry is invalid");
   }
-  hipLaunchKernelGGL(
-      prefill_rmsnorm_2048_kernel, dim3((token_count + 15) / 16),
-      dim3(32, 16), 0,
-      static_cast<hipStream_t>(stream_value),
-      static_cast<const __hip_bfloat16*>(input_bf16),
-      static_cast<const __hip_bfloat16*>(weight_bf16),
-      static_cast<__hip_bfloat16*>(output_bf16), token_count);
-  check_hip(hipGetLastError(), "prefill_rmsnorm_2048_kernel");
+  if (token_count == 1) {
+    hipLaunchKernelGGL(
+        singleton_rmsnorm_2048_kernel, dim3(1), dim3(512), 0,
+        static_cast<hipStream_t>(stream_value),
+        static_cast<const __hip_bfloat16*>(input_bf16),
+        static_cast<const __hip_bfloat16*>(weight_bf16),
+        static_cast<__hip_bfloat16*>(output_bf16));
+    check_hip(hipGetLastError(), "singleton_rmsnorm_2048_kernel");
+  } else {
+    hipLaunchKernelGGL(
+        prefill_rmsnorm_2048_kernel, dim3((token_count + 15) / 16),
+        dim3(32, 16), 0,
+        static_cast<hipStream_t>(stream_value),
+        static_cast<const __hip_bfloat16*>(input_bf16),
+        static_cast<const __hip_bfloat16*>(weight_bf16),
+        static_cast<__hip_bfloat16*>(output_bf16), token_count);
+    check_hip(hipGetLastError(), "prefill_rmsnorm_2048_kernel");
+  }
 }
 
 void launch_prefill_add_rmsnorm_2048(const void* input_bf16,

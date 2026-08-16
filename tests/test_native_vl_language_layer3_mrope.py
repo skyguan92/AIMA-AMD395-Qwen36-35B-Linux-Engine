@@ -177,7 +177,15 @@ class NativeVlLanguageLayer3MropeTest(unittest.TestCase):
             decode_full,
         )
         self.assertIn("metrics.native_projection_launches += 2", decode_full)
-        self.assertNotIn("launch_prefill_rmsnorm_2048(", decode_full)
+        self.assertIn(
+            'prefix + ".input_layernorm.weight"', decode_full
+        )
+        self.assertIn(
+            'prefix + ".post_attention_layernorm.weight"', decode_full
+        )
+        self.assertEqual(
+            decode_full.count("launch_prefill_rmsnorm_2048("), 2
+        )
         self.assertIn("use_current_vllm_projections", decode_linear)
         self.assertIn(
             'prefix + ".mlp.shared_expert.gate_proj.weight"', decode_linear
@@ -188,11 +196,11 @@ class NativeVlLanguageLayer3MropeTest(unittest.TestCase):
         self.assertIn(
             'prefix + ".input_layernorm.weight"', decode_linear
         )
-        self.assertNotIn(
+        self.assertIn(
             'prefix + ".post_attention_layernorm.weight"', decode_linear
         )
         self.assertEqual(
-            decode_linear.count("launch_prefill_rmsnorm_2048("), 1
+            decode_linear.count("launch_prefill_rmsnorm_2048("), 2
         )
         self.assertIn("stream, false, use_mrope", decode)
 

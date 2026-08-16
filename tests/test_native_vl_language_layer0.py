@@ -212,6 +212,25 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         )
         self.assertIn("volatile float variance_with_epsilon", eager_rmsnorm)
 
+        singleton_rmsnorm = pointwise_source.split(
+            "__global__ void singleton_rmsnorm_2048_kernel(", 1
+        )[1].split("__global__ void prefill_add_rmsnorm_2048_kernel", 1)[0]
+        self.assertIn(
+            "constexpr unsigned kBlockThreads = kHidden / kVectorWidth",
+            singleton_rmsnorm,
+        )
+        self.assertIn("static_assert(kBlockThreads == 512)", singleton_rmsnorm)
+        self.assertIn(
+            "for (unsigned offset = kBlockThreads / 2; offset >= 64;",
+            singleton_rmsnorm,
+        )
+        self.assertIn(
+            "for (unsigned offset = 1; offset < 64; offset <<= 1)",
+            singleton_rmsnorm,
+        )
+        self.assertIn("if (token_count == 1)", pointwise_source)
+        self.assertIn("dim3(1), dim3(512)", pointwise_source)
+
         prefill_conv = shape_lab.split(
             "def triton_prefill_direct_conv_kernel(", 1
         )[1].split("    @triton.jit", 1)[0]
