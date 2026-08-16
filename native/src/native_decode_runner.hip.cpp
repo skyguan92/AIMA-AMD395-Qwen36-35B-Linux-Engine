@@ -221,7 +221,7 @@ NativeDecodeRunMetrics run_native_decode_token(
         "triton_fused_input_proj_conv_kernel") {
       const NativeLinearLayerMetrics layer = run_native_linear_layer(
           layer_index, weights, workspace, invocations, executor, cu_count,
-          stream, false,
+          stream, false, use_mrope,
           layer_index == 0 ? linear_layer0_observer : nullptr,
           layer_index == 0 ? layer0_tail_observer : nullptr);
       ++metrics.linear_layer_count;

@@ -96,6 +96,9 @@ class NativeVlLanguageLayer3MropeTest(unittest.TestCase):
         decode_full = (
             ROOT / "native/src/native_full_layer.hip.cpp"
         ).read_text(encoding="utf-8")
+        decode_linear = (
+            ROOT / "native/src/native_linear_layer.hip.cpp"
+        ).read_text(encoding="utf-8")
 
         self.assertIn("std::optional<NativeMropePlan> mrope_plan", resident_header)
         self.assertIn("mrope_position_state_bytes", resident_header)
@@ -174,6 +177,14 @@ class NativeVlLanguageLayer3MropeTest(unittest.TestCase):
             decode_full,
         )
         self.assertIn("metrics.native_projection_launches += 2", decode_full)
+        self.assertIn("use_current_vllm_projections", decode_linear)
+        self.assertIn(
+            'prefix + ".mlp.shared_expert.gate_proj.weight"', decode_linear
+        )
+        self.assertIn(
+            'prefix + ".mlp.shared_expert.up_proj.weight"', decode_linear
+        )
+        self.assertIn("stream, false, use_mrope", decode)
 
     def test_unified_attention_artifact_is_embedded_and_hash_bound(self) -> None:
         import hashlib

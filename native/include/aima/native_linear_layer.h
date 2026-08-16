@@ -43,6 +43,7 @@ NativeLinearLayerMetrics run_native_linear_layer(
     int cu_count,
     void* stream = nullptr,
     bool synchronize = true,
+    bool use_current_vllm_projections = false,
     const NativeDecodeLinearLayer0Observer* observer = nullptr,
     const NativeDecodeLinearLayer0Observer* tail_observer = nullptr);
 

@@ -196,7 +196,8 @@ NativeLinearLayerMetrics run_native_linear_layer(
     const NativeDecodeWorkspace& workspace,
     const NativeDecodeInvocations& invocations,
     NativeDecodeExecutor& executor, int cu_count, void* stream_value,
-    bool synchronize, const NativeDecodeLinearLayer0Observer* observer,
+    bool synchronize, bool use_current_vllm_projections,
+    const NativeDecodeLinearLayer0Observer* observer,
     const NativeDecodeLinearLayer0Observer* tail_observer) {
   const auto& launches = invocations.launches();
   const std::size_t base = layer_index * 10;
@@ -338,6 +339,12 @@ NativeLinearLayerMetrics run_native_linear_layer(
   const auto& shared_down_weight = require_weight(
       weights, prefix + ".mlp.shared_expert.down_proj.weight",
       kHidden * kSharedIntermediate * sizeof(__hip_bfloat16));
+  const auto& shared_gate_weight = require_weight(
+      weights, prefix + ".mlp.shared_expert.gate_proj.weight",
+      kSharedIntermediate * kHidden * sizeof(__hip_bfloat16));
+  const auto& shared_up_weight = require_weight(
+      weights, prefix + ".mlp.shared_expert.up_proj.weight",
+      kSharedIntermediate * kHidden * sizeof(__hip_bfloat16));
   const auto& router_weight = require_weight(
       weights, prefix + ".mlp.gate.weight",
       kExperts * kHidden * sizeof(__hip_bfloat16));
@@ -439,6 +446,20 @@ NativeLinearLayerMetrics run_native_linear_layer(
                    DecodeTensorDtype::kBfloat16);
   executor.launch(launches[base + 5], stream);
   metrics.aot_launches += 2;
+  if (use_current_vllm_projections) {
+    auto* shared_input_bytes =
+        static_cast<unsigned char*>(shared_input.device_pointer);
+    launch_bf16_wvsplitk(
+        shared_gate_weight.device_pointer, post_attention_norm, nullptr,
+        shared_input_bytes + sizeof(__hip_bfloat16), kSharedIntermediate,
+        kHidden, cu_count, stream);
+    launch_bf16_wvsplitk(
+        shared_up_weight.device_pointer, post_attention_norm, nullptr,
+        shared_input_bytes +
+            (1 + kSharedIntermediate) * sizeof(__hip_bfloat16),
+        kSharedIntermediate, kHidden, cu_count, stream);
+    metrics.native_projection_launches += 2;
+  }
   observe_boundary(tail_observer, "shared_gate_logits",
                    shared_input.device_pointer,
                    sizeof(__hip_bfloat16),
