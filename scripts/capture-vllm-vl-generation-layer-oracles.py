@@ -390,7 +390,10 @@ class InstallGenerationLayerHooks:
         def full_attention_qkv_projection_hook(
             _module: Any, _args: Any, output: Any
         ) -> None:
-            if not self.capture_full_attention_projection:
+            if (
+                not self.capture_full_attention_projection
+                or state["full_attention_capture_kind"] is None
+            ):
                 return
             tensor = _first_tensor(output)
             if (
