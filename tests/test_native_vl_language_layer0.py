@@ -385,6 +385,21 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
             "router_topk8_softmax_256_text_kernel, dim3(tokens), dim3(64)",
             moe_source,
         )
+        text_router = moe_source.split(
+            "__global__ void router_topk8_softmax_256_text_kernel(", 1
+        )[1].split(
+            "__global__ void router_topk8_softmax_256_kernel(", 1
+        )[0]
+        self.assertIn(
+            "const __hip_bfloat16 rounded_probability", text_router
+        )
+        self.assertIn(
+            "__bfloat162float(rounded_probability)", text_router
+        )
+        self.assertNotIn(
+            "static_cast<float*>(weights)[base + rank] = probability",
+            text_router,
+        )
 
         routing_weights = shape_lab.split(
             "    def routing_weights(scores: Any) -> Any:", 1

@@ -333,11 +333,19 @@ __global__ void router_topk8_softmax_256_text_kernel(
     indices_i32[base + rank] = selected_indices[rank];
     const float probability =
         expf(selected_scores[rank] - selected_scores[0]) / denominator;
+    // v1.5.1 materialized routed weights as BF16.  New q1024 captures expose
+    // FP32 storage to the fused expert kernels, but that ABI expansion must
+    // not silently change text arithmetic: round first, then widen when the
+    // destination buffer is FP32.  VL routing retains its current-vLLM FP32
+    // value in router_topk8_softmax_256_kernel below.
+    const __hip_bfloat16 rounded_probability =
+        __float2bfloat16(probability);
     if (weights_are_bfloat16) {
       static_cast<__hip_bfloat16*>(weights)[base + rank] =
-          __float2bfloat16(probability);
+          rounded_probability;
     } else {
-      static_cast<float*>(weights)[base + rank] = probability;
+      static_cast<float*>(weights)[base + rank] =
+          __bfloat162float(rounded_probability);
     }
   }
 }
