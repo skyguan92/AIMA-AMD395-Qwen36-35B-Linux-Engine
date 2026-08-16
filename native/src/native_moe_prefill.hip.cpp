@@ -17,6 +17,7 @@
 #include <cmath>
 #include <cstdint>
 #include <fstream>
+#include <limits>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -234,6 +235,100 @@ __global__ void shared_sigmoid_scale_batched_kernel(
   const __hip_bfloat16 gate_bf16 = __float2bfloat16(sigmoid);
   output[index] = __float2bfloat16(
       __bfloat162float(gate_bf16) * __bfloat162float(down[index]));
+}
+
+__global__ void router_topk8_softmax_256_text_kernel(
+    const __hip_bfloat16* logits, float* scores, std::int64_t* indices_i64,
+    std::int32_t* indices_i32, void* weights,
+    bool weights_are_bfloat16) {
+  if (threadIdx.x != 0) return;
+  const std::size_t token = blockIdx.x;
+  const __hip_bfloat16* row = logits + token * kExperts;
+  float ranked_scores[kTopK];
+  int ranked_indices[kTopK];
+  for (std::size_t rank = 0; rank < kTopK; ++rank) {
+    float best = -std::numeric_limits<float>::infinity();
+    int best_index = -1;
+    for (int expert = 0; expert < static_cast<int>(kExperts); ++expert) {
+      bool used = false;
+#pragma unroll
+      for (std::size_t prior = 0; prior < rank; ++prior) {
+        used = used || ranked_indices[prior] == expert;
+      }
+      if (used) continue;
+      const float value = __bfloat162float(row[expert]);
+      if (value > best) {
+        best = value;
+        best_index = expert;
+      }
+    }
+    ranked_scores[rank] = best;
+    ranked_indices[rank] = best_index;
+  }
+
+  // Preserve the frozen ROCm top-k tie order: gather values above the kth
+  // threshold, append threshold ties in source order, then apply the same
+  // deterministic bitonic swaps used by the v1.5.1 product.
+  const float threshold = ranked_scores[kTopK - 1];
+  float selected_scores[kTopK];
+  int selected_indices[kTopK];
+  std::size_t selected = 0;
+  for (int expert = 0; expert < static_cast<int>(kExperts); ++expert) {
+    const float value = __bfloat162float(row[expert]);
+    if (value > threshold) {
+      selected_scores[selected] = value;
+      selected_indices[selected] = expert;
+      ++selected;
+    }
+  }
+  for (int expert = 0;
+       expert < static_cast<int>(kExperts) && selected < kTopK; ++expert) {
+    const float value = __bfloat162float(row[expert]);
+    if (value == threshold) {
+      selected_scores[selected] = value;
+      selected_indices[selected] = expert;
+      ++selected;
+    }
+  }
+  for (int width = 2; width <= static_cast<int>(kTopK); width *= 2) {
+    for (int stride = width / 2; stride > 0; stride /= 2) {
+      for (int left = 0; left < static_cast<int>(kTopK); ++left) {
+        const int right = left ^ stride;
+        if (right <= left) continue;
+        const bool ascending = (left & width) != 0;
+        const bool swap =
+            (selected_scores[left] > selected_scores[right]) == ascending;
+        if (swap) {
+          const float score = selected_scores[left];
+          selected_scores[left] = selected_scores[right];
+          selected_scores[right] = score;
+          const int index = selected_indices[left];
+          selected_indices[left] = selected_indices[right];
+          selected_indices[right] = index;
+        }
+      }
+    }
+  }
+  float denominator = 0.0f;
+#pragma unroll
+  for (std::size_t rank = 0; rank < kTopK; ++rank) {
+    denominator += expf(selected_scores[rank] - selected_scores[0]);
+  }
+  const std::size_t base = token * kTopK;
+#pragma unroll
+  for (std::size_t rank = 0; rank < kTopK; ++rank) {
+    scores[base + rank] = selected_scores[rank];
+    indices_i64[base + rank] = selected_indices[rank];
+    indices_i32[base + rank] = selected_indices[rank];
+    const float probability =
+        expf(selected_scores[rank] - selected_scores[0]) / denominator;
+    if (weights_are_bfloat16) {
+      static_cast<__hip_bfloat16*>(weights)[base + rank] =
+          __float2bfloat16(probability);
+    } else {
+      static_cast<float*>(weights)[base + rank] = probability;
+    }
+  }
 }
 
 __global__ void router_topk8_softmax_256_kernel(
@@ -477,14 +572,28 @@ void launch_shared_gate(const void* gate, const void* down, void* output,
 
 void launch_router(const void* logits, void* scores, void* indices_i64,
                    void* indices_i32, void* weights,
-                   bool weights_are_bfloat16, std::size_t tokens) {
-  hipLaunchKernelGGL(
-      router_topk8_softmax_256_kernel, dim3(tokens), dim3(32), 0, nullptr,
-      static_cast<const __hip_bfloat16*>(logits), static_cast<float*>(scores),
-      static_cast<std::int64_t*>(indices_i64),
-      static_cast<std::int32_t*>(indices_i32), weights,
-      weights_are_bfloat16);
-  check_hip(hipGetLastError(), "router_topk8_softmax_256_kernel");
+                   bool weights_are_bfloat16,
+                   bool use_vl_router_semantics, std::size_t tokens) {
+  if (use_vl_router_semantics) {
+    hipLaunchKernelGGL(
+        router_topk8_softmax_256_kernel, dim3(tokens), dim3(32), 0, nullptr,
+        static_cast<const __hip_bfloat16*>(logits),
+        static_cast<float*>(scores),
+        static_cast<std::int64_t*>(indices_i64),
+        static_cast<std::int32_t*>(indices_i32), weights,
+        weights_are_bfloat16);
+    check_hip(hipGetLastError(), "router_topk8_softmax_256_kernel");
+  } else {
+    hipLaunchKernelGGL(
+        router_topk8_softmax_256_text_kernel, dim3(tokens), dim3(64), 0,
+        nullptr, static_cast<const __hip_bfloat16*>(logits),
+        static_cast<float*>(scores),
+        static_cast<std::int64_t*>(indices_i64),
+        static_cast<std::int32_t*>(indices_i32), weights,
+        weights_are_bfloat16);
+    check_hip(hipGetLastError(),
+              "router_topk8_softmax_256_text_kernel");
+  }
 }
 
 void launch_dispatch(const void* indices_i32, void* sorted_token_ids,
@@ -922,7 +1031,8 @@ NativeMoePrefillOracleResult probe_native_q8192_moe_prefill_layer0_oracle(
   launch_router(router_logits, router_scores,
                 router_indices_i64,
                 router_indices_i32, topk_weights,
-                router_weights_are_bfloat16, tokens);
+                router_weights_are_bfloat16,
+                options.use_vl_router_semantics, tokens);
   ++result.layer.native_router_launches;
   if (options.synchronize_substages) {
     check_hip(hipDeviceSynchronize(),

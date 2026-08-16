@@ -55,6 +55,10 @@ struct NativeMoePrefillOracleOptions {
   bool run_routing_diagnostic = true;
   bool collect_oracle_comparisons = true;
   bool synchronize_substages = false;
+  // The VL chain follows current vLLM's 256-way softmax and wave32 top-k
+  // rounding. False preserves the frozen text product's serial selection and
+  // selected-logit softmax order while honoring the captured weight ABI.
+  bool use_vl_router_semantics = false;
   NativeQ8192PrefillGemmPlans* gemm_plans = nullptr;
   // A padded q1024 VL request may use a logical-M router plan for its active
   // prefix while retaining the bucket plans for every other MoE projection.

@@ -299,6 +299,7 @@ Execution execute_layer0(
   linear_options.sequence_oracle_dir = diagnostic_oracle_dir;
   aima::NativeMoePrefillOracleOptions moe_options;
   moe_options.layer_index = 0;
+  moe_options.use_vl_router_semantics = true;
   moe_options.active_tokens = 0;
   moe_options.comparison_tokens = prompt_tokens;
   moe_options.seed_post_attention = false;
@@ -354,6 +355,7 @@ Execution execute_layer0(
   if (!diagnostic_oracle_dir.empty()) {
     aima::NativeMoePrefillOracleOptions seeded_moe_options;
     seeded_moe_options.layer_index = 0;
+    seeded_moe_options.use_vl_router_semantics = true;
     seeded_moe_options.active_tokens = 0;
     seeded_moe_options.comparison_tokens = prompt_tokens;
     seeded_moe_options.seed_post_attention = true;

@@ -144,6 +144,7 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         self.assertIn('"fla_beta_full_sequence"', probe)
         self.assertIn('"diagnostic-conv"', linear_source)
         self.assertIn("std::size_t active_tokens = 0", moe_header)
+        self.assertIn("bool use_vl_router_semantics = false", moe_header)
         self.assertIn("std::size_t active_tokens = 0", linear_header)
         self.assertIn('"num_valid_tokens"', moe_source)
         self.assertIn("tokens > bucket_tokens", moe_source)
@@ -170,6 +171,14 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         self.assertIn(
             "attention_options.use_vl_rmsnorm_semantics = true",
             layer3_probe,
+        )
+        self.assertIn("moe_options.use_vl_router_semantics = true", probe)
+        self.assertIn(
+            "moe_options.use_vl_router_semantics = vl_input != nullptr",
+            resident_source,
+        )
+        self.assertIn(
+            "moe_options.use_vl_router_semantics = true", layer3_probe
         )
         self.assertIn("merge_16x16_to_64x64_inverse_kernel", linear_source)
         self.assertIn("launch_prefill_rmsnorm_2048(", linear_source)
@@ -319,6 +328,15 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         self.assertIn("static_cast<float*>(weights)[base + rank] = weight", router)
         self.assertIn(
             "router_topk8_softmax_256_kernel, dim3(tokens), dim3(32)",
+            moe_source,
+        )
+        self.assertIn(
+            "__global__ void router_topk8_softmax_256_text_kernel(",
+            moe_source,
+        )
+        self.assertIn("if (use_vl_router_semantics)", moe_source)
+        self.assertIn(
+            "router_topk8_softmax_256_text_kernel, dim3(tokens), dim3(64)",
             moe_source,
         )
 
