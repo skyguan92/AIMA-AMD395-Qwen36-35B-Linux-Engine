@@ -45,6 +45,8 @@ def perfect_content(contract: dict) -> str:
     for criterion in contract["rubric"]:
         if "any_of" in criterion:
             phrases.append(criterion["any_of"][0])
+        elif "all_of" in criterion:
+            phrases.extend(group[0] for group in criterion["all_of"])
         else:
             phrases.extend(group[0] for group in criterion["ordered_any_of"])
     return ". ".join(phrases)
@@ -77,11 +79,20 @@ class VlTaskQualityTest(unittest.TestCase):
                 "id": "blue_then_green",
                 "ordered_any_of": (("blue",), ("green",)),
             },
+            {
+                "id": "three_green_circles",
+                "all_of": (("three", "3"), ("green",), ("circles",)),
+            },
         )
-        score = score_text("A bright blue circle turns green on the right.", rubric)
-        self.assertEqual(score["earned_points"], 2)
-        boundary_score = score_text("A bright blue circle turns green.", rubric)
-        self.assertEqual(boundary_score["earned_points"], 1)
+        score = score_text(
+            "A bright blue circle turns green on the right; three green circles remain.",
+            rubric,
+        )
+        self.assertEqual(score["earned_points"], 3)
+        boundary_score = score_text(
+            "A bright blue circle turns green; three green circles remain.", rubric
+        )
+        self.assertEqual(boundary_score["earned_points"], 2)
         reversed_score = score_text(
             "The green circle was blue earlier and moves left.", rubric
         )
@@ -221,9 +232,6 @@ class VlTaskQualityTest(unittest.TestCase):
         width, height = module.VIDEO_SIZE
         self.assertTrue(all(0 <= x < width and 0 <= y < height for x, y in points))
         self.assertLess(min(y for _, y in points), height // 4)
-        label_width, label_height = module.pixel_text_dimensions("AIMA 395", 10)
-        self.assertLessEqual(42 + label_width, module.IMAGE_SIZE[0])
-        self.assertLessEqual(157 + label_height, module.IMAGE_SIZE[1])
 
 
 if __name__ == "__main__":

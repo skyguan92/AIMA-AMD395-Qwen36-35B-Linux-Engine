@@ -49,17 +49,6 @@ COLORS = {
     "purple": (130, 55, 190),
 }
 
-PIXEL_FONT = {
-    " ": ("00000",) * 7,
-    "A": ("01110", "10001", "10001", "11111", "10001", "10001", "10001"),
-    "I": ("11111", "00100", "00100", "00100", "00100", "00100", "11111"),
-    "M": ("10001", "11011", "10101", "10101", "10001", "10001", "10001"),
-    "3": ("11110", "00001", "00001", "01110", "00001", "00001", "11110"),
-    "5": ("11111", "10000", "10000", "11110", "00001", "00001", "11110"),
-    "9": ("01110", "10001", "10001", "01111", "00001", "00001", "11110"),
-}
-
-
 def pillow_modules():
     try:
         from PIL import Image, ImageDraw
@@ -117,35 +106,6 @@ def arrow_points(size: tuple[int, int], direction: str) -> list[tuple[int, int]]
     raise ValueError(f"unsupported arrow direction: {direction}")
 
 
-def draw_pixel_text(
-    draw: Any,
-    text: str,
-    *,
-    origin: tuple[int, int],
-    scale: int,
-) -> None:
-    cursor_x, cursor_y = origin
-    for character in text:
-        glyph = PIXEL_FONT[character]
-        for row, bits in enumerate(glyph):
-            for column, bit in enumerate(bits):
-                if bit != "1":
-                    continue
-                left = cursor_x + column * scale
-                top = cursor_y + row * scale
-                draw.rectangle(
-                    (left, top, left + scale - 1, top + scale - 1),
-                    fill=COLORS["black"],
-                )
-        cursor_x += 6 * scale
-
-
-def pixel_text_dimensions(text: str, scale: int) -> tuple[int, int]:
-    if not text or scale <= 0:
-        raise ValueError("pixel text and scale must be nonempty and positive")
-    return (len(text) * 6 - 1) * scale, 7 * scale
-
-
 def save_png(path: Path, render: Callable[[Any], None]) -> None:
     image, draw = new_canvas(IMAGE_SIZE)
     render(draw)
@@ -176,9 +136,11 @@ def generate_images(root: Path) -> list[dict[str, Any]]:
             ),
         ),
         (
-            "image-text-aima-395.png",
-            lambda draw: draw_pixel_text(
-                draw, "AIMA 395", origin=(42, 157), scale=10
+            "image-quadrant-red-circle.png",
+            lambda draw: (
+                draw.line((256, 20, 256, 364), fill=(80, 80, 80), width=6),
+                draw.line((20, 192, 492, 192), fill=(80, 80, 80), width=6),
+                draw_circle(draw, (390, 105), 50, "red"),
             ),
         ),
         (

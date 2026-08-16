@@ -23,7 +23,7 @@ REFERENCE_SCHEMA = "aima-amd395-qwen36/vl-task-quality-reference/v1"
 NATIVE_SCHEMA = "aima-amd395-qwen36/native-vl-task-quality/v1"
 FIXTURE_SCHEMA = "aima-amd395-qwen36/vl-task-quality-fixtures/v1"
 SERVED_MODEL_SENTINEL = "${AIMA_SERVED_MODEL}"
-MAX_TOKENS = 64
+MAX_TOKENS = 192
 EOS_TOKEN_ID = 248_046
 MIN_REFERENCE_CASE_SCORE_MILLIONTHS = 500_000
 MIN_REFERENCE_MODALITY_SCORE_MILLIONTHS = 850_000
@@ -73,33 +73,39 @@ TASK_CASES: tuple[dict[str, Any], ...] = (
         "rubric": (
             {
                 "id": "three_green_circles",
-                "any_of": (
-                    "three green circles",
-                    "3 green circles",
-                    "three circles",
-                    "3 circles",
+                "all_of": (
+                    ("three", "3"),
+                    ("green",),
+                    ("circle", "circles"),
                 ),
             },
             {
                 "id": "two_red_squares",
-                "any_of": (
-                    "two red squares",
-                    "2 red squares",
-                    "two squares",
-                    "2 squares",
+                "all_of": (
+                    ("two", "2"),
+                    ("red",),
+                    ("square", "squares"),
                 ),
             },
         ),
     },
     {
-        "case_id": "image_read_aima_395",
+        "case_id": "image_red_circle_top_right_quadrant",
         "modality": "image",
-        "fixture": "image-text-aima-395.png",
-        "prompt": "Read the exact large label in the image. Preserve the word and number.",
+        "fixture": "image-quadrant-red-circle.png",
+        "prompt": (
+            "Which quadrant contains the red circle? Answer with one of the "
+            "four standard quadrant names."
+        ),
         "rubric": (
             {
-                "id": "aima_395",
-                "any_of": ("aima 395", "aima-395", "aima395"),
+                "id": "top_right",
+                "any_of": (
+                    "top-right",
+                    "top right",
+                    "upper-right",
+                    "upper right",
+                ),
             },
         ),
     },
@@ -368,8 +374,25 @@ def _criterion_passed(text: str, criterion: Mapping[str, Any]) -> bool:
             isinstance(phrase, str) and _phrase_span(text, phrase) is not None
             for phrase in alternatives
         )
+    required_groups = criterion.get("all_of")
+    if isinstance(required_groups, Sequence) and not isinstance(
+        required_groups, str
+    ):
+        return bool(required_groups) and all(
+            isinstance(group, Sequence)
+            and not isinstance(group, str)
+            and bool(group)
+            and any(
+                isinstance(phrase, str)
+                and _phrase_span(text, phrase) is not None
+                for phrase in group
+            )
+            for group in required_groups
+        )
     ordered = criterion.get("ordered_any_of")
     if not isinstance(ordered, Sequence) or isinstance(ordered, str):
+        return False
+    if not ordered:
         return False
     cursor = 0
     for group in ordered:
@@ -397,7 +420,11 @@ def score_text(content: str, rubric: Sequence[Mapping[str, Any]]) -> dict[str, A
         criterion_id = criterion.get("id")
         if not isinstance(criterion_id, str) or not criterion_id:
             raise ValueError("task-quality criterion requires an id")
-        if ("any_of" in criterion) == ("ordered_any_of" in criterion):
+        matcher_count = sum(
+            name in criterion
+            for name in ("any_of", "all_of", "ordered_any_of")
+        )
+        if matcher_count != 1:
             raise ValueError("task-quality criterion requires exactly one matcher")
         criteria.append(
             {
