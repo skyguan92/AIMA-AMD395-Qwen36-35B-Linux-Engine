@@ -105,6 +105,16 @@ class NativeVlGenerationQualificationTest(unittest.TestCase):
                     for case_id in CASE_ORDER
                 ],
             )
+            self.assertEqual(
+                [
+                    Path(case["reference_decode_full_attention_dir"])
+                    for case in cases
+                ],
+                [
+                    (layer_root / case_id / "full-attention").resolve()
+                    for case_id in CASE_ORDER
+                ],
+            )
 
     def test_prefix_divergence_diagnostic_is_explicit_and_non_default(self) -> None:
         source = (ROOT / "native/src/native_http_server.cpp").read_text(
@@ -116,6 +126,7 @@ class NativeVlGenerationQualificationTest(unittest.TestCase):
         )
         self.assertIn("output_index=", source)
         self.assertIn("reference_decode_layer0_tail_boundary_dir", source)
+        self.assertIn("reference_decode_full_attention_dir", source)
         self.assertIn("decode_layer0_tail_boundaries", source)
 
     def test_checks_separate_setup_from_current_native_mismatch(self) -> None:

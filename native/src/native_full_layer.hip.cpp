@@ -88,7 +88,8 @@ NativeFullLayerMetrics run_native_full_layer(
     const NativeWeightStore& weights, const NativeDecodeWorkspace& workspace,
     const NativeDecodeInvocations& invocations,
     NativeDecodeExecutor& executor, NativeFullAttentionState& attention_state,
-    int cu_count, void* stream_value, bool synchronize) {
+    int cu_count, void* stream_value, bool synchronize,
+    const NativeDecodeFullAttentionObserver* attention_observer) {
   const auto& launches = invocations.launches();
   const std::size_t base = layer_index * 10;
   if (!executor.loaded() || base + 10 >= launches.size() || cu_count <= 0) {
@@ -208,6 +209,15 @@ NativeFullLayerMetrics run_native_full_layer(
   metrics.pv_splits = attention.pv_splits;
   metrics.aot_launches += attention.aot_launches;
   metrics.native_attention_launches = attention.native_kernel_launches;
+  if (attention_observer != nullptr) {
+    check_hip(hipStreamSynchronize(stream),
+              "hipStreamSynchronize native full-attention observer");
+    (*attention_observer)(
+        layer_index, cache_end, q.device_pointer, k.device_pointer, raw_v,
+        attention_state.k_cache(layer_index),
+        attention_state.v_cache(layer_index),
+        attention_state.attention_output());
+  }
   launch_full_attention_sigmoid_gate(
       attention_state.attention_output(), qkv.device_pointer,
       attention_state.gated_attention(), stream);

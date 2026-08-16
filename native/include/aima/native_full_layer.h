@@ -9,6 +9,8 @@
 #include "aima/native_weight_store.h"
 
 #include <cstddef>
+#include <cstdint>
+#include <functional>
 
 namespace aima {
 
@@ -23,11 +25,21 @@ struct NativeFullLayerMetrics {
   double wall_ms = 0.0;
 };
 
+// Qualification-only synchronous observer for one singleton decode full-
+// attention core. Product execution passes nullptr and incurs no stream
+// synchronization or device-to-host transfer.
+using NativeDecodeFullAttentionObserver = std::function<void(
+    std::size_t layer_index, std::size_t cache_end, const void* query,
+    const void* current_key, const void* current_value,
+    const void* key_cache, const void* value_cache,
+    const void* attention_output)>;
+
 NativeFullLayerMetrics run_native_full_layer(
     std::size_t layer_index, std::size_t position, std::size_t cache_end,
     const NativeWeightStore& weights, const NativeDecodeWorkspace& workspace,
     const NativeDecodeInvocations& invocations,
     NativeDecodeExecutor& executor, NativeFullAttentionState& attention_state,
-    int cu_count, void* stream = nullptr, bool synchronize = true);
+    int cu_count, void* stream = nullptr, bool synchronize = true,
+    const NativeDecodeFullAttentionObserver* attention_observer = nullptr);
 
 }  // namespace aima

@@ -136,11 +136,19 @@ float bf16_to_float(std::uint16_t bits) {
 NativeOracleComparison compare_tensor(
     const std::string& label, const std::string& dtype, const void* actual_device,
     std::size_t bytes, const std::filesystem::path& expected_path,
-    bool compare_expected_prefix = false) {
+    bool compare_expected_range = false,
+    std::size_t expected_offset_bytes = 0) {
   std::vector<unsigned char> expected = read_binary(expected_path);
-  if ((!compare_expected_prefix && expected.size() != bytes) ||
-      (compare_expected_prefix && expected.size() < bytes)) {
+  if ((!compare_expected_range &&
+       (expected_offset_bytes != 0 || expected.size() != bytes)) ||
+      (compare_expected_range &&
+       (expected_offset_bytes > expected.size() ||
+        bytes > expected.size() - expected_offset_bytes))) {
     throw std::runtime_error("native layer oracle byte count mismatch: " + label);
+  }
+  if (expected_offset_bytes != 0) {
+    expected.erase(expected.begin(),
+                   expected.begin() + expected_offset_bytes);
   }
   if (expected.size() != bytes) expected.resize(bytes);
   std::vector<unsigned char> actual(bytes);
@@ -259,6 +267,15 @@ NativeOracleComparison compare_native_oracle_tensor_prefix(
     const std::filesystem::path& expected_path) {
   return compare_tensor(label, dtype, actual_device, bytes, expected_path,
                         true);
+}
+
+NativeOracleComparison compare_native_oracle_tensor_slice(
+    const std::string& label, const std::string& dtype,
+    const void* actual_device, std::size_t bytes,
+    const std::filesystem::path& expected_path,
+    std::size_t expected_offset_bytes) {
+  return compare_tensor(label, dtype, actual_device, bytes, expected_path,
+                        true, expected_offset_bytes);
 }
 
 NativeLogitsComparison compare_native_logits_fp32(

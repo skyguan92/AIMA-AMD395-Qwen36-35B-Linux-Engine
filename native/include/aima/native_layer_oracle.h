@@ -70,6 +70,15 @@ NativeOracleComparison compare_native_oracle_tensor_prefix(
     const void* actual_device, std::size_t bytes,
     const std::filesystem::path& expected_path);
 
+// Compares a resident tensor against one byte range within a larger oracle.
+// This lets decode qualification bind the current KV row to the final live
+// row of a block-padded current-vLLM cache without creating derived fixtures.
+NativeOracleComparison compare_native_oracle_tensor_slice(
+    const std::string& label, const std::string& dtype,
+    const void* actual_device, std::size_t bytes,
+    const std::filesystem::path& expected_path,
+    std::size_t expected_offset_bytes);
+
 // Compares a complete resident FP32 vocabulary distribution to an oracle.
 // KLD is reference||actual after a full-vocabulary softmax, not a truncated
 // top-k proxy.  This helper is qualification-only and performs one D2H copy.

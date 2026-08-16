@@ -977,7 +977,8 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
   const bool has_decode_observer =
       static_cast<bool>(request.decode_layer_observer) ||
       static_cast<bool>(request.decode_linear_layer0_observer) ||
-      static_cast<bool>(request.decode_layer0_tail_observer);
+      static_cast<bool>(request.decode_layer0_tail_observer) ||
+      static_cast<bool>(request.decode_full_attention_observer);
   if (has_decode_observer !=
           request.decode_layer_observer_output_index.has_value() ||
       (request.decode_layer_observer_output_index.has_value() &&
@@ -1949,11 +1950,16 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
         observe_decode_layers && request.decode_layer0_tail_observer
             ? &request.decode_layer0_tail_observer
             : nullptr;
+    const NativeDecodeFullAttentionObserver* full_attention_observer =
+        observe_decode_layers && request.decode_full_attention_observer
+            ? &request.decode_full_attention_observer
+            : nullptr;
     const NativeDecodeRunMetrics token = run_native_decode_token(
         position, position + 1, impl_->weights, impl_->lm_head,
         impl_->decode_workspace, impl_->decode_invocations, impl_->executor,
         impl_->attention_state, impl_->cu_count, allowed_token_mask, nullptr,
-        layer_observer, linear_layer0_observer, layer0_tail_observer);
+        layer_observer, linear_layer0_observer, layer0_tail_observer,
+        full_attention_observer);
     ++metrics.decode_tokens_executed;
     metrics.decode_aot_launches += token.aot_launches;
     metrics.decode_native_launches +=

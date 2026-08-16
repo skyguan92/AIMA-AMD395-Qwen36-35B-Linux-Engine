@@ -28,6 +28,9 @@ RUNNER_HEADER = ROOT / "native/include/aima/native_decode_runner.h"
 RUNNER = ROOT / "native/src/native_decode_runner.hip.cpp"
 RESIDENT = ROOT / "native/src/native_resident_engine.hip.cpp"
 HTTP = ROOT / "native/src/native_http_server.cpp"
+FULL_LAYER_HEADER = ROOT / "native/include/aima/native_full_layer.h"
+FULL_LAYER = ROOT / "native/src/native_full_layer.hip.cpp"
+LAYER_ORACLE = ROOT / "native/src/native_layer_oracle.hip.cpp"
 
 
 class VlGenerationLayerOracleTest(unittest.TestCase):
@@ -274,11 +277,17 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
         runner = RUNNER.read_text(encoding="utf-8")
         resident = RESIDENT.read_text(encoding="utf-8")
         http = HTTP.read_text(encoding="utf-8")
+        full_header = FULL_LAYER_HEADER.read_text(encoding="utf-8")
+        full_layer = FULL_LAYER.read_text(encoding="utf-8")
+        layer_oracle = LAYER_ORACLE.read_text(encoding="utf-8")
         self.assertIn("NativeDecodeLayerObserver", header)
         self.assertIn("NativeDecodeLinearLayer0Observer", header)
+        self.assertIn("NativeDecodeFullAttentionObserver", full_header)
         self.assertIn("layer_observer = nullptr", header)
+        self.assertIn("full_attention_observer = nullptr", header)
         self.assertIn('workspace.find("rmsnorm_final_output")', runner)
         self.assertIn("(*layer_observer)(40", runner)
+        self.assertIn("full_attention_observer", runner)
         self.assertIn("decode_layer_observer_output_index", resident)
         self.assertIn('item.contains("reference_decode_boundary_dir")', http)
         self.assertIn("decode_boundary_comparisons.size() != 41", http)
@@ -286,6 +295,12 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
         self.assertIn("reference_decode_layer0_tail_boundary_dir", http)
         self.assertIn("decode_linear_layer0_observer", resident)
         self.assertIn("decode_layer0_tail_observer", resident)
+        self.assertIn("decode_full_attention_observer", resident)
+        self.assertIn("hipStreamSynchronize native full-attention observer", full_layer)
+        self.assertIn("reference_decode_full_attention_dir", http)
+        self.assertIn("compare_native_oracle_tensor_slice", http)
+        self.assertIn("expected_offset_bytes", layer_oracle)
+        self.assertIn("decode_full_attention_comparisons.size() != 6", http)
         self.assertEqual(len(NATIVE_LINEAR_ATTENTION_BOUNDARY_NAMES), 13)
         self.assertEqual(len(LAYER0_TAIL_BOUNDARY_SPECS), 15)
         tail_contract = http.split(

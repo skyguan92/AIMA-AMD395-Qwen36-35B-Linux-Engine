@@ -141,6 +141,9 @@ def build_probe_cases(
             probe_case["reference_decode_layer0_tail_boundary_dir"] = str(
                 (layer_oracle_root / case_id / "layer0-tail").resolve()
             )
+            probe_case["reference_decode_full_attention_dir"] = str(
+                (layer_oracle_root / case_id / "full-attention").resolve()
+            )
         if prefill_state_oracle_root is not None:
             state_case = state_cases.get(case_id)
             if not isinstance(state_case, dict):

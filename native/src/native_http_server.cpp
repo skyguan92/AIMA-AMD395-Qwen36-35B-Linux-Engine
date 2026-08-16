@@ -1613,6 +1613,7 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
   bool all_decode_boundaries_compared = true;
   bool all_decode_linear_boundaries_compared = true;
   bool all_decode_layer0_tail_boundaries_compared = true;
+  bool all_decode_full_attention_compared = true;
   bool all_prefill_states_compared = true;
 
   for (const Json& item : specification["cases"]) {
@@ -1721,6 +1722,35 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
       }
     } else {
       all_decode_layer0_tail_boundaries_compared = false;
+    }
+    struct ReferenceDecodeFullAttention {
+      std::filesystem::path query;
+      std::filesystem::path key_cache;
+      std::filesystem::path value_cache;
+      std::filesystem::path output;
+    };
+    std::optional<ReferenceDecodeFullAttention>
+        reference_decode_full_attention;
+    if (item.contains("reference_decode_full_attention_dir")) {
+      if (!item["reference_decode_full_attention_dir"].is_string() ||
+          item["reference_decode_full_attention_dir"]
+              .get<std::string>()
+              .empty()) {
+        throw std::runtime_error(
+            "VL generation decode full-attention directory is malformed");
+      }
+      const std::filesystem::path attention_dir =
+          std::filesystem::absolute(
+              item["reference_decode_full_attention_dir"]
+                  .get<std::string>());
+      reference_decode_full_attention = ReferenceDecodeFullAttention{
+          find_native_oracle_tensor_file(attention_dir, "query"),
+          find_native_oracle_tensor_file(attention_dir, "key_cache"),
+          find_native_oracle_tensor_file(attention_dir, "value_cache"),
+          find_native_oracle_tensor_file(attention_dir, "output"),
+      };
+    } else {
+      all_decode_full_attention_compared = false;
     }
     struct ReferencePrefillState {
       std::size_t layer_index = 0;
@@ -1881,6 +1911,57 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
                     reference_decode_layer0_tail_boundaries[boundary_index]));
           };
     }
+    std::vector<NativeOracleComparison>
+        decode_full_attention_comparisons;
+    if (reference_decode_full_attention.has_value()) {
+      decode_full_attention_comparisons.reserve(6);
+      request.decode_layer_observer_output_index = expected_prefix.size();
+      request.decode_full_attention_observer =
+          [&](std::size_t layer_index, std::size_t cache_end,
+              const void* query, const void* current_key,
+              const void* current_value, const void* key_cache,
+              const void* value_cache, const void* attention_output) {
+            if (layer_index != 3) return;
+            if (!decode_full_attention_comparisons.empty() ||
+                cache_end == 0) {
+              throw std::runtime_error(
+                  "native VL decode full-attention observer order changed");
+            }
+            constexpr std::size_t kQueryBytes =
+                16ULL * 256ULL * sizeof(std::uint16_t);
+            constexpr std::size_t kKvRowBytes =
+                2ULL * 256ULL * sizeof(std::uint16_t);
+            const std::size_t cache_bytes = cache_end * kKvRowBytes;
+            const std::size_t current_offset =
+                (cache_end - 1) * kKvRowBytes;
+            const ReferenceDecodeFullAttention& expected =
+                *reference_decode_full_attention;
+            decode_full_attention_comparisons.push_back(
+                compare_native_oracle_tensor(
+                    "query", "bfloat16", query, kQueryBytes,
+                    expected.query));
+            decode_full_attention_comparisons.push_back(
+                compare_native_oracle_tensor_slice(
+                    "current_key", "bfloat16", current_key,
+                    kKvRowBytes, expected.key_cache, current_offset));
+            decode_full_attention_comparisons.push_back(
+                compare_native_oracle_tensor_slice(
+                    "current_value", "bfloat16", current_value,
+                    kKvRowBytes, expected.value_cache, current_offset));
+            decode_full_attention_comparisons.push_back(
+                compare_native_oracle_tensor_prefix(
+                    "key_cache", "bfloat16", key_cache, cache_bytes,
+                    expected.key_cache));
+            decode_full_attention_comparisons.push_back(
+                compare_native_oracle_tensor_prefix(
+                    "value_cache", "bfloat16", value_cache, cache_bytes,
+                    expected.value_cache));
+            decode_full_attention_comparisons.push_back(
+                compare_native_oracle_tensor(
+                    "output", "bfloat16", attention_output, kQueryBytes,
+                    expected.output));
+          };
+    }
     if (parsed.named_tool_json_constraint != nullptr) {
       const auto constraint = parsed.named_tool_json_constraint;
       request.next_token_mask =
@@ -1913,6 +1994,11 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
             kDecodeLayer0TailBoundaryContracts.size()) {
       throw std::runtime_error(
           "native VL generation decode layer-0 tail capture is incomplete");
+    }
+    if (reference_decode_full_attention.has_value() &&
+        decode_full_attention_comparisons.size() != 6) {
+      throw std::runtime_error(
+          "native VL generation decode full-attention capture is incomplete");
     }
     if (metrics.output_token_ids.size() != expected_prefix.size() + 1) {
       throw std::runtime_error(
@@ -1991,6 +2077,16 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
           decode_layer0_tail_boundaries_finite &&
           boundary.finite_elements == boundary.elements;
     }
+    Json decode_full_attention = Json::array();
+    bool decode_full_attention_finite =
+        !decode_full_attention_comparisons.empty();
+    for (const NativeOracleComparison& boundary :
+         decode_full_attention_comparisons) {
+      decode_full_attention.push_back(oracle_comparison_json(boundary));
+      decode_full_attention_finite =
+          decode_full_attention_finite &&
+          boundary.finite_elements == boundary.elements;
+    }
 
     results.push_back(
         {{"case_id", case_id},
@@ -2027,6 +2123,12 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
           decode_layer0_tail_boundaries_finite},
          {"decode_layer0_tail_boundaries",
           std::move(decode_layer0_tail_boundaries)},
+         {"decode_full_attention_complete",
+          decode_full_attention_comparisons.size() == 6},
+         {"decode_full_attention_finite",
+          decode_full_attention_finite},
+         {"decode_full_attention",
+          std::move(decode_full_attention)},
          {"reference_logits",
           {{"elements", comparison.elements},
            {"exact_elements", comparison.exact_elements},
@@ -2063,6 +2165,8 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
                  all_decode_linear_boundaries_compared},
                 {"all_decode_layer0_tail_boundaries_compared",
                  all_decode_layer0_tail_boundaries_compared},
+                {"all_decode_full_attention_compared",
+                 all_decode_full_attention_compared},
                 {"all_prefill_states_compared",
                  all_prefill_states_compared},
                 {"all_native_generation_top1_exact",

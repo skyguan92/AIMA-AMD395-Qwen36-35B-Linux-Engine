@@ -182,6 +182,10 @@ struct NativeResidentRequestOptions {
   // Qualification-only layer-0 residual/post-attention/MoE observer. Keeping
   // it separate preserves the frozen linear-attention oracle component set.
   NativeDecodeLinearLayer0Observer decode_layer0_tail_observer;
+  // Qualification-only singleton full-attention observer. It shares the
+  // exact output-index target above and exposes resident cache state without
+  // introducing oracle reads into product execution.
+  NativeDecodeFullAttentionObserver decode_full_attention_observer;
 };
 
 struct NativeResidentRequestMetrics {

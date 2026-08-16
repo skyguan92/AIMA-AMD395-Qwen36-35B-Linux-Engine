@@ -187,7 +187,8 @@ NativeDecodeRunMetrics run_native_decode_token(
     int cu_count, const std::uint8_t* allowed_token_mask,
     void* stream_value, const NativeDecodeLayerObserver* layer_observer,
     const NativeDecodeLinearLayer0Observer* linear_layer0_observer,
-    const NativeDecodeLinearLayer0Observer* layer0_tail_observer) {
+    const NativeDecodeLinearLayer0Observer* layer0_tail_observer,
+    const NativeDecodeFullAttentionObserver* full_attention_observer) {
   const auto& launches = invocations.launches();
   if (launches.size() != 402 || !executor.loaded() || !lm_head.built() ||
       cu_count <= 0 ||
@@ -213,7 +214,8 @@ NativeDecodeRunMetrics run_native_decode_token(
     } else {
       const NativeFullLayerMetrics layer = run_native_full_layer(
           layer_index, position, cache_end, weights, workspace, invocations,
-          executor, attention_state, cu_count, stream, false);
+          executor, attention_state, cu_count, stream, false,
+          full_attention_observer);
       ++metrics.full_layer_count;
       metrics.aot_launches += layer.aot_launches;
       metrics.native_attention_launches += layer.native_attention_launches;
