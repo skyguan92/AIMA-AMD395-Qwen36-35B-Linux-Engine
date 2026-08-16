@@ -871,3 +871,15 @@ only. The three partial G1 coverage groups, image/video task quality, complete
 text no-regression, paired performance, portable-package, second-host, soak
 and rollback qualifications remain blocking. Therefore G1 through G5 all
 remain false.
+
+Generation attribution now binds time as well as tensor identity. Each layer
+capture writes the full-vocabulary FP32 rows for both its target output index
+and output index 1 beside the corresponding boundary tensors. Probe cases carry
+`reference_logits_output_index` and `reference_decode_output_index`; both must
+equal the expected-prefix length before model execution. This rejects an
+otherwise plausible but invalid comparison between first-decode boundaries and
+later divergence logits. The earlier cross-index diagnostic is discarded as
+evidence. A correctly aligned preliminary replay showed both output-index-1
+token pairs and all 41 language boundaries bit-exact; target-index state and
+logits still require exact-commit recapture and qualification, so no gate is
+promoted by that observation.

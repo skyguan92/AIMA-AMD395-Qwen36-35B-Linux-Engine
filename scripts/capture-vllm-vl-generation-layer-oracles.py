@@ -246,6 +246,8 @@ class InstallGenerationLayerHooks:
             "logits_prefill_calls": 0,
             "logits_decode_calls": 0,
             "captured_logits_output_index": None,
+            "first_decode_logits": None,
+            "target_logits": None,
             "target_logits_sha256": None,
             "target_logits_top1_token_id": None,
             "handles": [],
@@ -1116,10 +1118,17 @@ class InstallGenerationLayerHooks:
                 return
             state["logits_decode_calls"] += 1
             output_index = state["logits_decode_calls"] - 1
+            logits_row = logits[-1].detach().float().contiguous().cpu()
+            if (
+                output_index == FIRST_DECODE_LINEAR_OUTPUT_INDEX
+                and state["first_decode_logits"] is None
+            ):
+                state["first_decode_logits"] = logits_row
             if output_index != self.output_index:
                 return
-            target = logits[-1].detach().float().contiguous().cpu()
+            target = logits_row
             state["captured_logits_output_index"] = output_index
+            state["target_logits"] = target
             state["target_logits_sha256"] = hashlib.sha256(
                 target.numpy().tobytes(order="C")
             ).hexdigest()
@@ -1155,6 +1164,8 @@ class FinalizeGenerationLayerHooks:
         self.output_root = output_root
 
     def __call__(self, model: Any) -> dict[str, Any]:
+        import torch
+
         root = _find_model_root(model)
         state = getattr(root, STATE_ATTRIBUTE, None)
         if not isinstance(state, dict):
@@ -1265,6 +1276,13 @@ class FinalizeGenerationLayerHooks:
             raise RuntimeError(
                 "unified-attention decode singleton count is inconsistent"
             )
+        target_logits = state.get("target_logits")
+        first_decode_logits = state.get("first_decode_logits")
+        if not isinstance(target_logits, torch.Tensor) or not isinstance(
+            first_decode_logits, torch.Tensor
+        ):
+            _remove_hooks(root, state)
+            raise RuntimeError("generation logits boundary capture is incomplete")
 
         output_root = Path(self.output_root)
         case_id = state["case_id"]
@@ -1320,6 +1338,14 @@ class FinalizeGenerationLayerHooks:
             "first-decode",
             first_decode_captures,
             FIRST_DECODE_LINEAR_OUTPUT_INDEX,
+        )
+        target_logits_component = write_raw_tensor(
+            output_root, f"{case_id}/target-logits", target_logits
+        )
+        first_decode_logits_component = write_raw_tensor(
+            output_root,
+            f"{case_id}/first-decode-logits",
+            first_decode_logits,
         )
 
         def write_tensor_boundary_set(
@@ -1414,6 +1440,14 @@ class FinalizeGenerationLayerHooks:
             "target_logits_top1_token_id": state[
                 "target_logits_top1_token_id"
             ],
+            "target_logits_component": target_logits_component,
+            "first_decode_logits_output_index": (
+                FIRST_DECODE_LINEAR_OUTPUT_INDEX
+            ),
+            "first_decode_logits_top1_token_id": int(
+                torch.argmax(first_decode_logits).item()
+            ),
+            "first_decode_logits_component": first_decode_logits_component,
             "first_decode": first_decode,
             "linear_attention": linear_attention,
             "first_decode_linear_attention": first_decode_linear_attention,
@@ -1646,6 +1680,12 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
                     f"generation layer target prefix changed: {case_id}"
                 )
             record = finalization[0]
+            if record["target_logits_component"]["sha256"] != record[
+                "target_logits_sha256"
+            ]:
+                raise RuntimeError(
+                    f"generation layer target logits artifact changed: {case_id}"
+                )
             if args.diagnostic_output_index is None:
                 expected_logits_sha256 = generation_case[
                     "reference_logits"

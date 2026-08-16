@@ -89,6 +89,10 @@ class NativeVlGenerationQualificationTest(unittest.TestCase):
                 layer_cases.append(
                     {
                         "case_id": case_id,
+                        "target_output_index": target,
+                        "target_logits_component": {
+                            "path": f"{case_id}/target-logits.bin"
+                        },
                         "full_attention": {
                             "metadata": {
                                 "layer_index": (
@@ -108,6 +112,27 @@ class NativeVlGenerationQualificationTest(unittest.TestCase):
                 {"cases": layer_cases},
                 layer_root,
             )["cases"]
+            self.assertEqual(
+                [case["reference_logits_output_index"] for case in cases],
+                [
+                    CASE_CONTRACTS[case_id]["divergence_output_index"]
+                    for case_id in CASE_ORDER
+                ],
+            )
+            self.assertEqual(
+                [case["reference_decode_output_index"] for case in cases],
+                [
+                    CASE_CONTRACTS[case_id]["divergence_output_index"]
+                    for case_id in CASE_ORDER
+                ],
+            )
+            self.assertEqual(
+                [Path(case["reference_logits"]) for case in cases],
+                [
+                    (layer_root / case_id / "target-logits.bin").resolve()
+                    for case_id in CASE_ORDER
+                ],
+            )
             self.assertEqual(
                 [
                     Path(case["reference_decode_layer0_tail_boundary_dir"])
@@ -136,11 +161,27 @@ class NativeVlGenerationQualificationTest(unittest.TestCase):
                 [11, 3],
             )
 
+            layer_cases[0]["target_output_index"] += 1
+            with self.assertRaisesRegex(
+                RuntimeError, "layer oracle output index differs"
+            ):
+                self.module.build_probe_cases(
+                    {"cases": oracle_cases},
+                    root,
+                    fixture_root,
+                    {"cases": layer_cases},
+                    layer_root,
+                )
+
     def test_prefix_divergence_diagnostic_is_explicit_and_non_default(self) -> None:
         source = (ROOT / "native/src/native_http_server.cpp").read_text(
             encoding="utf-8"
         )
         self.assertIn("diagnostic_allow_prefix_divergence", source)
+        self.assertIn("reference_logits_output_index", source)
+        self.assertIn("reference_decode_output_index", source)
+        self.assertIn("reference logits output index is misaligned", source)
+        self.assertIn("decode reference output index is misaligned", source)
         self.assertIn(
             'item.value("diagnostic_allow_prefix_divergence", false)', source
         )

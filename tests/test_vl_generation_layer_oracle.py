@@ -17,7 +17,11 @@ from aima_engine.vl_generation_layer_oracle import (
     NATIVE_LINEAR_ATTENTION_BOUNDARY_NAMES,
     validate_generation_layer_oracle_manifest,
 )
-from aima_engine.vl_generation_oracle import CASE_CONTRACTS, CASE_ORDER
+from aima_engine.vl_generation_oracle import (
+    CASE_CONTRACTS,
+    CASE_ORDER,
+    MODEL_VOCABULARY_SIZE,
+)
 from aima_engine.vl_oracle import TENSOR_SCHEMA
 from aima_engine.vl_reference import file_component, seal_manifest
 
@@ -97,6 +101,23 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
 
             for case_id in CASE_ORDER:
                 contract = CASE_CONTRACTS[case_id]
+                logits_raw = b"\x00" * (MODEL_VOCABULARY_SIZE * 4)
+                logits_digest = hashlib.sha256(logits_raw).hexdigest()
+                logits_components = {}
+                for name in ("target-logits", "first-decode-logits"):
+                    relative = Path(case_id) / f"{name}.bin"
+                    path = root / relative
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_bytes(logits_raw)
+                    logits_components[name] = {
+                        "schema": TENSOR_SCHEMA,
+                        "path": relative.as_posix(),
+                        "shape": [MODEL_VOCABULARY_SIZE],
+                        "dtype": "torch.float32",
+                        "element_size": 4,
+                        "bytes": len(logits_raw),
+                        "sha256": logits_digest,
+                    }
                 components = {}
                 ledger_lines = []
                 for name in BOUNDARY_NAMES:
@@ -138,6 +159,16 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
                         "target_token_id": contract["reference_token_id"],
                         "captured_logits_output_index": contract[
                             "divergence_output_index"
+                        ],
+                        "target_logits_sha256": logits_digest,
+                        "target_logits_component": logits_components[
+                            "target-logits"
+                        ],
+                        "first_decode_logits_output_index": (
+                            FIRST_DECODE_LINEAR_OUTPUT_INDEX
+                        ),
+                        "first_decode_logits_component": logits_components[
+                            "first-decode-logits"
                         ],
                         "target_layer_decode_call": contract[
                             "divergence_output_index"
@@ -204,6 +235,19 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
                 ),
                 [],
             )
+            manifest["cases"][0]["target_logits_component"]["sha256"] = (
+                "d" * 64
+            )
+            self.assertIn(
+                "raw tensor SHA-256 mismatch: "
+                "tool_forced_image/target-logits.bin",
+                validate_generation_layer_oracle_manifest(
+                    manifest, oracle_root=root
+                ),
+            )
+            manifest["cases"][0]["target_logits_component"]["sha256"] = (
+                logits_digest
+            )
             manifest["cases"][0]["layer0_tail"]["components"][
                 "router_weights"
             ]["sha256"] = "e" * 64
@@ -231,6 +275,11 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
         self.assertIn("cloudpickle.register_pickle_by_value", source)
         self.assertIn("max_tokens=target_index + 1", source)
         self.assertIn("target_logits_sha256", source)
+        self.assertIn("target_logits_component", source)
+        self.assertIn("first_decode_logits_component", source)
+        self.assertIn("first_decode_logits_output_index", source)
+        self.assertIn('f"{case_id}/target-logits"', source)
+        self.assertIn('f"{case_id}/first-decode-logits"', source)
         self.assertIn("boundary_singleton_calls", source)
         self.assertIn("first_decode_captures", source)
         self.assertIn('"first-decode",', source)

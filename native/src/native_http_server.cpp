@@ -1628,6 +1628,8 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
         !item["expected_reference_token_id"].is_number_unsigned() ||
         !item.contains("reference_logits") ||
         !item["reference_logits"].is_string() ||
+        !item.contains("reference_logits_output_index") ||
+        !item["reference_logits_output_index"].is_number_unsigned() ||
         (item.contains("diagnostic_allow_prefix_divergence") &&
          !item["diagnostic_allow_prefix_divergence"].is_boolean())) {
       throw std::runtime_error("VL generation case is malformed");
@@ -1648,6 +1650,31 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
             "VL generation expected prefix token exceeds the vocabulary");
       }
       expected_prefix.push_back(static_cast<std::uint32_t>(value));
+    }
+    const std::size_t reference_logits_output_index =
+        item["reference_logits_output_index"].get<std::size_t>();
+    if (reference_logits_output_index != expected_prefix.size()) {
+      throw std::runtime_error(
+          "VL generation reference logits output index is misaligned");
+    }
+    const bool has_decode_references =
+        item.contains("reference_decode_boundary_dir") ||
+        item.contains("reference_decode_linear_boundary_dir") ||
+        item.contains("reference_decode_layer0_tail_boundary_dir") ||
+        item.contains("reference_decode_full_attention_dir");
+    std::optional<std::size_t> reference_decode_output_index;
+    if (has_decode_references) {
+      if (!item.contains("reference_decode_output_index") ||
+          !item["reference_decode_output_index"].is_number_unsigned()) {
+        throw std::runtime_error(
+            "VL generation decode reference output index is missing");
+      }
+      reference_decode_output_index =
+          item["reference_decode_output_index"].get<std::size_t>();
+      if (*reference_decode_output_index != expected_prefix.size()) {
+        throw std::runtime_error(
+            "VL generation decode reference output index is misaligned");
+      }
     }
     const std::uint64_t reference_token_value =
         item["expected_reference_token_id"].get<std::uint64_t>();
@@ -2293,6 +2320,11 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
          {"divergence_output_index", expected_prefix.size()},
          {"expected_prefix_token_ids", expected_prefix},
          {"expected_reference_token_id", expected_reference_token},
+         {"reference_logits_output_index", reference_logits_output_index},
+         {"reference_decode_output_index",
+          reference_decode_output_index.has_value()
+              ? Json(*reference_decode_output_index)
+              : Json(nullptr)},
          {"selected_native_token_id", selected_token},
          {"output_token_ids", metrics.output_token_ids},
          {"prefix_exact", prefix_exact},

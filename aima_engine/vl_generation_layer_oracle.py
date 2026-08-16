@@ -9,13 +9,17 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from aima_engine.vl_generation_oracle import CASE_CONTRACTS, CASE_ORDER
+from aima_engine.vl_generation_oracle import (
+    CASE_CONTRACTS,
+    CASE_ORDER,
+    MODEL_VOCABULARY_SIZE,
+)
 from aima_engine.vl_oracle import verify_raw_tensor
 from aima_engine.vl_reference import sha256_file, verify_manifest_integrity
 
 
 GENERATION_LAYER_ORACLE_SCHEMA = (
-    "aima-amd395-qwen36/vl-generation-layer-oracle/v3"
+    "aima-amd395-qwen36/vl-generation-layer-oracle/v4"
 )
 HIDDEN_SIZE = 2_048
 FIRST_DECODE_LINEAR_OUTPUT_INDEX = 1
@@ -203,6 +207,41 @@ def validate_generation_layer_oracle_manifest(
             "divergence_output_index"
         ]:
             errors.append(f"generation layer decode call changed: {case_id}")
+        if case.get("first_decode_logits_output_index") != (
+            FIRST_DECODE_LINEAR_OUTPUT_INDEX
+        ):
+            errors.append(
+                f"generation layer first-decode logits step changed: {case_id}"
+            )
+        for field, label in (
+            ("target_logits_component", "target logits"),
+            ("first_decode_logits_component", "first-decode logits"),
+        ):
+            logits_component = case.get(field)
+            if not isinstance(logits_component, dict):
+                errors.append(f"generation layer {label} are missing: {case_id}")
+                continue
+            if logits_component.get("shape") != [MODEL_VOCABULARY_SIZE]:
+                errors.append(
+                    f"generation layer {label} shape changed: {case_id}"
+                )
+            if logits_component.get("dtype") != "torch.float32":
+                errors.append(
+                    f"generation layer {label} dtype changed: {case_id}"
+                )
+            if logits_component.get("bytes") != MODEL_VOCABULARY_SIZE * 4:
+                errors.append(
+                    f"generation layer {label} byte count changed: {case_id}"
+                )
+            if oracle_root is not None:
+                errors.extend(verify_raw_tensor(logits_component, oracle_root))
+        target_logits_component = case.get("target_logits_component")
+        if (
+            isinstance(target_logits_component, dict)
+            and target_logits_component.get("sha256")
+            != case.get("target_logits_sha256")
+        ):
+            errors.append(f"generation layer target logits hash changed: {case_id}")
 
         components = case.get("components")
         if not isinstance(components, dict):

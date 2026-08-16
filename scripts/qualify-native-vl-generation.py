@@ -117,14 +117,16 @@ def build_probe_cases(
         request = materialize_request(case["request"], fixture_root)
         request["model"] = MODEL_ID
         component = case["reference_logits"]["component"]
+        component_root = oracle_root
         probe_case = {
             "case_id": case_id,
             "request": request,
             "expected_prefix_token_ids": output_ids[:target],
             "expected_reference_token_id": output_ids[target],
             "reference_logits": str(
-                (oracle_root / component["path"]).resolve()
+                (component_root / component["path"]).resolve()
             ),
+            "reference_logits_output_index": target,
         }
         if layer_oracle_root is not None:
             layer_case = layer_cases.get(case_id)
@@ -132,6 +134,18 @@ def build_probe_cases(
                 raise RuntimeError(
                     f"generation layer oracle case is missing: {case_id}"
                 )
+            if layer_case.get("target_output_index") not in (None, target):
+                raise RuntimeError(
+                    f"generation layer oracle output index differs: {case_id}"
+                )
+            layer_logits = layer_case.get("target_logits_component")
+            if isinstance(layer_logits, dict):
+                component = layer_logits
+                component_root = layer_oracle_root
+                probe_case["reference_logits"] = str(
+                    (component_root / component["path"]).resolve()
+                )
+            probe_case["reference_decode_output_index"] = target
             probe_case["reference_decode_boundary_dir"] = str(
                 (layer_oracle_root / case_id).resolve()
             )
