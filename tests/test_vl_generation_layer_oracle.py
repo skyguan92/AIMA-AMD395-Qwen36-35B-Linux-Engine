@@ -338,6 +338,8 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
         self.assertIn("--diagnostic-output-index", source)
         self.assertIn("--diagnostic-case-output-index", source)
         self.assertIn("selected_output_indices", source)
+        self.assertIn("if selected_output_indices is None:", source)
+        self.assertNotIn("if args.diagnostic_output_index is None:", source)
         self.assertIn("choices=range(2, 1024)", source)
         self.assertIn('metavar="2..1023"', source)
         self.assertIn("vl-generation-layer-diagnostic/v1", source)

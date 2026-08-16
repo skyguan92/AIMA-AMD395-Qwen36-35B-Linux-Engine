@@ -1918,7 +1918,7 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
                 raise RuntimeError(
                     f"generation layer target logits artifact changed: {case_id}"
                 )
-            if args.diagnostic_output_index is None:
+            if selected_output_indices is None:
                 expected_logits_sha256 = generation_case[
                     "reference_logits"
                 ]["component"]["sha256"]
