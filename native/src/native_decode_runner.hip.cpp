@@ -22,7 +22,7 @@ constexpr std::size_t kHidden = 2048;
 constexpr std::size_t kRotaryHalfDimension = 32;
 constexpr std::size_t kRotaryDimension = 64;
 constexpr std::size_t kMaximumPosition = 262144;
-constexpr float kRopeTheta = 1000000.0f;
+constexpr float kRopeTheta = 10000000.0f;
 
 void check_hip(hipError_t status, const char* operation) {
   if (status != hipSuccess) {
