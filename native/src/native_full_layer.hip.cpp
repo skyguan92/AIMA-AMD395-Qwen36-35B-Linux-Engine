@@ -164,6 +164,9 @@ NativeFullLayerMetrics run_native_full_layer(
   const auto& routed_moe = require_workspace(
       workspace, "native.decode.routed_output",
       kHidden * sizeof(__hip_bfloat16));
+  const auto& frozen_routed_moe = require_workspace(
+      workspace, require_argument_binding(launches[base + 9], "out"),
+      kHidden * sizeof(__hip_bfloat16));
   const auto& routed_padded = require_typed_workspace(
       workspace, "native.decode.routed_num_tokens_post_padded",
       sizeof(std::int32_t), DecodeTensorDtype::kInt32);
@@ -359,29 +362,38 @@ NativeFullLayerMetrics run_native_full_layer(
                               shared_down.device_pointer,
                               shared_scaled.device_pointer, stream);
   ++metrics.native_pointwise_launches;
-  const NativeDecodeRoutedMoeBuffers routed_buffers{
-      router_logits.device_pointer,
-      router_weights.device_pointer,
-      router_indices.device_pointer,
-      routed_padded.device_pointer,
-      routed_gate_up.device_pointer,
-      routed_activation.device_pointer,
-      routed_weighted.device_pointer,
-      routed_moe.device_pointer,
-  };
-  const NativeDecodeRoutedMoeMetrics routed_metrics =
-      run_native_decode_routed_moe(
-          post_attention_norm, router_weight.device_pointer,
-          routed_gate_up_weight.device_pointer,
-          routed_down_weight.device_pointer, routed_buffers, executor,
-          cu_count, stream);
-  metrics.aot_launches += routed_metrics.aot_launches;
-  metrics.native_projection_launches +=
-      routed_metrics.native_projection_launches;
-  metrics.native_pointwise_launches +=
-      routed_metrics.native_pointwise_launches;
+  void* routed_output = frozen_routed_moe.device_pointer;
+  if (use_mrope) {
+    const NativeDecodeRoutedMoeBuffers routed_buffers{
+        router_logits.device_pointer,
+        router_weights.device_pointer,
+        router_indices.device_pointer,
+        routed_padded.device_pointer,
+        routed_gate_up.device_pointer,
+        routed_activation.device_pointer,
+        routed_weighted.device_pointer,
+        routed_moe.device_pointer,
+    };
+    const NativeDecodeRoutedMoeMetrics routed_metrics =
+        run_native_decode_routed_moe(
+            post_attention_norm, router_weight.device_pointer,
+            routed_gate_up_weight.device_pointer,
+            routed_down_weight.device_pointer, routed_buffers, executor,
+            cu_count, stream);
+    metrics.aot_launches += routed_metrics.aot_launches;
+    metrics.native_projection_launches +=
+        routed_metrics.native_projection_launches;
+    metrics.native_pointwise_launches +=
+        routed_metrics.native_pointwise_launches;
+    routed_output = routed_moe.device_pointer;
+  } else {
+    for (std::size_t offset = 6; offset < 10; ++offset) {
+      executor.launch(launches[base + offset], stream);
+      ++metrics.aot_launches;
+    }
+  }
   launch_bf16_add_pair(
-      routed_moe.device_pointer, shared_scaled.device_pointer,
+      routed_output, shared_scaled.device_pointer,
       after_attn.device_pointer, combined_moe.device_pointer,
       output.device_pointer, kHidden, stream);
   ++metrics.native_pointwise_launches;

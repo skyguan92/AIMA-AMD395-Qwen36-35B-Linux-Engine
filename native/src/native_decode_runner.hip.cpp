@@ -256,6 +256,10 @@ NativeDecodeRunMetrics run_native_decode_token(
           .count();
   metrics.resident_state_pointer_swaps =
       invocations.swap_linear_decode_conv_state_buffers();
+  if (!use_mrope) {
+    metrics.resident_state_pointer_swaps +=
+        invocations.swap_linear_decode_recurrent_state_buffers();
+  }
   const NativeLmHeadTop1Metrics lm_head_result = run_native_lm_head_top1(
       invocations.tensor_pointer(400, "x"), weights, lm_head, workspace,
       invocations, executor, cu_count, allowed_token_mask, stream);

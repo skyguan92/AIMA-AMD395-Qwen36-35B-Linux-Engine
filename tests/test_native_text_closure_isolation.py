@@ -138,6 +138,33 @@ class NativeTextClosureIsolationTest(unittest.TestCase):
         self.assertIn("prefill_owner(segment.bucket_tokens, true)", resident)
         self.assertIn("prefill_owner(first_segment.bucket_tokens, false)", resident)
 
+    def test_text_decode_keeps_the_v151_launch_topology(self) -> None:
+        linear = (ROOT / "native/src/native_linear_layer.hip.cpp").read_text(
+            encoding="utf-8"
+        )
+        full = (ROOT / "native/src/native_full_layer.hip.cpp").read_text(
+            encoding="utf-8"
+        )
+        runner = (ROOT / "native/src/native_decode_runner.hip.cpp").read_text(
+            encoding="utf-8"
+        )
+        invocation = (
+            ROOT / "native/src/native_decode_invocation.cpp"
+        ).read_text(encoding="utf-8")
+        frozen_linear = linear.split(
+            "if (!use_current_vllm_projections)", 1
+        )[1].split("if (use_current_vllm_projections)", 1)[0]
+        self.assertIn("for (std::size_t offset = 0; offset < 4; ++offset)", frozen_linear)
+        self.assertIn("for (std::size_t offset = 6; offset < 10; ++offset)", frozen_linear)
+        self.assertIn("launch_shared_silu_multiply_v151", frozen_linear)
+        self.assertNotIn("run_native_decode_routed_moe", frozen_linear)
+        self.assertIn("void* routed_output = frozen_routed_moe.device_pointer", full)
+        self.assertIn("if (use_mrope)", full)
+        self.assertIn("for (std::size_t offset = 6; offset < 10; ++offset)", full)
+        self.assertIn("if (!use_mrope)", runner)
+        self.assertIn("swap_linear_decode_recurrent_state_buffers", runner)
+        self.assertIn("reset_linear_decode_recurrent_state_buffers", invocation)
+
 
 if __name__ == "__main__":
     unittest.main()

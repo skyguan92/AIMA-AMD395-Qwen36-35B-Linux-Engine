@@ -272,6 +272,9 @@ NativeLinearLayerMetrics run_native_linear_layer(
   const auto& routed_moe = require_workspace(
       workspace, "native.decode.routed_output",
       kHidden * sizeof(__hip_bfloat16));
+  const auto& frozen_routed_moe = require_workspace(
+      workspace, require_argument_binding(launches[base + 9], "out"),
+      kHidden * sizeof(__hip_bfloat16));
   const auto& routed_padded = require_typed_workspace(
       workspace, "native.decode.routed_num_tokens_post_padded",
       sizeof(std::int32_t), DecodeTensorDtype::kInt32);
@@ -370,6 +373,56 @@ NativeLinearLayerMetrics run_native_linear_layer(
   hipStream_t stream = static_cast<hipStream_t>(stream_value);
   NativeLinearLayerMetrics metrics;
   metrics.layer_index = layer_index;
+  if (!use_current_vllm_projections) {
+    // The text product keeps the exact v1.5.1 singleton decode topology.  The
+    // current-vLLM projection, recurrent and routed-MoE replacements below
+    // are required only for native VL arithmetic and add 250 launches per
+    // token when applied to ordinary text.
+    for (std::size_t offset = 0; offset < 4; ++offset) {
+      executor.launch(launches[base + offset], stream);
+      ++metrics.aot_launches;
+    }
+    launch_bf16_wvsplitk(
+        output_weight.device_pointer, gated.device_pointer, nullptr,
+        attention_output.device_pointer, kHidden, kLinearValue, cu_count,
+        stream);
+    ++metrics.native_projection_launches;
+    launch_bf16_add(input.device_pointer, attention_output.device_pointer,
+                    after_attn.device_pointer, kHidden, stream);
+    ++metrics.native_pointwise_launches;
+    executor.launch(launches[base + 4], stream);
+    executor.launch(launches[base + 5], stream);
+    metrics.aot_launches += 2;
+    launch_shared_silu_multiply_v151(
+        shared_input.device_pointer, activated.device_pointer, stream);
+    ++metrics.native_pointwise_launches;
+    launch_bf16_wvsplitk(
+        shared_down_weight.device_pointer, activated.device_pointer, nullptr,
+        shared_down.device_pointer, kHidden, kSharedIntermediate, cu_count,
+        stream);
+    ++metrics.native_projection_launches;
+    launch_shared_sigmoid_scale(shared_input.device_pointer,
+                                shared_down.device_pointer,
+                                shared_scaled.device_pointer, stream);
+    ++metrics.native_pointwise_launches;
+    for (std::size_t offset = 6; offset < 10; ++offset) {
+      executor.launch(launches[base + offset], stream);
+      ++metrics.aot_launches;
+    }
+    launch_bf16_add_pair(
+        frozen_routed_moe.device_pointer, shared_scaled.device_pointer,
+        after_attn.device_pointer, combined_moe.device_pointer,
+        output.device_pointer, kHidden, stream);
+    ++metrics.native_pointwise_launches;
+    if (synchronize) {
+      check_hip(hipStreamSynchronize(stream),
+                "hipStreamSynchronize frozen text linear layer");
+    }
+    metrics.wall_ms = std::chrono::duration<double, std::milli>(
+                          std::chrono::steady_clock::now() - started)
+                          .count();
+    return metrics;
+  }
   if (use_current_vllm_projections) {
     // The current GemmaRMSNorm input boundary can differ from the historical
     // decode image by one BF16 value, which then perturbs resident state.

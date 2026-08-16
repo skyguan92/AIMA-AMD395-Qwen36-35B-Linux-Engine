@@ -48,17 +48,23 @@ class NativeDecodeInvocations {
   void* tensor_pointer(std::size_t launch_index,
                        std::string_view argument_name) const;
   std::size_t swap_linear_decode_conv_state_buffers();
+  std::size_t swap_linear_decode_recurrent_state_buffers();
   // Prefill writes the canonical convolution owner while the current packed
   // recurrent kernel updates its canonical state in place. Restore only the
   // convolution pointer orientation before an unrelated resident request.
   std::size_t reset_linear_decode_conv_state_buffers();
+  std::size_t reset_linear_decode_recurrent_state_buffers();
   bool linear_decode_conv_state_buffers_swapped() const {
     return linear_conv_state_buffers_swapped_;
+  }
+  bool linear_decode_recurrent_state_buffers_swapped() const {
+    return linear_recurrent_state_buffers_swapped_;
   }
 
  private:
   std::vector<PreparedDecodeInvocation> launches_;
   bool linear_conv_state_buffers_swapped_ = false;
+  bool linear_recurrent_state_buffers_swapped_ = false;
 };
 
 }  // namespace aima

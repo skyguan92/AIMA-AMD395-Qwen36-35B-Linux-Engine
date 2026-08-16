@@ -16,6 +16,7 @@ NativeDecodeInvocationMetrics NativeDecodeInvocations::build(
     throw std::runtime_error("native decode invocations require fresh complete owners");
   }
   linear_conv_state_buffers_swapped_ = false;
+  linear_recurrent_state_buffers_swapped_ = false;
   NativeDecodeInvocationMetrics metrics;
   std::size_t launch_count = 0;
   const DecodeLaunch* schedule = native_decode_schedule(&launch_count);
@@ -160,6 +161,57 @@ std::size_t NativeDecodeInvocations::swap_linear_decode_conv_state_buffers() {
 std::size_t NativeDecodeInvocations::reset_linear_decode_conv_state_buffers() {
   return linear_conv_state_buffers_swapped_
              ? swap_linear_decode_conv_state_buffers()
+             : 0;
+}
+
+std::size_t
+NativeDecodeInvocations::swap_linear_decode_recurrent_state_buffers() {
+  if (launches_.size() != 402) {
+    throw std::runtime_error("native decode state swap requires 402 launches");
+  }
+  const auto swap_named = [](PreparedDecodeInvocation& invocation,
+                             std::string_view left,
+                             std::string_view right) {
+    std::size_t left_index = invocation.slots.size();
+    std::size_t right_index = invocation.slots.size();
+    for (std::size_t index = 0; index < invocation.launch->argument_count;
+         ++index) {
+      const DecodeArgument& argument = invocation.launch->arguments[index];
+      if (argument.kind != DecodeArgumentKind::kTensor) continue;
+      if (left == argument.name) left_index = index;
+      if (right == argument.name) right_index = index;
+    }
+    if (left_index == invocation.slots.size() ||
+        right_index == invocation.slots.size()) {
+      throw std::runtime_error("native decode state swap argument is missing");
+    }
+    std::swap(invocation.slots[left_index].device_pointer,
+              invocation.slots[right_index].device_pointer);
+  };
+
+  std::size_t swaps = 0;
+  for (std::size_t layer_index = 0; layer_index < 40; ++layer_index) {
+    const std::size_t base = layer_index * 10;
+    if (std::string(launches_[base + 1].launch->symbol) !=
+        "triton_fused_input_proj_conv_kernel") {
+      continue;
+    }
+    swap_named(launches_[base + 2], "h0", "ht");
+    ++swaps;
+  }
+  if (swaps != 30) {
+    throw std::runtime_error(
+        "native decode recurrent state swap closure is incomplete");
+  }
+  linear_recurrent_state_buffers_swapped_ =
+      !linear_recurrent_state_buffers_swapped_;
+  return swaps;
+}
+
+std::size_t
+NativeDecodeInvocations::reset_linear_decode_recurrent_state_buffers() {
+  return linear_recurrent_state_buffers_swapped_
+             ? swap_linear_decode_recurrent_state_buffers()
              : 0;
 }
 

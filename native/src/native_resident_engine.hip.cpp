@@ -1231,6 +1231,8 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
   };
   metrics.state_orientation_resets =
       impl_->decode_invocations.reset_linear_decode_conv_state_buffers();
+  metrics.state_orientation_resets +=
+      impl_->decode_invocations.reset_linear_decode_recurrent_state_buffers();
   metrics.request_state_reset_bytes =
       impl_->attention_state.clear_request_scratch();
   if (!prefix_hit && prompt_plan.aot_segments.empty()) {
