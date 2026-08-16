@@ -52,6 +52,8 @@ def main() -> int:
     # kernel identity and must match the production cache, even for q=1 decode.
     block_size = 1_056
     blocks = (args.sequence_length + block_size - 1) // block_size
+    sequence_threshold_3d = 64
+    softmax_segments = 16
 
     query = torch.randn(
         (1, query_heads, head_size), device=device, dtype=dtype
@@ -70,6 +72,23 @@ def main() -> int:
     block_table = torch.arange(blocks, device=device, dtype=torch.int32).reshape(
         1, blocks
     )
+    descale = torch.tensor(1.0, device=device).expand(1, kv_heads)
+    segment_output = torch.empty(
+        (
+            sequence_threshold_3d,
+            query_heads,
+            softmax_segments,
+            head_size,
+        ),
+        device=device,
+        dtype=torch.float32,
+    )
+    segment_max = torch.empty(
+        (sequence_threshold_3d, query_heads, softmax_segments),
+        device=device,
+        dtype=torch.float32,
+    )
+    segment_expsum = torch.empty_like(segment_max)
 
     with torch.no_grad():
         unified_attention(
@@ -87,8 +106,13 @@ def main() -> int:
             block_table,
             0.0,
             None,
-            None,
-            None,
+            descale,
+            descale,
+            sequence_threshold_3d,
+            softmax_segments,
+            segment_output,
+            segment_max,
+            segment_expsum,
         )
     torch.cuda.synchronize()
 
@@ -109,8 +133,13 @@ def main() -> int:
             block_table,
             0.0,
             None,
-            None,
-            None,
+            descale,
+            descale,
+            sequence_threshold_3d,
+            softmax_segments,
+            segment_output,
+            segment_max,
+            segment_expsum,
         )
     torch.cuda.synchronize()
 
@@ -140,6 +169,9 @@ def main() -> int:
             "head_size": head_size,
             "block_size": block_size,
             "physical_blocks": blocks,
+            "sequence_threshold_3d": sequence_threshold_3d,
+            "softmax_segments": softmax_segments,
+            "attention_path": "segmented_3d_plus_reduce",
             "softmax_scale": 1.0 / math.sqrt(head_size),
             "causal": True,
             "sliding_window": [-1, -1],

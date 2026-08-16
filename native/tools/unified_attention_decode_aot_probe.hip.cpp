@@ -31,6 +31,8 @@ constexpr std::size_t kQueryHeads = 16;
 constexpr std::size_t kKvHeads = 2;
 constexpr std::size_t kHeadSize = 256;
 constexpr std::size_t kCacheBlockTokens = 1056;
+constexpr std::size_t kSoftmaxSegments = 16;
+constexpr std::size_t kSequenceThreshold3d = 64;
 
 void check_hip(hipError_t status, const char* operation) {
   if (status != hipSuccess) {
@@ -189,21 +191,23 @@ const json& find_case(const json& manifest, const std::string& case_id) {
 }  // namespace
 
 int main(int argc, char** argv) {
-  if (argc != 6) {
+  if (argc != 7) {
     std::cerr <<
-        "usage: native-unified-attention-decode-aot-probe IMAGE "
-        "CAPTURE_MANIFEST CAPTURE_ROOT CASE_ID ATTENTION_SET\n";
+        "usage: native-unified-attention-decode-aot-probe ATTENTION_IMAGE "
+        "REDUCE_IMAGE CAPTURE_MANIFEST CAPTURE_ROOT CASE_ID ATTENTION_SET\n";
     return 2;
   }
   try {
-    const std::filesystem::path image_path =
+    const std::filesystem::path attention_image_path =
         std::filesystem::absolute(argv[1]);
-    const std::filesystem::path manifest_path =
+    const std::filesystem::path reduce_image_path =
         std::filesystem::absolute(argv[2]);
-    const std::filesystem::path capture_root =
+    const std::filesystem::path manifest_path =
         std::filesystem::absolute(argv[3]);
-    const std::string case_id = argv[4];
-    const std::string attention_set = argv[5];
+    const std::filesystem::path capture_root =
+        std::filesystem::absolute(argv[4]);
+    const std::string case_id = argv[5];
+    const std::string attention_set = argv[6];
     if (attention_set != "full_attention" &&
         attention_set != "first_decode_full_attention") {
       throw std::runtime_error(
@@ -223,6 +227,11 @@ int main(int argc, char** argv) {
         metadata.value("causal", false) != true ||
         metadata.value("softmax_scale", 0.0) != 0.0625 ||
         metadata.value("softcap", -1.0) != 0.0 ||
+        metadata.value("sequence_threshold_3d", 0ULL) !=
+            kSequenceThreshold3d ||
+        metadata.value("softmax_segments", 0ULL) != kSoftmaxSegments ||
+        metadata.value("attention_path", "") !=
+            "segmented_3d_plus_reduce" ||
         metadata.value("window_size", json::array()) !=
             json::array({-1, -1})) {
       throw std::runtime_error(
@@ -272,9 +281,26 @@ int main(int argc, char** argv) {
     const std::vector<unsigned char> query_starts = component(
         "query_starts", json::array({2}), "torch.int32",
         2 * sizeof(std::int32_t));
+    const std::vector<unsigned char> k_descale = component(
+        "k_descale", json::array({1, kKvHeads}), "torch.float32",
+        kKvHeads * sizeof(float));
+    const std::vector<unsigned char> v_descale = component(
+        "v_descale", json::array({1, kKvHeads}), "torch.float32",
+        kKvHeads * sizeof(float));
     const std::vector<unsigned char> expected_output = component(
         "output", json::array({1, kQueryHeads, kHeadSize}),
         "torch.bfloat16", query_bytes);
+    for (const std::vector<unsigned char>* values : {&k_descale, &v_descale}) {
+      for (std::size_t index = 0; index < kKvHeads; ++index) {
+        float value = 0.0F;
+        std::memcpy(&value, values->data() + index * sizeof(float),
+                    sizeof(float));
+        if (value != 1.0F) {
+          throw std::runtime_error(
+              "unified-attention captured descale changed");
+        }
+      }
+    }
 
     hipDeviceProp_t properties{};
     check_hip(hipGetDeviceProperties(&properties, 0),
@@ -290,6 +316,17 @@ int main(int argc, char** argv) {
     DeviceBuffer block_table_device(block_table.size());
     DeviceBuffer sequence_lengths_device(sequence_lengths.size());
     DeviceBuffer query_starts_device(query_starts.size());
+    DeviceBuffer k_descale_device(k_descale.size());
+    DeviceBuffer v_descale_device(v_descale.size());
+    DeviceBuffer segment_output_device(
+        kSequenceThreshold3d * kQueryHeads * kSoftmaxSegments *
+        kHeadSize * sizeof(float));
+    DeviceBuffer segment_max_device(
+        kSequenceThreshold3d * kQueryHeads * kSoftmaxSegments *
+        sizeof(float));
+    DeviceBuffer segment_expsum_device(
+        kSequenceThreshold3d * kQueryHeads * kSoftmaxSegments *
+        sizeof(float));
     DeviceBuffer output_device(expected_output.size());
     DeviceBuffer repeat_device(expected_output.size());
     upload(query, query_device);
@@ -298,20 +335,29 @@ int main(int argc, char** argv) {
     upload(block_table, block_table_device);
     upload(sequence_lengths, sequence_lengths_device);
     upload(query_starts, query_starts_device);
+    upload(k_descale, k_descale_device);
+    upload(v_descale, v_descale_device);
 
-    aima::AotKernel kernel = aima::AotKernel::from_file(
-        image_path, "kernel_unified_attention_2d");
+    aima::AotKernel attention_kernel = aima::AotKernel::from_file(
+        attention_image_path, "kernel_unified_attention_3d");
+    aima::AotKernel reduce_kernel =
+        aima::AotKernel::from_file(reduce_image_path, "reduce_segments");
     const auto launch = [&](DeviceBuffer& output) {
       void* output_pointer = output.get();
+      void* segment_output_pointer = segment_output_device.get();
+      void* segment_max_pointer = segment_max_device.get();
+      void* segment_expsum_pointer = segment_expsum_device.get();
       void* query_pointer = query_device.get();
       void* key_pointer = key_device.get();
       void* value_pointer = value_device.get();
       void* block_table_pointer = block_table_device.get();
       void* sequence_lengths_pointer = sequence_lengths_device.get();
       void* query_starts_pointer = query_starts_device.get();
+      void* k_descale_pointer = k_descale_device.get();
+      void* v_descale_pointer = v_descale_device.get();
       float scale = 0.0625F;
-      float out_scale = 1.0F;
       float softcap = 0.0F;
+      float out_scale_inverse = 1.0F;
       std::int64_t block_table_stride =
           static_cast<std::int64_t>(logical_blocks);
       std::int64_t query_stride_0 = kQueryHeads * kHeadSize;
@@ -325,15 +371,18 @@ int main(int argc, char** argv) {
       std::int64_t cache_stride_2 = kHeadSize;
       std::int32_t num_seqs = 1;
       std::int32_t zero_stride = 0;
-      std::vector<void*> parameters{
-          &output_pointer,
+      std::vector<void*> attention_parameters{
+          &segment_output_pointer,
+          &segment_max_pointer,
+          &segment_expsum_pointer,
           &query_pointer,
           &key_pointer,
           &value_pointer,
           &block_table_pointer,
           &sequence_lengths_pointer,
           &scale,
-          &out_scale,
+          &k_descale_pointer,
+          &v_descale_pointer,
           &softcap,
           &block_table_stride,
           &query_stride_0,
@@ -356,8 +405,24 @@ int main(int argc, char** argv) {
           &zero_stride,
           &zero_stride,
       };
-      kernel.launch(aima::AotLaunchConfig{1, 2, 1, 4, 32, 32768},
-                    parameters);
+      attention_kernel.launch(
+          aima::AotLaunchConfig{1, 2, 16, 4, 32, 16384},
+          attention_parameters);
+      std::vector<void*> reduce_parameters{
+          &output_pointer,
+          &segment_output_pointer,
+          &segment_max_pointer,
+          &segment_expsum_pointer,
+          &sequence_lengths_pointer,
+          &out_scale_inverse,
+          &output_stride_0,
+          &output_stride_1,
+          &block_table_stride,
+          &query_starts_pointer,
+      };
+      reduce_kernel.launch(
+          aima::AotLaunchConfig{1, 16, 1, 4, 32, 2048},
+          reduce_parameters);
     };
     launch(output_device);
     launch(repeat_device);
@@ -382,11 +447,20 @@ int main(int argc, char** argv) {
         {"sequence_length", sequence_length},
         {"logical_blocks", logical_blocks},
         {"gpu_arch", properties.gcnArchName},
-        {"image_sha256", aima::sha256_file(image_path)},
-        {"launch", {{"grid", {1, 2, 1}},
-                    {"num_warps", 4},
-                    {"warp_size", 32},
-                    {"shared_memory_bytes", 32768}}},
+        {"attention_image_sha256",
+         aima::sha256_file(attention_image_path)},
+        {"reduce_image_sha256", aima::sha256_file(reduce_image_path)},
+        {"launches",
+         {{{"symbol", "kernel_unified_attention_3d"},
+           {"grid", {1, 2, 16}},
+           {"num_warps", 4},
+           {"warp_size", 32},
+           {"shared_memory_bytes", 16384}},
+          {{"symbol", "reduce_segments"},
+           {"grid", {1, 16, 1}},
+           {"num_warps", 4},
+           {"warp_size", 32},
+           {"shared_memory_bytes", 2048}}}},
         {"comparisons", {{"output", output_comparison},
                          {"repeat_output", repeat_comparison}}},
         {"decision",

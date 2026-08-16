@@ -66,6 +66,8 @@ FULL_ATTENTION_DECODE_COMPONENT_NAMES = (
     "block_table",
     "sequence_lengths",
     "query_starts",
+    "k_descale",
+    "v_descale",
     "output",
 )
 
@@ -337,7 +339,7 @@ class InstallGenerationLayerHooks:
             expected_dtype = (
                 torch.int32
                 if name in {"block_table", "sequence_lengths", "query_starts"}
-                else torch.bfloat16
+                else (torch.float32 if name.endswith("_descale") else torch.bfloat16)
             )
             if tensor.dtype != expected_dtype:
                 raise RuntimeError(
@@ -388,6 +390,14 @@ class InstallGenerationLayerHooks:
             window_size = argument(10, "window_size")
             block_table = argument(11, "block_table")
             softcap = argument(12, "softcap")
+            q_descale = argument(13, "q_descale")
+            k_descale = argument(14, "k_descale")
+            v_descale = argument(15, "v_descale")
+            sequence_threshold_3d = argument(16, "seq_threshold_3D")
+            softmax_segments = argument(17, "num_par_softmax_segments")
+            segment_output = argument(18, "softmax_segm_output")
+            segment_max = argument(19, "softmax_segm_max")
+            segment_expsum = argument(20, "softmax_segm_expsum")
             tensors = (
                 query,
                 key_cache,
@@ -396,6 +406,11 @@ class InstallGenerationLayerHooks:
                 query_starts,
                 sequence_lengths,
                 block_table,
+                k_descale,
+                v_descale,
+                segment_output,
+                segment_max,
+                segment_expsum,
             )
             if not all(isinstance(value, torch.Tensor) for value in tensors):
                 raise RuntimeError(
@@ -411,6 +426,23 @@ class InstallGenerationLayerHooks:
                 or block_table.shape[0] != 1
                 or sequence_lengths.numel() != 1
                 or query_starts.numel() != 2
+                or q_descale is not None
+                or k_descale.shape != (1, 2)
+                or v_descale.shape != (1, 2)
+                or k_descale.dtype != torch.float32
+                or v_descale.dtype != torch.float32
+                or not isinstance(sequence_threshold_3d, int)
+                or not isinstance(softmax_segments, int)
+                or sequence_threshold_3d <= 0
+                or softmax_segments != 16
+                or segment_output.shape
+                != (sequence_threshold_3d, 16, 16, 256)
+                or segment_max.shape
+                != (sequence_threshold_3d, 16, 16)
+                or segment_expsum.shape != segment_max.shape
+                or segment_output.dtype != torch.float32
+                or segment_max.dtype != torch.float32
+                or segment_expsum.dtype != torch.float32
             ):
                 raise RuntimeError(
                     "generation unified-attention singleton geometry changed"
@@ -439,6 +471,8 @@ class InstallGenerationLayerHooks:
             capture_full_attention("block_table", identity_table)
             capture_full_attention("sequence_lengths", sequence_lengths)
             capture_full_attention("query_starts", query_starts)
+            capture_full_attention("k_descale", k_descale)
+            capture_full_attention("v_descale", v_descale)
             capture_full_attention("output", output)
             metadata = {
                 "layer_index": FULL_ATTENTION_LAYER,
@@ -454,6 +488,15 @@ class InstallGenerationLayerHooks:
                 "causal": bool(causal),
                 "window_size": [int(value) for value in window_size],
                 "softcap": float(softcap),
+                "sequence_threshold_3d": int(sequence_threshold_3d),
+                "softmax_segments": int(softmax_segments),
+                "attention_path": "segmented_3d_plus_reduce",
+                "key_cache_source_stride": [
+                    int(value) for value in key_cache.stride()
+                ],
+                "value_cache_source_stride": [
+                    int(value) for value in value_cache.stride()
+                ],
                 "physical_block_ids": [
                     int(value) for value in physical_blocks.detach().cpu().tolist()
                 ],

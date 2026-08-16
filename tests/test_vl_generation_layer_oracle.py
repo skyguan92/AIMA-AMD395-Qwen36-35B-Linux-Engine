@@ -243,6 +243,9 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
         self.assertIn('"first-decode-layer0-tail"', source)
         self.assertIn("FULL_ATTENTION_DECODE_COMPONENT_NAMES", source)
         self.assertIn("instrumented_unified_attention", source)
+        self.assertIn('"k_descale"', source)
+        self.assertIn('"v_descale"', source)
+        self.assertIn('"segmented_3d_plus_reduce"', source)
         self.assertIn('"first-decode-full-attention"', source)
         self.assertIn(
             '"two_diagnostic_layer3_unified_attention_sets_captured"',

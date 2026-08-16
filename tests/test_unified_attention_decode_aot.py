@@ -19,6 +19,10 @@ class UnifiedAttentionDecodeAotTests(unittest.TestCase):
         self.assertIn("kv_heads = 2", source)
         self.assertIn("head_size = 256", source)
         self.assertIn("block_size = 1_056", source)
+        self.assertIn("sequence_threshold_3d = 64", source)
+        self.assertIn("softmax_segments = 16", source)
+        self.assertIn("segment_output", source)
+        self.assertIn('"segmented_3d_plus_reduce"', source)
         self.assertIn("1.0 / math.sqrt(head_size)", source)
         self.assertIn("output_finite", source)
         self.assertIn("repeat_exact", source)
@@ -34,9 +38,13 @@ class UnifiedAttentionDecodeAotTests(unittest.TestCase):
         source = PROBE.read_text(encoding="utf-8")
         build = BUILD.read_text(encoding="utf-8")
         self.assertIn("kCacheBlockTokens = 1056", source)
-        self.assertIn('"kernel_unified_attention_2d"', source)
+        self.assertIn('"kernel_unified_attention_3d"', source)
+        self.assertIn('"reduce_segments"', source)
         self.assertIn(
-            "AotLaunchConfig{1, 2, 1, 4, 32, 32768}", source
+            "AotLaunchConfig{1, 2, 16, 4, 32, 16384}", source
+        )
+        self.assertIn(
+            "AotLaunchConfig{1, 16, 1, 4, 32, 2048}", source
         )
         for name in (
             "query",
@@ -45,6 +53,8 @@ class UnifiedAttentionDecodeAotTests(unittest.TestCase):
             "block_table",
             "sequence_lengths",
             "query_starts",
+            "k_descale",
+            "v_descale",
             "output",
         ):
             self.assertIn(f'"{name}"', source)
