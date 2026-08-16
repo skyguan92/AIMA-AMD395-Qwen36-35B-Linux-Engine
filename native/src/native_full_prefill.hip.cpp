@@ -617,14 +617,19 @@ NativeFullPrefillOracleResult probe_native_q8192_full_prefill_oracle(
 
   const auto started = std::chrono::steady_clock::now();
   diagnostic_stage("before_input_norm");
-  // Match the frozen eager/vLLM RMSNorm reduction and FP32 rounding used by
-  // the linear-attention layers.  The embedded Triton launch can differ by a
-  // BF16 value on accumulated multimodal residuals, which is enough to flip
-  // a downstream routed-expert set.
-  launch_prefill_rmsnorm_2048(
-      layer_input, input_norm_weight.device_pointer, normalized_input,
-      tokens);
-  ++result.layer.native_pointwise_launches;
+  if (use_mrope) {
+    // Match the frozen eager/vLLM RMSNorm reduction and FP32 rounding for the
+    // multimodal chain. The embedded Triton launch can differ by a BF16 value
+    // on accumulated multimodal residuals and flip a routed-expert set.
+    launch_prefill_rmsnorm_2048(
+        layer_input, input_norm_weight.device_pointer, normalized_input,
+        tokens);
+    ++result.layer.native_pointwise_launches;
+  } else {
+    // Scalar-position requests retain the frozen v1.5.1 text semantics.
+    executor.launch(launches[base]);
+    ++result.layer.aot_launches;
+  }
   compare_optional_tail(
       "input_last_token", layer_input, kHidden, kHidden, 0,
       "launch-000-x");
@@ -889,16 +894,18 @@ NativeFullPrefillOracleResult probe_native_q8192_full_prefill_oracle(
       "projected_attention_full_sequence", projected_attention,
       comparison_tokens * kHidden, "return-full_attention-output");
   diagnostic_stage("after_output_projection");
-  // Match the pinned eager RMSNorm boundary used by the native linear
-  // layers: round the residual sum to BF16 before the FP32 pow/mean/rsqrt
-  // reduction and the (weight + 1) multiplication. The captured Triton
-  // reduction differs by one BF16 element on the qualified image prefix,
-  // which is enough to change later routed-expert sets.
-  launch_prefill_add_rmsnorm_2048(
-      projected_attention, layer_input,
-      post_attention_norm_weight.device_pointer, after_attention,
-      post_attention_norm, tokens);
-  ++result.layer.native_pointwise_launches;
+  if (use_mrope) {
+    // Match the pinned eager VL boundary: round the residual sum to BF16
+    // before the FP32 reduction and (weight + 1) multiplication.
+    launch_prefill_add_rmsnorm_2048(
+        projected_attention, layer_input,
+        post_attention_norm_weight.device_pointer, after_attention,
+        post_attention_norm, tokens);
+    ++result.layer.native_pointwise_launches;
+  } else {
+    executor.launch(launches[base + 1]);
+    ++result.layer.aot_launches;
+  }
   if (options.collect_oracle_comparisons ||
       options.synchronize_substages) {
     check_hip(hipDeviceSynchronize(),

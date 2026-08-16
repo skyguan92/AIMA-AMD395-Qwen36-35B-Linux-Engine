@@ -154,6 +154,20 @@ void launch_linear_gated_norm_separate(
     const void* norm_weight_bf16, void* output_bf16,
     std::size_t token_count, void* stream = nullptr);
 
+// Preserves the v1.5.1 text product's PyTorch fallback reduction and the BF16
+// boundary between RMSNorm and SiLU. These are deliberately separate entry
+// points so VL probes cannot silently replace the frozen text arithmetic.
+void launch_linear_gated_norm_fused_v151(
+    const void* core_bf16, const void* fused_input_bf16,
+    const void* norm_weight_bf16, void* output_bf16,
+    std::size_t token_count, std::size_t fused_row_stride = 12352,
+    void* stream = nullptr);
+
+void launch_linear_gated_norm_separate_v151(
+    const void* core_bf16, const void* gate_bf16,
+    const void* norm_weight_bf16, void* output_bf16,
+    std::size_t token_count, void* stream = nullptr);
+
 // Qualification-only mirror of the frozen PyTorch contiguous-width-128
 // `pow(2).mean(-1)` reduction. The output is one FP32 variance per row.
 void launch_bf16_rowwise_variance_128_pytorch(

@@ -243,6 +243,8 @@ probe_native_q8192_linear_prefill_layer0_oracle(
   const auto& launches = invocations.launches();
   const bool q8192_schedule = bucket_tokens == 8192;
   const bool q1024_official_fla = bucket_tokens == 1024;
+  const bool use_vl_rmsnorm =
+      q1024_official_fla && options.use_vl_rmsnorm_semantics;
   const bool split_projection_tail =
       !q8192_schedule && launches.size() > 1 &&
       launches[1].launch != nullptr &&
@@ -625,7 +627,7 @@ probe_native_q8192_linear_prefill_layer0_oracle(
            : fused_plan->workspace_bytes());
 
   const auto started = std::chrono::steady_clock::now();
-  if (q1024_official_fla) {
+  if (use_vl_rmsnorm) {
     launch_prefill_rmsnorm_2048(
         x, input_norm_weight.device_pointer, h1, tokens);
     ++result.layer.native_pointwise_launches;
@@ -1054,16 +1056,26 @@ probe_native_q8192_linear_prefill_layer0_oracle(
     ++result.layer.native_pointwise_launches;
     executor.launch(launches[base + 9]);
   } else if (split_projection_tail) {
-    launch_linear_gated_norm_separate(
-        core, z, linear_norm_weight.device_pointer, gated, tokens);
+    if (options.use_vl_rmsnorm_semantics) {
+      launch_linear_gated_norm_separate(
+          core, z, linear_norm_weight.device_pointer, gated, tokens);
+    } else {
+      launch_linear_gated_norm_separate_v151(
+          core, z, linear_norm_weight.device_pointer, gated, tokens);
+    }
     ++result.layer.native_pointwise_launches;
     compare_optional_stage_tail(
         "linear_gated_output_last_token", "bfloat16", gated,
         kLinearValue, kLinearValue,
         "return-linear_attention-gated_out");
   } else {
-    launch_linear_gated_norm_fused(
-        core, qkv, linear_norm_weight.device_pointer, gated, tokens);
+    if (options.use_vl_rmsnorm_semantics) {
+      launch_linear_gated_norm_fused(
+          core, qkv, linear_norm_weight.device_pointer, gated, tokens);
+    } else {
+      launch_linear_gated_norm_fused_v151(
+          core, qkv, linear_norm_weight.device_pointer, gated, tokens);
+    }
     ++result.layer.native_pointwise_launches;
     compare_optional_stage_tail(
         "linear_gated_output_last_token", "bfloat16", gated,
@@ -1116,7 +1128,7 @@ probe_native_q8192_linear_prefill_layer0_oracle(
         "attention_output_last_token", attention_output,
         (residual_launch_prefix + "residual").c_str());
   }
-  if (q1024_official_fla) {
+  if (use_vl_rmsnorm) {
     launch_prefill_add_rmsnorm_2048(
         attention_output, x, post_attention_norm_weight.device_pointer,
         after_attention, h2, tokens);
@@ -1131,7 +1143,7 @@ probe_native_q8192_linear_prefill_layer0_oracle(
       "post_attention_norm_full_sequence", h2, kHidden,
       (residual_launch_prefix + "norm_out").c_str());
   result.layer.aot_launches =
-      attention_launches - (q1024_official_fla ? 2 : 0);
+      attention_launches - (use_vl_rmsnorm ? 2 : 0);
   if (options.collect_oracle_comparisons || !tail_fixture.empty()) {
     check_hip(hipDeviceSynchronize(),
               "hipDeviceSynchronize native linear prefill oracle");

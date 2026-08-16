@@ -155,13 +155,30 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         self.assertIn("build-native-vl-language-layer0-probe", makefile)
 
         self.assertIn("const bool q1024_official_fla", linear_source)
+        self.assertIn("bool use_vl_rmsnorm_semantics = false", linear_header)
+        self.assertIn(
+            "q1024_official_fla && options.use_vl_rmsnorm_semantics",
+            linear_source,
+        )
+        self.assertIn(
+            "attention_options.use_vl_rmsnorm_semantics = vl_input != nullptr",
+            resident_source,
+        )
+        self.assertIn(
+            "linear_options.use_vl_rmsnorm_semantics = true", probe
+        )
+        self.assertIn(
+            "attention_options.use_vl_rmsnorm_semantics = true",
+            layer3_probe,
+        )
         self.assertIn("merge_16x16_to_64x64_inverse_kernel", linear_source)
         self.assertIn("launch_prefill_rmsnorm_2048(", linear_source)
         self.assertIn("launch_prefill_add_rmsnorm_2048(", linear_source)
         self.assertIn("launch_prefill_rmsnorm_2048(", full_source)
         self.assertIn("launch_prefill_add_rmsnorm_2048(", full_source)
-        self.assertNotIn("executor.launch(launches[base]);", full_source)
-        self.assertNotIn("executor.launch(launches[base + 1]);", full_source)
+        self.assertIn("if (use_mrope) {", full_source)
+        self.assertIn("executor.launch(launches[base]);", full_source)
+        self.assertIn("executor.launch(launches[base + 1]);", full_source)
         self.assertIn("std::size_t active_tokens = 0", full_header)
         self.assertIn("attention_options.active_tokens", resident_source)
         self.assertIn(
@@ -253,6 +270,18 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         self.assertIn("rsqrtf(fmaf(square_sum", gated_norm)
         self.assertIn("exp2f(-gate_value", gated_norm)
         self.assertNotIn("pytorch_rounded_rsqrtf", gated_norm)
+        self.assertIn(
+            "__global__ void linear_gated_norm_v151_kernel(",
+            pointwise_source,
+        )
+        self.assertIn(
+            "const __hip_bfloat16 normalized = __float2bfloat16(",
+            pointwise_source,
+        )
+        self.assertIn("launch_linear_gated_norm_fused_v151(", linear_source)
+        self.assertIn(
+            "launch_linear_gated_norm_separate_v151(", linear_source
+        )
 
         shared_activation = moe_source.split(
             "__global__ void shared_silu_multiply_batched_kernel(", 1

@@ -642,6 +642,58 @@ __global__ void extract_linear_ab_fused_kernel(
   }
 }
 
+__global__ void linear_gated_norm_v151_kernel(
+    const __hip_bfloat16* core, const __hip_bfloat16* gate_storage,
+    const __hip_bfloat16* weight, __hip_bfloat16* output,
+    std::size_t gate_row_stride, std::size_t gate_offset) {
+  // Exact source-level preservation of the frozen v1.5.1 PyTorch fallback:
+  // 32x16 workgroup, four contiguous values per lane, ascending-offset wave
+  // reduction, separately rounded rsqrt, then a BF16 RMSNorm output before
+  // the SiLU product.
+  __shared__ volatile float row_statistic[16];
+  const unsigned lane = threadIdx.x;
+  const unsigned row_in_block = threadIdx.y;
+  const std::size_t row = blockIdx.x * blockDim.y + row_in_block;
+  const std::size_t token = row / 32;
+  const std::size_t head = row - token * 32;
+  const std::size_t index = row * kInvstdWidth + lane * 4;
+  const float value0 = __bfloat162float(core[index]);
+  const float value1 = __bfloat162float(core[index + 1]);
+  const float value2 = __bfloat162float(core[index + 2]);
+  const float value3 = __bfloat162float(core[index + 3]);
+  float square_sum = value0 * value0;
+  square_sum += value1 * value1;
+  square_sum += value2 * value2;
+  square_sum += value3 * value3;
+  for (unsigned offset = 1; offset < 32; offset <<= 1) {
+    square_sum += __shfl_down(square_sum, offset);
+  }
+  if (lane == 0) {
+    row_statistic[row_in_block] = square_sum * (1.0f / 128.0f);
+  }
+  __syncthreads();
+  if (lane == 0) {
+    const float variance = row_statistic[row_in_block];
+    row_statistic[row_in_block] =
+        pytorch_rounded_rsqrtf(variance + 1.0e-6f);
+  }
+  __syncthreads();
+  const float row_inverse_rms = row_statistic[row_in_block];
+#pragma unroll
+  for (unsigned element = 0; element < 4; ++element) {
+    const unsigned dimension = lane * 4 + element;
+    const float value = __bfloat162float(core[index + element]);
+    const __hip_bfloat16 normalized = __float2bfloat16(
+        value * row_inverse_rms * __bfloat162float(weight[dimension]));
+    const float gate_value = __bfloat162float(
+        gate_storage[token * gate_row_stride + gate_offset +
+                     head * kInvstdWidth + dimension]);
+    const float silu = gate_value / (1.0f + expf(-gate_value));
+    output[index + element] =
+        __float2bfloat16(__bfloat162float(normalized) * silu);
+  }
+}
+
 __global__ void linear_gated_norm_fused_kernel(
     const __hip_bfloat16* core, const __hip_bfloat16* gate_storage,
     const __hip_bfloat16* weight, __hip_bfloat16* output,
@@ -1161,6 +1213,48 @@ void launch_linear_gated_norm_separate(
       static_cast<const __hip_bfloat16*>(norm_weight_bf16),
       static_cast<__hip_bfloat16*>(output_bf16), 4096, 0);
   check_hip(hipGetLastError(), "linear_gated_norm_separate_kernel");
+}
+
+void launch_linear_gated_norm_fused_v151(
+    const void* core_bf16, const void* fused_input_bf16,
+    const void* norm_weight_bf16, void* output_bf16,
+    std::size_t token_count, std::size_t fused_row_stride,
+    void* stream_value) {
+  if (core_bf16 == nullptr || fused_input_bf16 == nullptr ||
+      norm_weight_bf16 == nullptr || output_bf16 == nullptr ||
+      token_count == 0 || token_count > kMaxPrefillTokens ||
+      fused_row_stride < 12352) {
+    throw std::invalid_argument(
+        "v1.5.1 fused linear gated norm geometry is invalid");
+  }
+  hipLaunchKernelGGL(
+      linear_gated_norm_v151_kernel, dim3(token_count * 2), dim3(32, 16), 0,
+      static_cast<hipStream_t>(stream_value),
+      static_cast<const __hip_bfloat16*>(core_bf16),
+      static_cast<const __hip_bfloat16*>(fused_input_bf16),
+      static_cast<const __hip_bfloat16*>(norm_weight_bf16),
+      static_cast<__hip_bfloat16*>(output_bf16), fused_row_stride, 8192);
+  check_hip(hipGetLastError(), "linear_gated_norm_v151_fused_kernel");
+}
+
+void launch_linear_gated_norm_separate_v151(
+    const void* core_bf16, const void* gate_bf16,
+    const void* norm_weight_bf16, void* output_bf16,
+    std::size_t token_count, void* stream_value) {
+  if (core_bf16 == nullptr || gate_bf16 == nullptr ||
+      norm_weight_bf16 == nullptr || output_bf16 == nullptr ||
+      token_count == 0 || token_count > kMaxPrefillTokens) {
+    throw std::invalid_argument(
+        "v1.5.1 separate linear gated norm geometry is invalid");
+  }
+  hipLaunchKernelGGL(
+      linear_gated_norm_v151_kernel, dim3(token_count * 2), dim3(32, 16), 0,
+      static_cast<hipStream_t>(stream_value),
+      static_cast<const __hip_bfloat16*>(core_bf16),
+      static_cast<const __hip_bfloat16*>(gate_bf16),
+      static_cast<const __hip_bfloat16*>(norm_weight_bf16),
+      static_cast<__hip_bfloat16*>(output_bf16), 4096, 0);
+  check_hip(hipGetLastError(), "linear_gated_norm_v151_separate_kernel");
 }
 
 void launch_bf16_rowwise_variance_128_pytorch(

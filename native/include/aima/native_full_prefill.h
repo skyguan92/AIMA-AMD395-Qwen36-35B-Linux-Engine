@@ -150,10 +150,10 @@ struct NativeFullPrefillOracleResult {
 };
 
 // Executes the complete attention half of one q8192 full-attention layer:
-// captured RMSNorm, three native BF16 projection GEMMs, native head
-// RMSNorm+RoPE, either the admitted text FMHA provider or exact embedded vLLM
-// VL unified attention, native gate, native BF16 output projection, and
-// captured fused residual+RMSNorm.
+// the frozen AOT text RMSNorms or explicitly selected native VL RMSNorms,
+// three native BF16 projection GEMMs, native head RMSNorm+RoPE, either the
+// admitted text FMHA provider or exact embedded vLLM VL unified attention,
+// native gate, native BF16 output projection, and the matching residual norm.
 // Oracle reads and the optional entry seed are qualification-only.
 NativeFullPrefillOracleResult probe_native_q8192_full_prefill_oracle(
     const std::filesystem::path& oracle_dir,

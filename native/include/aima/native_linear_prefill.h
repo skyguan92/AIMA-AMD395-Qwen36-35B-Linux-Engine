@@ -52,6 +52,10 @@ struct NativeLinearPrefillOracleOptions {
   // boundary without changing the text-only, wider-VL or later-layer paths.
   // Zero disables the override.
   std::size_t exact_b_projection_tokens = 0;
+  // The qualified short-VL chain matches eager/vLLM RMSNorm rounding with
+  // native pointwise kernels. Keep this opt-in: false preserves the frozen
+  // v1.5.1 text path and its embedded AOT RMSNorm launches.
+  bool use_vl_rmsnorm_semantics = false;
   bool seed_layer_input = true;
   // Qualification-only ledgers may name a preceding layer output instead of
   // a standalone launch-000 input.  Product execution never reads this.
@@ -118,8 +122,9 @@ struct NativeLinearPrefillStateRepairMetrics {
 
 // Executes the complete attention half of one linear-attention layer for the
 // qualified q8192
-// shape: RMSNorm, four input projections, causal convolution, FLA chunk GDN,
-// gated norm, output projection, residual add, and the post-attention RMSNorm.
+// shape: the frozen AOT text RMSNorms or explicitly selected q1024 VL
+// RMSNorms, four input projections, causal convolution, FLA chunk GDN, gated
+// norm, output projection, residual add, and the post-attention RMSNorm.
 // The oracle directory is a qualification fixture and is not a runtime input.
 NativeLinearPrefillOracleResult
 probe_native_q8192_linear_prefill_layer0_oracle(

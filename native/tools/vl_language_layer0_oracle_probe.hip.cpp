@@ -282,6 +282,7 @@ Execution execute_layer0(
 
   aima::NativeLinearPrefillOracleOptions linear_options;
   linear_options.layer_index = 0;
+  linear_options.use_vl_rmsnorm_semantics = true;
   linear_options.active_tokens = 0;
   linear_options.comparison_tokens = prompt_tokens;
   linear_options.exact_b_projection_tokens =

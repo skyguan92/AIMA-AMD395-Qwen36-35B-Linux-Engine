@@ -428,6 +428,7 @@ Execution execute_layers_0_through_3(
   for (std::size_t layer_index = 0; layer_index < 3; ++layer_index) {
     aima::NativeLinearPrefillOracleOptions attention_options;
     attention_options.layer_index = layer_index;
+    attention_options.use_vl_rmsnorm_semantics = true;
     attention_options.comparison_tokens = prompt_tokens;
     attention_options.exact_b_projection_tokens =
         layer_index == 0 && prompt_tokens <= 64 ? prompt_tokens : 0;
@@ -696,6 +697,7 @@ FullLanguageExecution execute_full_language(
     } else {
       aima::NativeLinearPrefillOracleOptions attention_options;
       attention_options.layer_index = layer_index;
+      attention_options.use_vl_rmsnorm_semantics = true;
       attention_options.comparison_tokens = prompt_tokens;
       attention_options.exact_b_projection_tokens =
           layer_index == 0 && prompt_tokens <= 64 ? prompt_tokens : 0;
@@ -955,6 +957,7 @@ json qualify_case(
   // propagation before the MoE amplification check below.
   aima::NativeLinearPrefillOracleOptions attention_diagnostic_options;
   attention_diagnostic_options.layer_index = 1;
+  attention_diagnostic_options.use_vl_rmsnorm_semantics = true;
   attention_diagnostic_options.comparison_tokens = prompt_tokens;
   attention_diagnostic_options.seed_layer_input = true;
   attention_diagnostic_options.layer_input_oracle_label =

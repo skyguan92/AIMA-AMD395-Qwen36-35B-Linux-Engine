@@ -1652,6 +1652,7 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
           }
           NativeLinearPrefillOracleOptions attention_options;
           attention_options.layer_index = layer_index;
+          attention_options.use_vl_rmsnorm_semantics = vl_input != nullptr;
           attention_options.seed_layer_input = false;
           attention_options.run_output_projection_diagnostic = false;
           attention_options.collect_oracle_comparisons = false;
