@@ -196,9 +196,9 @@ __global__ void singleton_rmsnorm_2048_kernel(
   partials[lane] = sum;
 
   // ATen's singleton [1, 2048] reduction vectorizes the input across one
-  // 512-thread block. Reduce its eight AMD wavefronts through shared memory,
-  // then preserve ROCm's ascending-offset shuffle tree inside wavefront 0.
-  for (unsigned offset = kBlockThreads / 2; offset >= 64; offset >>= 1) {
+  // 512-thread block. Reduce its sixteen gfx1151 wave32 groups through shared
+  // memory, then preserve ROCm's ascending-offset shuffle tree in wave 0.
+  for (unsigned offset = kBlockThreads / 2; offset >= 32; offset >>= 1) {
     __syncthreads();
     if (lane < offset) {
       sum = sum + partials[lane + offset];
@@ -206,10 +206,10 @@ __global__ void singleton_rmsnorm_2048_kernel(
     }
   }
   __syncthreads();
-  if (lane < 64) {
+  if (lane < 32) {
     sum = partials[lane];
-    for (unsigned offset = 1; offset < 64; offset <<= 1) {
-      sum = sum + __shfl_down(sum, offset, 64);
+    for (unsigned offset = 1; offset < 32; offset <<= 1) {
+      sum = sum + __shfl_down(sum, offset, 32);
     }
     if (lane == 0) {
       volatile float variance =

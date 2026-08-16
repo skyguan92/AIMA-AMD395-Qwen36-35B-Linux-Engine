@@ -221,11 +221,11 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         )
         self.assertIn("static_assert(kBlockThreads == 512)", singleton_rmsnorm)
         self.assertIn(
-            "for (unsigned offset = kBlockThreads / 2; offset >= 64;",
+            "for (unsigned offset = kBlockThreads / 2; offset >= 32;",
             singleton_rmsnorm,
         )
         self.assertIn(
-            "for (unsigned offset = 1; offset < 64; offset <<= 1)",
+            "for (unsigned offset = 1; offset < 32; offset <<= 1)",
             singleton_rmsnorm,
         )
         self.assertIn("if (token_count == 1)", pointwise_source)
