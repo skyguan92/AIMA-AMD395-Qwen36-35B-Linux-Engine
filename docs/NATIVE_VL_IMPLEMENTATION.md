@@ -15,7 +15,7 @@ blocking condition in the governing goal can move a gate to `passed`.
 | Gate | Current state | Evidence required to pass | Next blocking action |
 |---|---|---|---|
 | G1 full VL functional parity | the native HTTP path passes the frozen 30-case status/finish/tool/SSE surface and the corrected deterministic execution envelope passes 23/23 cells; mixed/conversation, verified HTTPS, request-level media I/O, error compatibility and cache identity/invariance now have reference-exact resident evidence; the sealed Goal section 2 audit finds 11 requirements covered, 3 partially covered and none wholly missing | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | execute the remaining generation/current-head/G3 requalification workstream from the G1 audit |
-| G2 VL correctness parity | the five private and five independently rendered real-HTTP language prompts pass final norm and 84/84 selected full-vocabulary rows bit-exact; resident serving preserves the five frozen 8-token outputs; the 23-cell envelope and the empty/limit/timeout/access error matrix pass, but task-quality suites and four completion/usage differences remain open | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | freeze and run the image/video task-quality suites, then resolve the remaining completion/usage parity differences |
+| G2 VL correctness parity | the five private and five independently rendered real-HTTP language prompts pass final norm and 84/84 selected full-vocabulary rows bit-exact; resident serving preserves the five frozen 8-token outputs; the 23-cell envelope and the empty/limit/timeout/access error matrix pass; both frozen VL tool generations now match reference completion usage, while the two remaining all-surface usage diagnostics are text-only and owned by G3 | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | freeze and run the image/video task-quality suites, then seal current-head deterministic generation evidence |
 | G3 text product no regression | frozen baseline identified; the resident engine and certified lm_head now have an optional mask path that is disabled for ordinary requests, but the complete paired release matrix has not run | paired 19-cell, maximum-window, correctness, MMLU, API, cache, startup and memory requalification | retain `v1.5.1` as an immutable paired binary and run the complete paired matrix after language integration stabilizes |
 | G4 native VL performance | the 23-cell native execution envelope now records per-request stage timings, but it is a single candidate qualification rather than paired performance evidence | paired per-cell stage timings and memory records against the fixed VL-enabled vLLM | run the same frozen cells with the alternating paired vLLM/candidate timing protocol |
 | G5 native release product | the full runtime includes all qualified vision sources, loads the 333 visual tensors in one resident native process and survives the complete execution envelope; the external vision-attention code object is hash-checked and wired into the portable package contract, but final package qualification has not run | native-only package, security, isolated bundle, second-host, soak and rollback evidence | generate a clean product qualification containing the vision code object, then run isolated bundle, second-host, soak and rollback gates |
@@ -38,7 +38,7 @@ tools, transport, single-process residency, error parity, cache identity and
 cache invariance. Three are partial. The remaining replayable workstream has
 three explicit blockers:
 
-1. the four completion/usage differences and longer image/video greedy corpus;
+1. the longer image/video greedy corpus and final deterministic-generation seal;
 2. consolidated current-HEAD processor-to-output numerical requalification;
 3. the complete G3 text and release no-regression protocol.
 
@@ -854,7 +854,7 @@ gate.
 Formal binaries must retain the complete default AOT closure. A q1024-only
 diagnostic build embedded 14 kernels from two manifests and correctly failed
 when a longer tool decode referenced a q8192 image; the accepted builds embed
-61 kernels from eleven manifests. The serving context may be q1024, but its
+68 kernels from sixteen manifests. The serving context may be q1024, but its
 decode schedule still depends on the q8192 closure.
 
 An FMHA provider path alone is not a qualification input. Every native VL
@@ -864,6 +864,16 @@ changed or expanded code-object set, records all three artifacts in the result,
 and includes the closure validator in its source identity. This prevents a
 provider-only staging directory from silently selecting an incomplete runtime
 through host search paths.
+
+The capability result keeps two usage views instead of conflating product
+contracts. `vl_reference_usage_exact` is the blocking G1/G2 comparison for
+requests carrying image/video/mixed surfaces. The all-surface diagnostic also
+includes the two text-only residency sentinels. The fixed vLLM VL server leaves
+thinking enabled for those sentinels (15/18 prompt tokens), while the immutable
+`v1.5.1` text product disables thinking (17/20 prompt tokens). Changing native
+text rendering to erase that diagnostic would violate G3. Their exactness is
+therefore proved against the paired `v1.5.1` binary in G3, while the qualifier
+continues to report the vLLM difference transparently.
 
 Processor results continue to use the resident 4 GiB/64-entry
 content-addressed LRU. Only matching processor identity, media kind and content

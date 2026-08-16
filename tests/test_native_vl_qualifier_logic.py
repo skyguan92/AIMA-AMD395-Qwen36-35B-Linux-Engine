@@ -92,6 +92,41 @@ class NativeVlQualifierLogicTest(unittest.TestCase):
         self.assertFalse(checks["structured_token_mask_accounting_exact"])
         self.assertFalse(checks["render_prompt_token_ids_exact"])
 
+    def test_text_usage_stays_in_the_g3_boundary(self) -> None:
+        self.assertTrue(
+            self.module.is_vl_usage_case({"surfaces": ["image", "api"]})
+        )
+        self.assertTrue(
+            self.module.is_vl_usage_case({"surfaces": ["video"]})
+        )
+        self.assertFalse(
+            self.module.is_vl_usage_case({"surfaces": ["residency", "api"]})
+        )
+        self.assertEqual(
+            self.module.TEXT_RESIDENCY_CASES,
+            ("residency_text_before", "residency_text_after"),
+        )
+
+    def test_invalid_controls_fail_before_launch(self) -> None:
+        valid = {
+            "port": 18096,
+            "fixture_port": 18097,
+            "ready_timeout_seconds": 120.0,
+            "request_timeout_seconds": 600.0,
+        }
+        self.module.validate_cli_contract(**valid)
+        for field, value, message in (
+            ("port", 80, "non-privileged"),
+            ("fixture_port", 18096, "distinct ports"),
+            ("ready_timeout_seconds", float("nan"), "positive finite"),
+            ("request_timeout_seconds", 600.1, "cannot exceed 600"),
+        ):
+            controls = {**valid, field: value}
+            with self.subTest(field=field), self.assertRaisesRegex(
+                SystemExit, message
+            ):
+                self.module.validate_cli_contract(**controls)
+
 
 if __name__ == "__main__":
     unittest.main()

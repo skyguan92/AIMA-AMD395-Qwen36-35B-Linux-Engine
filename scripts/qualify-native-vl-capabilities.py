@@ -12,6 +12,7 @@ from functools import partial
 import http.server
 import importlib.util
 import json
+import math
 from pathlib import Path
 import socket
 import subprocess
@@ -55,10 +56,37 @@ API_RENDER_MANIFEST = (
 )
 PROBE_SCRIPT = ROOT / "scripts/probe-vllm-vl-api-capabilities.py"
 STRUCTURED_TOKEN_MASK_BYTES = 248_320
+VL_USAGE_SURFACES = frozenset({"image", "video", "mixed"})
+TEXT_RESIDENCY_CASES = ("residency_text_before", "residency_text_after")
 
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def validate_cli_contract(
+    *,
+    port: int,
+    fixture_port: int,
+    ready_timeout_seconds: float,
+    request_timeout_seconds: float,
+) -> None:
+    """Reject invalid qualifier controls before launching the native server."""
+
+    if not (1024 <= port <= 65535 and 1024 <= fixture_port <= 65535):
+        raise SystemExit("native VL capability ports must be non-privileged")
+    if port == fixture_port:
+        raise SystemExit("native and fixture servers require distinct ports")
+    if not math.isfinite(ready_timeout_seconds) or ready_timeout_seconds <= 0:
+        raise SystemExit("ready timeout must be a positive finite number")
+    if (
+        not math.isfinite(request_timeout_seconds)
+        or request_timeout_seconds <= 0
+        or request_timeout_seconds > 600
+    ):
+        raise SystemExit(
+            "request timeout must be positive and cannot exceed 600 seconds"
+        )
 
 
 def load_probe_module() -> ModuleType:
@@ -211,6 +239,15 @@ def usage_signature(response: Any) -> tuple[Any, Any, Any] | None:
     )
 
 
+def is_vl_usage_case(case: dict[str, Any]) -> bool:
+    """Return whether vLLM usage is a G1/G2 VL parity contract."""
+
+    surfaces = case.get("surfaces")
+    return isinstance(surfaces, list) and bool(
+        VL_USAGE_SURFACES.intersection(surfaces)
+    )
+
+
 def valid_inspect_visual_call(response: Any) -> bool:
     if not isinstance(response, dict):
         return False
@@ -359,6 +396,12 @@ def main() -> int:
     parser.add_argument("--ready-timeout-seconds", type=float, default=120.0)
     parser.add_argument("--request-timeout-seconds", type=float, default=600.0)
     args = parser.parse_args()
+    validate_cli_contract(
+        port=args.port,
+        fixture_port=args.fixture_port,
+        ready_timeout_seconds=args.ready_timeout_seconds,
+        request_timeout_seconds=args.request_timeout_seconds,
+    )
 
     binary = args.binary.resolve()
     model_dir = args.model_dir.resolve()
@@ -611,6 +654,22 @@ def main() -> int:
         == usage_signature(references[case["case_id"]].get("response"))
         for case in usage_comparable
     )
+    vl_usage_comparable = [
+        case for case in usage_comparable if is_vl_usage_case(case)
+    ]
+    vl_usage_exact = sum(
+        usage_signature(case["response"])
+        == usage_signature(references[case["case_id"]].get("response"))
+        for case in vl_usage_comparable
+    )
+    text_usage_comparable = [
+        case for case in usage_comparable if not is_vl_usage_case(case)
+    ]
+    text_usage_exact = sum(
+        usage_signature(case["response"])
+        == usage_signature(references[case["case_id"]].get("response"))
+        for case in text_usage_comparable
+    )
     render_prompt_tokens_exact = sum(
         case["qualification_checks"].get("render_prompt_tokens_exact", False)
         for case in media_success_cases
@@ -726,6 +785,12 @@ def main() -> int:
                 f"{finish_exact}/{len(success_cases)}"
             ),
             "reference_usage_exact": f"{usage_exact}/{len(usage_comparable)}",
+            "vl_reference_usage_exact": (
+                f"{vl_usage_exact}/{len(vl_usage_comparable)}"
+            ),
+            "text_vllm_usage_diagnostic": (
+                f"{text_usage_exact}/{len(text_usage_comparable)}"
+            ),
             "render_prompt_tokens_exact": (
                 f"{render_prompt_tokens_exact}/{len(media_success_cases)}"
             ),
@@ -801,6 +866,14 @@ def main() -> int:
             "runtime_triton": False,
             "deterministic_reference_usage_exact": usage_exact
             == len(usage_comparable),
+            "deterministic_vl_reference_usage_exact": (
+                bool(vl_usage_comparable)
+                and vl_usage_exact == len(vl_usage_comparable)
+            ),
+            "text_usage_boundary_owned_by_g3_v151": tuple(
+                case["case_id"] for case in text_usage_comparable
+            )
+            == TEXT_RESIDENCY_CASES,
             "g1_passed": False,
             "g2_passed": False,
             "g3_passed": False,
