@@ -113,6 +113,9 @@ class NativeTextClosureIsolationTest(unittest.TestCase):
         invocation = (
             ROOT / "native/src/native_prefill_invocation.cpp"
         ).read_text(encoding="utf-8")
+        linear = (
+            ROOT / "native/src/native_linear_prefill.hip.cpp"
+        ).read_text(encoding="utf-8")
         resident = (
             ROOT / "native/src/native_resident_engine.hip.cpp"
         ).read_text(encoding="utf-8")
@@ -122,6 +125,11 @@ class NativeTextClosureIsolationTest(unittest.TestCase):
         self.assertIn("metrics.allocation_bytes == 915552256ULL", workspace)
         self.assertIn("includes_frozen_text_ = include_frozen_text", workspace)
         self.assertIn("NativePrefillScheduleKind::kFrozenText", invocation)
+        q1024_owner = linear.split("const bool q1024_official_fla =", 1)[1].split(
+            "const bool use_vl_rmsnorm", 1
+        )[0]
+        self.assertIn("launches[5].launch->symbol", q1024_owner)
+        self.assertIn("merge_16x16_to_64x64_inverse_kernel", q1024_owner)
         self.assertIn("frozen_text_q1024_invocations", resident)
         self.assertIn(
             "prefill_owner(segment.bucket_tokens, vl_input == nullptr)",

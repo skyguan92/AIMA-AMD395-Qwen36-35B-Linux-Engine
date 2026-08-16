@@ -242,7 +242,11 @@ probe_native_q8192_linear_prefill_layer0_oracle(
   }
   const auto& launches = invocations.launches();
   const bool q8192_schedule = bucket_tokens == 8192;
-  const bool q1024_official_fla = bucket_tokens == 1024;
+  const bool q1024_official_fla =
+      bucket_tokens == 1024 && launches.size() > 5 &&
+      launches[5].launch != nullptr &&
+      std::string(launches[5].launch->symbol) ==
+          "merge_16x16_to_64x64_inverse_kernel";
   const bool use_vl_rmsnorm =
       q1024_official_fla && options.use_vl_rmsnorm_semantics;
   const bool split_projection_tail =
