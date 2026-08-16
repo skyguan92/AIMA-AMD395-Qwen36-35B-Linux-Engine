@@ -25,6 +25,9 @@ import urllib.request
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from aima_engine.aotriton_closure import (  # noqa: E402
+    require_aotriton_closure,
+)
 from aima_engine.vl_envelope import validate_envelope  # noqa: E402
 from aima_engine.vl_execution import (  # noqa: E402
     MODEL_ID,
@@ -215,6 +218,7 @@ def run_vision_probe(
 def source_components() -> list[dict[str, Any]]:
     relative_paths = (
         "aima_engine/vl_envelope.py",
+        "aima_engine/aotriton_closure.py",
         "aima_engine/vl_execution.py",
         "native/include/aima/native_media.h",
         "native/include/aima/native_resident_engine.h",
@@ -264,6 +268,7 @@ def main() -> int:
     vision_probe_binary = args.vision_probe_binary.resolve()
     model_dir = args.model_dir.resolve()
     fmha_provider = args.fmha_provider.resolve()
+    aotriton = require_aotriton_closure(fmha_provider)
     long_context_fmha_provider = fmha_provider.with_name(
         "libaima-fmha-ck.so"
     )
@@ -535,6 +540,14 @@ def main() -> int:
             ),
             "fmha_provider": file_component(
                 fmha_provider, "build/native/libaima-fmha-aotriton.so"
+            ),
+            "aotriton_runtime": file_component(
+                aotriton.runtime, "build/native/libaotriton_v2.so.0.11.1"
+            ),
+            "aotriton_image": file_component(
+                aotriton.image,
+                "build/native/aotriton.images/amd-gfx11xx/flash/attn_fwd/"
+                "FONLY__＊bf16@16_256_F_F_3_0___gfx11xx.aks2",
             ),
             "long_context_fmha_provider": file_component(
                 long_context_fmha_provider,

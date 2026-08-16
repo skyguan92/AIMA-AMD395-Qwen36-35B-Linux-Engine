@@ -23,6 +23,7 @@ GENERATION_LAYER_ORACLE_SCHEMA = (
 )
 HIDDEN_SIZE = 2_048
 FIRST_DECODE_LINEAR_OUTPUT_INDEX = 1
+FULL_ATTENTION_LAYER = 3
 BOUNDARY_NAMES = tuple(
     f"layer_{layer:03d}_output" for layer in range(40)
 ) + ("language_final_norm",)
@@ -76,6 +77,30 @@ NATIVE_LINEAR_ATTENTION_BOUNDARY_NAMES = (
     "recurrent_state_after",
     "gated_norm",
     "attention_output",
+)
+FULL_ATTENTION_DECODE_COMPONENT_NAMES = (
+    "query",
+    "key_cache",
+    "value_cache",
+    "block_table",
+    "sequence_lengths",
+    "query_starts",
+    "k_descale",
+    "v_descale",
+    "output",
+)
+FULL_ATTENTION_PROJECTION_COMPONENT_NAMES = (
+    "qkv_projection",
+    *FULL_ATTENTION_DECODE_COMPONENT_NAMES,
+    "gated_attention",
+    "projected_attention",
+    "attention_residual",
+    "post_attention_norm",
+    *(
+        name
+        for name in LAYER0_TAIL_BOUNDARY_SPECS
+        if name not in {"attention_residual", "post_attention_norm"}
+    ),
 )
 
 
@@ -159,6 +184,80 @@ def _validate_boundary_set(
                             f"generation layer {label} ledger digest changed: {case_id}"
                         )
     return errors
+
+
+def _validate_full_attention_set(
+    value: Any,
+    *,
+    case_id: str,
+    label: str,
+    expected_decode_call: int,
+    oracle_root: Path | None,
+) -> list[str]:
+    """Validate the fixed singleton paged-attention capture geometry."""
+
+    if not isinstance(value, dict):
+        return [f"generation layer {label} boundaries are missing: {case_id}"]
+    metadata = value.get("metadata")
+    if not isinstance(metadata, dict):
+        return [f"generation layer {label} metadata is missing: {case_id}"]
+
+    integer_fields = (
+        "sequence_length",
+        "block_size",
+        "logical_blocks",
+        "query_heads",
+        "kv_heads",
+        "head_size",
+    )
+    if any(
+        not isinstance(metadata.get(name), int)
+        or isinstance(metadata.get(name), bool)
+        for name in integer_fields
+    ):
+        return [f"generation layer {label} metadata changed: {case_id}"]
+    sequence_length = metadata["sequence_length"]
+    block_size = metadata["block_size"]
+    logical_blocks = metadata["logical_blocks"]
+    if (
+        sequence_length <= 0
+        or block_size != 1_056
+        or logical_blocks != (sequence_length + block_size - 1) // block_size
+        or logical_blocks != 1
+        or metadata["query_heads"] != 16
+        or metadata["kv_heads"] != 2
+        or metadata["head_size"] != 256
+    ):
+        return [f"generation layer {label} metadata changed: {case_id}"]
+
+    specs = {
+        "query": ([1, 16, 256], "torch.bfloat16", 2),
+        "key_cache": (
+            [logical_blocks, block_size, 2, 256],
+            "torch.bfloat16",
+            2,
+        ),
+        "value_cache": (
+            [logical_blocks, block_size, 2, 256],
+            "torch.bfloat16",
+            2,
+        ),
+        "block_table": ([1, logical_blocks], "torch.int32", 4),
+        "sequence_lengths": ([1], "torch.int32", 4),
+        "query_starts": ([2], "torch.int32", 4),
+        "k_descale": ([1, 2], "torch.float32", 4),
+        "v_descale": ([1, 2], "torch.float32", 4),
+        "output": ([1, 16, 256], "torch.bfloat16", 2),
+    }
+    return _validate_boundary_set(
+        value,
+        case_id=case_id,
+        label=label,
+        expected_decode_call=expected_decode_call,
+        expected_layer_index=FULL_ATTENTION_LAYER,
+        specs=specs,
+        oracle_root=oracle_root,
+    )
 
 
 def validate_generation_layer_oracle_manifest(
@@ -309,6 +408,24 @@ def validate_generation_layer_oracle_manifest(
             )
         )
         errors.extend(
+            _validate_full_attention_set(
+                case.get("full_attention"),
+                case_id=case_id,
+                label="full-attention",
+                expected_decode_call=contract["divergence_output_index"],
+                oracle_root=oracle_root,
+            )
+        )
+        errors.extend(
+            _validate_full_attention_set(
+                case.get("first_decode_full_attention"),
+                case_id=case_id,
+                label="first-decode full-attention",
+                expected_decode_call=FIRST_DECODE_LINEAR_OUTPUT_INDEX,
+                oracle_root=oracle_root,
+            )
+        )
+        errors.extend(
             _validate_boundary_set(
                 case.get("first_decode_linear_attention"),
                 case_id=case_id,
@@ -355,6 +472,8 @@ def validate_generation_layer_oracle_manifest(
             "two_layer0_tail_boundary_sets_captured",
             "two_first_decode_layer0_tail_boundary_sets_captured",
             "two_routed_moe_stage_sets_captured",
+            "two_layer3_unified_attention_sets_captured",
+            "two_first_decode_layer3_unified_attention_sets_captured",
         ):
             if decision.get(name) is not True:
                 errors.append(f"generation layer oracle decision failed: {name}")

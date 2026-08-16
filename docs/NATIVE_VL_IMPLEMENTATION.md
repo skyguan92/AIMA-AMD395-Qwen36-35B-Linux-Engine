@@ -857,6 +857,14 @@ when a longer tool decode referenced a q8192 image; the accepted builds embed
 61 kernels from eleven manifests. The serving context may be q1024, but its
 decode schedule still depends on the q8192 closure.
 
+An FMHA provider path alone is not a qualification input. Every native VL
+qualifier resolves the provider-adjacent AOTriton 0.11.1 runtime and the single
+frozen gfx1151 code object before launching a workload, rejects a missing,
+changed or expanded code-object set, records all three artifacts in the result,
+and includes the closure validator in its source identity. This prevents a
+provider-only staging directory from silently selecting an incomplete runtime
+through host search paths.
+
 Processor results continue to use the resident 4 GiB/64-entry
 content-addressed LRU. Only matching processor identity, media kind and content
 digest can reuse decoded grids and BF16 pixels. Exact prefix hits skip vision

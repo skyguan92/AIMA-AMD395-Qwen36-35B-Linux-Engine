@@ -99,10 +99,13 @@ int main() {
               !json_complete,
           "empty named-tool JSON prefix was rejected");
   require(aima::native_single_string_json_prefix_viable(
-              "label", " { \"label\" : \"café \\\"ok\\\"\" } ",
+              "label", " { \"label\" : \"café \\\"ok\\\"\" }",
               &json_complete) &&
               json_complete,
           "complete named-tool JSON prefix was rejected");
+  require(!aima::native_single_string_json_prefix_viable(
+              "label", "{\"label\":\"value\"}\n", &json_complete),
+          "named-tool JSON prefix admitted trailing whitespace");
   require(aima::native_single_string_json_prefix_viable(
               "label", "{\"label\":\"\\u4e2", &json_complete) &&
               !json_complete,

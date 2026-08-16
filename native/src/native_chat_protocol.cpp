@@ -672,9 +672,7 @@ class SingleStringJsonPrefixState {
       phase_ = Phase::kComplete;
       return true;
     }
-    if (phase_ == Phase::kComplete) {
-      return json_whitespace(value) || reject();
-    }
+    if (phase_ == Phase::kComplete) return reject();
     return reject();
   }
 
@@ -784,6 +782,10 @@ void NativeNamedToolJsonConstraint::allowed_token_mask(
     }
   }
   mask->assign(kNativeModelVocabularySize, 0);
+  if (prefix.complete()) {
+    (*mask)[tokenizer_->eos_token_id()] = 1;
+    return;
+  }
   std::size_t admitted = 0;
   for (std::size_t token_id = 0; token_id < token_bytes_.size(); ++token_id) {
     SingleStringJsonPrefixState candidate = prefix;
@@ -792,10 +794,6 @@ void NativeNamedToolJsonConstraint::allowed_token_mask(
       (*mask)[token_id] = 1;
       ++admitted;
     }
-  }
-  if (prefix.complete()) {
-    (*mask)[tokenizer_->eos_token_id()] = 1;
-    ++admitted;
   }
   if (admitted == 0) {
     throw std::runtime_error(

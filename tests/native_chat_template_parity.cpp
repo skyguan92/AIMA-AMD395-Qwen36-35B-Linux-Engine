@@ -4,6 +4,8 @@
 #include "aima/native_tokenizer.h"
 #include "aima/sha256.h"
 
+#include <algorithm>
+#include <cstdint>
 #include <cstdlib>
 #include <filesystem>
 #include <iostream>
@@ -129,8 +131,9 @@ int main(int argc, char** argv) {
     generated.push_back(token_id);
   }
   constraint.allowed_token_mask(generated, &mask);
-  if (mask[tokenizer.eos_token_id()] == 0) {
-    std::cerr << "named-tool JSON token grammar did not admit terminal EOS\n";
+  if (mask[tokenizer.eos_token_id()] == 0 ||
+      std::count(mask.begin(), mask.end(), std::uint8_t{1}) != 1) {
+    std::cerr << "named-tool JSON terminal mask was not EOS-only\n";
     return 1;
   }
 

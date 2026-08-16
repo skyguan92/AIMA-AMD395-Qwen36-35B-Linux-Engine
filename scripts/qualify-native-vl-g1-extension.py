@@ -22,6 +22,9 @@ import urllib.request
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from aima_engine.aotriton_closure import (  # noqa: E402
+    require_aotriton_closure,
+)
 from aima_engine.vl_g1_extension import (  # noqa: E402
     CASE_ORDER,
     build_cases,
@@ -181,6 +184,7 @@ def main() -> int:
     model_dir = args.model_dir.resolve()
     fixture_root = args.fixture_root.resolve()
     fmha_provider = args.fmha_provider.resolve()
+    aotriton = require_aotriton_closure(fmha_provider)
     vision_attention_image = args.vision_attention_image.resolve()
     reference_path = args.reference.resolve()
     output = args.output.resolve()
@@ -390,6 +394,7 @@ def main() -> int:
             "native/src/native_resident_engine.hip.cpp",
             "native/src/native_http_server.cpp",
             "aima_engine/vl_g1_extension.py",
+            "aima_engine/aotriton_closure.py",
             "scripts/probe-vllm-vl-api-capabilities.py",
             "scripts/capture-vllm-vl-g1-extension.py",
             "scripts/qualify-native-vl-g1-extension.py",
@@ -423,6 +428,14 @@ def main() -> int:
                 ),
                 "fmha_provider": file_component(
                     fmha_provider, "build/native/libaima-fmha-aotriton.so"
+                ),
+                "aotriton_runtime": file_component(
+                    aotriton.runtime, "build/native/libaotriton_v2.so.0.11.1"
+                ),
+                "aotriton_image": file_component(
+                    aotriton.image,
+                    "build/native/aotriton.images/amd-gfx11xx/flash/attn_fwd/"
+                    "FONLY__＊bf16@16_256_F_F_3_0___gfx11xx.aks2",
                 ),
                 "vision_attention_image": file_component(
                     vision_attention_image,

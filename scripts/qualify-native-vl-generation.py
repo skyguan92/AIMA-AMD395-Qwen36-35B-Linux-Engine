@@ -19,6 +19,9 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from aima_engine.aotriton_closure import (  # noqa: E402
+    require_aotriton_closure,
+)
 from aima_engine.vl_generation_oracle import (  # noqa: E402
     CASE_CONTRACTS,
     CASE_ORDER,
@@ -50,6 +53,14 @@ PROBE_SCHEMA = "aima-amd395-qwen36/native-vl-generation-logits-probe/v1"
 MODEL_ID = "aima-amd395-qwen36-35b"
 VISION_ATTENTION_SHA256 = (
     "b709a058a77d61e14db73c1ff7d7f4c20859d997bec811cad7339d3e59223d00"
+)
+FULL_ATTENTION_COMPARISON_NAMES = (
+    "query",
+    "current_key",
+    "current_value",
+    "key_cache",
+    "value_cache",
+    "output",
 )
 
 
@@ -317,6 +328,14 @@ def qualification_checks(
                     for boundary in boundaries
                 )
             )
+            checks[f"{case_id}_decode_boundaries_exact"] = (
+                boundaries_well_formed
+                and all(
+                    boundary.get("exact_elements")
+                    == boundary.get("elements")
+                    for boundary in boundaries
+                )
+            )
             checks[f"{case_id}_decode_boundary_rows_bound"] = (
                 boundaries_well_formed
                 and [boundary.get("label") for boundary in boundaries]
@@ -346,6 +365,14 @@ def qualification_checks(
                 and linear_well_formed
                 and all(
                     boundary.get("finite_elements")
+                    == boundary.get("elements")
+                    for boundary in linear_boundaries
+                )
+            )
+            checks[f"{case_id}_decode_linear_boundaries_exact"] = (
+                linear_well_formed
+                and all(
+                    boundary.get("exact_elements")
                     == boundary.get("elements")
                     for boundary in linear_boundaries
                 )
@@ -380,6 +407,14 @@ def qualification_checks(
                     for boundary in tail_boundaries
                 )
             )
+            checks[f"{case_id}_decode_layer0_tail_boundaries_exact"] = (
+                tail_well_formed
+                and all(
+                    boundary.get("exact_elements")
+                    == boundary.get("elements")
+                    for boundary in tail_boundaries
+                )
+            )
             tail_components = layer_case["layer0_tail"]["components"]
             checks[f"{case_id}_decode_layer0_tail_boundary_rows_bound"] = (
                 tail_well_formed
@@ -389,6 +424,47 @@ def qualification_checks(
                     boundary.get("expected_sha256")
                     == tail_components[boundary["label"]]["sha256"]
                     for boundary in tail_boundaries
+                )
+            )
+            full_attention = observed.get("decode_full_attention")
+            full_attention_well_formed = (
+                isinstance(full_attention, list)
+                and len(full_attention) == len(FULL_ATTENTION_COMPARISON_NAMES)
+                and all(isinstance(boundary, dict) for boundary in full_attention)
+            )
+            checks[f"{case_id}_decode_full_attention_complete"] = (
+                observed.get("decode_full_attention_complete") is True
+                and full_attention_well_formed
+            )
+            checks[f"{case_id}_decode_full_attention_finite"] = (
+                observed.get("decode_full_attention_finite") is True
+                and full_attention_well_formed
+                and all(
+                    boundary.get("finite_elements")
+                    == boundary.get("elements")
+                    for boundary in full_attention
+                )
+            )
+            checks[f"{case_id}_decode_full_attention_exact"] = (
+                full_attention_well_formed
+                and all(
+                    boundary.get("exact_elements")
+                    == boundary.get("elements")
+                    for boundary in full_attention
+                )
+            )
+            checks[f"{case_id}_decode_full_attention_rows_bound"] = (
+                full_attention_well_formed
+                and [boundary.get("label") for boundary in full_attention]
+                == list(FULL_ATTENTION_COMPARISON_NAMES)
+                and all(
+                    isinstance(boundary.get("expected_sha256"), str)
+                    and len(boundary["expected_sha256"]) == 64
+                    and all(
+                        character in "0123456789abcdef"
+                        for character in boundary["expected_sha256"]
+                    )
+                    for boundary in full_attention
                 )
             )
         if prefill_state_oracle is not None:
@@ -412,6 +488,13 @@ def qualification_checks(
                     for state in states
                 )
             )
+            checks[f"{case_id}_prefill_states_exact"] = (
+                states_well_formed
+                and all(
+                    state.get("exact_elements") == state.get("elements")
+                    for state in states
+                )
+            )
             checks[f"{case_id}_prefill_state_rows_bound"] = (
                 states_well_formed
                 and [state.get("label") for state in states]
@@ -429,6 +512,7 @@ def qualify(args: argparse.Namespace) -> dict[str, Any]:
     binary = args.binary.resolve()
     model_dir = args.model_dir.resolve()
     fmha_provider = args.fmha_provider.resolve()
+    aotriton = require_aotriton_closure(fmha_provider)
     vision_attention = args.vision_attention_image.resolve()
     fixture_root = args.fixture_root.resolve()
     oracle_path = args.oracle_manifest.resolve()
@@ -651,6 +735,7 @@ def qualify(args: argparse.Namespace) -> dict[str, Any]:
                     file_component(path, path.relative_to(ROOT).as_posix())
                     for path in (
                         ROOT / "native/include/aima/native_http_server.h",
+                        ROOT / "native/include/aima/native_chat_protocol.h",
                         ROOT / "native/include/aima/bf16_gemm.h",
                         ROOT / "native/include/aima/native_decode_runner.h",
                         ROOT / "native/include/aima/native_full_layer.h",
@@ -660,6 +745,9 @@ def qualify(args: argparse.Namespace) -> dict[str, Any]:
                         ROOT / "native/src/native_decode_runner.hip.cpp",
                         ROOT / "native/src/native_resident_engine.hip.cpp",
                         ROOT / "native/src/native_http_server.cpp",
+                        ROOT / "native/src/native_chat_protocol.cpp",
+                        ROOT / "native/src/native_tokenizer.cpp",
+                        ROOT / "native/src/native_vl_request.cpp",
                         ROOT / "native/src/native_full_layer.hip.cpp",
                         ROOT / "native/src/native_linear_layer.hip.cpp",
                         ROOT / "native/src/native_pointwise.hip.cpp",
@@ -668,6 +756,7 @@ def qualify(args: argparse.Namespace) -> dict[str, Any]:
                         ROOT / "aima_engine/vl_generation_oracle.py",
                         ROOT / "aima_engine/vl_generation_layer_oracle.py",
                         ROOT / "aima_engine/vl_prefill_state_oracle.py",
+                        ROOT / "aima_engine/aotriton_closure.py",
                         ROOT
                         / "native/aot/gfx1151/causal-conv-decode-v0.1.0/manifest.json",
                     )
@@ -678,6 +767,12 @@ def qualify(args: argparse.Namespace) -> dict[str, Any]:
             "dependencies": {
                 "fmha_provider": file_component(
                     fmha_provider, "${AIMA_FMHA_PROVIDER}"
+                ),
+                "aotriton_runtime": file_component(
+                    aotriton.runtime, "${AIMA_AOTRITON_RUNTIME}"
+                ),
+                "aotriton_image": file_component(
+                    aotriton.image, "${AIMA_AOTRITON_IMAGE}"
                 ),
                 "vision_attention": file_component(
                     vision_attention, "${AIMA_VISION_ATTENTION_IMAGE}"
@@ -786,10 +881,42 @@ def qualify(args: argparse.Namespace) -> dict[str, Any]:
                         for case_id in CASE_ORDER
                     )
                 ),
+                "two_decode_full_attention_sets_bound": (
+                    layer_oracle is not None
+                    and all(
+                        checks[
+                            f"{case_id}_decode_full_attention_rows_bound"
+                        ]
+                        for case_id in CASE_ORDER
+                    )
+                ),
+                "two_decode_boundary_sets_bit_exact": (
+                    layer_oracle is not None
+                    and all(
+                        checks[f"{case_id}_decode_boundaries_exact"]
+                        and checks[
+                            f"{case_id}_decode_linear_boundaries_exact"
+                        ]
+                        and checks[
+                            f"{case_id}_decode_layer0_tail_boundaries_exact"
+                        ]
+                        and checks[
+                            f"{case_id}_decode_full_attention_exact"
+                        ]
+                        for case_id in CASE_ORDER
+                    )
+                ),
                 "two_prefill_state_sets_bound": (
                     prefill_state_oracle is not None
                     and all(
                         checks[f"{case_id}_prefill_state_rows_bound"]
+                        for case_id in CASE_ORDER
+                    )
+                ),
+                "two_prefill_state_sets_bit_exact": (
+                    prefill_state_oracle is not None
+                    and all(
+                        checks[f"{case_id}_prefill_states_exact"]
                         for case_id in CASE_ORDER
                     )
                 ),

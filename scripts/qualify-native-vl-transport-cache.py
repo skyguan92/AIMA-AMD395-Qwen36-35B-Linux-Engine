@@ -22,6 +22,9 @@ import urllib.request
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from aima_engine.aotriton_closure import (  # noqa: E402
+    require_aotriton_closure,
+)
 from aima_engine.vl_local_media_server import LocalMediaServers  # noqa: E402
 from aima_engine.vl_reference import (  # noqa: E402
     atomic_json,
@@ -557,6 +560,7 @@ def main() -> int:
         "output",
     ):
         setattr(args, name, getattr(args, name).resolve())
+    aotriton = require_aotriton_closure(args.fmha_provider)
     raw_root = args.output.parent / f"{args.output.stem}-raw"
     required = (
         args.binary,
@@ -676,6 +680,7 @@ def main() -> int:
             "native/src/native_vl_request.cpp",
             "native/src/native_resident_engine.hip.cpp",
             "aima_engine/vl_local_media_server.py",
+            "aima_engine/aotriton_closure.py",
             "aima_engine/vl_transport_cache.py",
             "scripts/probe-vllm-vl-api-capabilities.py",
             "scripts/capture-vllm-vl-transport-cache.py",
@@ -711,6 +716,14 @@ def main() -> int:
                 ),
                 "fmha_provider": file_component(
                     args.fmha_provider, "build/native/libaima-fmha-aotriton.so"
+                ),
+                "aotriton_runtime": file_component(
+                    aotriton.runtime, "build/native/libaotriton_v2.so.0.11.1"
+                ),
+                "aotriton_image": file_component(
+                    aotriton.image,
+                    "build/native/aotriton.images/amd-gfx11xx/flash/attn_fwd/"
+                    "FONLY__＊bf16@16_256_F_F_3_0___gfx11xx.aks2",
                 ),
                 "vision_attention_image": file_component(
                     args.vision_attention_image,

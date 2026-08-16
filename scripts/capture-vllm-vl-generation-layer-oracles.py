@@ -25,6 +25,9 @@ sys.path.insert(0, str(ROOT))
 from aima_engine.vl_generation_layer_oracle import (  # noqa: E402
     BOUNDARY_NAMES,
     FIRST_DECODE_LINEAR_OUTPUT_INDEX,
+    FULL_ATTENTION_DECODE_COMPONENT_NAMES,
+    FULL_ATTENTION_LAYER,
+    FULL_ATTENTION_PROJECTION_COMPONENT_NAMES,
     GENERATION_LAYER_ORACLE_SCHEMA,
     HIDDEN_SIZE,
     LAYER0_TAIL_BOUNDARY_SPECS,
@@ -58,7 +61,6 @@ STATE_ATTRIBUTE = "_aima_vl_generation_layer_oracle_state"
 GENERATION_LAYER_DIAGNOSTIC_SCHEMA = (
     "aima-amd395-qwen36/vl-generation-layer-diagnostic/v1"
 )
-FULL_ATTENTION_LAYER = 3
 LINEAR_ATTENTION_LAYER = 0
 FIRST_DIVERGENCE_FULL_ATTENTION_LAYERS = {
     "tool_forced_image": 11,
@@ -68,32 +70,6 @@ FIRST_DIVERGENCE_LINEAR_ATTENTION_LAYERS = {
     "tool_forced_image": 5,
     "tool_auto_image": 10,
 }
-FULL_ATTENTION_DECODE_COMPONENT_NAMES = (
-    "query",
-    "key_cache",
-    "value_cache",
-    "block_table",
-    "sequence_lengths",
-    "query_starts",
-    "k_descale",
-    "v_descale",
-    "output",
-)
-FULL_ATTENTION_PROJECTION_COMPONENT_NAMES = (
-    "qkv_projection",
-    *FULL_ATTENTION_DECODE_COMPONENT_NAMES,
-    "gated_attention",
-    "projected_attention",
-    "attention_residual",
-    "post_attention_norm",
-    *(
-        name
-        for name in LAYER0_TAIL_BOUNDARY_SPECS
-        if name not in {"attention_residual", "post_attention_norm"}
-    ),
-)
-
-
 def parse_case_output_indices(
     values: list[str] | None,
 ) -> dict[str, int] | None:

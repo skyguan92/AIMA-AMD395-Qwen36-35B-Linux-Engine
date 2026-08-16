@@ -108,8 +108,9 @@ class NativeNamedToolJsonConstraint {
 };
 
 // Pure prefix oracle used by CPU tests and the token-mask implementation.
-// `complete` is true only when the prefix is already a complete JSON object
-// (possibly followed by JSON whitespace).
+// `complete` is true only when the prefix ends at the complete JSON object.
+// Trailing whitespace is rejected so the terminal decoder mask contains only
+// EOS, matching the frozen named-tool generation boundary.
 bool native_single_string_json_prefix_viable(
     std::string_view property_name, std::string_view prefix,
     bool* complete);

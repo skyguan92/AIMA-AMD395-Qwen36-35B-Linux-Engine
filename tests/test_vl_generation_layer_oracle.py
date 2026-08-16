@@ -11,6 +11,7 @@ from pathlib import Path
 from aima_engine.vl_generation_layer_oracle import (
     BOUNDARY_NAMES,
     FIRST_DECODE_LINEAR_OUTPUT_INDEX,
+    FULL_ATTENTION_LAYER,
     GENERATION_LAYER_ORACLE_SCHEMA,
     HIDDEN_SIZE,
     LAYER0_TAIL_BOUNDARY_SPECS,
@@ -100,6 +101,37 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
                         ledger, f"{case_id}/{directory}/oracle.jsonl"
                     ),
                 }
+
+            def write_full_attention_set(
+                case_id: str,
+                directory: str,
+                target_decode_call: int,
+                sequence_length: int,
+            ) -> dict[str, object]:
+                specs = {
+                    "query": ([1, 16, 256], "torch.bfloat16", 2),
+                    "key_cache": ([1, 1_056, 2, 256], "torch.bfloat16", 2),
+                    "value_cache": ([1, 1_056, 2, 256], "torch.bfloat16", 2),
+                    "block_table": ([1, 1], "torch.int32", 4),
+                    "sequence_lengths": ([1], "torch.int32", 4),
+                    "query_starts": ([2], "torch.int32", 4),
+                    "k_descale": ([1, 2], "torch.float32", 4),
+                    "v_descale": ([1, 2], "torch.float32", 4),
+                    "output": ([1, 16, 256], "torch.bfloat16", 2),
+                }
+                result = write_boundary_set(
+                    case_id, directory, target_decode_call, specs
+                )
+                result["metadata"] = {
+                    "layer_index": FULL_ATTENTION_LAYER,
+                    "sequence_length": sequence_length,
+                    "block_size": 1_056,
+                    "logical_blocks": 1,
+                    "query_heads": 16,
+                    "kv_heads": 2,
+                    "head_size": 256,
+                }
+                return result
 
             for case_id in CASE_ORDER:
                 contract = CASE_CONTRACTS[case_id]
@@ -205,6 +237,20 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
                             FIRST_DECODE_LINEAR_OUTPUT_INDEX,
                             LAYER0_TAIL_BOUNDARY_SPECS,
                         ),
+                        "full_attention": write_full_attention_set(
+                            case_id,
+                            "full-attention",
+                            contract["divergence_output_index"],
+                            363,
+                        ),
+                        "first_decode_full_attention": (
+                            write_full_attention_set(
+                                case_id,
+                                "first-decode-full-attention",
+                                FIRST_DECODE_LINEAR_OUTPUT_INDEX,
+                                350,
+                            )
+                        ),
                     }
                 )
             manifest = seal_manifest(
@@ -223,6 +269,8 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
                         "two_layer0_tail_boundary_sets_captured": True,
                         "two_first_decode_layer0_tail_boundary_sets_captured": True,
                         "two_routed_moe_stage_sets_captured": True,
+                        "two_layer3_unified_attention_sets_captured": True,
+                        "two_first_decode_layer3_unified_attention_sets_captured": True,
                         "g1_passed": False,
                         "g2_passed": False,
                         "g3_passed": False,
@@ -256,6 +304,16 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
             self.assertIn(
                 "raw tensor SHA-256 mismatch: "
                 "tool_forced_image/layer0-tail/components/router_weights.bin",
+                validate_generation_layer_oracle_manifest(
+                    manifest, oracle_root=root
+                ),
+            )
+            manifest["cases"][0]["full_attention"]["components"]["query"][
+                "sha256"
+            ] = "a" * 64
+            self.assertIn(
+                "raw tensor SHA-256 mismatch: "
+                "tool_forced_image/full-attention/components/query.bin",
                 validate_generation_layer_oracle_manifest(
                     manifest, oracle_root=root
                 ),

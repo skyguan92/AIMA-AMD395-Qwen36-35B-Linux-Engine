@@ -105,13 +105,7 @@ class NativeVlGenerationQualificationTest(unittest.TestCase):
                             "metadata": {"layer_index": 0}
                         },
                         "full_attention": {
-                            "metadata": {
-                                "layer_index": (
-                                    11
-                                    if case_id == "tool_forced_image"
-                                    else 3
-                                )
-                            }
+                            "metadata": {"layer_index": 3}
                         },
                     }
                 )
@@ -190,7 +184,7 @@ class NativeVlGenerationQualificationTest(unittest.TestCase):
                     case["reference_decode_full_attention_layer_index"]
                     for case in cases
                 ],
-                [11, 3],
+                [3, 3],
             )
 
             layer_cases[0]["target_output_index"] += 1
@@ -234,22 +228,27 @@ class NativeVlGenerationQualificationTest(unittest.TestCase):
         self.assertIn("reference_decode_full_attention_dir", source)
         self.assertIn("decode_layer0_tail_boundaries", source)
 
-    def test_qualification_binds_decode_norm_owners(self) -> None:
+    def test_qualification_binds_generation_owners(self) -> None:
         source = (ROOT / "scripts/qualify-native-vl-generation.py").read_text(
             encoding="utf-8"
         )
         for relative in (
+            "native/include/aima/native_chat_protocol.h",
             "native/include/aima/bf16_gemm.h",
             "native/include/aima/native_decode_runner.h",
             "native/include/aima/native_full_layer.h",
             "native/include/aima/native_linear_layer.h",
             "native/include/aima/native_pointwise.h",
             "native/src/bf16_gemm.hip.cpp",
+            "native/src/native_chat_protocol.cpp",
             "native/src/native_decode_runner.hip.cpp",
             "native/src/native_full_layer.hip.cpp",
             "native/src/native_linear_layer.hip.cpp",
             "native/src/native_pointwise.hip.cpp",
             "native/src/native_resident_engine.hip.cpp",
+            "native/src/native_tokenizer.cpp",
+            "native/src/native_vl_request.cpp",
+            "aima_engine/aotriton_closure.py",
         ):
             self.assertIn(f'ROOT / "{relative}"', source)
 
@@ -326,6 +325,7 @@ class NativeVlGenerationQualificationTest(unittest.TestCase):
                     "label": name,
                     "elements": 2_048,
                     "finite_elements": 2_048,
+                    "exact_elements": 2_048,
                     "expected_sha256": components[name]["sha256"],
                 }
                 for name in BOUNDARY_NAMES
@@ -341,6 +341,7 @@ class NativeVlGenerationQualificationTest(unittest.TestCase):
                     "label": name,
                     "elements": 1,
                     "finite_elements": 1,
+                    "exact_elements": 1,
                     "expected_sha256": linear_components[name]["sha256"],
                 }
                 for name in NATIVE_LINEAR_ATTENTION_BOUNDARY_NAMES
@@ -356,9 +357,22 @@ class NativeVlGenerationQualificationTest(unittest.TestCase):
                     "label": name,
                     "elements": 1,
                     "finite_elements": 1,
+                    "exact_elements": 1,
                     "expected_sha256": tail_components[name]["sha256"],
                 }
                 for name in LAYER0_TAIL_BOUNDARY_SPECS
+            ]
+            full_attention = [
+                {
+                    "label": name,
+                    "elements": 1,
+                    "finite_elements": 1,
+                    "exact_elements": 1,
+                    "expected_sha256": f"{index + 300:064x}",
+                }
+                for index, name in enumerate(
+                    self.module.FULL_ATTENTION_COMPARISON_NAMES, start=1
+                )
             ]
             oracle_cases.append(
                 {
@@ -373,6 +387,7 @@ class NativeVlGenerationQualificationTest(unittest.TestCase):
                     "components": components,
                     "linear_attention": {"components": linear_components},
                     "layer0_tail": {"components": tail_components},
+                    "full_attention": {"components": {}},
                 }
             )
             probe_cases.append(
@@ -390,6 +405,9 @@ class NativeVlGenerationQualificationTest(unittest.TestCase):
                     "decode_layer0_tail_boundaries_complete": True,
                     "decode_layer0_tail_boundaries_finite": True,
                     "decode_layer0_tail_boundaries": tail_boundaries,
+                    "decode_full_attention_complete": True,
+                    "decode_full_attention_finite": True,
+                    "decode_full_attention": full_attention,
                     "request_metrics": {
                         "prompt_token_ids_sha256": prompt_sha,
                         "vl": {"enabled": True},
@@ -421,6 +439,7 @@ class NativeVlGenerationQualificationTest(unittest.TestCase):
         for case_id in CASE_ORDER:
             self.assertTrue(checks[f"{case_id}_decode_boundaries_complete"])
             self.assertTrue(checks[f"{case_id}_decode_boundaries_finite"])
+            self.assertTrue(checks[f"{case_id}_decode_boundaries_exact"])
             self.assertTrue(checks[f"{case_id}_decode_boundary_rows_bound"])
             self.assertTrue(
                 checks[f"{case_id}_decode_linear_boundary_rows_bound"]
@@ -433,6 +452,18 @@ class NativeVlGenerationQualificationTest(unittest.TestCase):
             )
             self.assertTrue(
                 checks[f"{case_id}_decode_layer0_tail_boundary_rows_bound"]
+            )
+            self.assertTrue(
+                checks[f"{case_id}_decode_full_attention_complete"]
+            )
+            self.assertTrue(
+                checks[f"{case_id}_decode_full_attention_finite"]
+            )
+            self.assertTrue(
+                checks[f"{case_id}_decode_full_attention_exact"]
+            )
+            self.assertTrue(
+                checks[f"{case_id}_decode_full_attention_rows_bound"]
             )
 
     def test_prefill_state_checks_bind_all_linear_layer_states(self) -> None:
@@ -456,6 +487,11 @@ class NativeVlGenerationQualificationTest(unittest.TestCase):
                         else 8_192 * 3
                     ),
                     "finite_elements": (
+                        32 * 128 * 128
+                        if name.endswith("_recurrent_state")
+                        else 8_192 * 3
+                    ),
+                    "exact_elements": (
                         32 * 128 * 128
                         if name.endswith("_recurrent_state")
                         else 8_192 * 3
@@ -513,6 +549,7 @@ class NativeVlGenerationQualificationTest(unittest.TestCase):
         for case_id in CASE_ORDER:
             self.assertTrue(checks[f"{case_id}_prefill_states_complete"])
             self.assertTrue(checks[f"{case_id}_prefill_states_finite"])
+            self.assertTrue(checks[f"{case_id}_prefill_states_exact"])
             self.assertTrue(checks[f"{case_id}_prefill_state_rows_bound"])
 
 
