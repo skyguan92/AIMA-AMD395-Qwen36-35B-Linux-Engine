@@ -81,6 +81,11 @@ FULL_ATTENTION_PROJECTION_COMPONENT_NAMES = (
     "projected_attention",
     "attention_residual",
     "post_attention_norm",
+    *(
+        name
+        for name in LAYER0_TAIL_BOUNDARY_SPECS
+        if name not in {"attention_residual", "post_attention_norm"}
+    ),
 )
 
 
@@ -110,6 +115,13 @@ def _first_tensor(value: Any) -> Any | None:
             if tensor is not None:
                 return tensor
     return None
+
+
+def _shape_elements(shape: tuple[int, ...]) -> int:
+    elements = 1
+    for dimension in shape:
+        elements *= dimension
+    return elements
 
 
 def _find_model_root(model: Any) -> Any:
@@ -144,6 +156,11 @@ def _remove_hooks(root: Any, state: dict[str, Any]) -> None:
     router = state.get("router")
     if router is not None:
         router.select_experts = state["original_router_select_experts"]
+    full_attention_router = state.get("full_attention_router")
+    if full_attention_router is not None:
+        full_attention_router.select_experts = state[
+            "original_full_attention_router_select_experts"
+        ]
     fused_moe_module = state.get("fused_moe_module")
     if fused_moe_module is not None:
         fused_moe_module.apply_moe_activation = state[
@@ -254,6 +271,13 @@ class InstallGenerationLayerHooks:
                 "generation diagnostic layer is not full attention"
             )
         full_attention_module = full_attention_layer.self_attn
+        full_attention_mlp = full_attention_layer.mlp
+        full_attention_shared_expert = full_attention_mlp.shared_expert
+        if full_attention_shared_expert is None:
+            raise RuntimeError(
+                "generation diagnostic full-attention shared expert is missing"
+            )
+        full_attention_router = full_attention_mlp.experts.router
         gdn_module = __import__(
             "vllm.model_executor.layers.mamba.gdn_linear_attn",
             fromlist=["causal_conv1d_update"],
@@ -284,6 +308,10 @@ class InstallGenerationLayerHooks:
                 "layer0_a_log_pointer": linear.A_log.data_ptr(),
                 "router": router,
                 "original_router_select_experts": router.select_experts,
+                "full_attention_router": full_attention_router,
+                "original_full_attention_router_select_experts": (
+                    full_attention_router.select_experts
+                ),
                 "fused_moe_module": fused_moe_module,
                 "original_apply_moe_activation": (
                     fused_moe_module.apply_moe_activation
@@ -379,16 +407,38 @@ class InstallGenerationLayerHooks:
                 raise RuntimeError(
                     f"generation full-attention boundary has no tensor: {name}"
                 )
-            expected_dtype = (
-                torch.int32
-                if name in {"block_table", "sequence_lengths", "query_starts"}
-                else (torch.float32 if name.endswith("_descale") else torch.bfloat16)
-            )
-            if tensor.dtype != expected_dtype:
-                raise RuntimeError(
-                    "generation full-attention boundary dtype changed: "
-                    f"{name}/{tensor.dtype}"
+            expected_shape = None
+            if name in LAYER0_TAIL_BOUNDARY_SPECS:
+                shape, dtype_name, _element_size = (
+                    LAYER0_TAIL_BOUNDARY_SPECS[name]
                 )
+                expected_shape = tuple(shape)
+                expected_dtype = {
+                    "torch.bfloat16": torch.bfloat16,
+                    "torch.float32": torch.float32,
+                    "torch.int32": torch.int32,
+                }[dtype_name]
+            else:
+                expected_dtype = (
+                    torch.int32
+                    if name
+                    in {"block_table", "sequence_lengths", "query_starts"}
+                    else (
+                        torch.float32
+                        if name.endswith("_descale")
+                        else torch.bfloat16
+                    )
+                )
+            if tensor.dtype != expected_dtype or (
+                expected_shape is not None
+                and tensor.numel() != _shape_elements(expected_shape)
+            ):
+                raise RuntimeError(
+                    "generation full-attention boundary geometry changed: "
+                    f"{name}/{list(tensor.shape)}/{tensor.dtype}"
+                )
+            if expected_shape is not None:
+                tensor = tensor.reshape(expected_shape)
             captures[name] = tensor.detach().contiguous().cpu()
 
         def full_attention_qkv_projection_hook(
@@ -720,6 +770,46 @@ class InstallGenerationLayerHooks:
         def mlp_hook(_module: Any, _args: Any, output: Any) -> None:
             capture_layer0_tail("combined_moe_output", output)
 
+        def full_attention_experts_hook(
+            _module: Any, _args: Any, output: Any
+        ) -> None:
+            if not isinstance(output, (tuple, list)) or len(output) != 2:
+                raise RuntimeError(
+                    "generation full-attention experts contract changed"
+                )
+            capture_full_attention("shared_moe_output", output[0])
+            capture_full_attention("routed_moe_output", output[1])
+
+        def full_attention_router_logits_hook(
+            _module: Any, _args: Any, output: Any
+        ) -> None:
+            capture_full_attention("router_logits", output)
+
+        def full_attention_shared_gate_hook(
+            _module: Any, _args: Any, output: Any
+        ) -> None:
+            capture_full_attention("shared_gate_logits", output)
+
+        def full_attention_shared_gate_up_hook(
+            _module: Any, _args: Any, output: Any
+        ) -> None:
+            capture_full_attention("shared_gate_up_projection", output)
+
+        def full_attention_shared_activation_hook(
+            _module: Any, _args: Any, output: Any
+        ) -> None:
+            capture_full_attention("shared_activation", output)
+
+        def full_attention_shared_down_hook(
+            _module: Any, _args: Any, output: Any
+        ) -> None:
+            capture_full_attention("shared_down_projection", output)
+
+        def full_attention_mlp_hook(
+            _module: Any, _args: Any, output: Any
+        ) -> None:
+            capture_full_attention("combined_moe_output", output)
+
         def layer0_output_hook(_module: Any, _args: Any, _output: Any) -> None:
             state["linear_capture_kind"] = None
 
@@ -795,20 +885,50 @@ class InstallGenerationLayerHooks:
             capture_layer0_tail("router_indices", indices.to(torch.int32))
             return output
 
+        def instrumented_full_attention_router_select_experts(
+            *args: Any, **kwargs: Any
+        ) -> Any:
+            output = state[
+                "original_full_attention_router_select_experts"
+            ](*args, **kwargs)
+            if state["full_attention_capture_kind"] is None:
+                return output
+            if not isinstance(output, (tuple, list)) or len(output) != 2:
+                raise RuntimeError(
+                    "generation full-attention router contract changed"
+                )
+            weights, indices = output
+            if not isinstance(weights, torch.Tensor) or not isinstance(
+                indices, torch.Tensor
+            ):
+                raise RuntimeError(
+                    "generation full-attention router indices unavailable"
+                )
+            capture_full_attention("router_weights", weights)
+            capture_full_attention("router_indices", indices.to(torch.int32))
+            return output
+
         def instrumented_apply_moe_activation(
             activation: Any, activation_output: Any, activation_input: Any
         ) -> Any:
             capture_layer0_tail(
                 "routed_gate_up_projection", activation_input
             )
+            capture_full_attention(
+                "routed_gate_up_projection", activation_input
+            )
             result = state["original_apply_moe_activation"](
                 activation, activation_output, activation_input
             )
             capture_layer0_tail("routed_activation", activation_output)
+            capture_full_attention("routed_activation", activation_output)
             return result
 
         def instrumented_moe_sum(moe_input: Any, moe_output: Any) -> Any:
             capture_layer0_tail(
+                "routed_weighted_expert_outputs", moe_input
+            )
+            capture_full_attention(
                 "routed_weighted_expert_outputs", moe_input
             )
             return state["original_moe_sum"](moe_input, moe_output)
@@ -880,6 +1000,41 @@ class InstallGenerationLayerHooks:
                     full_attention_post_attention_hook
                 )
             )
+            handles.append(
+                full_attention_mlp.shared_expert_gate.register_forward_hook(
+                    full_attention_shared_gate_hook
+                )
+            )
+            handles.append(
+                full_attention_mlp.gate.register_forward_hook(
+                    full_attention_router_logits_hook
+                )
+            )
+            handles.append(
+                full_attention_shared_expert.gate_up_proj.register_forward_hook(
+                    full_attention_shared_gate_up_hook
+                )
+            )
+            handles.append(
+                full_attention_shared_expert.act_fn.register_forward_hook(
+                    full_attention_shared_activation_hook
+                )
+            )
+            handles.append(
+                full_attention_shared_expert.down_proj.register_forward_hook(
+                    full_attention_shared_down_hook
+                )
+            )
+            handles.append(
+                full_attention_mlp.experts.register_forward_hook(
+                    full_attention_experts_hook
+                )
+            )
+            handles.append(
+                full_attention_mlp.register_forward_hook(
+                    full_attention_mlp_hook
+                )
+            )
         handles.append(
             full_attention_layer.register_forward_hook(
                 full_attention_output_hook
@@ -890,6 +1045,9 @@ class InstallGenerationLayerHooks:
             instrumented_packed_decode
         )
         router.select_experts = instrumented_router_select_experts
+        full_attention_router.select_experts = (
+            instrumented_full_attention_router_select_experts
+        )
         fused_moe_module.apply_moe_activation = (
             instrumented_apply_moe_activation
         )

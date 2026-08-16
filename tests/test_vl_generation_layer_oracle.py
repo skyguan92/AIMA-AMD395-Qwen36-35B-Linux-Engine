@@ -253,6 +253,12 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
         self.assertIn('capture_full_attention("projected_attention"', source)
         self.assertIn('capture_full_attention("attention_residual"', source)
         self.assertIn('capture_full_attention("post_attention_norm"', source)
+        self.assertIn(
+            '"routed_gate_up_projection", activation_input', source
+        )
+        self.assertIn(
+            "instrumented_full_attention_router_select_experts", source
+        )
         self.assertIn("instrumented_unified_attention", source)
         self.assertIn('"k_descale"', source)
         self.assertIn('"v_descale"', source)
@@ -313,11 +319,11 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
         self.assertIn("compare_native_oracle_tensor_slice", http)
         self.assertIn("expected_offset_bytes", layer_oracle)
         self.assertIn(
-            "!reference_decode_full_attention->gated_attention.empty()",
+            "comparison_count() const",
             http,
         )
         self.assertIn(
-            "!reference_decode_full_attention->post_attention_norm.empty()",
+            "observed.routed_weighted_expert_outputs",
             http,
         )
         self.assertEqual(len(NATIVE_LINEAR_ATTENTION_BOUNDARY_NAMES), 13)

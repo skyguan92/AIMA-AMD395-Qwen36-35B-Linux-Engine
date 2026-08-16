@@ -28,14 +28,37 @@ struct NativeFullLayerMetrics {
 // Qualification-only synchronous observer for one singleton decode full-
 // attention core. Product execution passes nullptr and incurs no stream
 // synchronization or device-to-host transfer.
+struct NativeDecodeFullAttentionObservation {
+  std::size_t layer_index = 0;
+  std::size_t cache_end = 0;
+  const void* qkv_projection = nullptr;
+  const void* query = nullptr;
+  const void* current_key = nullptr;
+  const void* current_value = nullptr;
+  const void* key_cache = nullptr;
+  const void* value_cache = nullptr;
+  const void* attention_output = nullptr;
+  const void* gated_attention = nullptr;
+  const void* projected_attention = nullptr;
+  const void* attention_residual = nullptr;
+  const void* post_attention_norm = nullptr;
+  const void* shared_gate_logits = nullptr;
+  const void* shared_gate_up_projection = nullptr;
+  const void* shared_activation = nullptr;
+  const void* shared_down_projection = nullptr;
+  const void* shared_moe_output = nullptr;
+  const void* router_logits = nullptr;
+  const void* router_weights = nullptr;
+  const void* router_indices = nullptr;
+  const void* routed_gate_up_projection = nullptr;
+  const void* routed_activation = nullptr;
+  const void* routed_weighted_expert_outputs = nullptr;
+  const void* routed_moe_output = nullptr;
+  const void* combined_moe_output = nullptr;
+};
+
 using NativeDecodeFullAttentionObserver = std::function<void(
-    std::size_t layer_index, std::size_t cache_end,
-    const void* qkv_projection, const void* query,
-    const void* current_key, const void* current_value,
-    const void* key_cache, const void* value_cache,
-    const void* attention_output, const void* gated_attention,
-    const void* projected_attention, const void* attention_residual,
-    const void* post_attention_norm)>;
+    const NativeDecodeFullAttentionObservation& observation)>;
 
 NativeFullLayerMetrics run_native_full_layer(
     std::size_t layer_index, std::size_t position, std::size_t cache_end,

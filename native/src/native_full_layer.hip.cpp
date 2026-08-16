@@ -285,18 +285,6 @@ NativeFullLayerMetrics run_native_full_layer(
   executor.launch(launches[base + 4], stream);
   ++metrics.aot_launches;
   void* post_attention_norm = invocations.tensor_pointer(base + 4, "out");
-  if (attention_observer != nullptr) {
-    check_hip(hipStreamSynchronize(stream),
-              "hipStreamSynchronize native full-attention observer");
-    (*attention_observer)(
-        layer_index, cache_end, qkv.device_pointer, q.device_pointer,
-        k.device_pointer, raw_v, attention_state.k_cache(layer_index),
-        attention_state.v_cache(layer_index),
-        attention_state.attention_output(),
-        attention_state.gated_attention(),
-        attention_state.projected_attention(), after_attn.device_pointer,
-        post_attention_norm);
-  }
   executor.launch(launches[base + 5], stream);
   ++metrics.aot_launches;
   launch_shared_silu_multiply(shared_input.device_pointer,
@@ -337,6 +325,40 @@ NativeFullLayerMetrics run_native_full_layer(
       after_attn.device_pointer, combined_moe.device_pointer,
       output.device_pointer, kHidden, stream);
   ++metrics.native_pointwise_launches;
+  if (attention_observer != nullptr) {
+    check_hip(hipStreamSynchronize(stream),
+              "hipStreamSynchronize native full-attention observer");
+    const auto* shared_input_bytes =
+        static_cast<const unsigned char*>(shared_input.device_pointer);
+    (*attention_observer)(NativeDecodeFullAttentionObservation{
+        layer_index,
+        cache_end,
+        qkv.device_pointer,
+        q.device_pointer,
+        k.device_pointer,
+        raw_v,
+        attention_state.k_cache(layer_index),
+        attention_state.v_cache(layer_index),
+        attention_state.attention_output(),
+        attention_state.gated_attention(),
+        attention_state.projected_attention(),
+        after_attn.device_pointer,
+        post_attention_norm,
+        shared_input.device_pointer,
+        shared_input_bytes + sizeof(__hip_bfloat16),
+        activated.device_pointer,
+        shared_down.device_pointer,
+        shared_scaled.device_pointer,
+        router_logits.device_pointer,
+        router_weights.device_pointer,
+        router_indices.device_pointer,
+        routed_gate_up.device_pointer,
+        routed_activation.device_pointer,
+        routed_weighted.device_pointer,
+        routed_moe.device_pointer,
+        combined_moe.device_pointer,
+    });
+  }
   if (synchronize) {
     check_hip(hipStreamSynchronize(stream),
               "hipStreamSynchronize native full layer");
