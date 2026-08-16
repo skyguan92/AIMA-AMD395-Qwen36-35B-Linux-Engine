@@ -6,6 +6,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DRIVER = ROOT / "scripts/trace-vllm-unified-attention-decode-aot.py"
+PROBE = ROOT / "native/tools/unified_attention_decode_aot_probe.hip.cpp"
+BUILD = ROOT / "scripts/build-native-unified-attention-decode-aot-probe.sh"
 
 
 class UnifiedAttentionDecodeAotTests(unittest.TestCase):
@@ -27,6 +29,32 @@ class UnifiedAttentionDecodeAotTests(unittest.TestCase):
         self.assertIn("not_a_model_weight_correctness_oracle", source)
         self.assertIn("not_yet_integrated_into_native_decode", source)
         self.assertIn("not_a_promotion_result", source)
+
+    def test_model_tensor_probe_freezes_current_abi_without_promotion(self) -> None:
+        source = PROBE.read_text(encoding="utf-8")
+        build = BUILD.read_text(encoding="utf-8")
+        self.assertIn("kCacheBlockTokens = 1056", source)
+        self.assertIn('"kernel_unified_attention_2d"', source)
+        self.assertIn(
+            "AotLaunchConfig{1, 2, 1, 4, 32, 32768}", source
+        )
+        for name in (
+            "query",
+            "key_cache",
+            "value_cache",
+            "block_table",
+            "sequence_lengths",
+            "query_starts",
+            "output",
+        ):
+            self.assertIn(f'"{name}"', source)
+        self.assertIn('"model_tensor_numerical_closure"', source)
+        self.assertIn(
+            '"qualified_for_native_decode_replacement", false', source
+        )
+        self.assertIn('"promotion_result", false', source)
+        self.assertIn("unified_attention_decode_aot_probe.hip.cpp", build)
+        self.assertIn("aot_kernel.hip.cpp", build)
 
 
 if __name__ == "__main__":
