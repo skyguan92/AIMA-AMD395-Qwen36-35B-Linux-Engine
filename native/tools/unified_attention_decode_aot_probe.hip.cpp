@@ -387,8 +387,6 @@ int main(int argc, char** argv) {
           &block_table_stride,
           &query_stride_0,
           &query_stride_1,
-          &output_stride_0,
-          &output_stride_1,
           &qq_bias_stride_0,
           &cache_stride_0,
           &cache_stride_1,
@@ -405,9 +403,15 @@ int main(int argc, char** argv) {
           &zero_stride,
           &zero_stride,
       };
+      if (attention_parameters.size() != 30) {
+        throw std::runtime_error(
+            "segmented attention regular ABI argument count changed");
+      }
       attention_kernel.launch(
           aima::AotLaunchConfig{1, 2, 16, 4, 32, 16384},
           attention_parameters);
+      check_hip(hipDeviceSynchronize(),
+                "hipDeviceSynchronize segmented attention probe");
       std::vector<void*> reduce_parameters{
           &output_pointer,
           &segment_output_pointer,
@@ -420,9 +424,15 @@ int main(int argc, char** argv) {
           &block_table_stride,
           &query_starts_pointer,
       };
+      if (reduce_parameters.size() != 10) {
+        throw std::runtime_error(
+            "attention reduce regular ABI argument count changed");
+      }
       reduce_kernel.launch(
           aima::AotLaunchConfig{1, 16, 1, 4, 32, 2048},
           reduce_parameters);
+      check_hip(hipDeviceSynchronize(),
+                "hipDeviceSynchronize attention reduce probe");
     };
     launch(output_device);
     launch(repeat_device);

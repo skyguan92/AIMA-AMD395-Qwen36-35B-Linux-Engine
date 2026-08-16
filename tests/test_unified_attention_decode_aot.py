@@ -46,6 +46,8 @@ class UnifiedAttentionDecodeAotTests(unittest.TestCase):
         self.assertIn(
             "AotLaunchConfig{1, 16, 1, 4, 32, 2048}", source
         )
+        self.assertIn("attention_parameters.size() != 30", source)
+        self.assertIn("reduce_parameters.size() != 10", source)
         for name in (
             "query",
             "key_cache",
