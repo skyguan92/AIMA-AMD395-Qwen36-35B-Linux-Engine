@@ -1610,6 +1610,7 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
   bool all_prefixes_exact = true;
   bool all_reference_rows_bound = true;
   bool all_native_top1_exact = true;
+  bool all_selected_tokens_exact = true;
   bool all_decode_boundaries_compared = true;
   bool all_decode_linear_boundaries_compared = true;
   bool all_decode_layer0_tail_boundaries_compared = true;
@@ -1630,6 +1631,8 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
         !item["reference_logits"].is_string() ||
         !item.contains("reference_logits_output_index") ||
         !item["reference_logits_output_index"].is_number_unsigned() ||
+        (item.contains("expected_selected_token_id") &&
+         !item["expected_selected_token_id"].is_number_unsigned()) ||
         (item.contains("diagnostic_allow_prefix_divergence") &&
          !item["diagnostic_allow_prefix_divergence"].is_boolean())) {
       throw std::runtime_error("VL generation case is malformed");
@@ -1703,6 +1706,16 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
     }
     const std::uint32_t expected_reference_token =
         static_cast<std::uint32_t>(reference_token_value);
+    const std::uint64_t selected_token_value =
+        item.contains("expected_selected_token_id")
+            ? item["expected_selected_token_id"].get<std::uint64_t>()
+            : reference_token_value;
+    if (selected_token_value >= tokenizer.size()) {
+      throw std::runtime_error(
+          "VL generation selected token exceeds the vocabulary");
+    }
+    const std::uint32_t expected_selected_token =
+        static_cast<std::uint32_t>(selected_token_value);
     const std::filesystem::path reference_logits =
         std::filesystem::absolute(
             item["reference_logits"].get<std::string>());
@@ -2277,15 +2290,16 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
     }
     const std::uint32_t selected_token = metrics.output_token_ids.back();
     const bool selected_reference =
-        selected_token == expected_reference_token;
-    const bool native_top1_exact = comparison.top1_match &&
-                                   selected_reference &&
-                                   comparison.actual_top1_token_id ==
-                                       selected_token;
+        selected_token == expected_selected_token;
+    const bool native_top1_exact =
+        comparison.top1_match &&
+        comparison.actual_top1_token_id == expected_reference_token;
     all_prefixes_exact = all_prefixes_exact && prefix_exact;
     all_reference_rows_bound =
         all_reference_rows_bound && reference_row_bound;
     all_native_top1_exact = all_native_top1_exact && native_top1_exact;
+    all_selected_tokens_exact =
+        all_selected_tokens_exact && selected_reference;
 
     Json decode_boundaries = Json::array();
     bool decode_boundaries_finite = !decode_boundary_comparisons.empty();
@@ -2341,6 +2355,7 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
          {"divergence_output_index", expected_prefix.size()},
          {"expected_prefix_token_ids", expected_prefix},
          {"expected_reference_token_id", expected_reference_token},
+         {"expected_selected_token_id", expected_selected_token},
          {"reference_logits_output_index", reference_logits_output_index},
          {"reference_decode_output_index",
           reference_decode_output_index.has_value()
@@ -2429,6 +2444,7 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
                  all_prefill_states_compared},
                 {"all_native_generation_top1_exact",
                  all_native_top1_exact},
+                {"all_selected_tokens_exact", all_selected_tokens_exact},
                 {"product_http_oracle_dependency", false}}}})
              .dump()
       << std::endl;

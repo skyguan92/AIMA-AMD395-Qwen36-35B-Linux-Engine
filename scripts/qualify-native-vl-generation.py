@@ -122,7 +122,10 @@ def build_probe_cases(
             "case_id": case_id,
             "request": request,
             "expected_prefix_token_ids": output_ids[:target],
-            "expected_reference_token_id": output_ids[target],
+            "expected_reference_token_id": case["reference_logits"][
+                "raw_top_tokens"
+            ][0]["token_id"],
+            "expected_selected_token_id": output_ids[target],
             "reference_logits": str(
                 (component_root / component["path"]).resolve()
             ),

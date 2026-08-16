@@ -94,6 +94,42 @@ FULL_ATTENTION_PROJECTION_COMPONENT_NAMES = (
 )
 
 
+def parse_case_output_indices(
+    values: list[str] | None,
+) -> dict[str, int] | None:
+    """Parse an exact two-case diagnostic output-index selection."""
+
+    if not values:
+        return None
+    indices: dict[str, int] = {}
+    for value in values:
+        case_id, separator, index_text = value.partition("=")
+        if separator != "=" or case_id not in CASE_ORDER:
+            raise ValueError(
+                "diagnostic output index must be CASE_ID=INDEX"
+            )
+        if case_id in indices:
+            raise ValueError(f"duplicate diagnostic output case: {case_id}")
+        try:
+            output_index = int(index_text)
+        except ValueError as error:
+            raise ValueError(
+                f"diagnostic output index is not an integer: {value}"
+            ) from error
+        if output_index < 2 or output_index >= 1024:
+            raise ValueError(
+                f"diagnostic output index is unsupported: {value}"
+            )
+        indices[case_id] = output_index
+    missing = [case_id for case_id in CASE_ORDER if case_id not in indices]
+    if missing:
+        raise ValueError(
+            "diagnostic output index mapping is incomplete: "
+            + ", ".join(missing)
+        )
+    return {case_id: indices[case_id] for case_id in CASE_ORDER}
+
+
 def parse_case_linear_attention_layers(
     values: list[str] | None,
 ) -> dict[str, int] | None:
@@ -1607,6 +1643,26 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
     from vllm.outputs import RequestOutput
     from vllm.sampling_params import StructuredOutputsParams
 
+    explicit_output_indices = parse_case_output_indices(
+        args.diagnostic_case_output_index
+    )
+    if (
+        explicit_output_indices is not None
+        and args.diagnostic_output_index is not None
+    ):
+        raise ValueError(
+            "shared and per-case diagnostic output indices are mutually "
+            "exclusive"
+        )
+    selected_output_indices = (
+        explicit_output_indices
+        if explicit_output_indices is not None
+        else (
+            {case_id: args.diagnostic_output_index for case_id in CASE_ORDER}
+            if args.diagnostic_output_index is not None
+            else None
+        )
+    )
     explicit_linear_attention_layers = parse_case_linear_attention_layers(
         args.diagnostic_linear_attention_layer
     )
@@ -1774,8 +1830,8 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
                     raise RuntimeError("forced tool render lost its JSON schema")
                 structured = StructuredOutputsParams(json=schema)
             target_index = (
-                args.diagnostic_output_index
-                if args.diagnostic_output_index is not None
+                selected_output_indices[case_id]
+                if selected_output_indices is not None
                 else contract["divergence_output_index"]
             )
             if target_index >= len(
@@ -1910,7 +1966,7 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
             torch.cuda.empty_cache()
 
     diagnostic = (
-        args.diagnostic_output_index is not None
+        selected_output_indices is not None
         or selected_full_attention_layers is not None
         or selected_linear_attention_layers is not None
     )
@@ -2029,6 +2085,8 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
                 "skip_mm_profiling": True,
                 "maximum_tokens_per_case": "target_output_index_plus_one",
                 "diagnostic_output_index": args.diagnostic_output_index,
+                "diagnostic_case_output_indices": explicit_output_indices,
+                "selected_output_indices": selected_output_indices,
                 "first_divergence_full_attention": (
                     args.first_divergence_full_attention
                 ),
@@ -2102,6 +2160,16 @@ def parse_args() -> argparse.Namespace:
         help=(
             "capture a shared non-promotion decode index for attribution; "
             "the same run also captures output index 1 as first-decode"
+        ),
+    )
+    parser.add_argument(
+        "--diagnostic-case-output-index",
+        action="append",
+        default=[],
+        metavar="CASE_ID=INDEX",
+        help=(
+            "select one non-promotion decode index per fixed case; repeat "
+            "for both cases and do not combine with --diagnostic-output-index"
         ),
     )
     parser.add_argument(

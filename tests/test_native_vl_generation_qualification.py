@@ -82,7 +82,15 @@ class NativeVlGenerationQualificationTest(unittest.TestCase):
                         },
                         "request": {"image_url": {"url": fixture_identity}},
                         "reference_logits": {
-                            "component": {"path": f"{case_id}.bin"}
+                            "component": {"path": f"{case_id}.bin"},
+                            "raw_top_tokens": [
+                                {
+                                    "token_id": contract[
+                                        "reference_token_id"
+                                    ]
+                                    + 1
+                                }
+                            ],
                         },
                     }
                 )
@@ -126,6 +134,20 @@ class NativeVlGenerationQualificationTest(unittest.TestCase):
                 [case["reference_decode_output_index"] for case in cases],
                 [
                     CASE_CONTRACTS[case_id]["divergence_output_index"]
+                    for case_id in CASE_ORDER
+                ],
+            )
+            self.assertEqual(
+                [case["expected_reference_token_id"] for case in cases],
+                [
+                    CASE_CONTRACTS[case_id]["reference_token_id"] + 1
+                    for case_id in CASE_ORDER
+                ],
+            )
+            self.assertEqual(
+                [case["expected_selected_token_id"] for case in cases],
+                [
+                    CASE_CONTRACTS[case_id]["reference_token_id"]
                     for case_id in CASE_ORDER
                 ],
             )
@@ -188,6 +210,7 @@ class NativeVlGenerationQualificationTest(unittest.TestCase):
             encoding="utf-8"
         )
         self.assertIn("diagnostic_allow_prefix_divergence", source)
+        self.assertIn("expected_selected_token_id", source)
         self.assertIn("reference_logits_output_index", source)
         self.assertIn("reference_decode_output_index", source)
         self.assertIn("reference_decode_linear_layer_index", source)
@@ -196,6 +219,15 @@ class NativeVlGenerationQualificationTest(unittest.TestCase):
         self.assertIn("decode reference output index is misaligned", source)
         self.assertIn(
             'item.value("diagnostic_allow_prefix_divergence", false)', source
+        )
+        self.assertIn("selected_token == expected_selected_token", source)
+        self.assertIn(
+            "comparison.actual_top1_token_id == expected_reference_token",
+            source,
+        )
+        self.assertIn("all_selected_tokens_exact && selected_reference", source)
+        self.assertIn(
+            '{"all_selected_tokens_exact", all_selected_tokens_exact}', source
         )
         self.assertIn("output_index=", source)
         self.assertIn("reference_decode_layer0_tail_boundary_dir", source)

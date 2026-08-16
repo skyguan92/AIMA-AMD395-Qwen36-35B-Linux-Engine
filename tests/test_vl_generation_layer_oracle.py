@@ -336,6 +336,8 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
         )
         self.assertIn("FIRST_DECODE_LINEAR_OUTPUT_INDEX", source)
         self.assertIn("--diagnostic-output-index", source)
+        self.assertIn("--diagnostic-case-output-index", source)
+        self.assertIn("selected_output_indices", source)
         self.assertIn("choices=range(2, 1024)", source)
         self.assertIn('metavar="2..1023"', source)
         self.assertIn("vl-generation-layer-diagnostic/v1", source)
@@ -346,6 +348,38 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
         self.assertIn("instrumented_causal_conv1d_update", source)
         self.assertIn("instrumented_packed_decode", source)
         self.assertIn("for case_id in CASE_ORDER", source)
+
+    def test_diagnostic_output_mapping_is_exact_and_validated(self) -> None:
+        parse = runpy.run_path(str(CAPTURE))["parse_case_output_indices"]
+        self.assertEqual(
+            parse(
+                [
+                    "tool_auto_image=72",
+                    "tool_forced_image=27",
+                ]
+            ),
+            {
+                "tool_forced_image": 27,
+                "tool_auto_image": 72,
+            },
+        )
+        with self.assertRaisesRegex(ValueError, "mapping is incomplete"):
+            parse(["tool_forced_image=27"])
+        with self.assertRaisesRegex(ValueError, "unsupported"):
+            parse(
+                [
+                    "tool_forced_image=1",
+                    "tool_auto_image=72",
+                ]
+            )
+        with self.assertRaisesRegex(ValueError, "duplicate"):
+            parse(
+                [
+                    "tool_forced_image=27",
+                    "tool_forced_image=14",
+                    "tool_auto_image=72",
+                ]
+            )
 
     def test_diagnostic_linear_layer_mapping_is_exact_and_validated(self) -> None:
         parse = runpy.run_path(str(CAPTURE))[
