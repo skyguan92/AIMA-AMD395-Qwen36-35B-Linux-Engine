@@ -29,7 +29,9 @@ class NativePrefillInvocations {
   NativePrefillInvocationMetrics build(
       const NativeDecodeBindings& bindings,
       const NativePrefillWorkspace& workspace,
-      std::size_t context_tokens = 8192);
+      std::size_t context_tokens = 8192,
+      NativePrefillScheduleKind schedule_kind =
+          NativePrefillScheduleKind::kDefault);
   const std::vector<PreparedDecodeInvocation>& launches() const {
     return launches_;
   }

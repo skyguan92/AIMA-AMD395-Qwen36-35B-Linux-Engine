@@ -35,6 +35,13 @@ for context in "${PREFILL_CONTEXT_LIST[@]}"; do
 done
 AOT_MANIFEST_Q8192="$(prefill_closure_dir 8192)/manifest.json"
 AOT_MANIFESTS="${AOT_MANIFESTS:-${DEFAULT_AOT_MANIFESTS}}"
+FROZEN_TEXT_Q1024_DIR="${ROOT}/native/aot/gfx1151/q1024-text-v151"
+FROZEN_TEXT_Q1024_MANIFEST="${FROZEN_TEXT_Q1024_DIR}/manifest.json"
+FROZEN_TEXT_Q1024_SCHEDULE="${FROZEN_TEXT_Q1024_DIR}/prefill-schedule.json"
+case ":${AOT_MANIFESTS}:" in
+  *":${FROZEN_TEXT_Q1024_MANIFEST}:"*) ;;
+  *) AOT_MANIFESTS="${AOT_MANIFESTS}:${FROZEN_TEXT_Q1024_MANIFEST}" ;;
+esac
 VL_UNIFIED_ATTENTION_MANIFEST="${ROOT}/native/aot/gfx1151/vl-unified-attention-v0.1.0/manifest.json"
 UNIFIED_ATTENTION_DECODE_MANIFEST="${ROOT}/native/aot/gfx1151/unified-attention-decode-v0.1.0/manifest.json"
 VL_RECOMPUTE_WU_MANIFEST="${ROOT}/native/aot/gfx1151/vl-recompute-w-u-q131-v0.1.0/manifest.json"
@@ -85,6 +92,7 @@ else
   PREFILL_AOT_MANIFESTS="${PREFILL_AOT_MANIFESTS:-${DEFAULT_PREFILL_AOT_MANIFESTS}}"
 fi
 PREFILL_REGISTRY_CPP="${OUT_DIR}/prefill_schedule_registry.cpp"
+FROZEN_TEXT_PREFILL_REGISTRY_CPP="${OUT_DIR}/frozen_text_prefill_schedule_registry.cpp"
 OBJCOPY="${OBJCOPY:-/usr/bin/objcopy}"
 SOURCE_COMMIT="${SOURCE_COMMIT:-$(git -C "${ROOT}" rev-parse HEAD)}"
 if [[ -n "$(git -C "${ROOT}" status --porcelain --untracked-files=normal)" ]]; then
@@ -176,6 +184,12 @@ python3 "${ROOT}/scripts/generate-native-decode-registry.py" \
   --phase prefill \
   "${PREFILL_REGISTRY_ARGS[@]}" \
   --output-cpp "${PREFILL_REGISTRY_CPP}"
+python3 "${ROOT}/scripts/generate-native-decode-registry.py" \
+  --phase prefill \
+  --prefill-registry frozen-text \
+  --schedule "${FROZEN_TEXT_Q1024_SCHEDULE}" \
+  --aot-manifest "${FROZEN_TEXT_Q1024_MANIFEST}" \
+  --output-cpp "${FROZEN_TEXT_PREFILL_REGISTRY_CPP}"
 
 AOT_OBJECTS=()
 while IFS=$'\t' read -r image_path object_name image_name; do
@@ -256,6 +270,7 @@ done < "${AOT_OBJECT_PLAN}"
   "${AOT_REGISTRY_CPP}" \
   "${DECODE_REGISTRY_CPP}" \
   "${PREFILL_REGISTRY_CPP}" \
+  "${FROZEN_TEXT_PREFILL_REGISTRY_CPP}" \
   "${ROOT}/native/src/sha256.cpp" \
   "${ROOT}/native/src/native_tokenizer.cpp" \
   "${ROOT}/native/src/native_weight_store.hip.cpp" \

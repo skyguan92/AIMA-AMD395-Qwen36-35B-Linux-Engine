@@ -13,6 +13,14 @@ from pathlib import Path
 from typing import Any
 
 
+FROZEN_TEXT_Q1024_MANIFEST_SHA256 = (
+    "93853b9f9837deba0a9e051bf5be4c516d74d1c5ea1a33e8e7e47ee81e914125"
+)
+FROZEN_TEXT_Q1024_SCHEDULE_SHA256 = (
+    "10565e59b0805ca407ef453caf72f3dfd254752d150903131e188527b910fb97"
+)
+
+
 EXPECTED_LAYER_SEQUENCE = {
     "linear_attention": [
         "triton_rmsnorm_kernel",
@@ -164,7 +172,11 @@ def c_string(value: str) -> str:
 
 
 def validate(
-    schedule: dict[str, Any], manifest: dict[str, Any], raw: str, phase: str
+    schedule: dict[str, Any],
+    manifest: dict[str, Any],
+    raw: str,
+    phase: str,
+    prefill_registry: str = "default",
 ) -> None:
     if schedule.get("schema") != f"aima-amd395-qwen36/native-{phase}-aot-schedule/v1":
         raise RuntimeError(f"unsupported native {phase} schedule schema")
@@ -175,7 +187,11 @@ def validate(
     if phase == "decode":
         templates = EXPECTED_LAYER_SEQUENCE
     elif context_tokens == 1024:
-        templates = EXPECTED_PREFILL_Q1024_LAYER_SEQUENCE
+        templates = (
+            EXPECTED_PREFILL_Q32768_LAYER_SEQUENCE
+            if prefill_registry == "frozen-text"
+            else EXPECTED_PREFILL_Q1024_LAYER_SEQUENCE
+        )
     elif context_tokens == 8192:
         templates = EXPECTED_PREFILL_LAYER_SEQUENCE
     elif context_tokens in {7168, 7680, 8191}:
@@ -207,20 +223,26 @@ def validate(
         official_fla_symbols = {
             "chunk_local_cumsum_scalar_kernel",
             "chunk_scaled_dot_kkt_fwd_kernel",
+            "merge_16x16_to_32x32_inverse_kernel",
             "merge_16x16_to_64x64_inverse_kernel",
             "recompute_w_u_fwd_kernel",
             "chunk_gated_delta_rule_fwd_kernel_h_blockdim64",
             "chunk_fwd_kernel_o",
         }
+        expected_chunk_size = 32 if prefill_registry == "frozen-text" else 64
         for launch in launches:
             if (
                 launch.get("layer_type") == "linear_attention"
                 and launch.get("symbol") in official_fla_symbols
             ):
                 kernel = manifest_by_hash[str(launch["kernel_hash"])]
-                if kernel.get("compile_constants", {}).get("BT") != 64:
+                if (
+                    kernel.get("compile_constants", {}).get("BT")
+                    != expected_chunk_size
+                ):
                     raise RuntimeError(
-                        "native q1024 prefill must use the serving FLA chunk size 64"
+                        "native q1024 prefill has the wrong FLA chunk size for "
+                        f"the {prefill_registry} registry"
                     )
     sequence_key = f"{phase}_sequence"
     for sequence, launch in enumerate(launches):
@@ -374,7 +396,18 @@ const char* %s() {
     )
 
 
-def generate_prefill_cpp(entries: list[tuple[dict[str, Any], str]]) -> str:
+def generate_prefill_cpp(
+    entries: list[tuple[dict[str, Any], str]],
+    registry_variant: str = "default",
+) -> str:
+    if registry_variant not in ("default", "frozen-text"):
+        raise ValueError(f"unsupported prefill registry variant: {registry_variant}")
+    function_name = (
+        "native_prefill_schedule"
+        if registry_variant == "default"
+        else "native_frozen_text_prefill_schedule"
+    )
+    hash_function_name = function_name + "_sha256"
     arrays: list[str] = []
     selectors: list[str] = []
     hash_selectors: list[str] = []
@@ -410,35 +443,41 @@ namespace {
 %s
 }  // namespace
 
-const DecodeLaunch* native_prefill_schedule(std::size_t context_tokens,
-                                            std::size_t* count) {
+const DecodeLaunch* %s(std::size_t context_tokens,
+                       std::size_t* count) {
   switch (context_tokens) {
 %s
     default: if (count != nullptr) *count = 0; return nullptr;
   }
 }
 
-const char* native_prefill_schedule_sha256(std::size_t context_tokens) {
+const char* %s(std::size_t context_tokens) {
   switch (context_tokens) {
 %s
     default: return "";
   }
 }
 
-const DecodeLaunch* native_prefill_schedule(std::size_t* count) {
-  return native_prefill_schedule(%d, count);
+const DecodeLaunch* %s(std::size_t* count) {
+  return %s(%d, count);
 }
 
-const char* native_prefill_schedule_sha256() {
-  return native_prefill_schedule_sha256(%d);
+const char* %s() {
+  return %s(%d);
 }
 
 }  // namespace aima
 """ % (
         "\n\n".join(arrays),
+        function_name,
         "\n".join(selectors),
+        hash_function_name,
         "\n".join(hash_selectors),
+        function_name,
+        function_name,
         default_context,
+        hash_function_name,
+        hash_function_name,
         default_context,
     )
 
@@ -450,6 +489,11 @@ def main() -> int:
     parser.add_argument("--output-cpp", type=Path)
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--phase", choices=("decode", "prefill"), default="decode")
+    parser.add_argument(
+        "--prefill-registry",
+        choices=("default", "frozen-text"),
+        default="default",
+    )
     args = parser.parse_args()
     if args.output_cpp is None and not args.check:
         parser.error("--output-cpp is required unless --check is used")
@@ -457,16 +501,30 @@ def main() -> int:
         raise RuntimeError("each native schedule requires one matching AOT manifest")
     if args.phase == "decode" and len(args.schedule) != 1:
         raise RuntimeError("native decode accepts exactly one schedule")
+    if args.phase != "prefill" and args.prefill_registry != "default":
+        raise RuntimeError("prefill registry variants require --phase prefill")
     entries: list[tuple[dict[str, Any], str]] = []
     summaries: list[dict[str, Any]] = []
     for schedule_arg, manifest_arg in zip(args.schedule, args.aot_manifest):
         schedule_path = schedule_arg.resolve()
+        manifest_path = manifest_arg.resolve()
         raw = schedule_path.read_text(encoding="utf-8")
         schedule = json.loads(raw)
-        manifest = json.loads(manifest_arg.resolve().read_text(encoding="utf-8"))
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         if not isinstance(schedule, dict) or not isinstance(manifest, dict):
             raise RuntimeError("native schedule and manifest roots must be objects")
-        validate(schedule, manifest, raw, args.phase)
+        if args.prefill_registry == "frozen-text" and (
+            sha256_file(schedule_path) != FROZEN_TEXT_Q1024_SCHEDULE_SHA256
+            or sha256_file(manifest_path) != FROZEN_TEXT_Q1024_MANIFEST_SHA256
+        ):
+            raise RuntimeError("frozen text q1024 closure identity changed")
+        validate(
+            schedule,
+            manifest,
+            raw,
+            args.phase,
+            args.prefill_registry,
+        )
         digest = sha256_file(schedule_path)
         entries.append((schedule, digest))
         summaries.append(
@@ -481,7 +539,7 @@ def main() -> int:
         output = args.output_cpp.resolve()
         output.parent.mkdir(parents=True, exist_ok=True)
         generated = (
-            generate_prefill_cpp(entries)
+            generate_prefill_cpp(entries, args.prefill_registry)
             if args.phase == "prefill"
             else generate_cpp(entries[0][0], entries[0][1], args.phase)
         )

@@ -14,7 +14,8 @@ namespace aima {
 NativePrefillInvocationMetrics NativePrefillInvocations::build(
     const NativeDecodeBindings& bindings,
     const NativePrefillWorkspace& workspace,
-    std::size_t context_tokens) {
+    std::size_t context_tokens,
+    NativePrefillScheduleKind schedule_kind) {
   if (!launches_.empty() || bindings.views().empty() || !workspace.built()) {
     throw std::runtime_error(
         "native prefill invocations require fresh complete owners");
@@ -23,10 +24,17 @@ NativePrefillInvocationMetrics NativePrefillInvocations::build(
     throw std::invalid_argument(
         "native prefill invocation context does not match workspace");
   }
+  if (schedule_kind == NativePrefillScheduleKind::kFrozenText &&
+      (context_tokens != 1024 || !workspace.includes_frozen_text())) {
+    throw std::invalid_argument(
+        "frozen text invocation requires the q1024 union workspace");
+  }
   NativePrefillInvocationMetrics metrics;
   std::size_t launch_count = 0;
   const DecodeLaunch* schedule =
-      native_prefill_schedule(context_tokens, &launch_count);
+      schedule_kind == NativePrefillScheduleKind::kFrozenText
+          ? native_frozen_text_prefill_schedule(context_tokens, &launch_count)
+          : native_prefill_schedule(context_tokens, &launch_count);
   if (schedule == nullptr) {
     throw std::runtime_error("native prefill schedule is unavailable");
   }

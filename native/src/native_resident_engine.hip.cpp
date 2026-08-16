@@ -354,6 +354,7 @@ struct NativeResidentEngine::Impl {
   NativeDecodeBindings bindings;
   NativePrefillWorkspace prefill_workspace;
   NativePrefillInvocations prefill_invocations;
+  NativePrefillInvocations frozen_text_q1024_invocations;
   std::unique_ptr<NativeQ8192PrefillGemmPlans> prefill_gemm_plans;
   NativePrefillWorkspace tail_prefill_workspace;
   NativePrefillInvocations tail_prefill_invocations;
@@ -404,6 +405,7 @@ struct NativeResidentEngine::Impl {
   std::uint64_t vision_plan_clock = 0;
   std::filesystem::path vision_attention_image;
   std::size_t prefill_start_sequence = 0;
+  std::size_t frozen_text_q1024_start_sequence = 0;
   std::size_t tail_prefill_start_sequence = 0;
   std::vector<std::size_t> resident_prefill_buckets;
   std::vector<std::unique_ptr<NativeResidentAuxPrefillBucket>>
@@ -413,31 +415,41 @@ struct NativeResidentEngine::Impl {
   std::size_t prefix_cache_misses = 0;
   bool ready = false;
 
-  NativeResidentPrefillOwner prefill_owner(std::size_t tokens) {
+  NativeResidentPrefillOwner prefill_owner(
+      std::size_t tokens, bool use_frozen_text = false) {
+    NativeResidentPrefillOwner owner;
     if (tokens == prefill_tokens) {
-      return {&prefill_workspace, &prefill_invocations,
-              prefill_gemm_plans.get(), &ck_provider,
-              prefill_start_sequence};
-    }
-    if (tokens == tail_prefill_tokens && tail_prefill_tokens != 0) {
-      return {&tail_prefill_workspace, &tail_prefill_invocations,
-              tail_prefill_gemm_plans.get(), &ck_provider,
-              tail_prefill_start_sequence};
-    }
-    for (const auto& bucket : auxiliary_prefill_buckets) {
-      if (bucket->tokens != tokens) continue;
-      NativeQ8192CkProvider* provider = &ck_provider;
-      if (tokens <= 4096) {
-        provider = &auxiliary_short_fmha_provider;
-      } else if (tokens == 8192) {
-        provider = &auxiliary_q8192_fmha_provider;
+      owner = {&prefill_workspace, &prefill_invocations,
+               prefill_gemm_plans.get(), &ck_provider,
+               prefill_start_sequence};
+    } else if (tokens == tail_prefill_tokens && tail_prefill_tokens != 0) {
+      owner = {&tail_prefill_workspace, &tail_prefill_invocations,
+               tail_prefill_gemm_plans.get(), &ck_provider,
+               tail_prefill_start_sequence};
+    } else {
+      for (const auto& bucket : auxiliary_prefill_buckets) {
+        if (bucket->tokens != tokens) continue;
+        NativeQ8192CkProvider* provider = &ck_provider;
+        if (tokens <= 4096) {
+          provider = &auxiliary_short_fmha_provider;
+        } else if (tokens == 8192) {
+          provider = &auxiliary_q8192_fmha_provider;
+        }
+        owner = {&bucket->workspace, &bucket->invocations,
+                 bucket->gemm_plans.get(), provider,
+                 bucket->start_sequence};
+        break;
       }
-      return {&bucket->workspace, &bucket->invocations,
-              bucket->gemm_plans.get(), provider,
-              bucket->start_sequence};
     }
-    throw std::runtime_error(
-        "native resident prefill bucket owner is unavailable");
+    if (owner.workspace == nullptr || owner.invocations == nullptr) {
+      throw std::runtime_error(
+          "native resident prefill bucket owner is unavailable");
+    }
+    if (use_frozen_text && tokens == 1024) {
+      owner.invocations = &frozen_text_q1024_invocations;
+      owner.start_sequence = frozen_text_q1024_start_sequence;
+    }
+    return owner;
   }
 
   void ensure_vision_allocation(void** pointer, std::uint64_t* capacity,
@@ -717,7 +729,7 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
     auto bucket =
         std::make_unique<NativeResidentAuxPrefillBucket>(tokens);
     const NativePrefillWorkspaceMetrics workspace_metrics =
-        bucket->workspace.build(impl_->device, tokens);
+        bucket->workspace.build(impl_->device, tokens, tokens == 1024);
     const NativePrefillInvocationMetrics invocation_metrics =
         bucket->invocations.build(impl_->bindings, bucket->workspace, tokens);
     auxiliary_prefill_workspace_metrics.allocation_bytes +=
@@ -727,7 +739,9 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
     impl_->auxiliary_prefill_buckets.push_back(std::move(bucket));
   }
   const NativePrefillWorkspaceMetrics prefill_workspace_metrics =
-      impl_->prefill_workspace.build(impl_->device, impl_->prefill_tokens);
+      impl_->prefill_workspace.build(
+          impl_->device, impl_->prefill_tokens,
+          impl_->prefill_tokens == 1024);
   const NativePrefillInvocationMetrics prefill_invocation_metrics =
       impl_->prefill_invocations.build(impl_->bindings,
                                        impl_->prefill_workspace,
@@ -736,11 +750,17 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
   NativePrefillInvocationMetrics tail_prefill_invocation_metrics;
   if (impl_->tail_prefill_tokens != 0) {
     tail_prefill_workspace_metrics = impl_->tail_prefill_workspace.build(
-        impl_->device, impl_->tail_prefill_tokens);
+        impl_->device, impl_->tail_prefill_tokens,
+        impl_->tail_prefill_tokens == 1024);
     tail_prefill_invocation_metrics = impl_->tail_prefill_invocations.build(
         impl_->bindings, impl_->tail_prefill_workspace,
         impl_->tail_prefill_tokens);
   }
+  const NativeResidentPrefillOwner q1024_owner = impl_->prefill_owner(1024);
+  const NativePrefillInvocationMetrics frozen_text_q1024_invocation_metrics =
+      impl_->frozen_text_q1024_invocations.build(
+          impl_->bindings, *q1024_owner.workspace, 1024,
+          NativePrefillScheduleKind::kFrozenText);
   const NativeDecodeWorkspaceMetrics decode_workspace_metrics =
       impl_->decode_workspace.build(impl_->device);
   const NativeDecodeInvocationMetrics decode_invocation_metrics =
@@ -836,6 +856,14 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
     throw std::runtime_error(
         "native resident prefill entry binding is missing");
   }
+  impl_->frozen_text_q1024_start_sequence = find_prefill_start(
+      impl_->frozen_text_q1024_invocations,
+      frozen_text_q1024_invocation_metrics.launch_count);
+  if (impl_->frozen_text_q1024_start_sequence ==
+      frozen_text_q1024_invocation_metrics.launch_count) {
+    throw std::runtime_error(
+        "native frozen text q1024 prefill entry binding is missing");
+  }
   if (impl_->tail_prefill_tokens != 0) {
     impl_->tail_prefill_start_sequence = find_prefill_start(
         impl_->tail_prefill_invocations,
@@ -880,7 +908,8 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
   impl_->metrics.prefill_prepared_launches =
       prefill_invocation_metrics.launch_count +
       tail_prefill_invocation_metrics.launch_count +
-      auxiliary_prefill_invocation_metrics.launch_count;
+      auxiliary_prefill_invocation_metrics.launch_count +
+      frozen_text_q1024_invocation_metrics.launch_count;
   impl_->metrics.decode_prepared_launches =
       decode_invocation_metrics.launch_count;
   impl_->metrics.aot_loaded_modules = executor_metrics.loaded_modules;
@@ -1443,7 +1472,7 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
       const NativePromptAotSegment& first_segment =
           prompt_plan.aot_segments.front();
       const NativeResidentPrefillOwner first_owner =
-          impl_->prefill_owner(first_segment.bucket_tokens);
+          impl_->prefill_owner(first_segment.bucket_tokens, false);
       void* embedding_output =
           composed_prefill
               ? impl_->chunked_hidden
@@ -1468,7 +1497,7 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
       for (const NativePromptAotSegment& segment :
            prompt_plan.aot_segments) {
         const NativeResidentPrefillOwner owner =
-            impl_->prefill_owner(segment.bucket_tokens);
+            impl_->prefill_owner(segment.bucket_tokens, true);
         const NativePrefillWorkspaceView* token_ids =
             owner.workspace->find("native.prompt_token_ids");
         if (token_ids == nullptr || token_ids->device_pointer == nullptr) {
@@ -1507,7 +1536,7 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
         const NativePromptAotSegment& segment =
             prompt_plan.aot_segments[segment_index];
         const NativeResidentPrefillOwner owner =
-            impl_->prefill_owner(segment.bucket_tokens);
+            impl_->prefill_owner(segment.bucket_tokens, vl_input == nullptr);
         NativePrefillWorkspace& chunk_workspace = *owner.workspace;
         NativePrefillInvocations& chunk_invocations = *owner.invocations;
         NativeQ8192PrefillGemmPlans* chunk_gemm_plans = owner.gemm_plans;
@@ -1809,7 +1838,7 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
     } else {
       const NativePromptAotSegment& segment = prompt_plan.aot_segments.front();
       const NativeResidentPrefillOwner owner =
-          impl_->prefill_owner(segment.bucket_tokens);
+          impl_->prefill_owner(segment.bucket_tokens, vl_input == nullptr);
       last_hidden =
           static_cast<const unsigned char*>(native_prefill_layer_output_pointer(
               *owner.workspace, *owner.invocations, 39)) +

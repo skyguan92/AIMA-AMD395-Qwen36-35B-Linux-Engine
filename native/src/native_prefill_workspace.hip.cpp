@@ -52,12 +52,16 @@ struct Plan {
 NativePrefillWorkspace::~NativePrefillWorkspace() { reset(); }
 
 NativePrefillWorkspaceMetrics NativePrefillWorkspace::build(
-    int device, std::size_t context_tokens) {
+    int device, std::size_t context_tokens, bool include_frozen_text) {
   if (built() || !views_.empty() || !name_to_index_.empty()) {
     throw std::runtime_error("native prefill workspace is already built");
   }
   if (context_tokens == 0 || context_tokens > 262144) {
     throw std::invalid_argument("unsupported native prefill context");
+  }
+  if (include_frozen_text && context_tokens != 1024) {
+    throw std::invalid_argument(
+        "frozen text prefill workspace is available only at q1024");
   }
 
   std::vector<Plan> plans;
@@ -71,42 +75,59 @@ NativePrefillWorkspaceMetrics NativePrefillWorkspace::build(
   if (launches == nullptr) {
     throw std::runtime_error("native prefill schedule is unavailable");
   }
+  std::vector<std::pair<const DecodeLaunch*, std::size_t>> schedules = {
+      {launches, launch_count}};
+  std::size_t frozen_text_launch_count = 0;
+  if (include_frozen_text) {
+    const DecodeLaunch* frozen_text_launches =
+        native_frozen_text_prefill_schedule(
+            context_tokens, &frozen_text_launch_count);
+    if (frozen_text_launches == nullptr) {
+      throw std::runtime_error(
+          "frozen text prefill schedule is unavailable");
+    }
+    schedules.emplace_back(frozen_text_launches, frozen_text_launch_count);
+  }
   const bool split_projection_tail =
       context_tokens != 8192 && launch_count == 401 && launch_count > 1 &&
       launches[1].symbol != nullptr &&
       std::string(launches[1].symbol) == "_causal_conv1d_fwd_kernel";
-  for (std::size_t launch_index = 0; launch_index < launch_count;
-       ++launch_index) {
-    const DecodeLaunch& launch = launches[launch_index];
-    for (std::size_t argument_index = 0;
-         argument_index < launch.argument_count; ++argument_index) {
-      const DecodeArgument& argument = launch.arguments[argument_index];
-      if (argument.kind != DecodeArgumentKind::kTensor ||
-          argument.binding_kind == DecodeBindingKind::kModelOrDerivedWeight) {
-        continue;
-      }
-      ++metrics.schedule_tensor_arguments;
-      if (argument.binding == nullptr || argument.storage_bytes == 0 ||
-          argument.byte_offset >= argument.storage_bytes) {
-        throw std::runtime_error(
-            "invalid native prefill workspace schedule geometry");
-      }
-      const std::string name(argument.binding);
-      const auto found = plan_indices.find(name);
-      if (found != plan_indices.end()) {
-        Plan& plan = plans[found->second];
-        if (plan.binding_kind != argument.binding_kind) {
-          throw std::runtime_error(
-              "native prefill workspace lifetime drift: " + name);
+  for (const auto& [schedule, schedule_launch_count] : schedules) {
+    for (std::size_t launch_index = 0;
+         launch_index < schedule_launch_count; ++launch_index) {
+      const DecodeLaunch& launch = schedule[launch_index];
+      for (std::size_t argument_index = 0;
+           argument_index < launch.argument_count; ++argument_index) {
+        const DecodeArgument& argument = launch.arguments[argument_index];
+        if (argument.kind != DecodeArgumentKind::kTensor ||
+            argument.binding_kind ==
+                DecodeBindingKind::kModelOrDerivedWeight) {
+          continue;
         }
-        plan.bytes = std::max(plan.bytes, argument.storage_bytes);
-        plan.mixed_dtype =
-            plan.mixed_dtype || plan.first_dtype != argument.tensor_dtype;
-        continue;
+        ++metrics.schedule_tensor_arguments;
+        if (argument.binding == nullptr || argument.storage_bytes == 0 ||
+            argument.byte_offset >= argument.storage_bytes) {
+          throw std::runtime_error(
+              "invalid native prefill workspace schedule geometry");
+        }
+        const std::string name(argument.binding);
+        const auto found = plan_indices.find(name);
+        if (found != plan_indices.end()) {
+          Plan& plan = plans[found->second];
+          if (plan.binding_kind != argument.binding_kind) {
+            throw std::runtime_error(
+                "native prefill workspace lifetime drift: " + name);
+          }
+          plan.bytes = std::max(plan.bytes, argument.storage_bytes);
+          plan.mixed_dtype =
+              plan.mixed_dtype || plan.first_dtype != argument.tensor_dtype;
+          continue;
+        }
+        plan_indices.emplace(name, plans.size());
+        plans.push_back({name, argument.storage_bytes, 0,
+                         argument.tensor_dtype, false,
+                         argument.binding_kind});
       }
-      plan_indices.emplace(name, plans.size());
-      plans.push_back({name, argument.storage_bytes, 0, argument.tensor_dtype,
-                       false, argument.binding_kind});
     }
   }
 
@@ -134,8 +155,18 @@ NativePrefillWorkspaceMetrics NativePrefillWorkspace::build(
       metrics.transient_bindings == 38 && metrics.mixed_dtype_bindings == 2 &&
       metrics.logical_payload_bytes == 1407481841ULL &&
       metrics.allocation_bytes == 1407482880ULL;
+  const bool frozen_text_q1024_union =
+      include_frozen_text && context_tokens == 1024 &&
+      launch_count == 401 && frozen_text_launch_count == 401 &&
+      metrics.schedule_tensor_arguments == 3904 &&
+      metrics.unique_bindings == 140 && metrics.resident_bindings == 65 &&
+      metrics.transient_bindings == 75 &&
+      metrics.mixed_dtype_bindings == 17 &&
+      metrics.logical_payload_bytes == 915552224ULL &&
+      metrics.allocation_bytes == 915552256ULL;
   const bool direct_closure =
-      context_tokens != 8192 && !split_projection_tail &&
+      !include_frozen_text && context_tokens != 8192 &&
+      !split_projection_tail &&
       launch_count == 401 &&
       metrics.schedule_tensor_arguments == 1952 &&
       metrics.unique_bindings != 0 && metrics.resident_bindings != 0 &&
@@ -160,7 +191,7 @@ NativePrefillWorkspaceMetrics NativePrefillWorkspace::build(
       metrics.allocation_bytes >= metrics.logical_payload_bytes &&
       metrics.allocation_bytes - metrics.logical_payload_bytes <
           metrics.unique_bindings * kAlignment;
-  if (!q8192_closure && !direct_closure &&
+  if (!q8192_closure && !frozen_text_q1024_union && !direct_closure &&
       !split_projection_tail_closure) {
     throw std::runtime_error("native prefill workspace closure count mismatch");
   }
@@ -242,6 +273,7 @@ NativePrefillWorkspaceMetrics NativePrefillWorkspace::build(
               "hipMalloc native prefill workspace");
     allocation_bytes_ = allocation_bytes;
     context_tokens_ = context_tokens;
+    includes_frozen_text_ = include_frozen_text;
     check_hip(hipMemset(allocation_, 0, allocation_bytes),
               "hipMemset native prefill workspace");
     auto* base = static_cast<unsigned char*>(allocation_);
@@ -275,6 +307,7 @@ void NativePrefillWorkspace::reset() noexcept {
   allocation_ = nullptr;
   allocation_bytes_ = 0;
   context_tokens_ = 0;
+  includes_frozen_text_ = false;
   views_.clear();
   name_to_index_.clear();
 }

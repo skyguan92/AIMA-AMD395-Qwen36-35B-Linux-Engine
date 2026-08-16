@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2026 Approaching AI Authors
 
-#include "aima/decode_schedule.h"
+#include "aima/prefill_schedule.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -49,13 +49,15 @@ class NativePrefillWorkspace {
   NativePrefillWorkspace& operator=(const NativePrefillWorkspace&) = delete;
 
   NativePrefillWorkspaceMetrics build(int device = 0,
-                                      std::size_t context_tokens = 8192);
+                                      std::size_t context_tokens = 8192,
+                                      bool include_frozen_text = false);
   const NativePrefillWorkspaceView* find(std::string_view name) const;
   const std::vector<NativePrefillWorkspaceView>& views() const {
     return views_;
   }
   bool built() const { return allocation_ != nullptr; }
   std::size_t context_tokens() const { return context_tokens_; }
+  bool includes_frozen_text() const { return includes_frozen_text_; }
   void reset() noexcept;
 
  private:
@@ -63,6 +65,7 @@ class NativePrefillWorkspace {
   void* allocation_ = nullptr;
   std::uint64_t allocation_bytes_ = 0;
   std::size_t context_tokens_ = 0;
+  bool includes_frozen_text_ = false;
   std::vector<NativePrefillWorkspaceView> views_;
   std::unordered_map<std::string, std::size_t> name_to_index_;
 };
