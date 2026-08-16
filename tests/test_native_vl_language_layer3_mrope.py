@@ -163,6 +163,17 @@ class NativeVlLanguageLayer3MropeTest(unittest.TestCase):
         )
         self.assertIn("metrics.native_projection_launches += 3", decode_full)
         self.assertIn("executor.launch(launches[base + 1]", decode_full)
+        self.assertIn(
+            'prefix + ".mlp.shared_expert.gate_proj.weight"', decode_full
+        )
+        self.assertIn(
+            'prefix + ".mlp.shared_expert.up_proj.weight"', decode_full
+        )
+        self.assertIn(
+            "(1 + kSharedIntermediate) * sizeof(__hip_bfloat16)",
+            decode_full,
+        )
+        self.assertIn("metrics.native_projection_launches += 2", decode_full)
 
     def test_unified_attention_artifact_is_embedded_and_hash_bound(self) -> None:
         import hashlib

@@ -201,6 +201,12 @@ NativeFullLayerMetrics run_native_full_layer(
   const auto& shared_down_weight = require_weight(
       weights, prefix + ".mlp.shared_expert.down_proj.weight",
       kHidden * kSharedIntermediate * sizeof(__hip_bfloat16));
+  const auto& shared_gate_weight = require_weight(
+      weights, prefix + ".mlp.shared_expert.gate_proj.weight",
+      kSharedIntermediate * kHidden * sizeof(__hip_bfloat16));
+  const auto& shared_up_weight = require_weight(
+      weights, prefix + ".mlp.shared_expert.up_proj.weight",
+      kSharedIntermediate * kHidden * sizeof(__hip_bfloat16));
   const auto& router_weight = require_weight(
       weights, prefix + ".mlp.gate.weight",
       kExperts * kHidden * sizeof(__hip_bfloat16));
@@ -287,6 +293,22 @@ NativeFullLayerMetrics run_native_full_layer(
   void* post_attention_norm = invocations.tensor_pointer(base + 4, "out");
   executor.launch(launches[base + 5], stream);
   ++metrics.aot_launches;
+  if (use_mrope) {
+    // Keep the exact scalar shared-expert gate from the historical fused
+    // launch, then match current vLLM's singleton gate/up projections.
+    auto* shared_input_bytes =
+        static_cast<unsigned char*>(shared_input.device_pointer);
+    launch_bf16_wvsplitk(
+        shared_gate_weight.device_pointer, post_attention_norm, nullptr,
+        shared_input_bytes + sizeof(__hip_bfloat16), kSharedIntermediate,
+        kHidden, cu_count, stream);
+    launch_bf16_wvsplitk(
+        shared_up_weight.device_pointer, post_attention_norm, nullptr,
+        shared_input_bytes +
+            (1 + kSharedIntermediate) * sizeof(__hip_bfloat16),
+        kSharedIntermediate, kHidden, cu_count, stream);
+    metrics.native_projection_launches += 2;
+  }
   launch_shared_silu_multiply(shared_input.device_pointer,
                               activated.device_pointer, stream);
   ++metrics.native_pointwise_launches;
