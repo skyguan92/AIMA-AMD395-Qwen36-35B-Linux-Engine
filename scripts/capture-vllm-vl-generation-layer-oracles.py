@@ -59,6 +59,10 @@ GENERATION_LAYER_DIAGNOSTIC_SCHEMA = (
     "aima-amd395-qwen36/vl-generation-layer-diagnostic/v1"
 )
 FULL_ATTENTION_LAYER = 3
+FIRST_DIVERGENCE_FULL_ATTENTION_LAYERS = {
+    "tool_forced_image": 11,
+    "tool_auto_image": 3,
+}
 FULL_ATTENTION_DECODE_COMPONENT_NAMES = (
     "query",
     "key_cache",
@@ -69,6 +73,10 @@ FULL_ATTENTION_DECODE_COMPONENT_NAMES = (
     "k_descale",
     "v_descale",
     "output",
+)
+FULL_ATTENTION_PROJECTION_COMPONENT_NAMES = (
+    "qkv_projection",
+    *FULL_ATTENTION_DECODE_COMPONENT_NAMES,
 )
 
 
@@ -157,15 +165,32 @@ def _remove_hooks(root: Any, state: dict[str, Any]) -> None:
 class InstallGenerationLayerHooks:
     """Serializable worker hook for one exact generated-token boundary set."""
 
-    def __init__(self, *, case_id: str, output_index: int) -> None:
+    def __init__(
+        self,
+        *,
+        case_id: str,
+        output_index: int,
+        full_attention_layer_index: int = FULL_ATTENTION_LAYER,
+        capture_full_attention_projection: bool = False,
+    ) -> None:
         self.case_id = case_id
         self.output_index = output_index
+        self.full_attention_layer_index = full_attention_layer_index
+        self.capture_full_attention_projection = (
+            capture_full_attention_projection
+        )
 
     def __call__(self, model: Any) -> dict[str, Any]:
         import torch
 
         if self.output_index <= 0:
             raise RuntimeError("decode layer capture requires output index > 0")
+        if (
+            self.full_attention_layer_index < 0
+            or self.full_attention_layer_index >= 40
+            or self.full_attention_layer_index % 4 != 3
+        ):
+            raise RuntimeError("decode full-attention layer is unsupported")
         root = _find_model_root(model)
         previous = getattr(root, STATE_ATTRIBUTE, None)
         if isinstance(previous, dict):
@@ -190,6 +215,12 @@ class InstallGenerationLayerHooks:
             "linear_capture_kind": None,
             "full_attention_singleton_calls": 0,
             "full_attention_capture_kind": None,
+            "full_attention_layer_index": self.full_attention_layer_index,
+            "full_attention_component_names": (
+                FULL_ATTENTION_PROJECTION_COMPONENT_NAMES
+                if self.capture_full_attention_projection
+                else FULL_ATTENTION_DECODE_COMPONENT_NAMES
+            ),
             "boundary_singleton_calls": {name: 0 for name in BOUNDARY_NAMES},
             "logits_prefill_calls": 0,
             "logits_decode_calls": 0,
@@ -208,9 +239,17 @@ class InstallGenerationLayerHooks:
         if shared_expert is None:
             raise RuntimeError("generation layer-0 shared expert is missing")
         router = mlp.experts.router
-        layer3 = language.model.layers[FULL_ATTENTION_LAYER]
-        if getattr(layer3, "layer_type", None) != "full_attention":
-            raise RuntimeError("generation language layer 3 is not full attention")
+        full_attention_layer = language.model.layers[
+            self.full_attention_layer_index
+        ]
+        if (
+            getattr(full_attention_layer, "layer_type", None)
+            != "full_attention"
+        ):
+            raise RuntimeError(
+                "generation diagnostic layer is not full attention"
+            )
+        full_attention_module = full_attention_layer.self_attn
         gdn_module = __import__(
             "vllm.model_executor.layers.mamba.gdn_linear_attn",
             fromlist=["causal_conv1d_update"],
@@ -348,12 +387,30 @@ class InstallGenerationLayerHooks:
                 )
             captures[name] = tensor.detach().contiguous().cpu()
 
-        def layer3_input_norm_hook(
+        def full_attention_qkv_projection_hook(
+            _module: Any, _args: Any, output: Any
+        ) -> None:
+            if not self.capture_full_attention_projection:
+                return
+            tensor = _first_tensor(output)
+            if (
+                tensor is None
+                or tensor.ndim != 2
+                or tensor.shape != (1, 9_216)
+            ):
+                raise RuntimeError(
+                    "generation full-attention QKV projection geometry changed"
+                )
+            capture_full_attention("qkv_projection", tensor)
+
+        def full_attention_input_norm_hook(
             _module: Any, _args: Any, output: Any
         ) -> None:
             tensor = _first_tensor(output)
             if tensor is None or tensor.ndim != 2 or tensor.shape[-1] != HIDDEN_SIZE:
-                raise RuntimeError("generation layer-3 input norm geometry changed")
+                raise RuntimeError(
+                    "generation full-attention input norm geometry changed"
+                )
             if tensor.shape[0] != 1:
                 return
             state["full_attention_singleton_calls"] += 1
@@ -365,7 +422,9 @@ class InstallGenerationLayerHooks:
             else:
                 state["full_attention_capture_kind"] = None
 
-        def layer3_output_hook(_module: Any, _args: Any, _output: Any) -> None:
+        def full_attention_output_hook(
+            _module: Any, _args: Any, _output: Any
+        ) -> None:
             state["full_attention_capture_kind"] = None
 
         def instrumented_unified_attention(*args: Any, **kwargs: Any) -> Any:
@@ -475,7 +534,7 @@ class InstallGenerationLayerHooks:
             capture_full_attention("v_descale", v_descale)
             capture_full_attention("output", output)
             metadata = {
-                "layer_index": FULL_ATTENTION_LAYER,
+                "layer_index": self.full_attention_layer_index,
                 "sequence_length": sequence_length,
                 "block_size": block_size,
                 "logical_blocks": logical_blocks,
@@ -733,11 +792,21 @@ class InstallGenerationLayerHooks:
         handles.append(mlp.register_forward_hook(mlp_hook))
         handles.append(layer0.register_forward_hook(layer0_output_hook))
         handles.append(
-            layer3.input_layernorm.register_forward_hook(
-                layer3_input_norm_hook
+            full_attention_layer.input_layernorm.register_forward_hook(
+                full_attention_input_norm_hook
             )
         )
-        handles.append(layer3.register_forward_hook(layer3_output_hook))
+        if self.capture_full_attention_projection:
+            handles.append(
+                full_attention_module.qkv_proj.register_forward_hook(
+                    full_attention_qkv_projection_hook
+                )
+            )
+        handles.append(
+            full_attention_layer.register_forward_hook(
+                full_attention_output_hook
+            )
+        )
         gdn_module.causal_conv1d_update = instrumented_causal_conv1d_update
         gdn_module.fused_recurrent_gated_delta_rule_packed_decode = (
             instrumented_packed_decode
@@ -835,7 +904,14 @@ class InstallGenerationLayerHooks:
             language.logits_processor.register_forward_hook(logits_hook)
         )
         setattr(root, STATE_ATTRIBUTE, state)
-        return {"installed": True, "target_output_index": self.output_index}
+        return {
+            "installed": True,
+            "target_output_index": self.output_index,
+            "full_attention_layer_index": self.full_attention_layer_index,
+            "full_attention_projection_captured": (
+                self.capture_full_attention_projection
+            ),
+        }
 
 
 class FinalizeGenerationLayerHooks:
@@ -910,25 +986,28 @@ class FinalizeGenerationLayerHooks:
                 + ", ".join(sorted(missing_first_decode_layer0_tail))
             )
         full_attention_captures = state["full_attention_captures"]
-        missing_full_attention = set(
-            FULL_ATTENTION_DECODE_COMPONENT_NAMES
-        ) - set(full_attention_captures)
+        full_attention_component_names = state[
+            "full_attention_component_names"
+        ]
+        missing_full_attention = set(full_attention_component_names) - set(
+            full_attention_captures
+        )
         if missing_full_attention:
             _remove_hooks(root, state)
             raise RuntimeError(
-                "missing target layer-3 unified-attention boundaries: "
+                "missing target unified-attention boundaries: "
                 + ", ".join(sorted(missing_full_attention))
             )
         first_decode_full_attention_captures = state[
             "first_decode_full_attention_captures"
         ]
         missing_first_decode_full_attention = set(
-            FULL_ATTENTION_DECODE_COMPONENT_NAMES
+            full_attention_component_names
         ) - set(first_decode_full_attention_captures)
         if missing_first_decode_full_attention:
             _remove_hooks(root, state)
             raise RuntimeError(
-                "missing first-decode layer-3 unified-attention boundaries: "
+                "missing first-decode unified-attention boundaries: "
                 + ", ".join(sorted(missing_first_decode_full_attention))
             )
         if not state["full_attention_metadata"] or not state[
@@ -936,7 +1015,7 @@ class FinalizeGenerationLayerHooks:
         ]:
             _remove_hooks(root, state)
             raise RuntimeError(
-                "generation layer-3 unified-attention metadata is missing"
+                "generation unified-attention metadata is missing"
             )
         target_call = state["target_output_index"]
         capture_calls = {
@@ -1076,14 +1155,14 @@ class FinalizeGenerationLayerHooks:
             "full-attention",
             full_attention_captures,
             target_call,
-            FULL_ATTENTION_DECODE_COMPONENT_NAMES,
+            full_attention_component_names,
         )
         full_attention["metadata"] = state["full_attention_metadata"]
         first_decode_full_attention = write_tensor_boundary_set(
             "first-decode-full-attention",
             first_decode_full_attention_captures,
             FIRST_DECODE_LINEAR_OUTPUT_INDEX,
-            FULL_ATTENTION_DECODE_COMPONENT_NAMES,
+            full_attention_component_names,
         )
         first_decode_full_attention["metadata"] = state[
             "first_decode_full_attention_metadata"
@@ -1274,10 +1353,20 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
                 seed=0,
                 structured_outputs=structured,
             )
+            full_attention_layer_index = (
+                FIRST_DIVERGENCE_FULL_ATTENTION_LAYERS[case_id]
+                if args.first_divergence_full_attention
+                else FULL_ATTENTION_LAYER
+            )
 
             def install_callable(model: Any) -> dict[str, Any]:
                 return InstallGenerationLayerHooks(
-                    case_id=case_id, output_index=target_index
+                    case_id=case_id,
+                    output_index=target_index,
+                    full_attention_layer_index=full_attention_layer_index,
+                    capture_full_attention_projection=(
+                        args.first_divergence_full_attention
+                    ),
                 )(model)
 
             def finalize_callable(model: Any) -> dict[str, Any]:
@@ -1368,11 +1457,14 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
 
-    diagnostic = args.diagnostic_output_index is not None
+    diagnostic = (
+        args.diagnostic_output_index is not None
+        or args.first_divergence_full_attention
+    )
     scope = (
-        "two-fixed-vllm-vl-shared-output-index-layer-and-layer0-linear-"
-        "attention-plus-tail-routed-moe-and-layer3-unified-attention-"
-        "diagnostic-boundary-sets"
+        "two-fixed-vllm-vl-decode-layer-and-layer0-linear-attention-plus-"
+        "tail-routed-moe-and-selected-full-attention-qkv-diagnostic-"
+        "boundary-sets"
         if diagnostic
         else "two-fixed-vllm-vl-target-decode-layer-plus-target-and-first-"
         "decode-layer0-linear-attention-tail-and-layer3-unified-attention-"
@@ -1398,6 +1490,9 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
             ),
             "two_diagnostic_first_decode_layer3_unified_attention_sets_captured": (
                 len(cases) == 2
+            ),
+            "two_diagnostic_selected_full_attention_qkv_sets_captured": (
+                args.first_divergence_full_attention and len(cases) == 2
             ),
             "promotion_oracle": False,
             "g1_passed": False,
@@ -1476,6 +1571,14 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
                 "skip_mm_profiling": True,
                 "maximum_tokens_per_case": "target_output_index_plus_one",
                 "diagnostic_output_index": args.diagnostic_output_index,
+                "first_divergence_full_attention": (
+                    args.first_divergence_full_attention
+                ),
+                "first_divergence_full_attention_layers": (
+                    FIRST_DIVERGENCE_FULL_ATTENTION_LAYERS
+                    if args.first_divergence_full_attention
+                    else None
+                ),
                 "layer3_unified_attention_compact_identity_block_table": True,
                 "product_runtime_dependency": False,
             },
@@ -1519,6 +1622,14 @@ def parse_args() -> argparse.Namespace:
         choices=range(1, 1024),
         metavar="1..1023",
         help="capture a shared non-promotion decode index for attribution",
+    )
+    parser.add_argument(
+        "--first-divergence-full-attention",
+        action="store_true",
+        help=(
+            "capture QKV and attention state at each case's first known "
+            "divergent full-attention layer"
+        ),
     )
     parser.add_argument(
         "--oracle-root-label",

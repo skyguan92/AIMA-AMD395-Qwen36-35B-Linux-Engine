@@ -144,6 +144,18 @@ def build_probe_cases(
             probe_case["reference_decode_full_attention_dir"] = str(
                 (layer_oracle_root / case_id / "full-attention").resolve()
             )
+            full_attention = layer_case.get("full_attention")
+            metadata = (
+                full_attention.get("metadata")
+                if isinstance(full_attention, dict)
+                else None
+            )
+            if isinstance(metadata, dict) and isinstance(
+                metadata.get("layer_index"), int
+            ):
+                probe_case[
+                    "reference_decode_full_attention_layer_index"
+                ] = metadata["layer_index"]
         if prefill_state_oracle_root is not None:
             state_case = state_cases.get(case_id)
             if not isinstance(state_case, dict):

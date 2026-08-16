@@ -241,8 +241,8 @@ NativeFullLayerMetrics run_native_full_layer(
     check_hip(hipStreamSynchronize(stream),
               "hipStreamSynchronize native full-attention observer");
     (*attention_observer)(
-        layer_index, cache_end, q.device_pointer, k.device_pointer, raw_v,
-        attention_state.k_cache(layer_index),
+        layer_index, cache_end, qkv.device_pointer, q.device_pointer,
+        k.device_pointer, raw_v, attention_state.k_cache(layer_index),
         attention_state.v_cache(layer_index),
         attention_state.attention_output());
   }

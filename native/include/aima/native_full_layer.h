@@ -29,7 +29,8 @@ struct NativeFullLayerMetrics {
 // attention core. Product execution passes nullptr and incurs no stream
 // synchronization or device-to-host transfer.
 using NativeDecodeFullAttentionObserver = std::function<void(
-    std::size_t layer_index, std::size_t cache_end, const void* query,
+    std::size_t layer_index, std::size_t cache_end,
+    const void* qkv_projection, const void* query,
     const void* current_key, const void* current_value,
     const void* key_cache, const void* value_cache,
     const void* attention_output)>;

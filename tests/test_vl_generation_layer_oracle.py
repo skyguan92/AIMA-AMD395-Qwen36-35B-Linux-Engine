@@ -245,6 +245,10 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
         self.assertIn('"routed_weighted_expert_outputs"', source)
         self.assertIn('"first-decode-layer0-tail"', source)
         self.assertIn("FULL_ATTENTION_DECODE_COMPONENT_NAMES", source)
+        self.assertIn("FULL_ATTENTION_PROJECTION_COMPONENT_NAMES", source)
+        self.assertIn("FIRST_DIVERGENCE_FULL_ATTENTION_LAYERS", source)
+        self.assertIn("--first-divergence-full-attention", source)
+        self.assertIn('capture_full_attention("qkv_projection"', source)
         self.assertIn("instrumented_unified_attention", source)
         self.assertIn('"k_descale"', source)
         self.assertIn('"v_descale"', source)
@@ -298,9 +302,16 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
         self.assertIn("decode_full_attention_observer", resident)
         self.assertIn("hipStreamSynchronize native full-attention observer", full_layer)
         self.assertIn("reference_decode_full_attention_dir", http)
+        self.assertIn(
+            "reference_decode_full_attention_layer_index", http
+        )
+        self.assertIn('attention_dir, "qkv_projection"', http)
         self.assertIn("compare_native_oracle_tensor_slice", http)
         self.assertIn("expected_offset_bytes", layer_oracle)
-        self.assertIn("decode_full_attention_comparisons.size() != 6", http)
+        self.assertIn(
+            "reference_decode_full_attention->qkv_projection.empty() ? 6",
+            http,
+        )
         self.assertEqual(len(NATIVE_LINEAR_ATTENTION_BOUNDARY_NAMES), 13)
         self.assertEqual(len(LAYER0_TAIL_BOUNDARY_SPECS), 15)
         tail_contract = http.split(

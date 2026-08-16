@@ -1724,6 +1724,8 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
       all_decode_layer0_tail_boundaries_compared = false;
     }
     struct ReferenceDecodeFullAttention {
+      std::size_t layer_index = 3;
+      std::filesystem::path qkv_projection;
       std::filesystem::path query;
       std::filesystem::path key_cache;
       std::filesystem::path value_cache;
@@ -1743,7 +1745,25 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
           std::filesystem::absolute(
               item["reference_decode_full_attention_dir"]
                   .get<std::string>());
+      std::size_t attention_layer_index = 3;
+      if (item.contains("reference_decode_full_attention_layer_index")) {
+        if (!item["reference_decode_full_attention_layer_index"]
+                 .is_number_unsigned()) {
+          throw std::runtime_error(
+              "VL generation decode full-attention layer is malformed");
+        }
+        attention_layer_index =
+            item["reference_decode_full_attention_layer_index"]
+                .get<std::size_t>();
+      }
+      if (attention_layer_index >= 40 || attention_layer_index % 4 != 3) {
+        throw std::runtime_error(
+            "VL generation decode full-attention layer is unsupported");
+      }
       reference_decode_full_attention = ReferenceDecodeFullAttention{
+          attention_layer_index,
+          find_native_oracle_tensor_file_if_present(
+              attention_dir, "qkv_projection"),
           find_native_oracle_tensor_file(attention_dir, "query"),
           find_native_oracle_tensor_file(attention_dir, "key_cache"),
           find_native_oracle_tensor_file(attention_dir, "value_cache"),
@@ -1914,14 +1934,20 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
     std::vector<NativeOracleComparison>
         decode_full_attention_comparisons;
     if (reference_decode_full_attention.has_value()) {
-      decode_full_attention_comparisons.reserve(6);
+      const std::size_t expected_full_attention_comparisons =
+          reference_decode_full_attention->qkv_projection.empty() ? 6 : 7;
+      decode_full_attention_comparisons.reserve(
+          expected_full_attention_comparisons);
       request.decode_layer_observer_output_index = expected_prefix.size();
       request.decode_full_attention_observer =
           [&](std::size_t layer_index, std::size_t cache_end,
-              const void* query, const void* current_key,
-              const void* current_value, const void* key_cache,
-              const void* value_cache, const void* attention_output) {
-            if (layer_index != 3) return;
+              const void* qkv_projection, const void* query,
+              const void* current_key, const void* current_value,
+              const void* key_cache, const void* value_cache,
+              const void* attention_output) {
+            const ReferenceDecodeFullAttention& expected =
+                *reference_decode_full_attention;
+            if (layer_index != expected.layer_index) return;
             if (!decode_full_attention_comparisons.empty() ||
                 cache_end == 0) {
               throw std::runtime_error(
@@ -1934,8 +1960,13 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
             const std::size_t cache_bytes = cache_end * kKvRowBytes;
             const std::size_t current_offset =
                 (cache_end - 1) * kKvRowBytes;
-            const ReferenceDecodeFullAttention& expected =
-                *reference_decode_full_attention;
+            if (!expected.qkv_projection.empty()) {
+              decode_full_attention_comparisons.push_back(
+                  compare_native_oracle_tensor(
+                      "qkv_projection", "bfloat16", qkv_projection,
+                      9216ULL * sizeof(std::uint16_t),
+                      expected.qkv_projection));
+            }
             decode_full_attention_comparisons.push_back(
                 compare_native_oracle_tensor(
                     "query", "bfloat16", query, kQueryBytes,
@@ -1996,7 +2027,9 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
           "native VL generation decode layer-0 tail capture is incomplete");
     }
     if (reference_decode_full_attention.has_value() &&
-        decode_full_attention_comparisons.size() != 6) {
+        decode_full_attention_comparisons.size() !=
+            (reference_decode_full_attention->qkv_projection.empty() ? 6
+                                                                      : 7)) {
       throw std::runtime_error(
           "native VL generation decode full-attention capture is incomplete");
     }
@@ -2124,7 +2157,11 @@ int run_native_vl_generation_logits_probe(int argc, char** argv) {
          {"decode_layer0_tail_boundaries",
           std::move(decode_layer0_tail_boundaries)},
          {"decode_full_attention_complete",
-          decode_full_attention_comparisons.size() == 6},
+          reference_decode_full_attention.has_value() &&
+              decode_full_attention_comparisons.size() ==
+                  (reference_decode_full_attention->qkv_projection.empty()
+                       ? 6
+                       : 7)},
          {"decode_full_attention_finite",
           decode_full_attention_finite},
          {"decode_full_attention",

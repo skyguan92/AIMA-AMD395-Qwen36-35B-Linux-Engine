@@ -86,7 +86,20 @@ class NativeVlGenerationQualificationTest(unittest.TestCase):
                         },
                     }
                 )
-                layer_cases.append({"case_id": case_id})
+                layer_cases.append(
+                    {
+                        "case_id": case_id,
+                        "full_attention": {
+                            "metadata": {
+                                "layer_index": (
+                                    11
+                                    if case_id == "tool_forced_image"
+                                    else 3
+                                )
+                            }
+                        },
+                    }
+                )
             layer_root = root / "layers"
             cases = self.module.build_probe_cases(
                 {"cases": oracle_cases},
@@ -114,6 +127,13 @@ class NativeVlGenerationQualificationTest(unittest.TestCase):
                     (layer_root / case_id / "full-attention").resolve()
                     for case_id in CASE_ORDER
                 ],
+            )
+            self.assertEqual(
+                [
+                    case["reference_decode_full_attention_layer_index"]
+                    for case in cases
+                ],
+                [11, 3],
             )
 
     def test_prefix_divergence_diagnostic_is_explicit_and_non_default(self) -> None:
