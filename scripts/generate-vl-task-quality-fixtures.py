@@ -249,7 +249,7 @@ def video_frame(case: str, index: int):
     return image
 
 
-def encode_video(ffmpeg: str, output: Path) -> None:
+def encode_video_ffmpeg(ffmpeg: str, output: Path) -> None:
     frames = b"".join(
         video_frame(output.name, index).tobytes() for index in range(VIDEO_FRAMES)
     )
@@ -306,7 +306,41 @@ def encode_video(ffmpeg: str, output: Path) -> None:
         )
 
 
-def generate_videos(root: Path, ffmpeg: str) -> list[dict[str, Any]]:
+def opencv_modules():
+    try:
+        import cv2
+        import numpy
+    except ImportError as error:
+        raise RuntimeError(
+            "OpenCV and NumPy are required for the OpenCV video backend"
+        ) from error
+    return cv2, numpy
+
+
+def encode_video_opencv(output: Path) -> None:
+    cv2, numpy = opencv_modules()
+    writer = cv2.VideoWriter(
+        str(output),
+        cv2.VideoWriter_fourcc(*"mp4v"),
+        VIDEO_FPS,
+        VIDEO_SIZE,
+        True,
+    )
+    if not writer.isOpened():
+        raise RuntimeError(f"OpenCV could not open MP4 encoder for {output.name}")
+    try:
+        for index in range(VIDEO_FRAMES):
+            rgb = numpy.asarray(video_frame(output.name, index))
+            writer.write(cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR))
+    finally:
+        writer.release()
+    if not output.is_file() or output.stat().st_size <= 0:
+        raise RuntimeError(f"OpenCV produced no video for {output.name}")
+
+
+def generate_videos(
+    root: Path, *, backend: str, ffmpeg: str | None
+) -> list[dict[str, Any]]:
     names = (
         "video-red-circle-right.mp4",
         "video-blue-square-down.mp4",
@@ -318,7 +352,14 @@ def generate_videos(root: Path, ffmpeg: str) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
     for name in names:
         path = root / name
-        encode_video(ffmpeg, path)
+        if backend == "ffmpeg":
+            if ffmpeg is None:
+                raise RuntimeError("ffmpeg backend has no executable")
+            encode_video_ffmpeg(ffmpeg, path)
+        elif backend == "opencv":
+            encode_video_opencv(path)
+        else:
+            raise RuntimeError(f"unsupported video encoder backend: {backend}")
         records.append(
             {
                 "path": name,
@@ -360,6 +401,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--ffmpeg", default="ffmpeg")
+    parser.add_argument(
+        "--encoder-backend",
+        choices=("auto", "ffmpeg", "opencv"),
+        default="auto",
+    )
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
     output = args.output.resolve()
@@ -372,18 +418,42 @@ def main() -> int:
     if output.exists():
         raise SystemExit("task-quality fixture output must not exist")
     ffmpeg = shutil.which(args.ffmpeg)
-    if ffmpeg is None:
-        raise SystemExit("ffmpeg is required to generate video task fixtures")
+    backend = args.encoder_backend
+    if backend == "auto":
+        backend = "ffmpeg" if ffmpeg is not None else "opencv"
+    if backend == "ffmpeg" and ffmpeg is None:
+        raise SystemExit("ffmpeg backend requires an ffmpeg executable")
+    if backend == "opencv":
+        try:
+            cv2, _numpy = opencv_modules()
+        except RuntimeError as error:
+            raise SystemExit(str(error)) from error
     output.mkdir(parents=True)
-    fixtures = generate_images(output) + generate_videos(output, ffmpeg)
+    fixtures = generate_images(output) + generate_videos(
+        output, backend=backend, ffmpeg=ffmpeg
+    )
     ordered = {record["path"]: record for record in fixtures}
     fixtures = [ordered[name] for name in expected_fixture_names()]
-    version = subprocess.run(
-        [ffmpeg, "-version"],
-        capture_output=True,
-        text=True,
-        check=True,
-    ).stdout.splitlines()[0]
+    if backend == "ffmpeg":
+        assert ffmpeg is not None
+        encoder = {
+            "backend": "ffmpeg",
+            "version": subprocess.run(
+                [ffmpeg, "-version"],
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout.splitlines()[0],
+            "video_codec": "libx264",
+            "pixel_format": "yuv420p",
+        }
+    else:
+        encoder = {
+            "backend": "opencv",
+            "version": cv2.__version__,
+            "video_codec": "mp4v",
+            "pixel_format": "bgr24-input",
+        }
     manifest = seal_manifest(
         {
             "schema": FIXTURE_SCHEMA,
@@ -392,11 +462,7 @@ def main() -> int:
                 Path(__file__).resolve(),
                 "scripts/generate-vl-task-quality-fixtures.py",
             ),
-            "encoder": {
-                "ffmpeg_version": version,
-                "video_codec": "libx264",
-                "pixel_format": "yuv420p",
-            },
+            "encoder": encoder,
             "fixtures": fixtures,
         }
     )
