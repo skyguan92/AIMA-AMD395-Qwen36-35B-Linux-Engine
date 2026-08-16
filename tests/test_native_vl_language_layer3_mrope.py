@@ -93,6 +93,9 @@ class NativeVlLanguageLayer3MropeTest(unittest.TestCase):
         decode = (
             ROOT / "native/src/native_decode_runner.hip.cpp"
         ).read_text(encoding="utf-8")
+        decode_full = (
+            ROOT / "native/src/native_full_layer.hip.cpp"
+        ).read_text(encoding="utf-8")
 
         self.assertIn("std::optional<NativeMropePlan> mrope_plan", resident_header)
         self.assertIn("mrope_position_state_bytes", resident_header)
@@ -129,14 +132,21 @@ class NativeVlLanguageLayer3MropeTest(unittest.TestCase):
         self.assertIn("std::size_t rotary_position", decode_header)
         self.assertIn("position, position, input_token_id", decode)
         self.assertIn("decode_rotary_kernel", decode)
-        self.assertIn("rotary_position, static_cast<float*>(cosine)", decode)
+        self.assertIn(
+            "static_cast<float*>(cosine), static_cast<float*>(sine)", decode
+        )
         self.assertIn("constexpr float kRopeTheta = 10000000.0f", decode)
         self.assertIn("1.0f / powf(kRopeTheta, exponent)", decode)
         self.assertIn(
-            "__bfloat162float(__float2bfloat16(cosf(angle)))", decode
+            "__bfloat162float(__float2bfloat16(cosine_value))", decode
         )
         self.assertIn(
-            "__bfloat162float(__float2bfloat16(sinf(angle)))", decode
+            "__bfloat162float(__float2bfloat16(sine_value))", decode
+        )
+        self.assertIn("round_rotary_through_bf16", decode)
+        self.assertIn("mrope_plan != nullptr", resident)
+        self.assertIn(
+            "launch_full_attention_head_norm_mrope_prefill", decode_full
         )
 
     def test_unified_attention_artifact_is_embedded_and_hash_bound(self) -> None:

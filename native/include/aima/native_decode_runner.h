@@ -101,6 +101,7 @@ NativeDecodeRunMetrics run_native_decode_token(
     const NativeDecodeLayerObserver* layer_observer = nullptr,
     const NativeDecodeLinearLayer0Observer* linear_layer0_observer = nullptr,
     const NativeDecodeLinearLayer0Observer* layer0_tail_observer = nullptr,
-    const NativeDecodeFullAttentionObserver* full_attention_observer = nullptr);
+    const NativeDecodeFullAttentionObserver* full_attention_observer = nullptr,
+    bool use_mrope = false);
 
 }  // namespace aima

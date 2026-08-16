@@ -1930,9 +1930,15 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
       rotary_position = static_cast<std::size_t>(value);
       ++metrics.mrope_decode_steps;
     }
-    (void)prepare_native_decode_step(
-        position, rotary_position, metrics.output_token_ids.back(),
-        impl_->weights, impl_->decode_invocations);
+    if (mrope_plan != nullptr) {
+      (void)prepare_native_decode_step(
+          position, rotary_position, metrics.output_token_ids.back(),
+          impl_->weights, impl_->decode_invocations);
+    } else {
+      (void)prepare_native_decode_step(
+          position, metrics.output_token_ids.back(), impl_->weights,
+          impl_->decode_invocations);
+    }
     const std::uint8_t* allowed_token_mask = prepare_next_token_mask();
     const bool observe_decode_layers =
         request.decode_layer_observer_output_index.has_value() &&
@@ -1959,7 +1965,7 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
         impl_->decode_workspace, impl_->decode_invocations, impl_->executor,
         impl_->attention_state, impl_->cu_count, allowed_token_mask, nullptr,
         layer_observer, linear_layer0_observer, layer0_tail_observer,
-        full_attention_observer);
+        full_attention_observer, mrope_plan != nullptr);
     ++metrics.decode_tokens_executed;
     metrics.decode_aot_launches += token.aot_launches;
     metrics.decode_native_launches +=

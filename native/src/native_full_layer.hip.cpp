@@ -22,6 +22,7 @@ constexpr std::size_t kHidden = 2048;
 constexpr std::size_t kQueryDimension = 4096;
 constexpr std::size_t kSharedIntermediate = 512;
 constexpr std::size_t kExperts = 256;
+constexpr std::size_t kRawKeyOffsetElements = 8192;
 constexpr std::size_t kRawValueOffsetElements = 8704;
 
 void check_hip(hipError_t status, const char* operation) {
@@ -89,6 +90,7 @@ NativeFullLayerMetrics run_native_full_layer(
     const NativeDecodeInvocations& invocations,
     NativeDecodeExecutor& executor, NativeFullAttentionState& attention_state,
     int cu_count, void* stream_value, bool synchronize,
+    bool use_mrope,
     const NativeDecodeFullAttentionObserver* attention_observer) {
   const auto& launches = invocations.launches();
   const std::size_t base = layer_index * 10;
@@ -178,6 +180,12 @@ NativeFullLayerMetrics run_native_full_layer(
   const auto& output_weight = require_weight(
       weights, prefix + ".self_attn.o_proj.weight",
       kHidden * kQueryDimension * sizeof(__hip_bfloat16));
+  const auto& q_norm_weight = require_weight(
+      weights, prefix + ".self_attn.q_norm.weight",
+      256 * sizeof(__hip_bfloat16));
+  const auto& k_norm_weight = require_weight(
+      weights, prefix + ".self_attn.k_norm.weight",
+      256 * sizeof(__hip_bfloat16));
   const auto& shared_down_weight = require_weight(
       weights, prefix + ".mlp.shared_expert.down_proj.weight",
       kHidden * kSharedIntermediate * sizeof(__hip_bfloat16));
@@ -196,12 +204,32 @@ NativeFullLayerMetrics run_native_full_layer(
   NativeFullLayerMetrics metrics;
   metrics.layer_index = layer_index;
   metrics.cache_end = cache_end;
-  for (std::size_t offset = 0; offset < 4; ++offset) {
+  for (std::size_t offset = 0; offset < 2; ++offset) {
     executor.launch(launches[base + offset], stream);
     ++metrics.aot_launches;
   }
+  const auto* raw_k = static_cast<const __hip_bfloat16*>(qkv.device_pointer) +
+                      kRawKeyOffsetElements;
   const auto* raw_v = static_cast<const __hip_bfloat16*>(qkv.device_pointer) +
                       kRawValueOffsetElements;
+  if (use_mrope) {
+    const auto& cosine = require_typed_workspace(
+        workspace, require_argument_binding(launches[base + 2], "cos"),
+        32 * sizeof(float), DecodeTensorDtype::kFloat32);
+    const auto& sine = require_typed_workspace(
+        workspace, require_argument_binding(launches[base + 2], "sin"),
+        32 * sizeof(float), DecodeTensorDtype::kFloat32);
+    launch_full_attention_head_norm_mrope_prefill(
+        qkv.device_pointer, raw_k, nullptr, q_norm_weight.device_pointer,
+        k_norm_weight.device_pointer, cosine.device_pointer,
+        sine.device_pointer, q.device_pointer, k.device_pointer, nullptr, 1,
+        9216, 9216, 0, stream);
+    ++metrics.native_pointwise_launches;
+  } else {
+    executor.launch(launches[base + 2], stream);
+    executor.launch(launches[base + 3], stream);
+    metrics.aot_launches += 2;
+  }
   const NativeFullAttentionCoreMetrics attention =
       launch_native_grouped_full_attention(
           layer_index, position, cache_end, q.device_pointer,

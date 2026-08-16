@@ -463,6 +463,9 @@ void launch_full_attention_head_norm_rope_prefill_impl(
   const bool split_projection =
       q_row_stride == 8192 && k_row_stride == 512 && v_row_stride == 0 &&
       v_raw == nullptr && v_output == nullptr;
+  const bool fused_qk_projection =
+      q_row_stride == 9216 && k_row_stride == 9216 && v_row_stride == 0 &&
+      v_raw == nullptr && v_output == nullptr;
   const bool fused_projection =
       q_row_stride == 9216 && k_row_stride == 9216 &&
       v_row_stride == 9216 && v_raw != nullptr && v_output != nullptr;
@@ -470,7 +473,7 @@ void launch_full_attention_head_norm_rope_prefill_impl(
       k_norm_weight == nullptr || cosine_fp32 == nullptr ||
       sine_fp32 == nullptr || q_output == nullptr || k_output == nullptr ||
       token_count == 0 || token_count > kMaxPrefillTokens ||
-      (!split_projection && !fused_projection)) {
+      (!split_projection && !fused_qk_projection && !fused_projection)) {
     throw std::invalid_argument(
         "native full-attention head norm geometry is unsupported");
   }
@@ -478,6 +481,20 @@ void launch_full_attention_head_norm_rope_prefill_impl(
     hipLaunchKernelGGL(
         (full_attention_head_norm_rope_prefill_kernel<
             8192, 512, 0, false, TruncateRotaryProducts>),
+        dim3(token_count), dim3(32, kQueryHeads + kKvHeads), 0,
+        static_cast<hipStream_t>(stream_value),
+        static_cast<const __hip_bfloat16*>(q_gate),
+        static_cast<const __hip_bfloat16*>(k_raw), nullptr,
+        static_cast<const __hip_bfloat16*>(q_norm_weight),
+        static_cast<const __hip_bfloat16*>(k_norm_weight),
+        static_cast<const float*>(cosine_fp32),
+        static_cast<const float*>(sine_fp32),
+        static_cast<__hip_bfloat16*>(q_output),
+        static_cast<__hip_bfloat16*>(k_output), nullptr);
+  } else if (fused_qk_projection) {
+    hipLaunchKernelGGL(
+        (full_attention_head_norm_rope_prefill_kernel<
+            9216, 9216, 0, false, TruncateRotaryProducts>),
         dim3(token_count), dim3(32, kQueryHeads + kKvHeads), 0,
         static_cast<hipStream_t>(stream_value),
         static_cast<const __hip_bfloat16*>(q_gate),

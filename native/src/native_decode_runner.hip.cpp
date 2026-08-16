@@ -41,41 +41,39 @@ __global__ void next_token_embedding_kernel(
 }
 
 __global__ void decode_rotary_kernel(std::size_t position, float* cosine,
-                                     float* sine) {
+                                     float* sine, bool round_through_bf16) {
   const std::size_t index = threadIdx.x;
   if (index >= kRotaryHalfDimension) return;
   const float exponent =
       static_cast<float>(2 * index) / static_cast<float>(kRotaryDimension);
   const float inverse_frequency = 1.0f / powf(kRopeTheta, exponent);
   const float angle = static_cast<float>(position) * inverse_frequency;
-  // current-vLLM materializes the FP32 rotary cache, converts it to the
-  // BF16 query dtype, then the captured Triton consumer promotes it back to
-  // FP32. Preserve that boundary: unrounded FP32 trigonometry changes only
-  // rotary Q/K lanes and was the first resident layer-3 decode divergence.
-  cosine[index] = __bfloat162float(__float2bfloat16(cosf(angle)));
-  sine[index] = __bfloat162float(__float2bfloat16(sinf(angle)));
+  const float cosine_value = cosf(angle);
+  const float sine_value = sinf(angle);
+  // VL current-vLLM converts its FP32 cache to the BF16 query dtype before
+  // the captured Triton consumer promotes it back to FP32. Text keeps the
+  // pre-existing scalar FP32 table until the independent G3 lane qualifies
+  // any change to that path.
+  cosine[index] = round_through_bf16
+                      ? __bfloat162float(__float2bfloat16(cosine_value))
+                      : cosine_value;
+  sine[index] = round_through_bf16
+                    ? __bfloat162float(__float2bfloat16(sine_value))
+                    : sine_value;
 }
 
-}  // namespace
-
-NativeDecodePrepareMetrics prepare_native_decode_step(
-    std::size_t position, std::uint32_t input_token_id,
-    const NativeWeightStore& weights,
-    const NativeDecodeInvocations& invocations, void* stream_value) {
-  return prepare_native_decode_step(position, position, input_token_id,
-                                    weights, invocations, stream_value);
-}
-
-NativeDecodePrepareMetrics prepare_native_decode_step(
+NativeDecodePrepareMetrics prepare_native_decode_step_impl(
     std::size_t position, std::size_t rotary_position,
-    std::uint32_t input_token_id, const NativeWeightStore& weights,
+    std::uint32_t input_token_id, bool round_rotary_through_bf16,
+    const NativeWeightStore& weights,
     const NativeDecodeInvocations& invocations, void* stream_value) {
   const NativeTensorView* embedding =
       weights.find("model.language_model.embed_tokens.weight");
   if (position >= kMaximumPosition || rotary_position >= kMaximumPosition ||
       input_token_id >= kVocabulary ||
       embedding == nullptr || embedding->device_pointer == nullptr ||
-      embedding->payload_bytes != kVocabulary * kHidden * sizeof(__hip_bfloat16)) {
+      embedding->payload_bytes !=
+          kVocabulary * kHidden * sizeof(__hip_bfloat16)) {
     throw std::invalid_argument("native decode step preparation is invalid");
   }
   void* hidden = invocations.tensor_pointer(0, "x");
@@ -87,11 +85,32 @@ NativeDecodePrepareMetrics prepare_native_decode_step(
       static_cast<const __hip_bfloat16*>(embedding->device_pointer),
       input_token_id, static_cast<__hip_bfloat16*>(hidden));
   check_hip(hipGetLastError(), "next_token_embedding_kernel");
-  hipLaunchKernelGGL(decode_rotary_kernel, dim3(1), dim3(32), 0, stream,
-                     rotary_position, static_cast<float*>(cosine),
-                     static_cast<float*>(sine));
+  hipLaunchKernelGGL(
+      decode_rotary_kernel, dim3(1), dim3(32), 0, stream, rotary_position,
+      static_cast<float*>(cosine), static_cast<float*>(sine),
+      round_rotary_through_bf16);
   check_hip(hipGetLastError(), "decode_rotary_kernel");
   return {2, position, rotary_position, input_token_id};
+}
+
+}  // namespace
+
+NativeDecodePrepareMetrics prepare_native_decode_step(
+    std::size_t position, std::uint32_t input_token_id,
+    const NativeWeightStore& weights,
+    const NativeDecodeInvocations& invocations, void* stream_value) {
+  return prepare_native_decode_step_impl(
+      position, position, input_token_id, false, weights, invocations,
+      stream_value);
+}
+
+NativeDecodePrepareMetrics prepare_native_decode_step(
+    std::size_t position, std::size_t rotary_position,
+    std::uint32_t input_token_id, const NativeWeightStore& weights,
+    const NativeDecodeInvocations& invocations, void* stream_value) {
+  return prepare_native_decode_step_impl(
+      position, rotary_position, input_token_id, true, weights, invocations,
+      stream_value);
 }
 
 NativeLmHeadTop1Metrics run_native_lm_head_top1(
@@ -185,7 +204,8 @@ NativeDecodeRunMetrics run_native_decode_token(
     void* stream_value, const NativeDecodeLayerObserver* layer_observer,
     const NativeDecodeLinearLayer0Observer* linear_layer0_observer,
     const NativeDecodeLinearLayer0Observer* layer0_tail_observer,
-    const NativeDecodeFullAttentionObserver* full_attention_observer) {
+    const NativeDecodeFullAttentionObserver* full_attention_observer,
+    bool use_mrope) {
   const auto& launches = invocations.launches();
   if (launches.size() != 402 || !executor.loaded() || !lm_head.built() ||
       cu_count <= 0 ||
@@ -212,6 +232,7 @@ NativeDecodeRunMetrics run_native_decode_token(
       const NativeFullLayerMetrics layer = run_native_full_layer(
           layer_index, position, cache_end, weights, workspace, invocations,
           executor, attention_state, cu_count, stream, false,
+          use_mrope,
           full_attention_observer);
       ++metrics.full_layer_count;
       metrics.aot_launches += layer.aot_launches;

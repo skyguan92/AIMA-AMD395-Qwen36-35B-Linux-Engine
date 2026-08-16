@@ -40,6 +40,7 @@ NativeFullLayerMetrics run_native_full_layer(
     const NativeDecodeInvocations& invocations,
     NativeDecodeExecutor& executor, NativeFullAttentionState& attention_state,
     int cu_count, void* stream = nullptr, bool synchronize = true,
+    bool use_mrope = false,
     const NativeDecodeFullAttentionObserver* attention_observer = nullptr);
 
 }  // namespace aima
