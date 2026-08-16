@@ -55,6 +55,9 @@ struct NativeMoePrefillOracleOptions {
   bool run_routing_diagnostic = true;
   bool collect_oracle_comparisons = true;
   bool synchronize_substages = false;
+  // Current vLLM rounds the shared-expert SiLU branch to BF16 before the
+  // multiply. False preserves the frozen text product's FP32 intermediate.
+  bool use_vl_shared_expert_semantics = false;
   // The VL chain follows current vLLM's 256-way softmax and wave32 top-k
   // rounding. False preserves the frozen text product's serial selection and
   // selected-logit softmax order while honoring the captured weight ABI.

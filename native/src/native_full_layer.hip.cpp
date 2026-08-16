@@ -342,8 +342,13 @@ NativeFullLayerMetrics run_native_full_layer(
         kSharedIntermediate, kHidden, cu_count, stream);
     metrics.native_projection_launches += 3;
   }
-  launch_shared_silu_multiply(shared_input.device_pointer,
-                              activated.device_pointer, stream);
+  if (use_mrope) {
+    launch_shared_silu_multiply(shared_input.device_pointer,
+                                activated.device_pointer, stream);
+  } else {
+    launch_shared_silu_multiply_v151(
+        shared_input.device_pointer, activated.device_pointer, stream);
+  }
   ++metrics.native_pointwise_launches;
   launch_bf16_wvsplitk(
       shared_down_weight.device_pointer, activated.device_pointer, nullptr,

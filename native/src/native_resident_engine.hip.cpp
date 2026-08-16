@@ -1729,6 +1729,7 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
 
         NativeMoePrefillOracleOptions moe_options;
         moe_options.layer_index = layer_index;
+        moe_options.use_vl_shared_expert_semantics = vl_input != nullptr;
         moe_options.use_vl_router_semantics = vl_input != nullptr;
         moe_options.seed_post_attention = false;
         moe_options.run_routing_diagnostic = false;

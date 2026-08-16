@@ -207,6 +207,17 @@ std::size_t count_exact_int64_row_sets(
   return exact_rows;
 }
 
+__global__ void shared_silu_multiply_batched_v151_kernel(
+    const __hip_bfloat16* gate, const __hip_bfloat16* up,
+    __hip_bfloat16* output, std::size_t elements) {
+  const std::size_t index = blockIdx.x * blockDim.x + threadIdx.x;
+  if (index >= elements) return;
+  const float gate_value = __bfloat162float(gate[index]);
+  const float up_value = __bfloat162float(up[index]);
+  const float silu = gate_value / (1.0f + expf(-gate_value));
+  output[index] = __float2bfloat16(silu * up_value);
+}
+
 __global__ void shared_silu_multiply_batched_kernel(
     const __hip_bfloat16* gate, const __hip_bfloat16* up,
     __hip_bfloat16* output, std::size_t elements) {
@@ -545,16 +556,27 @@ __global__ void moe_sum8_kernel(const __hip_bfloat16* input,
 }
 
 void launch_shared_activation(const void* gate, const void* up, void* output,
+                              bool use_vl_shared_expert_semantics,
                               std::size_t tokens) {
   const std::size_t elements = tokens * kSharedIntermediate;
-  hipLaunchKernelGGL(
-      shared_silu_multiply_batched_kernel,
-      dim3(static_cast<unsigned>((elements + kThreads - 1) / kThreads)),
-      dim3(kThreads), 0, nullptr,
-      static_cast<const __hip_bfloat16*>(gate),
-      static_cast<const __hip_bfloat16*>(up),
-      static_cast<__hip_bfloat16*>(output), elements);
-  check_hip(hipGetLastError(), "shared_silu_multiply_batched_kernel");
+  const dim3 grid(
+      static_cast<unsigned>((elements + kThreads - 1) / kThreads));
+  if (use_vl_shared_expert_semantics) {
+    hipLaunchKernelGGL(
+        shared_silu_multiply_batched_kernel, grid, dim3(kThreads), 0, nullptr,
+        static_cast<const __hip_bfloat16*>(gate),
+        static_cast<const __hip_bfloat16*>(up),
+        static_cast<__hip_bfloat16*>(output), elements);
+    check_hip(hipGetLastError(), "shared_silu_multiply_batched_kernel");
+  } else {
+    hipLaunchKernelGGL(
+        shared_silu_multiply_batched_v151_kernel, grid, dim3(kThreads), 0,
+        nullptr, static_cast<const __hip_bfloat16*>(gate),
+        static_cast<const __hip_bfloat16*>(up),
+        static_cast<__hip_bfloat16*>(output), elements);
+    check_hip(
+        hipGetLastError(), "shared_silu_multiply_batched_v151_kernel");
+  }
 }
 
 void launch_shared_gate(const void* gate, const void* down, void* output,
@@ -1000,7 +1022,8 @@ NativeMoePrefillOracleResult probe_native_q8192_moe_prefill_layer0_oracle(
   result.layer.dense_gemm_launches += 3;
   launch_shared_activation(shared_projected_gate,
                            shared_projected_up,
-                           shared_activated, tokens);
+                           shared_activated,
+                           options.use_vl_shared_expert_semantics, tokens);
   ++result.layer.native_pointwise_launches;
   shared_down_plan.launch(shared_activated,
                           shared_down_proj_weight.device_pointer,

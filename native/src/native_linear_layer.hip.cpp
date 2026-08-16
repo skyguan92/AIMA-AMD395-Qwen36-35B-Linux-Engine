@@ -510,8 +510,13 @@ NativeLinearLayerMetrics run_native_linear_layer(
           sizeof(__hip_bfloat16),
       2 * kSharedIntermediate * sizeof(__hip_bfloat16),
       DecodeTensorDtype::kBfloat16);
-  launch_shared_silu_multiply(shared_input.device_pointer,
-                              activated.device_pointer, stream);
+  if (use_current_vllm_projections) {
+    launch_shared_silu_multiply(shared_input.device_pointer,
+                                activated.device_pointer, stream);
+  } else {
+    launch_shared_silu_multiply_v151(
+        shared_input.device_pointer, activated.device_pointer, stream);
+  }
   ++metrics.native_pointwise_launches;
   observe_boundary(tail_observer, "shared_activation",
                    activated.device_pointer,

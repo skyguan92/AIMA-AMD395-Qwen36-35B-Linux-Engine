@@ -454,6 +454,7 @@ Execution execute_layers_0_through_3(
     aima::NativeMoePrefillOracleOptions moe_options;
     moe_options.layer_index = layer_index;
     moe_options.use_vl_router_semantics = true;
+    moe_options.use_vl_shared_expert_semantics = true;
     moe_options.comparison_tokens = prompt_tokens;
     moe_options.seed_post_attention = false;
     moe_options.run_routing_diagnostic = false;
@@ -524,6 +525,7 @@ Execution execute_layers_0_through_3(
   aima::NativeMoePrefillOracleOptions moe_options;
   moe_options.layer_index = 3;
   moe_options.use_vl_router_semantics = true;
+  moe_options.use_vl_shared_expert_semantics = true;
   moe_options.comparison_tokens = prompt_tokens;
   moe_options.seed_post_attention = false;
   moe_options.run_routing_diagnostic = false;
@@ -726,6 +728,7 @@ FullLanguageExecution execute_full_language(
     aima::NativeMoePrefillOracleOptions moe_options;
     moe_options.layer_index = layer_index;
     moe_options.use_vl_router_semantics = true;
+    moe_options.use_vl_shared_expert_semantics = true;
     moe_options.comparison_tokens = prompt_tokens;
     moe_options.seed_post_attention = false;
     moe_options.run_routing_diagnostic = false;
@@ -1020,6 +1023,7 @@ json qualify_case(
   aima::NativeMoePrefillOracleOptions diagnostic_options;
   diagnostic_options.layer_index = 1;
   diagnostic_options.use_vl_router_semantics = true;
+  diagnostic_options.use_vl_shared_expert_semantics = true;
   diagnostic_options.comparison_tokens = prompt_tokens;
   diagnostic_options.seed_post_attention = true;
   diagnostic_options.post_attention_h2_oracle_label =

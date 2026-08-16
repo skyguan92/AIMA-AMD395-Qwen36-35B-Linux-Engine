@@ -93,6 +93,12 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         full_source = (
             ROOT / "native/src/native_full_prefill.hip.cpp"
         ).read_text(encoding="utf-8")
+        decode_full_source = (
+            ROOT / "native/src/native_full_layer.hip.cpp"
+        ).read_text(encoding="utf-8")
+        decode_linear_source = (
+            ROOT / "native/src/native_linear_layer.hip.cpp"
+        ).read_text(encoding="utf-8")
         full_header = (
             ROOT / "native/include/aima/native_full_prefill.h"
         ).read_text(encoding="utf-8")
@@ -144,6 +150,9 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         self.assertIn('"fla_beta_full_sequence"', probe)
         self.assertIn('"diagnostic-conv"', linear_source)
         self.assertIn("std::size_t active_tokens = 0", moe_header)
+        self.assertIn(
+            "bool use_vl_shared_expert_semantics = false", moe_header
+        )
         self.assertIn("bool use_vl_router_semantics = false", moe_header)
         self.assertIn("std::size_t active_tokens = 0", linear_header)
         self.assertIn('"num_valid_tokens"', moe_source)
@@ -174,11 +183,23 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         )
         self.assertIn("moe_options.use_vl_router_semantics = true", probe)
         self.assertIn(
+            "moe_options.use_vl_shared_expert_semantics = true", probe
+        )
+        self.assertIn(
             "moe_options.use_vl_router_semantics = vl_input != nullptr",
             resident_source,
         )
         self.assertIn(
+            "moe_options.use_vl_shared_expert_semantics = "
+            "vl_input != nullptr",
+            resident_source,
+        )
+        self.assertIn(
             "moe_options.use_vl_router_semantics = true", layer3_probe
+        )
+        self.assertIn(
+            "moe_options.use_vl_shared_expert_semantics = true",
+            layer3_probe,
         )
         self.assertIn("merge_16x16_to_64x64_inverse_kernel", linear_source)
         self.assertIn("launch_prefill_rmsnorm_2048(", linear_source)
@@ -297,6 +318,18 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         )[1].split("__global__ void shared_sigmoid_scale_batched_kernel", 1)[0]
         self.assertIn("const __hip_bfloat16 silu_bf16", shared_activation)
         self.assertIn("__bfloat162float(silu_bf16) * up_value", shared_activation)
+        frozen_shared_activation = moe_source.split(
+            "__global__ void shared_silu_multiply_batched_v151_kernel(", 1
+        )[1].split(
+            "__global__ void shared_silu_multiply_batched_kernel", 1
+        )[0]
+        self.assertIn(
+            "output[index] = __float2bfloat16(silu * up_value)",
+            frozen_shared_activation,
+        )
+        self.assertIn(
+            "options.use_vl_shared_expert_semantics", moe_source
+        )
 
         decode_shared_activation = pointwise_source.split(
             "__global__ void shared_activation_kernel(", 1
@@ -306,6 +339,19 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         )
         self.assertIn(
             "__bfloat162float(silu_bf16) * up", decode_shared_activation
+        )
+        frozen_decode_shared_activation = pointwise_source.split(
+            "__global__ void shared_activation_v151_kernel(", 1
+        )[1].split("__global__ void shared_activation_kernel", 1)[0]
+        self.assertIn(
+            "activated[index] = __float2bfloat16(silu * up)",
+            frozen_decode_shared_activation,
+        )
+        self.assertIn(
+            "launch_shared_silu_multiply_v151(", decode_full_source
+        )
+        self.assertIn(
+            "launch_shared_silu_multiply_v151(", decode_linear_source
         )
 
         router = moe_source.split(

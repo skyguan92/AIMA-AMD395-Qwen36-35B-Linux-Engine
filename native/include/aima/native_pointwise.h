@@ -51,6 +51,10 @@ void launch_shared_silu_multiply(const void* fused_shared_input,
                                  void* activated_512,
                                  void* stream = nullptr);
 
+void launch_shared_silu_multiply_v151(const void* fused_shared_input,
+                                      void* activated_512,
+                                      void* stream = nullptr);
+
 void launch_shared_sigmoid_scale(const void* fused_shared_input,
                                  const void* shared_down_2048,
                                  void* output_2048,

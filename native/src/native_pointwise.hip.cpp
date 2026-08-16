@@ -300,6 +300,17 @@ __global__ void prefill_add_rmsnorm_2048_kernel(
   }
 }
 
+__global__ void shared_activation_v151_kernel(
+    const __hip_bfloat16* shared_input, __hip_bfloat16* activated) {
+  const std::size_t index = blockIdx.x * blockDim.x + threadIdx.x;
+  if (index >= kSharedIntermediate) return;
+  const float gate = __bfloat162float(shared_input[1 + index]);
+  const float up =
+      __bfloat162float(shared_input[1 + kSharedIntermediate + index]);
+  const float silu = gate / (1.0f + expf(-gate));
+  activated[index] = __float2bfloat16(silu * up);
+}
+
 __global__ void shared_activation_kernel(const __hip_bfloat16* shared_input,
                                          __hip_bfloat16* activated) {
   const std::size_t index = blockIdx.x * blockDim.x + threadIdx.x;
@@ -931,6 +942,23 @@ void launch_shared_silu_multiply(const void* fused_shared_input,
       static_cast<const __hip_bfloat16*>(fused_shared_input),
       static_cast<__hip_bfloat16*>(activated_512));
   check_hip(hipGetLastError(), "shared_activation_kernel");
+}
+
+void launch_shared_silu_multiply_v151(const void* fused_shared_input,
+                                      void* activated_512,
+                                      void* stream_value) {
+  if (fused_shared_input == nullptr || activated_512 == nullptr) {
+    throw std::invalid_argument(
+        "native v1.5.1 shared activation requires non-null pointers");
+  }
+  const unsigned blocks = static_cast<unsigned>(
+      (kSharedIntermediate + kThreads - 1) / kThreads);
+  hipLaunchKernelGGL(
+      shared_activation_v151_kernel, dim3(blocks), dim3(kThreads), 0,
+      static_cast<hipStream_t>(stream_value),
+      static_cast<const __hip_bfloat16*>(fused_shared_input),
+      static_cast<__hip_bfloat16*>(activated_512));
+  check_hip(hipGetLastError(), "shared_activation_v151_kernel");
 }
 
 void launch_shared_sigmoid_scale(const void* fused_shared_input,

@@ -75,6 +75,46 @@ semantics are covered by `tests/test_native_paired_text_matrix.py`. This is a
 replayable methodology artifact, not G3 evidence; G3 remains false until the
 live matrix and every other blocking text/release gate pass.
 
+The candidate runtime binding covers all product-selected attention artifacts:
+the short-context AOTriton provider and its exact runtime/image closure, the
+long-context CK provider, the q16384 packed-GQA/CK hybrid, and the native vision
+attention image. Each must occupy the path the engine would discover beside a
+build binary or in a portable archive's sibling `lib/` directory. Paired runs
+do not pass `--fmha-provider`; doing so would disable the frozen automatic
+context routing and could benchmark AOTriton at q8192 or long context instead
+of the actual product path. Each candidate raw record binds a digest of that
+runtime closure and policy, so `--resume` cannot reuse an older run made with
+the same engine binary but a different provider selection.
+
+### Text/VL arithmetic isolation
+
+The first current-head q1024 text requalification exposed a real semantic
+regression even though top-1 remained unchanged: the candidate KLD was
+`0.02421168131149516`, while the exact v1.5.1 binary on the same host and
+oracle produced `0.000013813921765257257`. The candidate also replaced two AOT
+RMSNorm launches per layer, changing the aggregate from `400 AOT / 291 native
+pointwise` to `320 / 371`.
+
+`scripts/bisect-native-text-correctness.sh` rebuilds every selected commit and
+decides it with the immutable full-vocabulary oracle rather than a source-code
+heuristic. The bisect identified `63c0a384bdd5429a98b1ba0ebc092e22121bc8bc`
+as the first bad commit: its parent-side diagnostic commit remained below the
+gate at `0.00496829703367488`, while `63c0a38` reached
+`0.04396834423954292`. That change altered gated-RMSNorm arithmetic without
+changing launch counts. A first isolation pass restored the release launch
+mix but still produced KLD `0.011909960176010672`, proving that dispatch
+topology alone is not a correctness certificate.
+
+The resulting implementation rule is fail-safe: frozen text arithmetic is
+the default, and current vLLM/VL arithmetic requires an explicit request-level
+selection. Full-attention prefill uses the already-qualified M-RoPE boundary;
+linear RMSNorm/gated-RMSNorm, shared-expert activation and MoE router semantics
+use independent opt-in options propagated from a real multimodal request and
+from dedicated VL qualification probes. Singleton decode selects the same
+text/VL shared-activation split from its existing M-RoPE/current-projection
+flag. Every such split must pass both text full-vocabulary requalification and
+the current-head VL numerical chain before its evidence can be refreshed.
+
 ## Phase 0 invariants
 
 The reference capture is fail-closed:
