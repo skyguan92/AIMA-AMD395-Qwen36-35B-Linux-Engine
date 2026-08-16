@@ -97,6 +97,38 @@ def payload(
 
 
 class NativePairedTextMatrixTest(unittest.TestCase):
+    def test_candidate_uses_automatic_context_provider_paths(self) -> None:
+        build_engine = Path("/tmp/candidate/aima-engine-native")
+        self.assertEqual(
+            paired.automatic_runtime_path(
+                build_engine, paired.FMHA_AOTRITON_FILENAME
+            ),
+            Path("/tmp/candidate/libaima-fmha-aotriton.so"),
+        )
+        portable_engine = Path(
+            "/tmp/candidate/aima-engine-native-portable/libexec/"
+            "aima-engine-native"
+        )
+        self.assertEqual(
+            paired.automatic_runtime_path(
+                portable_engine, paired.FMHA_CK_FILENAME
+            ),
+            Path(
+                "/tmp/candidate/aima-engine-native-portable/lib/"
+                "libaima-fmha-ck.so"
+            ),
+        )
+        source = SCRIPT.read_text(encoding="utf-8")
+        self.assertIn(
+            '"--candidate-long-context-fmha-provider-sha256"',
+            source,
+        )
+        self.assertIn(
+            '"--candidate-q16384-hybrid-provider-sha256"',
+            source,
+        )
+        self.assertIn('"candidate": (),', source)
+
     def test_frozen_matrix_contains_exactly_nineteen_cells(self) -> None:
         self.assertEqual(len(paired.FROZEN_V151_FLOORS), 19)
         self.assertEqual(sum(len(outputs) for _, outputs in paired.jobs()), 19)
@@ -225,6 +257,56 @@ class NativePairedTextMatrixTest(unittest.TestCase):
         self.assertTrue(paired.candidate_text_path_is_idle(clean))
         clean["requests"][0]["prefill_vl_unified_attention_launches"] = 1
         self.assertFalse(paired.candidate_text_path_is_idle(clean))
+
+    def test_candidate_resume_is_bound_to_automatic_runtime_closure(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            path = paired.report_path(
+                root, 1024, (512, 1024), 1, "candidate"
+            )
+            path.parent.mkdir(parents=True)
+            value = payload(
+                role="candidate",
+                pair_index=1,
+                context=1024,
+                outputs=(512, 1024),
+                engine_sha256="c" * 64,
+                prefill_tps=1700.0,
+                prefill_wall_ms=602.0,
+                decode_tps=34.0,
+                decode_wall_ms=15_000.0,
+            )
+            value["qualification"].update(
+                {
+                    "runtime_policy": paired.CANDIDATE_RUNTIME_POLICY,
+                    "runtime_binding_sha256": "d" * 64,
+                }
+            )
+            path.write_text(json.dumps(value), encoding="utf-8")
+            arguments = {
+                "context": 1024,
+                "outputs": (512, 1024),
+                "role": "candidate",
+                "pair_index": 1,
+                "order": paired.pair_order(1),
+                "engine_sha256": "c" * 64,
+            }
+            self.assertTrue(
+                paired.report_complete(
+                    path,
+                    **arguments,
+                    candidate_runtime_binding_sha256="d" * 64,
+                )
+            )
+            self.assertFalse(
+                paired.report_complete(
+                    path,
+                    **arguments,
+                    candidate_runtime_binding_sha256="e" * 64,
+                )
+            )
 
 
 if __name__ == "__main__":

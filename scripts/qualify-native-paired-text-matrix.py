@@ -30,6 +30,11 @@ Q8192_STARTUP_LIMIT_MS = 44_900.0
 VISION_ATTENTION_SHA256 = (
     "b709a058a77d61e14db73c1ff7d7f4c20859d997bec811cad7339d3e59223d00"
 )
+FMHA_AOTRITON_FILENAME = "libaima-fmha-aotriton.so"
+FMHA_CK_FILENAME = "libaima-fmha-ck.so"
+FMHA_Q16384_HYBRID_FILENAME = "libaima-fmha-q16384-hybrid.so"
+VISION_ATTENTION_FILENAME = "aima-vision-attention.hsaco"
+CANDIDATE_RUNTIME_POLICY = "automatic-context-provider/v1"
 
 # Frozen public values in docs/NATIVE_VL_GOAL.md.  These remain an independent
 # safety floor; the paired v1.5.1 process is the stricter no-regression gate.
@@ -62,6 +67,13 @@ def sha256(path: Path) -> str:
         for block in iter(lambda: stream.read(1024 * 1024), b""):
             digest.update(block)
     return digest.hexdigest()
+
+
+def json_sha256(value: Any) -> str:
+    encoded = json.dumps(
+        value, sort_keys=True, separators=(",", ":")
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -140,17 +152,68 @@ def bind_engine(
     }
 
 
+def automatic_runtime_path(engine: Path, filename: str) -> Path:
+    executable_dir = engine.parent
+    if executable_dir.name == "libexec":
+        return executable_dir.parent / "lib" / filename
+    return executable_dir / filename
+
+
 def bind_candidate_runtime(
     *,
+    engine: Path,
     fmha_provider: Path,
     expected_fmha_provider_sha256: str,
+    long_context_fmha_provider: Path,
+    expected_long_context_fmha_provider_sha256: str,
+    q16384_hybrid_provider: Path,
+    expected_q16384_hybrid_provider_sha256: str,
     vision_attention_image: Path,
     expected_vision_attention_sha256: str,
 ) -> dict[str, Any]:
+    expected_paths = {
+        "AOTriton FMHA provider": automatic_runtime_path(
+            engine, FMHA_AOTRITON_FILENAME
+        ),
+        "long-context CK FMHA provider": automatic_runtime_path(
+            engine, FMHA_CK_FILENAME
+        ),
+        "q16384 hybrid FMHA provider": automatic_runtime_path(
+            engine, FMHA_Q16384_HYBRID_FILENAME
+        ),
+        "vision-attention image": automatic_runtime_path(
+            engine, VISION_ATTENTION_FILENAME
+        ),
+    }
+    supplied_paths = {
+        "AOTriton FMHA provider": fmha_provider,
+        "long-context CK FMHA provider": long_context_fmha_provider,
+        "q16384 hybrid FMHA provider": q16384_hybrid_provider,
+        "vision-attention image": vision_attention_image,
+    }
+    for label, expected_path in expected_paths.items():
+        if supplied_paths[label] != expected_path:
+            raise SystemExit(
+                f"candidate {label} must use its automatic runtime path"
+            )
     closure = require_aotriton_closure(fmha_provider)
     provider_sha256 = sha256(closure.provider)
     if provider_sha256 != expected_fmha_provider_sha256:
         raise SystemExit("candidate FMHA provider SHA-256 changed")
+    if not long_context_fmha_provider.is_file():
+        raise SystemExit("candidate long-context CK FMHA provider is missing")
+    long_context_sha256 = sha256(long_context_fmha_provider)
+    if long_context_sha256 != expected_long_context_fmha_provider_sha256:
+        raise SystemExit(
+            "candidate long-context CK FMHA provider SHA-256 changed"
+        )
+    if not q16384_hybrid_provider.is_file():
+        raise SystemExit("candidate q16384 hybrid FMHA provider is missing")
+    q16384_hybrid_sha256 = sha256(q16384_hybrid_provider)
+    if q16384_hybrid_sha256 != expected_q16384_hybrid_provider_sha256:
+        raise SystemExit(
+            "candidate q16384 hybrid FMHA provider SHA-256 changed"
+        )
     if not vision_attention_image.is_file():
         raise SystemExit("candidate vision-attention image is missing")
     vision_sha256 = sha256(vision_attention_image)
@@ -160,6 +223,14 @@ def bind_candidate_runtime(
         "fmha_provider": {
             "path": "${AIMA_CANDIDATE_FMHA_PROVIDER}",
             "sha256": provider_sha256,
+        },
+        "long_context_fmha_provider": {
+            "path": "${AIMA_CANDIDATE_LONG_CONTEXT_FMHA_PROVIDER}",
+            "sha256": long_context_sha256,
+        },
+        "q16384_hybrid_fmha_provider": {
+            "path": "${AIMA_CANDIDATE_Q16384_HYBRID_FMHA_PROVIDER}",
+            "sha256": q16384_hybrid_sha256,
         },
         "aotriton_runtime": {
             "path": "${AIMA_CANDIDATE_AOTRITON_RUNTIME}",
@@ -243,6 +314,7 @@ def report_complete(
     pair_index: int,
     order: tuple[str, str],
     engine_sha256: str,
+    candidate_runtime_binding_sha256: str | None = None,
 ) -> bool:
     if not path.is_file():
         return False
@@ -282,7 +354,19 @@ def report_complete(
                 and int(requests[1]["prefix_cache_matched_tokens"]) == context
             )
         if role == "candidate":
-            complete = complete and candidate_text_path_is_idle(payload)
+            complete = bool(
+                complete
+                and candidate_text_path_is_idle(payload)
+                and (
+                    candidate_runtime_binding_sha256 is None
+                    or (
+                        qualification.get("runtime_policy")
+                        == CANDIDATE_RUNTIME_POLICY
+                        and qualification.get("runtime_binding_sha256")
+                        == candidate_runtime_binding_sha256
+                    )
+                )
+            )
         return complete
     except (KeyError, TypeError, ValueError, json.JSONDecodeError):
         return False
@@ -301,6 +385,7 @@ def run_report(
     order: tuple[str, str],
     sequence_index: int,
     engine_sha256: str,
+    candidate_runtime_binding_sha256: str | None,
     runtime_options: tuple[str, ...],
     replacements: tuple[tuple[str, str], ...],
 ) -> Path:
@@ -374,6 +459,10 @@ def run_report(
         "schema": "aima-amd395-qwen36/native-paired-run-binding/v1",
         "engine_role": role,
         "engine_sha256": engine_sha256,
+        "runtime_policy": (
+            CANDIDATE_RUNTIME_POLICY if role == "candidate" else None
+        ),
+        "runtime_binding_sha256": candidate_runtime_binding_sha256,
         "pair_index": pair_index,
         "pair_order": list(order),
         "sequence_index": sequence_index,
@@ -393,6 +482,9 @@ def run_report(
         pair_index=pair_index,
         order=order,
         engine_sha256=engine_sha256,
+        candidate_runtime_binding_sha256=(
+            candidate_runtime_binding_sha256
+        ),
     ):
         raise RuntimeError(
             f"paired matrix run failed with exit {completed.returncode}: "
@@ -460,6 +552,7 @@ def build_cell(
     output_index: int,
     pair_count: int,
     engine_sha256: dict[str, str],
+    candidate_runtime_binding_sha256: str | None = None,
 ) -> dict[str, Any] | None:
     output = outputs[output_index]
     pairs: list[dict[str, Any]] = []
@@ -480,6 +573,11 @@ def build_cell(
                 pair_index=pair_index,
                 order=order,
                 engine_sha256=engine_sha256[role],
+                candidate_runtime_binding_sha256=(
+                    candidate_runtime_binding_sha256
+                    if role == "candidate"
+                    else None
+                ),
             )
             for role in paths
         ):
@@ -671,6 +769,9 @@ def build_result(
     engine_sha256 = {
         role: identity["sha256"] for role, identity in identities.items()
     }
+    candidate_runtime_binding_sha256 = identities["candidate"].get(
+        "runtime_binding_sha256"
+    )
     cells: list[dict[str, Any]] = []
     for context, outputs in jobs():
         for output_index in range(len(outputs)):
@@ -681,6 +782,9 @@ def build_result(
                 output_index=output_index,
                 pair_count=pair_count,
                 engine_sha256=engine_sha256,
+                candidate_runtime_binding_sha256=(
+                    candidate_runtime_binding_sha256
+                ),
             )
             if cell is not None:
                 cells.append(cell)
@@ -754,6 +858,14 @@ def main() -> None:
     parser.add_argument("--candidate-engine", type=Path, required=True)
     parser.add_argument("--candidate-fmha-provider", type=Path)
     parser.add_argument("--candidate-fmha-provider-sha256", required=True)
+    parser.add_argument("--candidate-long-context-fmha-provider", type=Path)
+    parser.add_argument(
+        "--candidate-long-context-fmha-provider-sha256", required=True
+    )
+    parser.add_argument("--candidate-q16384-hybrid-provider", type=Path)
+    parser.add_argument(
+        "--candidate-q16384-hybrid-provider-sha256", required=True
+    )
     parser.add_argument("--candidate-vision-attention-image", type=Path)
     parser.add_argument(
         "--candidate-vision-attention-sha256",
@@ -778,12 +890,24 @@ def main() -> None:
     candidate_fmha_provider = (
         cli.candidate_fmha_provider.expanduser().resolve()
         if cli.candidate_fmha_provider is not None
-        else candidate_engine.parent / "libaima-fmha-aotriton.so"
+        else automatic_runtime_path(candidate_engine, FMHA_AOTRITON_FILENAME)
+    )
+    candidate_long_context_fmha_provider = (
+        cli.candidate_long_context_fmha_provider.expanduser().resolve()
+        if cli.candidate_long_context_fmha_provider is not None
+        else automatic_runtime_path(candidate_engine, FMHA_CK_FILENAME)
+    )
+    candidate_q16384_hybrid_provider = (
+        cli.candidate_q16384_hybrid_provider.expanduser().resolve()
+        if cli.candidate_q16384_hybrid_provider is not None
+        else automatic_runtime_path(
+            candidate_engine, FMHA_Q16384_HYBRID_FILENAME
+        )
     )
     candidate_vision_attention = (
         cli.candidate_vision_attention_image.expanduser().resolve()
         if cli.candidate_vision_attention_image is not None
-        else candidate_engine.parent / "aima-vision-attention.hsaco"
+        else automatic_runtime_path(candidate_engine, VISION_ATTENTION_FILENAME)
     )
     model_dir = cli.model_dir.expanduser().resolve()
     output_dir = cli.output_dir.expanduser().resolve()
@@ -817,16 +941,45 @@ def main() -> None:
         ),
     }
     identities["candidate"]["runtime_dependencies"] = bind_candidate_runtime(
+        engine=candidate_engine,
         fmha_provider=candidate_fmha_provider,
         expected_fmha_provider_sha256=cli.candidate_fmha_provider_sha256,
+        long_context_fmha_provider=candidate_long_context_fmha_provider,
+        expected_long_context_fmha_provider_sha256=(
+            cli.candidate_long_context_fmha_provider_sha256
+        ),
+        q16384_hybrid_provider=candidate_q16384_hybrid_provider,
+        expected_q16384_hybrid_provider_sha256=(
+            cli.candidate_q16384_hybrid_provider_sha256
+        ),
         vision_attention_image=candidate_vision_attention,
         expected_vision_attention_sha256=(
             cli.candidate_vision_attention_sha256
         ),
     )
+    identities["candidate"]["runtime_policy"] = CANDIDATE_RUNTIME_POLICY
+    identities["candidate"]["runtime_binding_sha256"] = json_sha256(
+        identities["candidate"]["runtime_dependencies"]
+    )
     replacements = (
         (str(baseline_engine), "${AIMA_BASELINE_ENGINE}"),
         (str(candidate_engine), "${AIMA_CANDIDATE_ENGINE}"),
+        (
+            str(candidate_fmha_provider),
+            "${AIMA_CANDIDATE_FMHA_PROVIDER}",
+        ),
+        (
+            str(candidate_long_context_fmha_provider),
+            "${AIMA_CANDIDATE_LONG_CONTEXT_FMHA_PROVIDER}",
+        ),
+        (
+            str(candidate_q16384_hybrid_provider),
+            "${AIMA_CANDIDATE_Q16384_HYBRID_FMHA_PROVIDER}",
+        ),
+        (
+            str(candidate_vision_attention),
+            "${AIMA_CANDIDATE_VISION_ATTENTION_IMAGE}",
+        ),
         (
             str(candidate_engine.parent),
             "${AIMA_CANDIDATE_RUNTIME_DIR}",
@@ -841,12 +994,11 @@ def main() -> None:
     }
     runtime_options = {
         "baseline": (),
-        "candidate": (
-            "--fmha-provider",
-            str(candidate_fmha_provider),
-            "--vision-attention-image",
-            str(candidate_vision_attention),
-        ),
+        # Both engines must exercise their packaged automatic provider policy:
+        # AOTriton through q4096, CK at q8192/q32768/long context, and the
+        # packed-GQA/CK hybrid at q16384. An explicit provider would silently
+        # replace that product routing policy and invalidate paired results.
+        "candidate": (),
     }
     sequence_index = 0
     for context, outputs in jobs():
@@ -867,6 +1019,13 @@ def main() -> None:
                         pair_index=pair_index,
                         order=order,
                         engine_sha256=identities[role]["sha256"],
+                        candidate_runtime_binding_sha256=(
+                            identities["candidate"][
+                                "runtime_binding_sha256"
+                            ]
+                            if role == "candidate"
+                            else None
+                        ),
                     )
                 ):
                     run_report(
@@ -881,6 +1040,13 @@ def main() -> None:
                         order=order,
                         sequence_index=sequence_index,
                         engine_sha256=identities[role]["sha256"],
+                        candidate_runtime_binding_sha256=(
+                            identities["candidate"][
+                                "runtime_binding_sha256"
+                            ]
+                            if role == "candidate"
+                            else None
+                        ),
                         runtime_options=runtime_options[role],
                         replacements=replacements,
                     )
