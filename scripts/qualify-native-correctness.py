@@ -51,6 +51,7 @@ PRODUCTION_TOKEN_PERIOD = (
     13,
     220,
 )
+CORRECTNESS_SCHEMA = "aima-amd395-qwen36/native-correctness-qualification/v1"
 
 
 def sha256(path: Path) -> str:
@@ -85,18 +86,108 @@ def atomic_json(path: Path, value: dict[str, Any]) -> None:
     temporary.replace(path)
 
 
-def publicize(value: Any, model_dir: Path) -> Any:
+def publicize(
+    value: Any,
+    model_dir: Path,
+    replacements: tuple[tuple[str, str], ...] = (),
+) -> Any:
     if isinstance(value, str):
-        return value.replace(str(ROOT), "${AIMA_REPO_ROOT}").replace(
+        result = value
+        for private, public in replacements:
+            result = result.replace(private, public)
+        return result.replace(str(ROOT), "${AIMA_REPO_ROOT}").replace(
             str(model_dir), "${AIMA_MODEL_DIR}"
         )
     if isinstance(value, list):
-        return [publicize(item, model_dir) for item in value]
+        return [publicize(item, model_dir, replacements) for item in value]
     if isinstance(value, dict):
         return {
-            key: publicize(item, model_dir) for key, item in value.items()
+            key: publicize(item, model_dir, replacements)
+            for key, item in value.items()
         }
     return value
+
+
+def bind_reference_correctness(
+    *,
+    path: Path,
+    cases: list[tuple[int, tuple[int, ...], Path]],
+    exact_context: int,
+    exact_token_id: int,
+    exact_completion_tokens: int,
+) -> dict[str, Any]:
+    reference = load_json(path)
+    if (
+        reference.get("schema") != CORRECTNESS_SCHEMA
+        or reference.get("complete") is not True
+        or reference.get("qualified") is not True
+    ):
+        raise SystemExit("frozen correctness reference is not qualified")
+    rows = reference.get("cases")
+    if not isinstance(rows, list):
+        raise SystemExit("frozen correctness reference has no cases")
+    by_context: dict[int, dict[str, Any]] = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            raise SystemExit("frozen correctness reference has an invalid case")
+        context = row.get("context_tokens")
+        if not isinstance(context, int) or context in by_context:
+            raise SystemExit(
+                "frozen correctness reference has duplicate or invalid contexts"
+            )
+        by_context[context] = row
+    requested_contexts = {context for context, _, _ in cases}
+    if set(by_context) != requested_contexts:
+        raise SystemExit(
+            "frozen correctness reference context set differs from --oracle"
+        )
+    for context, input_cycle, oracle in cases:
+        row = by_context[context]
+        if row.get("qualified") is not True:
+            raise SystemExit(
+                f"frozen correctness reference q{context} is not qualified"
+            )
+        if row.get("input_token_period") != list(input_cycle):
+            raise SystemExit(
+                f"frozen correctness reference q{context} input period changed"
+            )
+        if row.get("oracle_sha256") != sha256(oracle):
+            raise SystemExit(
+                f"frozen correctness reference q{context} oracle SHA-256 changed"
+            )
+    exact = reference.get("exact_completion")
+    if not isinstance(exact, dict) or exact.get("qualified") is not True:
+        raise SystemExit(
+            "frozen correctness reference exact completion is not qualified"
+        )
+    if (
+        exact.get("context_tokens") != exact_context
+        or exact.get("input_token_id") != exact_token_id
+        or exact.get("completion_tokens") != exact_completion_tokens
+        or exact.get("expected_token_id") != exact_token_id
+    ):
+        raise SystemExit("frozen correctness exact completion contract changed")
+    exact_output_sha256 = exact.get("output_token_ids_sha256")
+    if (
+        not isinstance(exact_output_sha256, str)
+        or len(exact_output_sha256) != 64
+    ):
+        raise SystemExit(
+            "frozen correctness exact completion SHA-256 is invalid"
+        )
+    reference_engine = reference.get("engine")
+    return {
+        "path": "${AIMA_FROZEN_CORRECTNESS_REFERENCE}",
+        "sha256": sha256(path),
+        "schema": reference["schema"],
+        "engine_sha256": (
+            reference_engine.get("sha256")
+            if isinstance(reference_engine, dict)
+            else None
+        ),
+        "case_count": len(rows),
+        "exact_output_token_ids_sha256": exact_output_sha256,
+    }
 
 
 def automatic_runtime_path(engine: Path, filename: str) -> Path:
@@ -224,6 +315,7 @@ def report_qualified(
     oracle_sha256: str,
     input_cycle: tuple[int, ...],
     runtime_binding_sha256: str | None,
+    reference_correctness_sha256: str | None = None,
 ) -> bool:
     try:
         comparison = payload["reference_logits"]
@@ -258,6 +350,11 @@ def report_qualified(
                 or qualification.get("runtime_binding_sha256")
                 == runtime_binding_sha256
             )
+            and (
+                reference_correctness_sha256 is None
+                or qualification.get("reference_correctness_sha256")
+                == reference_correctness_sha256
+            )
         )
     except (KeyError, IndexError, TypeError, ValueError):
         return False
@@ -273,6 +370,7 @@ def run_case(
     engine_sha256: str,
     input_cycle: tuple[int, ...],
     runtime_binding_sha256: str | None,
+    reference_correctness_sha256: str,
 ) -> Path:
     report = output_dir / "raw" / f"q{context}-full-vocabulary.json"
     oracle_sha256 = sha256(oracle)
@@ -285,6 +383,7 @@ def run_case(
             oracle_sha256=oracle_sha256,
             input_cycle=input_cycle,
             runtime_binding_sha256=runtime_binding_sha256,
+            reference_correctness_sha256=reference_correctness_sha256,
         ):
             return report
 
@@ -351,8 +450,14 @@ def run_case(
         ),
         "input_token_period": list(input_cycle),
         "runtime_binding_sha256": runtime_binding_sha256,
+        "reference_correctness_sha256": reference_correctness_sha256,
     }
-    payload = publicize(payload, model_dir)
+    replacements = (
+        (str(oracle), f"${{AIMA_ORACLE_Q{context}}}"),
+        (str(engine), "${AIMA_CANDIDATE_ENGINE}"),
+        (str(output_dir), "${AIMA_QUALIFICATION_DIR}"),
+    )
+    payload = publicize(payload, model_dir, replacements)
     atomic_json(report, payload)
     if completed.returncode != 0 or not report_qualified(
         payload,
@@ -361,6 +466,7 @@ def run_case(
         oracle_sha256=oracle_sha256,
         input_cycle=input_cycle,
         runtime_binding_sha256=runtime_binding_sha256,
+        reference_correctness_sha256=reference_correctness_sha256,
     ):
         raise RuntimeError(
             f"native correctness run failed with exit {completed.returncode}: "
@@ -388,6 +494,8 @@ def exact_completion_qualified(
     context: int,
     completion_tokens: int,
     runtime_binding_sha256: str | None,
+    reference_correctness_sha256: str | None = None,
+    expected_output_token_ids_sha256: str | None = None,
 ) -> bool:
     try:
         request = payload["requests"][0]
@@ -409,6 +517,18 @@ def exact_completion_qualified(
                 or payload["qualification"].get("runtime_binding_sha256")
                 == runtime_binding_sha256
             )
+            and (
+                reference_correctness_sha256 is None
+                or payload["qualification"].get(
+                    "reference_correctness_sha256"
+                )
+                == reference_correctness_sha256
+            )
+            and (
+                expected_output_token_ids_sha256 is None
+                or request.get("output_token_ids_sha256")
+                == expected_output_token_ids_sha256
+            )
         )
     except (KeyError, IndexError, TypeError, ValueError):
         return False
@@ -424,6 +544,8 @@ def run_exact_completion(
     token_id: int,
     completion_tokens: int,
     runtime_binding_sha256: str | None,
+    reference_correctness_sha256: str,
+    expected_output_token_ids_sha256: str,
 ) -> Path:
     report = (
         output_dir
@@ -436,6 +558,8 @@ def run_exact_completion(
         context=context,
         completion_tokens=completion_tokens,
         runtime_binding_sha256=runtime_binding_sha256,
+        reference_correctness_sha256=reference_correctness_sha256,
+        expected_output_token_ids_sha256=expected_output_token_ids_sha256,
     ):
         return report
     load_report = report.with_name(report.stem + ".load.json")
@@ -490,8 +614,13 @@ def run_exact_completion(
         "expected_token_id": token_id,
         "expected_completion_tokens": completion_tokens,
         "runtime_binding_sha256": runtime_binding_sha256,
+        "reference_correctness_sha256": reference_correctness_sha256,
     }
-    payload = publicize(payload, model_dir)
+    replacements = (
+        (str(engine), "${AIMA_CANDIDATE_ENGINE}"),
+        (str(output_dir), "${AIMA_QUALIFICATION_DIR}"),
+    )
+    payload = publicize(payload, model_dir, replacements)
     atomic_json(report, payload)
     if completed.returncode != 0 or not exact_completion_qualified(
         payload,
@@ -499,6 +628,8 @@ def run_exact_completion(
         context=context,
         completion_tokens=completion_tokens,
         runtime_binding_sha256=runtime_binding_sha256,
+        reference_correctness_sha256=reference_correctness_sha256,
+        expected_output_token_ids_sha256=expected_output_token_ids_sha256,
     ):
         raise RuntimeError(
             f"native exact-completion qualification failed: {report}"
@@ -537,6 +668,15 @@ def main() -> None:
     parser.add_argument("--exact-context", type=int, default=8192)
     parser.add_argument("--exact-token-id", type=int, default=1000)
     parser.add_argument("--exact-completion-tokens", type=int, default=128)
+    parser.add_argument(
+        "--reference-correctness",
+        type=Path,
+        required=True,
+        help=(
+            "qualified frozen correctness aggregate that binds oracle hashes, "
+            "input periods, and the exact-completion fixture"
+        ),
+    )
     parser.add_argument("--aotriton-provider-sha256")
     parser.add_argument("--ck-provider-sha256")
     parser.add_argument("--q16384-hybrid-provider-sha256")
@@ -558,6 +698,18 @@ def main() -> None:
         cases.append((context, input_cycle, oracle))
     if len({context for context, _, _ in cases}) != len(cases):
         raise SystemExit("oracle contexts must be unique")
+
+    reference_path = cli.reference_correctness.expanduser().resolve()
+    if not reference_path.is_file():
+        raise SystemExit("frozen correctness reference is missing")
+    reference_correctness = bind_reference_correctness(
+        path=reference_path,
+        cases=cases,
+        exact_context=cli.exact_context,
+        exact_token_id=cli.exact_token_id,
+        exact_completion_tokens=cli.exact_completion_tokens,
+    )
+    reference_correctness_sha256 = reference_correctness["sha256"]
 
     engine_sha256 = sha256(engine)
     expected_runtime_sha256 = {
@@ -602,6 +754,7 @@ def main() -> None:
             engine_sha256=engine_sha256,
             input_cycle=input_cycle,
             runtime_binding_sha256=runtime_binding_sha256,
+            reference_correctness_sha256=reference_correctness_sha256,
         )
         for context, input_cycle, oracle in cases
     ]
@@ -614,6 +767,10 @@ def main() -> None:
         token_id=cli.exact_token_id,
         completion_tokens=cli.exact_completion_tokens,
         runtime_binding_sha256=runtime_binding_sha256,
+        reference_correctness_sha256=reference_correctness_sha256,
+        expected_output_token_ids_sha256=reference_correctness[
+            "exact_output_token_ids_sha256"
+        ],
     )
     rows: list[dict[str, Any]] = []
     all_pass = True
@@ -624,7 +781,7 @@ def main() -> None:
         comparison = payload["reference_logits"]
         row = {
             "context_tokens": context,
-            "oracle_path": publicize(str(oracle), model_dir),
+            "oracle_path": f"${{AIMA_ORACLE_Q{context}}}",
             "oracle_sha256": sha256(oracle),
             "input_token_period": list(input_cycle),
             "report": str(report.relative_to(output_dir)),
@@ -645,6 +802,9 @@ def main() -> None:
                 oracle_sha256=sha256(oracle),
                 input_cycle=input_cycle,
                 runtime_binding_sha256=runtime_binding_sha256,
+                reference_correctness_sha256=(
+                    reference_correctness_sha256
+                ),
             ),
         }
         all_pass = all_pass and row["qualified"]
@@ -657,19 +817,24 @@ def main() -> None:
         context=cli.exact_context,
         completion_tokens=cli.exact_completion_tokens,
         runtime_binding_sha256=runtime_binding_sha256,
+        reference_correctness_sha256=reference_correctness_sha256,
+        expected_output_token_ids_sha256=reference_correctness[
+            "exact_output_token_ids_sha256"
+        ],
     )
     all_pass = all_pass and exact_pass
     result = {
-        "schema": "aima-amd395-qwen36/native-correctness-qualification/v1",
+        "schema": CORRECTNESS_SCHEMA,
         "complete": True,
         "qualified": all_pass,
         "engine": {
-            "path": "${AIMA_REPO_ROOT}/build/native/aima-engine-native",
+            "path": "${AIMA_CANDIDATE_ENGINE}",
             "sha256": engine_sha256,
         },
         "model_dir": "${AIMA_MODEL_DIR}",
         "runtime_dependencies": runtime_dependencies,
         "runtime_binding_sha256": runtime_binding_sha256,
+        "frozen_correctness_reference": reference_correctness,
         "host": {
             "hostname": os.uname().nodename,
             "sysname": os.uname().sysname,
