@@ -1,0 +1,147 @@
+{
+  "complete": true,
+  "encoder": {
+    "backend": "opencv",
+    "pixel_format": "bgr24-input",
+    "version": "4.13.0",
+    "video_codec": "mp4v"
+  },
+  "fixtures": [
+    {
+      "bytes": 1660,
+      "format": "png",
+      "height": 384,
+      "modality": "image",
+      "path": "image-central-red-circle.png",
+      "sha256": "350423c09dd064191e311c8b47f0f5c6cd1abde4504283cfbd3802b433bb19f3",
+      "width": 512
+    },
+    {
+      "bytes": 1522,
+      "format": "png",
+      "height": 384,
+      "modality": "image",
+      "path": "image-spatial-shapes.png",
+      "sha256": "84b062e2fbf437fdb54bb8912de87f56abcbd7ac1b05ce65994d26e619b99c36",
+      "width": 512
+    },
+    {
+      "bytes": 1627,
+      "format": "png",
+      "height": 384,
+      "modality": "image",
+      "path": "image-count-shapes.png",
+      "sha256": "cb5f622da4a4446b6e50569efada78499990741c85ef7afcabd40022d034f075",
+      "width": 512
+    },
+    {
+      "bytes": 1299,
+      "format": "png",
+      "height": 384,
+      "modality": "image",
+      "path": "image-text-aima-395.png",
+      "sha256": "120c7478f882119073bf5c51fdcd5686c4caefdab1fe11d43d5d44e666d9eccb",
+      "width": 512
+    },
+    {
+      "bytes": 1151,
+      "format": "png",
+      "height": 384,
+      "modality": "image",
+      "path": "image-two-color-bands.png",
+      "sha256": "81745922c16431e7b77f8373152d33d480ef4e6e37bd8e15ac373ca7235aa40d",
+      "width": 512
+    },
+    {
+      "bytes": 1528,
+      "format": "png",
+      "height": 384,
+      "modality": "image",
+      "path": "image-arrow-right.png",
+      "sha256": "7f808552947f3e9c8328ac7926a2c5b3f367298c61cc9dc8c12b3a75210e3a24",
+      "width": 512
+    },
+    {
+      "bytes": 12517,
+      "duration_seconds": 4.0,
+      "format": "mp4",
+      "fps": 4,
+      "frame_count": 16,
+      "height": 288,
+      "modality": "video",
+      "path": "video-red-circle-right.mp4",
+      "sha256": "25d9cd5a8ccfaff3b74328a76ff8bfde184cff48a9e2e48b6bde65703c82c650",
+      "width": 384
+    },
+    {
+      "bytes": 6815,
+      "duration_seconds": 4.0,
+      "format": "mp4",
+      "fps": 4,
+      "frame_count": 16,
+      "height": 288,
+      "modality": "video",
+      "path": "video-blue-square-down.mp4",
+      "sha256": "ef875c70a214cb13d18cb39ba8a3bd3c51a962fb0b627a0542c9bab395aa2a6b",
+      "width": 384
+    },
+    {
+      "bytes": 11880,
+      "duration_seconds": 4.0,
+      "format": "mp4",
+      "fps": 4,
+      "frame_count": 16,
+      "height": 288,
+      "modality": "video",
+      "path": "video-circle-blue-green.mp4",
+      "sha256": "22eb885522ecf57fa90babfad21a202a0549dd20edd50d7a2fcbb7044dbdbcea",
+      "width": 384
+    },
+    {
+      "bytes": 13236,
+      "duration_seconds": 4.0,
+      "format": "mp4",
+      "fps": 4,
+      "frame_count": 16,
+      "height": 288,
+      "modality": "video",
+      "path": "video-count-one-to-four.mp4",
+      "sha256": "e3c74d5c650309b90421d9368068129a0f3b6487f66b326c6c9efcf997fddcf4",
+      "width": 384
+    },
+    {
+      "bytes": 17793,
+      "duration_seconds": 4.0,
+      "format": "mp4",
+      "fps": 4,
+      "frame_count": 16,
+      "height": 288,
+      "modality": "video",
+      "path": "video-shape-order.mp4",
+      "sha256": "e54c921fb94f9895f7a4717790a770f64a7c664963bd13dcfce7e8f30dbaf477",
+      "width": 384
+    },
+    {
+      "bytes": 14869,
+      "duration_seconds": 4.0,
+      "format": "mp4",
+      "fps": 4,
+      "frame_count": 16,
+      "height": 288,
+      "modality": "video",
+      "path": "video-arrow-left-up.mp4",
+      "sha256": "2d2c844cc4db30805d45b161811c8f616943cd2290032be1e685e9e80c5a3ba9",
+      "width": 384
+    }
+  ],
+  "generator": {
+    "bytes": 14936,
+    "path": "scripts/generate-vl-task-quality-fixtures.py",
+    "sha256": "74940cce124b57d8fc3888f41737105ed44f0b31ac3a21ca77863803b78db06c"
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "canonical_payload_sha256": "0e2d8193db9e8d9f4262701b55bdb31f9d94446ffb86446a0783d3558776adc1"
+  },
+  "schema": "aima-amd395-qwen36/vl-task-quality-fixtures/v1"
+}
