@@ -132,6 +132,44 @@ def parse_case_linear_attention_layers(
     return {case_id: layers[case_id] for case_id in CASE_ORDER}
 
 
+def parse_case_full_attention_layers(
+    values: list[str] | None,
+) -> dict[str, int] | None:
+    """Parse an exact two-case diagnostic full-attention selection."""
+
+    if not values:
+        return None
+    layers: dict[str, int] = {}
+    for value in values:
+        case_id, separator, layer_text = value.partition("=")
+        if separator != "=" or case_id not in CASE_ORDER:
+            raise ValueError(
+                "diagnostic full-attention layer must be CASE_ID=LAYER"
+            )
+        if case_id in layers:
+            raise ValueError(
+                f"duplicate diagnostic full-attention case: {case_id}"
+            )
+        try:
+            layer_index = int(layer_text)
+        except ValueError as error:
+            raise ValueError(
+                f"diagnostic full-attention layer is not an integer: {value}"
+            ) from error
+        if layer_index < 0 or layer_index >= 40 or layer_index % 4 != 3:
+            raise ValueError(
+                f"diagnostic full-attention layer is unsupported: {value}"
+            )
+        layers[case_id] = layer_index
+    missing = [case_id for case_id in CASE_ORDER if case_id not in layers]
+    if missing:
+        raise ValueError(
+            "diagnostic full-attention layer mapping is incomplete: "
+            + ", ".join(missing)
+        )
+    return {case_id: layers[case_id] for case_id in CASE_ORDER}
+
+
 def load_module(path: Path, name: str) -> ModuleType:
     spec = importlib.util.spec_from_file_location(name, path)
     if spec is None or spec.loader is None:
@@ -1589,6 +1627,26 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
             else None
         )
     )
+    explicit_full_attention_layers = parse_case_full_attention_layers(
+        args.diagnostic_full_attention_layer
+    )
+    if (
+        explicit_full_attention_layers is not None
+        and args.first_divergence_full_attention
+    ):
+        raise ValueError(
+            "explicit and first-divergence full-attention layers are "
+            "mutually exclusive"
+        )
+    selected_full_attention_layers = (
+        explicit_full_attention_layers
+        if explicit_full_attention_layers is not None
+        else (
+            FIRST_DIVERGENCE_FULL_ATTENTION_LAYERS
+            if args.first_divergence_full_attention
+            else None
+        )
+    )
 
     output_root = args.output_root.resolve()
     if output_root.exists() and any(output_root.iterdir()):
@@ -1734,8 +1792,8 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
                 structured_outputs=structured,
             )
             full_attention_layer_index = (
-                FIRST_DIVERGENCE_FULL_ATTENTION_LAYERS[case_id]
-                if args.first_divergence_full_attention
+                selected_full_attention_layers[case_id]
+                if selected_full_attention_layers is not None
                 else FULL_ATTENTION_LAYER
             )
             linear_attention_layer_index = (
@@ -1753,7 +1811,7 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
                     ),
                     full_attention_layer_index=full_attention_layer_index,
                     capture_full_attention_projection=(
-                        args.first_divergence_full_attention
+                        selected_full_attention_layers is not None
                     ),
                 )(model)
 
@@ -1853,7 +1911,7 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
 
     diagnostic = (
         args.diagnostic_output_index is not None
-        or args.first_divergence_full_attention
+        or selected_full_attention_layers is not None
         or selected_linear_attention_layers is not None
     )
     scope = (
@@ -1891,7 +1949,8 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
                 len(cases) == 2
             ),
             "two_diagnostic_selected_full_attention_qkv_sets_captured": (
-                args.first_divergence_full_attention and len(cases) == 2
+                selected_full_attention_layers is not None
+                and len(cases) == 2
             ),
             "promotion_oracle": False,
             "g1_passed": False,
@@ -1978,6 +2037,12 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
                     if args.first_divergence_full_attention
                     else None
                 ),
+                "diagnostic_full_attention_layers": (
+                    explicit_full_attention_layers
+                ),
+                "selected_full_attention_layers": (
+                    selected_full_attention_layers
+                ),
                 "first_divergence_linear_attention": (
                     args.first_divergence_linear_attention
                 ),
@@ -2053,6 +2118,16 @@ def parse_args() -> argparse.Namespace:
         help=(
             "capture the resident state boundaries at each case's first "
             "known divergent linear-attention layer"
+        ),
+    )
+    parser.add_argument(
+        "--diagnostic-full-attention-layer",
+        action="append",
+        default=[],
+        metavar="CASE_ID=LAYER",
+        help=(
+            "select one validated full-attention observer layer per fixed "
+            "case; repeat for both cases"
         ),
     )
     parser.add_argument(

@@ -901,3 +901,11 @@ across output indices: at aligned output index 3, layer 5/10 and all their
 resident-state boundaries were exact, while the first non-exact whole-layer
 rows occurred later at layer 20/13. Those observations are attribution
 evidence only and do not promote a gate.
+
+The full-attention observer has the symmetric
+`--diagnostic-full-attention-layer CASE_ID=LAYER` control. Its exact two-case
+mapping rejects non-full-attention layers, duplicates, incomplete mappings,
+and simultaneous use of the historical first-divergence preset. Explicit
+selection captures QKV, cache, unified-attention output, projected attention,
+residual, post-attention norm, and routed-MoE boundaries at the selected layer,
+and seals both the explicit and effective maps into the diagnostic manifest.

@@ -303,7 +303,9 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
         )
         self.assertIn("--first-divergence-full-attention", source)
         self.assertIn("--first-divergence-linear-attention", source)
+        self.assertIn("--diagnostic-full-attention-layer", source)
         self.assertIn("--diagnostic-linear-attention-layer", source)
+        self.assertIn("selected_full_attention_layers", source)
         self.assertIn("selected_linear_attention_layers", source)
         self.assertIn('capture_full_attention("qkv_projection"', source)
         self.assertIn('capture_full_attention("gated_attention"', source)
@@ -379,6 +381,39 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
                 ]
             )
 
+    def test_diagnostic_full_layer_mapping_is_exact_and_validated(self) -> None:
+        parse = runpy.run_path(str(CAPTURE))[
+            "parse_case_full_attention_layers"
+        ]
+        self.assertEqual(
+            parse(
+                [
+                    "tool_auto_image=27",
+                    "tool_forced_image=23",
+                ]
+            ),
+            {
+                "tool_forced_image": 23,
+                "tool_auto_image": 27,
+            },
+        )
+        with self.assertRaisesRegex(ValueError, "mapping is incomplete"):
+            parse(["tool_forced_image=23"])
+        with self.assertRaisesRegex(ValueError, "unsupported"):
+            parse(
+                [
+                    "tool_forced_image=20",
+                    "tool_auto_image=27",
+                ]
+            )
+        with self.assertRaisesRegex(ValueError, "duplicate"):
+            parse(
+                [
+                    "tool_forced_image=23",
+                    "tool_forced_image=27",
+                    "tool_auto_image=27",
+                ]
+            )
     def test_native_observer_is_opt_in_and_captures_final_norm(self) -> None:
         header = RUNNER_HEADER.read_text(encoding="utf-8")
         runner = RUNNER.read_text(encoding="utf-8")
