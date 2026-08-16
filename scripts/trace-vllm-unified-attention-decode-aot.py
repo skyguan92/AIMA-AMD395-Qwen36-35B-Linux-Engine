@@ -47,7 +47,10 @@ def main() -> int:
     query_heads = 16
     kv_heads = 2
     head_size = 256
-    block_size = 16
+    # The frozen Qwen3.6-VL worker allocates paged KV blocks at the admitted
+    # multimodal bucket size.  This compile-time value is part of the Triton
+    # kernel identity and must match the production cache, even for q=1 decode.
+    block_size = 1_056
     blocks = (args.sequence_length + block_size - 1) // block_size
 
     query = torch.randn(

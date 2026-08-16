@@ -16,7 +16,7 @@ class UnifiedAttentionDecodeAotTests(unittest.TestCase):
         self.assertIn("query_heads = 16", source)
         self.assertIn("kv_heads = 2", source)
         self.assertIn("head_size = 256", source)
-        self.assertIn("block_size = 16", source)
+        self.assertIn("block_size = 1_056", source)
         self.assertIn("1.0 / math.sqrt(head_size)", source)
         self.assertIn("output_finite", source)
         self.assertIn("repeat_exact", source)
