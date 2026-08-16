@@ -28,9 +28,9 @@ void launch_bf16_add_pair(const void* left, const void* right,
                           void* output, std::size_t count,
                           void* stream = nullptr);
 
-// Native fixed-width Gemma RMSNorm used by language prefill and VL decode.
-// The checkpoint stores RMS weights as (scale - 1), matching the frozen
-// `weight + 1` rule and the current vLLM/PyTorch reduction boundary.
+// Native fixed-width Gemma RMSNorm used by language prefill and the current
+// vLLM linear-decode input boundary.  The checkpoint stores RMS weights as
+// (scale - 1), matching the frozen `weight + 1` rule.
 void launch_prefill_rmsnorm_2048(const void* input_bf16,
                                  const void* weight_bf16,
                                  void* output_bf16,

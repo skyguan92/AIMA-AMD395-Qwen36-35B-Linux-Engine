@@ -334,6 +334,8 @@ class VlGenerationLayerOracleTest(unittest.TestCase):
         )
         self.assertIn("FIRST_DECODE_LINEAR_OUTPUT_INDEX", source)
         self.assertIn("--diagnostic-output-index", source)
+        self.assertIn("choices=range(2, 1024)", source)
+        self.assertIn('metavar="2..1023"', source)
         self.assertIn("vl-generation-layer-diagnostic/v1", source)
         self.assertIn('"promotion_oracle": False', source)
         self.assertIn(

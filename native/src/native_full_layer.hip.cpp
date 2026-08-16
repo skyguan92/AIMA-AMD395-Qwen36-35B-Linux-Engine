@@ -180,12 +180,6 @@ NativeFullLayerMetrics run_native_full_layer(
 
   const std::string prefix =
       "model.language_model.layers." + std::to_string(layer_index);
-  const auto& input_norm_weight = require_weight(
-      weights, prefix + ".input_layernorm.weight",
-      kHidden * sizeof(__hip_bfloat16));
-  const auto& post_attention_norm_weight = require_weight(
-      weights, prefix + ".post_attention_layernorm.weight",
-      kHidden * sizeof(__hip_bfloat16));
   const auto& q_weight = require_weight(
       weights, prefix + ".self_attn.q_proj.weight",
       8192ULL * kHidden * sizeof(__hip_bfloat16));
@@ -228,15 +222,8 @@ NativeFullLayerMetrics run_native_full_layer(
   NativeFullLayerMetrics metrics;
   metrics.layer_index = layer_index;
   metrics.cache_end = cache_end;
-  if (use_mrope) {
-    launch_prefill_rmsnorm_2048(
-        input.device_pointer, input_norm_weight.device_pointer,
-        normalized_input.device_pointer, 1, stream);
-    ++metrics.native_pointwise_launches;
-  } else {
-    executor.launch(launches[base], stream);
-    ++metrics.aot_launches;
-  }
+  executor.launch(launches[base], stream);
+  ++metrics.aot_launches;
   if (use_mrope) {
     // Current vLLM evaluates singleton QKV projections through its wvSplitK
     // provider. Preserve the historical fused AOT launch for the frozen text
@@ -301,16 +288,9 @@ NativeFullLayerMetrics run_native_full_layer(
                   after_attn.device_pointer, kHidden, stream);
   ++metrics.native_pointwise_launches;
 
+  executor.launch(launches[base + 4], stream);
+  ++metrics.aot_launches;
   void* post_attention_norm = invocations.tensor_pointer(base + 4, "out");
-  if (use_mrope) {
-    launch_prefill_rmsnorm_2048(
-        after_attn.device_pointer, post_attention_norm_weight.device_pointer,
-        post_attention_norm, 1, stream);
-    ++metrics.native_pointwise_launches;
-  } else {
-    executor.launch(launches[base + 4], stream);
-    ++metrics.aot_launches;
-  }
   executor.launch(launches[base + 5], stream);
   ++metrics.aot_launches;
   if (use_mrope) {

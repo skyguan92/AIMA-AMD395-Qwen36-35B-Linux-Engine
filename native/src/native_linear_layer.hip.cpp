@@ -318,9 +318,6 @@ NativeLinearLayerMetrics run_native_linear_layer(
   const auto& input_norm_weight = require_weight(
       weights, prefix + ".input_layernorm.weight",
       kHidden * sizeof(__hip_bfloat16));
-  const auto& post_attention_norm_weight = require_weight(
-      weights, prefix + ".post_attention_layernorm.weight",
-      kHidden * sizeof(__hip_bfloat16));
   const auto& output_weight = require_weight(
       weights, prefix + ".linear_attn.out_proj.weight",
       kHidden * kLinearValue * sizeof(__hip_bfloat16));
@@ -366,9 +363,8 @@ NativeLinearLayerMetrics run_native_linear_layer(
   NativeLinearLayerMetrics metrics;
   metrics.layer_index = layer_index;
   if (use_current_vllm_projections) {
-    // The current GemmaRMSNorm path reduces singleton rows through the same
-    // PyTorch boundary as native prefill.  The historical decode image can
-    // differ by one BF16 value, which then perturbs every resident state.
+    // The current GemmaRMSNorm input boundary can differ from the historical
+    // decode image by one BF16 value, which then perturbs resident state.
     launch_prefill_rmsnorm_2048(
         input.device_pointer, input_norm_weight.device_pointer, input_norm, 1,
         stream);
@@ -456,21 +452,13 @@ NativeLinearLayerMetrics run_native_linear_layer(
                    kHidden * sizeof(__hip_bfloat16),
                    DecodeTensorDtype::kBfloat16);
 
-  if (use_current_vllm_projections) {
-    launch_prefill_rmsnorm_2048(
-        after_attn.device_pointer, post_attention_norm_weight.device_pointer,
-        post_attention_norm, 1, stream);
-    ++metrics.native_pointwise_launches;
-  } else {
-    executor.launch(launches[base + 4], stream);
-    ++metrics.aot_launches;
-  }
+  executor.launch(launches[base + 4], stream);
   observe_boundary(tail_observer, "post_attention_norm",
                    post_attention_norm,
                    kHidden * sizeof(__hip_bfloat16),
                    DecodeTensorDtype::kBfloat16);
   executor.launch(launches[base + 5], stream);
-  ++metrics.aot_launches;
+  metrics.aot_launches += 2;
   if (use_current_vllm_projections) {
     auto* shared_input_bytes =
         static_cast<unsigned char*>(shared_input.device_pointer);

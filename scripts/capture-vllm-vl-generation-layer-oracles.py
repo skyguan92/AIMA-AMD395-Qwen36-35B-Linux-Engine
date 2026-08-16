@@ -2032,9 +2032,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--diagnostic-output-index",
         type=int,
-        choices=range(1, 1024),
-        metavar="1..1023",
-        help="capture a shared non-promotion decode index for attribution",
+        choices=range(2, 1024),
+        metavar="2..1023",
+        help=(
+            "capture a shared non-promotion decode index for attribution; "
+            "the same run also captures output index 1 as first-decode"
+        ),
     )
     parser.add_argument(
         "--first-divergence-full-attention",
