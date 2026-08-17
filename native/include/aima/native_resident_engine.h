@@ -268,6 +268,7 @@ struct NativeResidentRequestMetrics {
   std::size_t prefix_cache_hits = 0;
   std::size_t prefix_cache_misses = 0;
   std::uint64_t prefix_cache_transfer_bytes = 0;
+  double prefix_cache_restore_wall_ms = 0.0;
   std::size_t prefix_cache_suffix_decode_tokens = 0;
   std::size_t prefix_cache_suffix_aot_launches = 0;
   std::size_t prefix_cache_suffix_native_launches = 0;

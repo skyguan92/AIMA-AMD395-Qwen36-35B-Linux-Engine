@@ -86,6 +86,7 @@ class NativeSurfacesQualificationTest(unittest.TestCase):
             "vl_logical_projection_workspace_bytes": 0,
             "vl_logical_projections_enabled": False,
             "vl_logical_projection_plan_build_wall_ms": 0.0,
+            "prefix_cache_restore_wall_ms": 0.0,
         }
         payload = {
             "schema": "aima-amd395-qwen36/native-resident-session-probe/v1",
@@ -111,6 +112,7 @@ class NativeSurfacesQualificationTest(unittest.TestCase):
                     "prefix_cache_suffix_tokens": 0,
                     "prefix_cache_suffix_aot_launches": 0,
                     "prefix_cache_suffix_native_launches": 0,
+                    "prefix_cache_restore_wall_ms": 8.0,
                     "prefill_wall_ms": 10.0,
                     "decode_tokens_per_second": 31.0031,
                 },

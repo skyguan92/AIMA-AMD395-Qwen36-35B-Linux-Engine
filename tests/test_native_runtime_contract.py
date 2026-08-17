@@ -755,6 +755,33 @@ class NativeRuntimeContractTest(unittest.TestCase):
         self.assertIn("resident_prefill_buckets", header)
         self.assertIn("aot_prefill_tokens", header)
 
+    def test_exact_prefix_restore_is_deferred_until_first_token_is_visible(
+        self,
+    ) -> None:
+        resident = (
+            ROOT / "native/src/native_resident_engine.hip.cpp"
+        ).read_text(encoding="utf-8")
+        header = (
+            ROOT / "native/include/aima/native_resident_engine.h"
+        ).read_text(encoding="utf-8")
+        terminal = resident.index(
+            "exact_prefix_restore_pending = true;"
+        )
+        ttft = resident.index(
+            "metrics.prefill_wall_ms = elapsed_ms(request_started);",
+            terminal,
+        )
+        callback = resident.index(
+            "request.token_callback(first_token_id, 0)", ttft
+        )
+        restore = resident.index(
+            "hipStreamSynchronize deferred exact-prefix restore", callback
+        )
+        self.assertLess(terminal, ttft)
+        self.assertLess(ttft, callback)
+        self.assertLess(callback, restore)
+        self.assertIn("prefix_cache_restore_wall_ms", header)
+
     def test_native_weight_foundation_has_target_measurement(self) -> None:
         self.assertTrue(self.result["complete"])
         self.assertEqual(

@@ -1587,6 +1587,7 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
   double embedding_wall_ms = 0.0;
   double first_token_wall_ms = 0.0;
   const void* last_hidden = nullptr;
+  bool exact_prefix_restore_pending = false;
   if (prefix_hit) {
     metrics.prefix_cache_lookup = exact_prefix_hit ? "exact" : "prefix";
     metrics.prefix_cache_matched_tokens = matched_prefix_tokens;
@@ -1599,11 +1600,17 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
     }
     impl_->prefix_cache_use[matched_prefix_cache_index] =
         ++impl_->prefix_cache_clock;
-    metrics.prefix_cache_transfer_bytes =
-        impl_->prefix_caches[matched_prefix_cache_index].restore();
     if (exact_prefix_hit) {
       last_hidden =
           impl_->prefix_caches[matched_prefix_cache_index].terminal_hidden();
+      // The cached terminal hidden is sufficient to select and publish the
+      // first token.  KV and recurrent state are only consumed by the next
+      // decode step, so restoring them before the first-token callback adds
+      // avoidable TTFT without changing any visible result.
+      exact_prefix_restore_pending = true;
+    } else {
+      metrics.prefix_cache_transfer_bytes =
+          impl_->prefix_caches[matched_prefix_cache_index].restore();
     }
   } else {
     metrics.prefix_cache_lookup =
@@ -2151,6 +2158,14 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
   }
   if (request.token_callback && !request.token_callback(first_token_id, 0)) {
     metrics.client_cancelled = true;
+  }
+  if (exact_prefix_restore_pending) {
+    const auto restore_started = std::chrono::steady_clock::now();
+    metrics.prefix_cache_transfer_bytes =
+        impl_->prefix_caches[matched_prefix_cache_index].restore();
+    check_hip(hipStreamSynchronize(nullptr),
+              "hipStreamSynchronize deferred exact-prefix restore");
+    metrics.prefix_cache_restore_wall_ms = elapsed_ms(restore_started);
   }
   if (timeline_enabled) {
     double linear_attention_ms = 0.0;
