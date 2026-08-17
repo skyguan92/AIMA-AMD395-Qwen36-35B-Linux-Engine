@@ -2,7 +2,7 @@
 
 > Status: proposed hard target
 > Baseline: `v1.5.1`
-> Last updated: 2026-08-14
+> Last updated: 2026-08-17
 
 ## One-sentence goal
 
@@ -202,8 +202,12 @@ VL 版本必须用同一 release protocol 重跑并保留：
 - q8192 command-to-ready 中位数不得高于当前 `44.90 s`；
 - `READY=1` 必须表示语言模型和 VL 路径都已可服务；不能提前报告 text-ready，
   再把 vision 权重加载或初始化时延转移到首个 VL 请求；
-- q32768 exact-prefix TTFT speedup 不低于 `2637x`，decode retention 不低于
-  `1.0003x`；
+- q32768/output512 exact-prefix 必须用与 19-cell 相同的交替配对原则，至少
+  5 组相邻的 release/candidate fresh-process pair；candidate 的 TTFT speedup
+  和 decode retention 配对中位数都不得低于 exact `v1.5.1` release；发布
+  raw evidence 的单次观测值为 `2636.9250000546567x` 和
+  `1.0002958825348782x`，README 中的 `2637x` / `1.0003x` 只是展示舍入，
+  不能反向作为会淘汰冻结基线自身的浮点下限；
 - q8192 的四条 prefix-LRU entries、A/B/A 恢复、variable-length composed AOT
   prefill 和 zero serial cold-tail 行为不变；
 - 96 GiB 内仍支持全部 standard contexts、三个最大窗口端点和现有 KV/cache

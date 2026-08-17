@@ -38,6 +38,10 @@ class NativeQ8192PrefillGemmPlans {
   Bf16GemmPlan& moe_router();
 
   void prepare_all();
+  // Materializes the two hipBLASLt kernels that otherwise pay a one-time
+  // module/solution setup gap inside the first frozen q1024 text request.
+  // The warmup uses private zero buffers and is complete before READY.
+  void warm_up_q1024_text();
   std::size_t built_plan_count() const;
   std::size_t workspace_bytes() const;
   std::size_t token_count() const;

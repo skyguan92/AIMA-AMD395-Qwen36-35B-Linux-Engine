@@ -1,0 +1,131 @@
+{
+  "case_id": "image_cold",
+  "client_wall_ms": 1087.502551265061,
+  "request": {
+    "max_tokens": 1,
+    "messages": [
+      {
+        "content": [
+          {
+            "text": "Name one visual property.",
+            "type": "text"
+          },
+          {
+            "image_url": {
+              "url": "file://${AIMA_VL_FIXTURE_ROOT}/image-rgb-256.png"
+            },
+            "type": "image_url"
+          }
+        ],
+        "role": "user"
+      }
+    ],
+    "model": "aima-amd395-qwen36-35b",
+    "stream": false,
+    "temperature": 0
+  },
+  "request_sha256": "343092dbbdb7a8d83e48a7274ab72b018f631ec640d259e45ae243d36cc15d14",
+  "response": {
+    "aima_amd395": {
+      "aot_prefill_bucket_tokens": 1024,
+      "aot_prefill_segments": 1,
+      "aot_prefill_tokens": 82,
+      "client_cancelled": false,
+      "cold_prompt_decode_tokens": 0,
+      "cold_prompt_decode_wall_ms": 0.0,
+      "completion_tokens": 1,
+      "decode_tokens_per_second": 0.0,
+      "http_request_wall_ms": 1086.955675,
+      "model_loads": 1,
+      "mrope": {
+        "decode_steps": 0,
+        "enabled": true,
+        "fmha_launches": 0,
+        "full_attention_launches": 10,
+        "position_delta": -56,
+        "position_upload_bytes": 1968,
+        "unified_attention_launches": 10
+      },
+      "oracle_tensor_reads": 0,
+      "output_token_ids_canonical_sha256": "a9cf0c5bfacb7118d245ee1a31149cbb264f7138ee585445dd76cc681d755554",
+      "output_token_ids_sha256": "afccd937e6ac2d1b6d6e9f318bc5e8a179c977c7413b33b3e4d902ff8cec501e",
+      "padded_prefill_tokens": 942,
+      "prefill_tokens_per_second": 75.58498647707624,
+      "prefix_cache": {
+        "hits": 0,
+        "implemented": true,
+        "lookup": "miss",
+        "matched_tokens": 0,
+        "misses": 2,
+        "scope": "capacity-bounded-variable-exact-or-append-lru",
+        "suffix_aot_launches": 0,
+        "suffix_decode_tokens": 0,
+        "suffix_native_launches": 0,
+        "suffix_tokens": 82,
+        "suffix_wall_ms": 0.0,
+        "transfer_bytes": 66072576
+      },
+      "prompt_execution": "cold-aot-padded",
+      "prompt_source": "chat_template",
+      "prompt_token_ids_sha256": "6462d85f92fb077999f1b028006631937910dc5cadf4ea6fdda8805982863701",
+      "prompt_tokens": 82,
+      "request_index": 2,
+      "request_wall_ms": 1084.880041,
+      "runtime": "native-resident-q82",
+      "structured_decoding": {
+        "enabled": false,
+        "token_mask_upload_bytes": 0,
+        "token_selections": 0
+      },
+      "ttft_ms": 1084.871531,
+      "vl": {
+        "embedding_injection_wall_ms": 0.376717,
+        "enabled": true,
+        "host_to_device_bytes": 787272,
+        "image_count": 1,
+        "media_cache_entries": 1,
+        "media_cache_hits": 0,
+        "media_cache_misses": 1,
+        "media_cache_resident_bytes": 786863,
+        "media_count": 1,
+        "media_decode_wall_ms": 0.745624,
+        "media_load_decode_wall_ms": 0.883083,
+        "media_load_wall_ms": 0.137459,
+        "processor_wall_ms": 0.450587,
+        "source_bytes": 5467,
+        "video_count": 0,
+        "vision_batch_count": 1,
+        "vision_encode_wall_ms": 23.125031,
+        "vision_max_batch_patches": 256,
+        "vision_max_batch_tokens": 64,
+        "vision_patches": 256,
+        "vision_plan_build_wall_ms": 488.146944,
+        "vision_plan_cache_entries": 1,
+        "vision_plan_cache_hit": false,
+        "visual_tokens": 64
+      }
+    },
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "content": "The",
+          "role": "assistant"
+        }
+      }
+    ],
+    "created": 1786932723,
+    "id": "chatcmpl-native-2",
+    "model": "aima-amd395-qwen36-35b",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1,
+      "prompt_tokens": 82,
+      "total_tokens": 83
+    }
+  },
+  "response_sha256": "cad4a6f6e9cb0ed4a0377408be1abd016a1acf5dd6e83b6e90104e3eab70e7d6",
+  "sequence_index": 2,
+  "status_code": 200
+}

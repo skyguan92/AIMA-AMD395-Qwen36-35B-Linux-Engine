@@ -10,6 +10,8 @@ AOTRITON_ROOT="${AOTRITON_ROOT:?set AOTRITON_ROOT to the qualified distribution 
 AOTRITON_SONAME="libaotriton_v2.so.0.11.1"
 AOTRITON_LIBRARY="${AOTRITON_LIBRARY:-${AOTRITON_ROOT}/lib/${AOTRITON_SONAME}}"
 AOTRITON_LIBRARY_SHA256="e0638806efa5d35cef04fd7fb02c62cd038b3a38727ecb5d87a49045aa1b9aa5"
+AOTRITON_IMAGE_RELATIVE="amd-gfx11xx/flash/attn_fwd/FONLY__＊bf16@16_256_F_F_3_0___gfx11xx.aks2"
+AOTRITON_IMAGE_SHA256="0f3a6a2f9dee6620443ee2145ee1f8257bde65a378589952840d99bf3d485c10"
 HIPCC="${HIPCC:-/opt/rocm/bin/hipcc}"
 CXX="${CXX:-g++}"
 OUT_DIR="${OUT_DIR:-${ROOT}/build/native}"
@@ -25,9 +27,20 @@ if [[ ! -f "${AOTRITON_ROOT}/include/aotriton/flash.h" ||
   echo "qualified AOTriton headers or library are missing under ${AOTRITON_ROOT}" >&2
   exit 2
 fi
+AOTRITON_LIBRARY_REAL="$(readlink -f "${AOTRITON_LIBRARY}")"
+AOTRITON_IMAGE="${AOTRITON_IMAGE:-$(dirname "${AOTRITON_LIBRARY_REAL}")/aotriton.images/${AOTRITON_IMAGE_RELATIVE}}"
 actual_aotriton_sha256="$(sha256sum "${AOTRITON_LIBRARY}" | awk '{print $1}')"
 if [[ "${actual_aotriton_sha256}" != "${AOTRITON_LIBRARY_SHA256}" ]]; then
   echo "AOTriton library mismatch: expected ${AOTRITON_LIBRARY_SHA256}, got ${actual_aotriton_sha256}" >&2
+  exit 2
+fi
+if [[ ! -f "${AOTRITON_IMAGE}" ]]; then
+  echo "qualified AOTriton gfx1151 image is missing: ${AOTRITON_IMAGE}" >&2
+  exit 2
+fi
+actual_aotriton_image_sha256="$(sha256sum "${AOTRITON_IMAGE}" | awk '{print $1}')"
+if [[ "${actual_aotriton_image_sha256}" != "${AOTRITON_IMAGE_SHA256}" ]]; then
+  echo "AOTriton image mismatch: expected ${AOTRITON_IMAGE_SHA256}, got ${actual_aotriton_image_sha256}" >&2
   exit 2
 fi
 
@@ -75,6 +88,13 @@ ln -sfn libaima-fmha-ck.so \
   -o "${OUT_DIR}/libaima-fmha-aotriton.so"
 ln -sfn libaima-fmha-aotriton.so \
   "${OUT_DIR}/libqrt_aotriton_fmha_provider.so"
+install -m755 "${AOTRITON_LIBRARY}" \
+  "${OUT_DIR}/${AOTRITON_SONAME}"
+install -Dm644 "${AOTRITON_IMAGE}" \
+  "${OUT_DIR}/aotriton.images/${AOTRITON_IMAGE_RELATIVE}"
+PYTHONPATH="${ROOT}" python3 -c \
+  'import pathlib, sys; from aima_engine.aotriton_closure import require_aotriton_closure; require_aotriton_closure(pathlib.Path(sys.argv[1]))' \
+  "${OUT_DIR}/libaima-fmha-aotriton.so"
 
 "${common[@]}" \
   "${SRC}/qrt_ck_fmha_q8192_kv16384_bottom_right_provider.cpp" \

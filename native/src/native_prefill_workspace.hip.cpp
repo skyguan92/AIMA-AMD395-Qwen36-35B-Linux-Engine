@@ -16,6 +16,7 @@
 #include <vector>
 
 namespace aima {
+
 namespace {
 
 constexpr std::uint64_t kAlignment = 256;
@@ -52,18 +53,27 @@ struct Plan {
 NativePrefillWorkspace::~NativePrefillWorkspace() { reset(); }
 
 NativePrefillWorkspaceMetrics NativePrefillWorkspace::build(
-    int device, std::size_t context_tokens, bool include_frozen_text) {
+    int device, std::size_t context_tokens, bool frozen_text_schedule,
+    void* shared_allocation, std::uint64_t shared_allocation_bytes,
+    std::uint64_t split_allocation_offset) {
   if (built() || !views_.empty() || !name_to_index_.empty()) {
     throw std::runtime_error("native prefill workspace is already built");
   }
   if (context_tokens == 0 || context_tokens > 262144) {
     throw std::invalid_argument("unsupported native prefill context");
   }
-  if (include_frozen_text && context_tokens != 1024) {
+  if (frozen_text_schedule && context_tokens != 1024) {
     throw std::invalid_argument(
         "frozen text prefill workspace is available only at q1024");
   }
-
+  if ((shared_allocation == nullptr) != (shared_allocation_bytes == 0)) {
+    throw std::invalid_argument(
+        "native prefill shared allocation is incomplete");
+  }
+  if (split_allocation_offset != 0 && shared_allocation == nullptr) {
+    throw std::invalid_argument(
+        "native prefill split allocation requires a shared prefix");
+  }
   std::vector<Plan> plans;
   std::unordered_map<std::string, std::size_t> plan_indices;
   plans.reserve(74);
@@ -75,10 +85,9 @@ NativePrefillWorkspaceMetrics NativePrefillWorkspace::build(
   if (launches == nullptr) {
     throw std::runtime_error("native prefill schedule is unavailable");
   }
-  std::vector<std::pair<const DecodeLaunch*, std::size_t>> schedules = {
-      {launches, launch_count}};
+  std::vector<std::pair<const DecodeLaunch*, std::size_t>> schedules;
   std::size_t frozen_text_launch_count = 0;
-  if (include_frozen_text) {
+  if (frozen_text_schedule) {
     const DecodeLaunch* frozen_text_launches =
         native_frozen_text_prefill_schedule(
             context_tokens, &frozen_text_launch_count);
@@ -87,6 +96,8 @@ NativePrefillWorkspaceMetrics NativePrefillWorkspace::build(
           "frozen text prefill schedule is unavailable");
     }
     schedules.emplace_back(frozen_text_launches, frozen_text_launch_count);
+  } else {
+    schedules.emplace_back(launches, launch_count);
   }
   const bool split_projection_tail =
       context_tokens != 8192 && launch_count == 401 && launch_count > 1 &&
@@ -155,17 +166,17 @@ NativePrefillWorkspaceMetrics NativePrefillWorkspace::build(
       metrics.transient_bindings == 38 && metrics.mixed_dtype_bindings == 2 &&
       metrics.logical_payload_bytes == 1407481841ULL &&
       metrics.allocation_bytes == 1407482880ULL;
-  const bool frozen_text_q1024_union =
-      include_frozen_text && context_tokens == 1024 &&
+  const bool frozen_text_q1024_layout =
+      frozen_text_schedule && context_tokens == 1024 &&
       launch_count == 401 && frozen_text_launch_count == 401 &&
-      metrics.schedule_tensor_arguments == 3904 &&
-      metrics.unique_bindings == 140 && metrics.resident_bindings == 65 &&
-      metrics.transient_bindings == 75 &&
-      metrics.mixed_dtype_bindings == 17 &&
-      metrics.logical_payload_bytes == 915552224ULL &&
-      metrics.allocation_bytes == 915552256ULL;
+      metrics.schedule_tensor_arguments == 1952 &&
+      metrics.unique_bindings == 137 && metrics.resident_bindings == 65 &&
+      metrics.transient_bindings == 72 &&
+      metrics.mixed_dtype_bindings == 3 &&
+      metrics.logical_payload_bytes == 669875172ULL &&
+      metrics.allocation_bytes == 669875456ULL;
   const bool direct_closure =
-      !include_frozen_text && context_tokens != 8192 &&
+      !frozen_text_schedule && context_tokens != 8192 &&
       !split_projection_tail &&
       launch_count == 401 &&
       metrics.schedule_tensor_arguments == 1952 &&
@@ -191,7 +202,7 @@ NativePrefillWorkspaceMetrics NativePrefillWorkspace::build(
       metrics.allocation_bytes >= metrics.logical_payload_bytes &&
       metrics.allocation_bytes - metrics.logical_payload_bytes <
           metrics.unique_bindings * kAlignment;
-  if (!q8192_closure && !frozen_text_q1024_union && !direct_closure &&
+  if (!q8192_closure && !frozen_text_q1024_layout && !direct_closure &&
       !split_projection_tail_closure) {
     throw std::runtime_error("native prefill workspace closure count mismatch");
   }
@@ -265,28 +276,80 @@ NativePrefillWorkspaceMetrics NativePrefillWorkspace::build(
         "native prefill runtime scratch closure count mismatch");
   }
 
+  if (split_allocation_offset != 0) {
+    if (split_allocation_offset % kAlignment != 0 ||
+        split_allocation_offset >= allocation_bytes ||
+        shared_allocation_bytes < split_allocation_offset) {
+      throw std::invalid_argument(
+          "native prefill split allocation geometry is invalid");
+    }
+    for (const Plan& plan : plans) {
+      if (plan.offset < split_allocation_offset &&
+          plan.offset + align_up(plan.bytes) > split_allocation_offset) {
+        throw std::runtime_error(
+            "native prefill split allocation crosses a binding: " +
+            plan.name);
+      }
+    }
+  } else if (shared_allocation != nullptr &&
+             shared_allocation_bytes < allocation_bytes) {
+    throw std::runtime_error(
+        "native prefill shared allocation is too small");
+  }
+
   const auto started = std::chrono::steady_clock::now();
   device_ = device;
   check_hip(hipSetDevice(device_), "hipSetDevice native prefill workspace");
   try {
-    check_hip(hipMalloc(&allocation_, allocation_bytes),
-              "hipMalloc native prefill workspace");
+    if (shared_allocation != nullptr) {
+      allocation_ = shared_allocation;
+      owns_allocation_ = false;
+    } else {
+      check_hip(hipMalloc(&allocation_, allocation_bytes),
+                "hipMalloc native prefill workspace");
+      owns_allocation_ = true;
+    }
     allocation_bytes_ = allocation_bytes;
+    split_allocation_offset_ = split_allocation_offset;
+    if (split_allocation_offset_ != 0) {
+      tail_allocation_bytes_ = allocation_bytes_ - split_allocation_offset_;
+      check_hip(hipMalloc(&tail_allocation_, tail_allocation_bytes_),
+                "hipMalloc native prefill workspace split tail");
+    }
+    physical_allocation_bytes_ =
+        (owns_allocation_ ? allocation_bytes_ : 0) + tail_allocation_bytes_;
     context_tokens_ = context_tokens;
-    includes_frozen_text_ = include_frozen_text;
-    check_hip(hipMemset(allocation_, 0, allocation_bytes),
+    includes_frozen_text_ = frozen_text_schedule;
+    const std::uint64_t prefix_bytes =
+        split_allocation_offset_ == 0 ? allocation_bytes_
+                                      : split_allocation_offset_;
+    check_hip(hipMemset(allocation_, 0, prefix_bytes),
               "hipMemset native prefill workspace");
+    if (tail_allocation_ != nullptr) {
+      check_hip(hipMemset(tail_allocation_, 0, tail_allocation_bytes_),
+                "hipMemset native prefill workspace split tail");
+    }
     auto* base = static_cast<unsigned char*>(allocation_);
+    auto* tail_base = static_cast<unsigned char*>(tail_allocation_);
     views_.reserve(plans.size());
     name_to_index_.reserve(plans.size());
     for (const Plan& plan : plans) {
       const std::size_t index = views_.size();
+      void* device_pointer = nullptr;
+      if (split_allocation_offset_ != 0 &&
+          plan.offset >= split_allocation_offset_) {
+        device_pointer =
+            tail_base + (plan.offset - split_allocation_offset_);
+      } else {
+        device_pointer = base + plan.offset;
+      }
       views_.push_back(
-          {plan.name, base + plan.offset, plan.bytes, plan.binding_kind});
+          {plan.name, device_pointer, plan.bytes, plan.binding_kind});
       name_to_index_.emplace(plan.name, index);
     }
     check_hip(hipDeviceSynchronize(),
               "hipDeviceSynchronize native prefill workspace");
+    metrics.physical_allocation_bytes = physical_allocation_bytes_;
     metrics.allocation_and_zero_ms = elapsed_ms(started);
     return metrics;
   } catch (...) {
@@ -303,9 +366,15 @@ const NativePrefillWorkspaceView* NativePrefillWorkspace::find(
 
 void NativePrefillWorkspace::reset() noexcept {
   (void)hipSetDevice(device_);
-  if (allocation_) (void)hipFree(allocation_);
+  if (tail_allocation_ != nullptr) (void)hipFree(tail_allocation_);
+  if (owns_allocation_ && allocation_ != nullptr) (void)hipFree(allocation_);
   allocation_ = nullptr;
   allocation_bytes_ = 0;
+  physical_allocation_bytes_ = 0;
+  owns_allocation_ = false;
+  tail_allocation_ = nullptr;
+  tail_allocation_bytes_ = 0;
+  split_allocation_offset_ = 0;
   context_tokens_ = 0;
   includes_frozen_text_ = false;
   views_.clear();

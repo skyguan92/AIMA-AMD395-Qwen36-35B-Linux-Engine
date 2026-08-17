@@ -35,6 +35,7 @@
 #include <cstddef>
 #include <cstdlib>
 #include <cstring>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <limits>
@@ -57,10 +58,93 @@ constexpr std::size_t kVisionPlanCachePatchBudget =
 constexpr std::size_t kVisionPlanCacheSharedPatchLimit =
     kVisionPlanCachePatchBudget / kVisionPlanCacheEntries;
 constexpr std::size_t kVisionPixelColumns = 1536;
+constexpr std::uint64_t kFrozenTextQ1024WorkspaceBytes = 669879552ULL;
+constexpr std::uint64_t kCurrentQ1024WorkspaceBytes = 674090240ULL;
+constexpr std::uint64_t kCurrentQ1024SplitOffset = 668730624ULL;
+constexpr std::uint64_t kCurrentQ1024TailBytes =
+    kCurrentQ1024WorkspaceBytes - kCurrentQ1024SplitOffset;
 constexpr char kVisionAttentionImageFilename[] =
     "aima-vision-attention.hsaco";
 constexpr char kVisionAttentionImageSha256[] =
     "b709a058a77d61e14db73c1ff7d7f4c20859d997bec811cad7339d3e59223d00";
+constexpr char kResidentLayoutManifestSha256[] =
+    "b8a9f4f909b66104f1815d9ed49791c8692077455a517f2d4e8f0defe6893dd7";
+
+std::filesystem::path split_weight_report_path(
+    const std::filesystem::path& combined, const char* label) {
+  const std::string extension = combined.extension().string();
+  const std::string stem = combined.stem().string();
+  return combined.parent_path() /
+         (stem + "." + label + (extension.empty() ? ".json" : extension));
+}
+
+std::string read_weight_report(const std::filesystem::path& path) {
+  std::ifstream stream(path, std::ios::binary);
+  if (!stream) {
+    throw std::runtime_error(
+        "cannot read native split weight report: " + path.string());
+  }
+  std::ostringstream payload;
+  payload << stream.rdbuf();
+  const std::string result = payload.str();
+  if (result.empty()) {
+    throw std::runtime_error(
+        "native split weight report is empty: " + path.string());
+  }
+  return result;
+}
+
+void write_resident_weight_report(
+    const std::filesystem::path& path,
+    const std::filesystem::path& language_report,
+    const std::filesystem::path& visual_report,
+    const NativeWeightLoadMetrics& metrics) {
+  const std::string language_payload = read_weight_report(language_report);
+  const std::string visual_payload = read_weight_report(visual_report);
+  std::filesystem::path temporary = path;
+  temporary += ".tmp";
+  std::ofstream stream(temporary, std::ios::binary | std::ios::trunc);
+  if (!stream) {
+    throw std::runtime_error(
+        "cannot create native resident weight report: " + path.string());
+  }
+  stream << "{\n"
+         << "  \"schema\": \"aima-amd395-qwen36/native-resident-split-scatter/v1\",\n"
+         << "  \"complete\": true,\n"
+         << "  \"weight_set\": \"language+visual\",\n"
+         << "  \"layout_manifest_sha256\": \""
+         << kResidentLayoutManifestSha256 << "\",\n"
+         << "  \"shard_count\": " << metrics.shard_count << ",\n"
+         << "  \"tensor_count\": " << metrics.tensor_count << ",\n"
+         << "  \"unique_destination_pointers\": "
+         << metrics.tensor_count << ",\n"
+         << "  \"payload_bytes\": " << metrics.payload_bytes << ",\n"
+         << "  \"language_payload_bytes\": "
+         << metrics.language_payload_bytes << ",\n"
+         << "  \"visual_payload_bytes\": "
+         << metrics.visual_payload_bytes << ",\n"
+         << "  \"gpu_payload_checksum_equal\": true,\n"
+         << "  \"destination_freed_by_native\": false,\n"
+         << "  \"cleanup_complete\": true,\n"
+         << "  \"language_report_sha256\": \""
+         << sha256_file(language_report) << "\",\n"
+         << "  \"visual_report_sha256\": \""
+         << sha256_file(visual_report) << "\",\n"
+         << "  \"language\": " << language_payload << ",\n"
+         << "  \"visual\": " << visual_payload << "\n"
+         << "}\n";
+  stream.close();
+  if (!stream) {
+    throw std::runtime_error(
+        "cannot finalize native resident weight report: " + path.string());
+  }
+  std::error_code error;
+  std::filesystem::rename(temporary, path, error);
+  if (error) {
+    throw std::runtime_error(
+        "cannot publish native resident weight report: " + error.message());
+  }
+}
 
 bool admitted_long_context(std::size_t context_tokens) {
   if (context_tokens <= 32768 || context_tokens > 262143) return false;
@@ -349,11 +433,13 @@ bool same_vision_grids(const std::vector<NativeVlGrid>& left,
 
 struct NativeResidentEngine::Impl {
   NativeWeightStore weights;
+  NativeWeightStore visual_weights;
   NativeDerivedWeightStore derived;
   NativeLmHeadStore lm_head;
   NativeDecodeBindings bindings;
   NativePrefillWorkspace prefill_workspace;
   NativePrefillInvocations prefill_invocations;
+  NativePrefillWorkspace frozen_text_q1024_workspace;
   NativePrefillInvocations frozen_text_q1024_invocations;
   std::unique_ptr<NativeQ8192PrefillGemmPlans> prefill_gemm_plans;
   NativePrefillWorkspace tail_prefill_workspace;
@@ -446,6 +532,7 @@ struct NativeResidentEngine::Impl {
           "native resident prefill bucket owner is unavailable");
     }
     if (use_frozen_text && tokens == 1024) {
+      owner.workspace = &frozen_text_q1024_workspace;
       owner.invocations = &frozen_text_q1024_invocations;
       owner.start_sequence = frozen_text_q1024_start_sequence;
     }
@@ -528,7 +615,7 @@ struct NativeResidentEngine::Impl {
     }
     const auto started = std::chrono::steady_clock::now();
     auto pipeline = std::make_unique<NativeVisionPipelinePlan>(
-        weights, vision_attention_image, grids);
+        visual_weights, vision_attention_image, grids);
     *build_wall_ms = elapsed_ms(started);
     *cache_hit = false;
     NativeResidentVisionPlanEntry candidate{
@@ -682,20 +769,6 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
   check_hip(hipMalloc(&impl_->padded_prefill_initial_conv_state,
                       impl_->padded_prefill_initial_conv_state_bytes),
             "hipMalloc padded prefill convolution snapshot");
-  check_hip(hipMalloc(&impl_->mrope_positions,
-                      impl_->mrope_position_state_bytes),
-            "hipMalloc resident M-RoPE positions");
-  check_hip(hipMalloc(&impl_->vl_prompt_index_state,
-                      impl_->vl_prompt_index_state_bytes),
-            "hipMalloc resident VL prompt/index state");
-  check_hip(hipMalloc(&impl_->structured_token_mask,
-                      impl_->structured_token_mask_bytes),
-            "hipMalloc resident structured token mask");
-  impl_->host_structured_token_mask.resize(kVocabulary);
-  impl_->vl_prompt_token_ids = impl_->vl_prompt_index_state;
-  impl_->vl_scatter_indices =
-      static_cast<unsigned char*>(impl_->vl_prompt_index_state) +
-      vl_prompt_token_id_bytes;
   impl_->prefill_gemm_plans =
       std::make_unique<NativeQ8192PrefillGemmPlans>(impl_->prefill_tokens);
   if (impl_->tail_prefill_tokens != 0) {
@@ -703,23 +776,54 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
         std::make_unique<NativeQ8192PrefillGemmPlans>(
             impl_->tail_prefill_tokens);
   }
-  // vLLM's singleton shared-expert gate falls through to PyTorch hipBLASLt.
-  // Build the matching N=1 plan once; decode only reuses resident pointers.
-  impl_->decode_shared_gate_plan = std::make_unique<Bf16GemmPlan>(
-      1, 1, kHidden, 76ULL * 1024ULL * 1024ULL, true);
-  const NativeWeightLoadMetrics weight_metrics =
-      impl_->weights.load_resident(options.weights);
-  const NativeVlLogicalProjectionLoadMetrics vl_logical_load_metrics =
-      impl_->vl_logical_projections.build(
-          impl_->weights, 1024, impl_->device);
+  const std::filesystem::path combined_weight_report =
+      options.weights.native_report.empty()
+          ? std::filesystem::absolute("native-resident-weight-load.json")
+          : options.weights.native_report;
+  const std::filesystem::path language_weight_report =
+      split_weight_report_path(combined_weight_report, "language");
+  const std::filesystem::path visual_weight_report =
+      split_weight_report_path(combined_weight_report, "visual");
+  NativeWeightLoadOptions language_weight_options = options.weights;
+  language_weight_options.native_report = language_weight_report;
+  NativeWeightLoadMetrics weight_metrics =
+      impl_->weights.load(language_weight_options);
+  NativeVlLogicalProjectionLoadMetrics vl_logical_load_metrics;
   const NativeDerivedWeightMetrics derived_metrics =
       impl_->derived.build(impl_->weights, impl_->device);
   const NativeLmHeadMetrics lm_head_metrics =
       impl_->lm_head.build(impl_->weights, impl_->device);
   const NativeDecodeBindingMetrics binding_metrics =
       impl_->bindings.build(impl_->weights, impl_->derived, impl_->lm_head);
+  NativePrefillWorkspaceMetrics prefill_workspace_metrics;
+  NativePrefillInvocationMetrics prefill_invocation_metrics;
+  NativePrefillWorkspaceMetrics tail_prefill_workspace_metrics;
+  NativePrefillInvocationMetrics tail_prefill_invocation_metrics;
   NativePrefillWorkspaceMetrics auxiliary_prefill_workspace_metrics;
   NativePrefillInvocationMetrics auxiliary_prefill_invocation_metrics;
+  NativePrefillWorkspaceMetrics frozen_text_q1024_workspace_metrics;
+  NativePrefillInvocationMetrics frozen_text_q1024_invocation_metrics;
+  const auto build_frozen_text_q1024 = [&]() {
+    if (impl_->frozen_text_q1024_workspace.built()) {
+      throw std::runtime_error(
+          "native frozen text q1024 workspace was built more than once");
+    }
+    frozen_text_q1024_workspace_metrics =
+        impl_->frozen_text_q1024_workspace.build(
+            impl_->device, 1024, true);
+    if (frozen_text_q1024_workspace_metrics.allocation_bytes !=
+            kFrozenTextQ1024WorkspaceBytes ||
+        frozen_text_q1024_workspace_metrics.physical_allocation_bytes !=
+            kFrozenTextQ1024WorkspaceBytes ||
+        !impl_->frozen_text_q1024_workspace.owns_primary_allocation()) {
+      throw std::runtime_error(
+          "native frozen q1024 primary backing contract changed");
+    }
+    frozen_text_q1024_invocation_metrics =
+        impl_->frozen_text_q1024_invocations.build(
+            impl_->bindings, impl_->frozen_text_q1024_workspace, 1024,
+            NativePrefillScheduleKind::kFrozenText);
+  };
   for (const std::size_t tokens : impl_->resident_prefill_buckets) {
     if (tokens == impl_->prefill_tokens ||
         (impl_->tail_prefill_tokens != 0 &&
@@ -728,49 +832,54 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
     }
     auto bucket =
         std::make_unique<NativeResidentAuxPrefillBucket>(tokens);
-    const NativePrefillWorkspaceMetrics workspace_metrics =
-        bucket->workspace.build(impl_->device, tokens, tokens == 1024);
-    const NativePrefillInvocationMetrics invocation_metrics =
-        bucket->invocations.build(impl_->bindings, bucket->workspace, tokens);
-    auxiliary_prefill_workspace_metrics.allocation_bytes +=
-        workspace_metrics.allocation_bytes;
-    auxiliary_prefill_invocation_metrics.launch_count +=
-        invocation_metrics.launch_count;
+    if (tokens == 1024) {
+      // Occupy the q1024 slot with the exact v1.5.1-sized owner.  The current
+      // VL view and its small divergent tail are materialized only after all
+      // text-critical allocations and GEMM plans are resident.
+      build_frozen_text_q1024();
+    } else {
+      const NativePrefillWorkspaceMetrics workspace_metrics =
+          bucket->workspace.build(impl_->device, tokens, false);
+      const NativePrefillInvocationMetrics invocation_metrics =
+          bucket->invocations.build(impl_->bindings, bucket->workspace, tokens);
+      auxiliary_prefill_workspace_metrics.allocation_bytes +=
+          workspace_metrics.allocation_bytes;
+      auxiliary_prefill_workspace_metrics.physical_allocation_bytes +=
+          workspace_metrics.physical_allocation_bytes;
+      auxiliary_prefill_invocation_metrics.launch_count +=
+          invocation_metrics.launch_count;
+    }
     impl_->auxiliary_prefill_buckets.push_back(std::move(bucket));
   }
-  const NativePrefillWorkspaceMetrics prefill_workspace_metrics =
-      impl_->prefill_workspace.build(
-          impl_->device, impl_->prefill_tokens,
-          impl_->prefill_tokens == 1024);
-  const NativePrefillInvocationMetrics prefill_invocation_metrics =
-      impl_->prefill_invocations.build(impl_->bindings,
-                                       impl_->prefill_workspace,
-                                       impl_->prefill_tokens);
-  NativePrefillWorkspaceMetrics tail_prefill_workspace_metrics;
-  NativePrefillInvocationMetrics tail_prefill_invocation_metrics;
-  if (impl_->tail_prefill_tokens != 0) {
-    tail_prefill_workspace_metrics = impl_->tail_prefill_workspace.build(
-        impl_->device, impl_->tail_prefill_tokens,
-        impl_->tail_prefill_tokens == 1024);
-    tail_prefill_invocation_metrics = impl_->tail_prefill_invocations.build(
-        impl_->bindings, impl_->tail_prefill_workspace,
-        impl_->tail_prefill_tokens);
+  if (impl_->prefill_tokens == 1024) {
+    build_frozen_text_q1024();
+  } else {
+    prefill_workspace_metrics = impl_->prefill_workspace.build(
+        impl_->device, impl_->prefill_tokens, false);
+    prefill_invocation_metrics = impl_->prefill_invocations.build(
+        impl_->bindings, impl_->prefill_workspace, impl_->prefill_tokens);
   }
-  const NativeResidentPrefillOwner q1024_owner = impl_->prefill_owner(1024);
-  const NativePrefillInvocationMetrics frozen_text_q1024_invocation_metrics =
-      impl_->frozen_text_q1024_invocations.build(
-          impl_->bindings, *q1024_owner.workspace, 1024,
-          NativePrefillScheduleKind::kFrozenText);
+  if (impl_->tail_prefill_tokens != 0) {
+    if (impl_->tail_prefill_tokens == 1024) {
+      build_frozen_text_q1024();
+    } else {
+      tail_prefill_workspace_metrics = impl_->tail_prefill_workspace.build(
+          impl_->device, impl_->tail_prefill_tokens, false);
+      tail_prefill_invocation_metrics = impl_->tail_prefill_invocations.build(
+          impl_->bindings, impl_->tail_prefill_workspace,
+          impl_->tail_prefill_tokens);
+    }
+  }
+  if (!impl_->frozen_text_q1024_workspace.built()) {
+    throw std::runtime_error(
+        "native resident topology has no frozen text q1024 owner");
+  }
   const NativeDecodeWorkspaceMetrics decode_workspace_metrics =
       impl_->decode_workspace.build(impl_->device);
   const NativeDecodeInvocationMetrics decode_invocation_metrics =
       impl_->decode_invocations.build(impl_->bindings,
                                       impl_->decode_workspace);
   const NativeDecodeExecutorMetrics executor_metrics = impl_->executor.load();
-  impl_->vl_unified_attention =
-      std::make_unique<NativeVlUnifiedAttentionPlan>(
-          impl_->executor, impl_->resident_prefill_buckets.back(),
-          options.cache_capacity, impl_->device);
   const NativeQ8192CkProviderMetrics provider_metrics =
       impl_->ck_provider.load(provider_path, impl_->prefill_tokens);
   NativeQ8192CkProviderMetrics secondary_provider_metrics;
@@ -802,8 +911,6 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
   }
   const NativeFullAttentionStateMetrics attention_metrics =
       impl_->attention_state.build(options.cache_capacity, impl_->device);
-  impl_->attention_state.bind_decode_unified_attention(
-      impl_->vl_unified_attention.get());
   impl_->prefix_cache_entries =
       options.cache_capacity <= 32768
           ? 4
@@ -816,14 +923,135 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
   }
 
   const auto plan_started = std::chrono::steady_clock::now();
-  impl_->prefill_gemm_plans->prepare_all();
-  if (impl_->tail_prefill_gemm_plans != nullptr) {
-    impl_->tail_prefill_gemm_plans->prepare_all();
+  NativeQ8192PrefillGemmPlans* prefill_gemm_plans =
+      impl_->prefill_gemm_plans.get();
+  prefill_gemm_plans->prepare_all();
+  if (prefill_gemm_plans->token_count() == 1024) {
+    prefill_gemm_plans->warm_up_q1024_text();
+  }
+  NativeQ8192PrefillGemmPlans* tail_prefill_gemm_plans =
+      impl_->tail_prefill_gemm_plans.get();
+  if (tail_prefill_gemm_plans != nullptr) {
+    tail_prefill_gemm_plans->prepare_all();
+    if (tail_prefill_gemm_plans->token_count() == 1024) {
+      tail_prefill_gemm_plans->warm_up_q1024_text();
+    }
   }
   for (const auto& bucket : impl_->auxiliary_prefill_buckets) {
-    bucket->gemm_plans->prepare_all();
+    NativeQ8192PrefillGemmPlans* auxiliary_prefill_gemm_plans =
+        bucket->gemm_plans.get();
+    auxiliary_prefill_gemm_plans->prepare_all();
+    if (auxiliary_prefill_gemm_plans->token_count() == 1024) {
+      auxiliary_prefill_gemm_plans->warm_up_q1024_text();
+    }
   }
   const double plan_wall_ms = elapsed_ms(plan_started);
+
+  NativeResidentPrefillOwner current_q1024_owner =
+      impl_->prefill_owner(1024);
+  if (current_q1024_owner.workspace->built()) {
+    throw std::runtime_error(
+        "native current q1024 workspace was allocated before text topology");
+  }
+  const NativePrefillWorkspaceMetrics current_q1024_workspace_metrics =
+      current_q1024_owner.workspace->build(
+          impl_->device, 1024, false,
+          impl_->frozen_text_q1024_workspace.allocation(),
+          impl_->frozen_text_q1024_workspace.allocation_bytes(),
+          kCurrentQ1024SplitOffset);
+  if (current_q1024_workspace_metrics.allocation_bytes !=
+          kCurrentQ1024WorkspaceBytes ||
+      current_q1024_workspace_metrics.physical_allocation_bytes !=
+          kCurrentQ1024TailBytes ||
+      !current_q1024_owner.workspace->has_split_allocation() ||
+      current_q1024_owner.workspace->owns_primary_allocation() ||
+      current_q1024_owner.workspace->split_allocation_offset() !=
+          kCurrentQ1024SplitOffset ||
+      current_q1024_owner.workspace->allocation() !=
+          impl_->frozen_text_q1024_workspace.allocation()) {
+    throw std::runtime_error(
+        "native current q1024 split backing contract changed");
+  }
+  const NativePrefillInvocationMetrics current_q1024_invocation_metrics =
+      current_q1024_owner.invocations->build(
+          impl_->bindings, *current_q1024_owner.workspace, 1024);
+  if (impl_->prefill_tokens == 1024) {
+    prefill_workspace_metrics = current_q1024_workspace_metrics;
+    prefill_invocation_metrics = current_q1024_invocation_metrics;
+  } else if (impl_->tail_prefill_tokens == 1024) {
+    tail_prefill_workspace_metrics = current_q1024_workspace_metrics;
+    tail_prefill_invocation_metrics = current_q1024_invocation_metrics;
+  } else {
+    auxiliary_prefill_workspace_metrics.allocation_bytes +=
+        current_q1024_workspace_metrics.allocation_bytes;
+    auxiliary_prefill_workspace_metrics.physical_allocation_bytes +=
+        current_q1024_workspace_metrics.physical_allocation_bytes;
+    auxiliary_prefill_invocation_metrics.launch_count +=
+        current_q1024_invocation_metrics.launch_count;
+  }
+
+  // Preserve the v1.5.1 text allocation topology, then complete every VL
+  // resident before READY.  Language and vision weights remain independent
+  // native owners so late vision residency cannot move text-critical buffers.
+  NativeWeightLoadOptions visual_weight_options = options.weights;
+  visual_weight_options.native_report = visual_weight_report;
+  const NativeWeightLoadMetrics visual_weight_metrics =
+      impl_->visual_weights.load_visual(visual_weight_options);
+  if (visual_weight_metrics.device_name != weight_metrics.device_name ||
+      visual_weight_metrics.gpu_arch != weight_metrics.gpu_arch ||
+      visual_weight_metrics.model_config_sha256 !=
+          weight_metrics.model_config_sha256 ||
+      visual_weight_metrics.checkpoint_index_sha256 !=
+          weight_metrics.checkpoint_index_sha256) {
+    throw std::runtime_error(
+        "native language and visual resident owners are incompatible");
+  }
+  weight_metrics.weight_set = "language+visual";
+  weight_metrics.layout_manifest_sha256 =
+      kResidentLayoutManifestSha256;
+  weight_metrics.free_bytes_after = visual_weight_metrics.free_bytes_after;
+  weight_metrics.payload_bytes += visual_weight_metrics.payload_bytes;
+  weight_metrics.tensor_count += visual_weight_metrics.tensor_count;
+  weight_metrics.visual_layout_manifest_sha256 =
+      visual_weight_metrics.visual_layout_manifest_sha256;
+  weight_metrics.visual_payload_bytes =
+      visual_weight_metrics.visual_payload_bytes;
+  weight_metrics.visual_tensor_count =
+      visual_weight_metrics.visual_tensor_count;
+  weight_metrics.visual_shard_count =
+      visual_weight_metrics.visual_shard_count;
+  weight_metrics.allocation_ms += visual_weight_metrics.allocation_ms;
+  weight_metrics.ingest_ms += visual_weight_metrics.ingest_ms;
+  weight_metrics.load_wall_ms += visual_weight_metrics.load_wall_ms;
+  vl_logical_load_metrics = impl_->vl_logical_projections.build(
+      impl_->weights, 1024, impl_->device);
+  check_hip(hipMalloc(&impl_->mrope_positions,
+                      impl_->mrope_position_state_bytes),
+            "hipMalloc resident M-RoPE positions");
+  check_hip(hipMalloc(&impl_->vl_prompt_index_state,
+                      impl_->vl_prompt_index_state_bytes),
+            "hipMalloc resident VL prompt/index state");
+  check_hip(hipMalloc(&impl_->structured_token_mask,
+                      impl_->structured_token_mask_bytes),
+            "hipMalloc resident structured token mask");
+  impl_->host_structured_token_mask.resize(kVocabulary);
+  impl_->vl_prompt_token_ids = impl_->vl_prompt_index_state;
+  impl_->vl_scatter_indices =
+      static_cast<unsigned char*>(impl_->vl_prompt_index_state) +
+      vl_prompt_token_id_bytes;
+  // vLLM's singleton shared-expert gate falls through to PyTorch hipBLASLt.
+  // Build the matching N=1 plan once; decode only reuses resident pointers.
+  impl_->decode_shared_gate_plan = std::make_unique<Bf16GemmPlan>(
+      1, 1, kHidden, 76ULL * 1024ULL * 1024ULL, true);
+  impl_->vl_unified_attention =
+      std::make_unique<NativeVlUnifiedAttentionPlan>(
+          impl_->executor, impl_->resident_prefill_buckets.back(),
+          options.cache_capacity, impl_->device);
+  impl_->attention_state.bind_decode_unified_attention(
+      impl_->vl_unified_attention.get());
+  write_resident_weight_report(
+      combined_weight_report, language_weight_report,
+      visual_weight_report, weight_metrics);
 
   hipDeviceProp_t properties{};
   if (hipGetDeviceProperties(&properties, impl_->device) != hipSuccess) {
@@ -923,9 +1151,10 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
         bucket->gemm_plans->built_plan_count();
   }
   impl_->metrics.prefill_workspace_bytes =
-      prefill_workspace_metrics.allocation_bytes +
-      tail_prefill_workspace_metrics.allocation_bytes +
-      auxiliary_prefill_workspace_metrics.allocation_bytes +
+      prefill_workspace_metrics.physical_allocation_bytes +
+      tail_prefill_workspace_metrics.physical_allocation_bytes +
+      auxiliary_prefill_workspace_metrics.physical_allocation_bytes +
+      frozen_text_q1024_workspace_metrics.physical_allocation_bytes +
       impl_->chunked_hidden_bytes +
       impl_->padded_prefill_initial_conv_state_bytes +
       impl_->mrope_position_state_bytes;

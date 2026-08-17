@@ -258,6 +258,52 @@ class NativePairedTextMatrixTest(unittest.TestCase):
         clean["requests"][0]["prefill_vl_unified_attention_launches"] = 1
         self.assertFalse(paired.candidate_text_path_is_idle(clean))
 
+    def test_startup_gate_uses_the_frozen_absolute_ceiling(self) -> None:
+        pairs = [
+            {
+                "measurements": {
+                    "baseline": {"command_to_ready_wall_ms": 40_000.0},
+                    "candidate": {"command_to_ready_wall_ms": 44_000.0},
+                }
+            }
+            for _ in range(5)
+        ]
+        startup = paired.build_startup_gate(
+            [
+                {
+                    "input_tokens": 8192,
+                    "output_tokens": 512,
+                    "complete": True,
+                    "pairs": pairs,
+                }
+            ]
+        )
+        self.assertTrue(startup["qualified"])
+        self.assertEqual(startup["paired_ratio_median"], 1.1)
+        self.assertTrue(startup["paired_ratio_is_diagnostic_only"])
+        self.assertNotIn(
+            "candidate_not_slower_than_paired_v151", startup["checks"]
+        )
+
+        for pair in pairs:
+            pair["measurements"]["candidate"][
+                "command_to_ready_wall_ms"
+            ] = 45_000.0
+        startup = paired.build_startup_gate(
+            [
+                {
+                    "input_tokens": 8192,
+                    "output_tokens": 512,
+                    "complete": True,
+                    "pairs": pairs,
+                }
+            ]
+        )
+        self.assertFalse(startup["qualified"])
+        self.assertFalse(
+            startup["checks"]["candidate_at_most_44_90_seconds"]
+        )
+
     def test_candidate_resume_is_bound_to_automatic_runtime_closure(
         self,
     ) -> None:

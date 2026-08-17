@@ -103,7 +103,7 @@ class NativeTextClosureIsolationTest(unittest.TestCase):
         self.assertNotEqual(completed.returncode, 0)
         self.assertIn("frozen text q1024 closure identity changed", completed.stderr)
 
-    def test_runtime_uses_one_union_workspace_and_request_scoped_owners(self) -> None:
+    def test_runtime_uses_schedule_isolated_workspaces_and_request_owners(self) -> None:
         build = (ROOT / "scripts/build-native-runtime.sh").read_text(
             encoding="utf-8"
         )
@@ -122,8 +122,8 @@ class NativeTextClosureIsolationTest(unittest.TestCase):
         self.assertIn("q1024-text-v151", build)
         self.assertIn("--prefill-registry frozen-text", build)
         self.assertIn("FROZEN_TEXT_PREFILL_REGISTRY_CPP", build)
-        self.assertIn("metrics.allocation_bytes == 915552256ULL", workspace)
-        self.assertIn("includes_frozen_text_ = include_frozen_text", workspace)
+        self.assertIn("metrics.allocation_bytes == 669875456ULL", workspace)
+        self.assertIn("includes_frozen_text_ = frozen_text_schedule", workspace)
         self.assertIn("NativePrefillScheduleKind::kFrozenText", invocation)
         q1024_owner = linear.split("const bool q1024_official_fla =", 1)[1].split(
             "const bool use_vl_rmsnorm", 1
@@ -131,6 +131,64 @@ class NativeTextClosureIsolationTest(unittest.TestCase):
         self.assertIn("launches[5].launch->symbol", q1024_owner)
         self.assertIn("merge_16x16_to_64x64_inverse_kernel", q1024_owner)
         self.assertIn("frozen_text_q1024_invocations", resident)
+        self.assertIn("frozen_text_q1024_workspace", resident)
+        self.assertIn(
+            "owner.workspace = &frozen_text_q1024_workspace", resident
+        )
+        self.assertIn("hipMalloc native prefill workspace", workspace)
+        self.assertNotIn("hipMemCreate", workspace)
+        self.assertNotIn("release_allocation", workspace)
+        self.assertIn(
+            "shared_allocation_bytes < split_allocation_offset", workspace
+        )
+        self.assertIn(
+            "tail_allocation_bytes_ = allocation_bytes_ - split_allocation_offset_",
+            workspace,
+        )
+        self.assertIn("plan.offset >= split_allocation_offset_", workspace)
+        self.assertIn("hipFree(tail_allocation_)", workspace)
+        self.assertIn("owns_allocation_ = false", workspace)
+        self.assertIn("owns_allocation_ = true", workspace)
+        self.assertIn("owns_allocation_ && allocation_ != nullptr", workspace)
+        self.assertIn("current_q1024_owner.workspace->allocation()", resident)
+        self.assertIn(
+            "kFrozenTextQ1024WorkspaceBytes = 669879552ULL", resident
+        )
+        self.assertIn("kCurrentQ1024WorkspaceBytes = 674090240ULL", resident)
+        self.assertIn("kCurrentQ1024SplitOffset = 668730624ULL", resident)
+        self.assertIn("kCurrentQ1024TailBytes", resident)
+        self.assertIn("native frozen q1024 primary backing contract changed", resident)
+        self.assertIn("native current q1024 split backing contract changed", resident)
+        self.assertIn("owns_primary_allocation()", resident)
+        self.assertIn("has_split_allocation()", resident)
+        frozen_build = resident.index("build_frozen_text_q1024();")
+        decode_workspace_build = resident.index(
+            "const NativeDecodeWorkspaceMetrics decode_workspace_metrics"
+        )
+        plan_complete = resident.index(
+            "const double plan_wall_ms = elapsed_ms(plan_started);"
+        )
+        current_split_build = resident.index(
+            "current_q1024_owner.workspace->build("
+        )
+        visual_weight_load = resident.index("impl_->visual_weights.load_visual(")
+        self.assertLess(frozen_build, decode_workspace_build)
+        self.assertLess(plan_complete, current_split_build)
+        self.assertLess(current_split_build, visual_weight_load)
+        self.assertNotIn("rebind_workspace", invocation)
+        self.assertNotIn("bucket->workspace.reset()", resident)
+        workspace_metric = resident.split(
+            "impl_->metrics.prefill_workspace_bytes =", 1
+        )[1].split("impl_->metrics.mrope_position_state_bytes", 1)[0]
+        self.assertIn(
+            "frozen_text_q1024_workspace_metrics.physical_allocation_bytes",
+            workspace_metric,
+        )
+        self.assertIn(
+            "current_q1024_workspace_metrics.physical_allocation_bytes",
+            resident,
+        )
+        self.assertEqual(resident.count("warm_up_q1024_text()"), 3)
         self.assertIn(
             "prefill_owner(segment.bucket_tokens, vl_input == nullptr)",
             resident,

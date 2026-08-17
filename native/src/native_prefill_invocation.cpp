@@ -27,7 +27,7 @@ NativePrefillInvocationMetrics NativePrefillInvocations::build(
   if (schedule_kind == NativePrefillScheduleKind::kFrozenText &&
       (context_tokens != 1024 || !workspace.includes_frozen_text())) {
     throw std::invalid_argument(
-        "frozen text invocation requires the q1024 union workspace");
+        "frozen text invocation requires its q1024 schedule workspace");
   }
   NativePrefillInvocationMetrics metrics;
   std::size_t launch_count = 0;

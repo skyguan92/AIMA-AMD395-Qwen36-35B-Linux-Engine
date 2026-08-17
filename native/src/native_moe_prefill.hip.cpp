@@ -248,34 +248,85 @@ __global__ void shared_sigmoid_scale_batched_kernel(
       __bfloat162float(gate_bf16) * __bfloat162float(down[index]));
 }
 
+template <bool kWeightsAreBfloat16>
 __global__ void router_topk8_softmax_256_text_kernel(
     const __hip_bfloat16* logits, float* scores, std::int64_t* indices_i64,
-    std::int32_t* indices_i32, void* weights,
-    bool weights_are_bfloat16) {
-  if (threadIdx.x != 0) return;
+    std::int32_t* indices_i32, void* weights) {
+  constexpr int kRouterThreads = 64;
+  constexpr int kRouterWave = 32;
+  constexpr int kRouterWaves = kRouterThreads / kRouterWave;
+  constexpr int kValuesPerThread = kExperts / kRouterThreads;
+  static_assert(kRouterWaves == 2 && kValuesPerThread == 4);
   const std::size_t token = blockIdx.x;
   const __hip_bfloat16* row = logits + token * kExperts;
-  float ranked_scores[kTopK];
-  int ranked_indices[kTopK];
+  const int thread = threadIdx.x;
+  const int wave_lane = thread % kRouterWave;
+  const int wave = thread / kRouterWave;
+  __shared__ float row_values[kExperts];
+  __shared__ float wave_scores[kRouterWaves];
+  __shared__ int wave_indices[kRouterWaves];
+  __shared__ float ranked_scores[kTopK];
+  __shared__ int ranked_indices[kTopK];
+
+#pragma unroll
+  for (int value = 0; value < kValuesPerThread; ++value) {
+    const int expert = thread + value * kRouterThreads;
+    row_values[expert] = __bfloat162float(row[expert]);
+  }
+  __syncthreads();
+
+  // Preserve the serial v1.5.1 selection rule while distributing each of its
+  // eight maximum searches across two wave32s. Equal values explicitly pick
+  // the lower expert index, matching the source-order scan below.
   for (std::size_t rank = 0; rank < kTopK; ++rank) {
     float best = -std::numeric_limits<float>::infinity();
     int best_index = -1;
-    for (int expert = 0; expert < static_cast<int>(kExperts); ++expert) {
+#pragma unroll
+    for (int value = 0; value < kValuesPerThread; ++value) {
+      const int expert = thread + value * kRouterThreads;
       bool used = false;
 #pragma unroll
       for (std::size_t prior = 0; prior < rank; ++prior) {
         used = used || ranked_indices[prior] == expert;
       }
       if (used) continue;
-      const float value = __bfloat162float(row[expert]);
-      if (value > best) {
-        best = value;
+      const float candidate = row_values[expert];
+      if (candidate > best ||
+          (candidate == best && expert < best_index)) {
+        best = candidate;
         best_index = expert;
       }
     }
-    ranked_scores[rank] = best;
-    ranked_indices[rank] = best_index;
+#pragma unroll
+    for (int offset = kRouterWave / 2; offset > 0; offset /= 2) {
+      const float other_score = __shfl_down(best, offset, kRouterWave);
+      const int other_index = __shfl_down(best_index, offset, kRouterWave);
+      if (wave_lane + offset < kRouterWave &&
+          (other_score > best ||
+           (other_score == best && other_index < best_index))) {
+        best = other_score;
+        best_index = other_index;
+      }
+    }
+    if (wave_lane == 0) {
+      wave_scores[wave] = best;
+      wave_indices[wave] = best_index;
+    }
+    __syncthreads();
+    if (thread == 0) {
+      const bool second_is_better =
+          wave_scores[1] > wave_scores[0] ||
+          (wave_scores[1] == wave_scores[0] &&
+           wave_indices[1] < wave_indices[0]);
+      ranked_scores[rank] =
+          second_is_better ? wave_scores[1] : wave_scores[0];
+      ranked_indices[rank] =
+          second_is_better ? wave_indices[1] : wave_indices[0];
+    }
+    __syncthreads();
   }
+
+  if (thread != 0) return;
 
   // Preserve the frozen ROCm top-k tie order: gather values above the kth
   // threshold, append threshold ties in source order, then apply the same
@@ -285,7 +336,7 @@ __global__ void router_topk8_softmax_256_text_kernel(
   int selected_indices[kTopK];
   std::size_t selected = 0;
   for (int expert = 0; expert < static_cast<int>(kExperts); ++expert) {
-    const float value = __bfloat162float(row[expert]);
+    const float value = row_values[expert];
     if (value > threshold) {
       selected_scores[selected] = value;
       selected_indices[selected] = expert;
@@ -294,7 +345,7 @@ __global__ void router_topk8_softmax_256_text_kernel(
   }
   for (int expert = 0;
        expert < static_cast<int>(kExperts) && selected < kTopK; ++expert) {
-    const float value = __bfloat162float(row[expert]);
+    const float value = row_values[expert];
     if (value == threshold) {
       selected_scores[selected] = value;
       selected_indices[selected] = expert;
@@ -340,7 +391,7 @@ __global__ void router_topk8_softmax_256_text_kernel(
     // value in router_topk8_softmax_256_kernel below.
     const __hip_bfloat16 rounded_probability =
         __float2bfloat16(probability);
-    if (weights_are_bfloat16) {
+    if constexpr (kWeightsAreBfloat16) {
       static_cast<__hip_bfloat16*>(weights)[base + rank] =
           rounded_probability;
     } else {
@@ -614,13 +665,23 @@ void launch_router(const void* logits, void* scores, void* indices_i64,
         weights_are_bfloat16);
     check_hip(hipGetLastError(), "router_topk8_softmax_256_kernel");
   } else {
-    hipLaunchKernelGGL(
-        router_topk8_softmax_256_text_kernel, dim3(tokens), dim3(64), 0,
-        nullptr, static_cast<const __hip_bfloat16*>(logits),
-        static_cast<float*>(scores),
-        static_cast<std::int64_t*>(indices_i64),
-        static_cast<std::int32_t*>(indices_i32), weights,
-        weights_are_bfloat16);
+    if (weights_are_bfloat16) {
+      hipLaunchKernelGGL(
+          HIP_KERNEL_NAME(router_topk8_softmax_256_text_kernel<true>),
+          dim3(tokens), dim3(64), 0, nullptr,
+          static_cast<const __hip_bfloat16*>(logits),
+          static_cast<float*>(scores),
+          static_cast<std::int64_t*>(indices_i64),
+          static_cast<std::int32_t*>(indices_i32), weights);
+    } else {
+      hipLaunchKernelGGL(
+          HIP_KERNEL_NAME(router_topk8_softmax_256_text_kernel<false>),
+          dim3(tokens), dim3(64), 0, nullptr,
+          static_cast<const __hip_bfloat16*>(logits),
+          static_cast<float*>(scores),
+          static_cast<std::int64_t*>(indices_i64),
+          static_cast<std::int32_t*>(indices_i32), weights);
+    }
     check_hip(hipGetLastError(),
               "router_topk8_softmax_256_text_kernel");
   }

@@ -1,0 +1,131 @@
+{
+  "case_id": "image_restored",
+  "client_wall_ms": 4.578743129968643,
+  "request": {
+    "max_tokens": 1,
+    "messages": [
+      {
+        "content": [
+          {
+            "text": "Name one visual property.",
+            "type": "text"
+          },
+          {
+            "image_url": {
+              "url": "file://${AIMA_VL_FIXTURE_ROOT}/image-rgb-256.png"
+            },
+            "type": "image_url"
+          }
+        ],
+        "role": "user"
+      }
+    ],
+    "model": "aima-amd395-qwen36-35b",
+    "stream": false,
+    "temperature": 0
+  },
+  "request_sha256": "343092dbbdb7a8d83e48a7274ab72b018f631ec640d259e45ae243d36cc15d14",
+  "response": {
+    "aima_amd395": {
+      "aot_prefill_bucket_tokens": 0,
+      "aot_prefill_segments": 0,
+      "aot_prefill_tokens": 0,
+      "client_cancelled": false,
+      "cold_prompt_decode_tokens": 0,
+      "cold_prompt_decode_wall_ms": 0.0,
+      "completion_tokens": 1,
+      "decode_tokens_per_second": 0.0,
+      "http_request_wall_ms": 4.405436,
+      "model_loads": 1,
+      "mrope": {
+        "decode_steps": 0,
+        "enabled": true,
+        "fmha_launches": 0,
+        "full_attention_launches": 0,
+        "position_delta": -56,
+        "position_upload_bytes": 0,
+        "unified_attention_launches": 0
+      },
+      "oracle_tensor_reads": 0,
+      "output_token_ids_canonical_sha256": "a9cf0c5bfacb7118d245ee1a31149cbb264f7138ee585445dd76cc681d755554",
+      "output_token_ids_sha256": "afccd937e6ac2d1b6d6e9f318bc5e8a179c977c7413b33b3e4d902ff8cec501e",
+      "padded_prefill_tokens": 0,
+      "prefill_tokens_per_second": 25700.857687769058,
+      "prefix_cache": {
+        "hits": 1,
+        "implemented": true,
+        "lookup": "exact",
+        "matched_tokens": 82,
+        "misses": 3,
+        "scope": "capacity-bounded-variable-exact-or-append-lru",
+        "suffix_aot_launches": 0,
+        "suffix_decode_tokens": 0,
+        "suffix_native_launches": 0,
+        "suffix_tokens": 0,
+        "suffix_wall_ms": 0.0,
+        "transfer_bytes": 66068480
+      },
+      "prompt_execution": "prefix-cache-exact",
+      "prompt_source": "chat_template",
+      "prompt_token_ids_sha256": "6462d85f92fb077999f1b028006631937910dc5cadf4ea6fdda8805982863701",
+      "prompt_tokens": 82,
+      "request_index": 4,
+      "request_wall_ms": 3.192345,
+      "runtime": "native-resident-q82",
+      "structured_decoding": {
+        "enabled": false,
+        "token_mask_upload_bytes": 0,
+        "token_selections": 0
+      },
+      "ttft_ms": 3.190555,
+      "vl": {
+        "embedding_injection_wall_ms": 0.0,
+        "enabled": true,
+        "host_to_device_bytes": 0,
+        "image_count": 1,
+        "media_cache_entries": 1,
+        "media_cache_hits": 1,
+        "media_cache_misses": 0,
+        "media_cache_resident_bytes": 786863,
+        "media_count": 1,
+        "media_decode_wall_ms": 0.0,
+        "media_load_decode_wall_ms": 0.688074,
+        "media_load_wall_ms": 0.688074,
+        "processor_wall_ms": 0.0,
+        "source_bytes": 5467,
+        "video_count": 0,
+        "vision_batch_count": 1,
+        "vision_encode_wall_ms": 0.0,
+        "vision_max_batch_patches": 256,
+        "vision_max_batch_tokens": 64,
+        "vision_patches": 256,
+        "vision_plan_build_wall_ms": 0.0,
+        "vision_plan_cache_entries": 1,
+        "vision_plan_cache_hit": false,
+        "visual_tokens": 64
+      }
+    },
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "content": "The",
+          "role": "assistant"
+        }
+      }
+    ],
+    "created": 1786932724,
+    "id": "chatcmpl-native-4",
+    "model": "aima-amd395-qwen36-35b",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1,
+      "prompt_tokens": 82,
+      "total_tokens": 83
+    }
+  },
+  "response_sha256": "9e1382b9bbf0347149e6dce78e79e777119236bb11a37fe24a373f868f01d51c",
+  "sequence_index": 4,
+  "status_code": 200
+}

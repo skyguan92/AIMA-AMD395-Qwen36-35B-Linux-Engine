@@ -382,9 +382,14 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         )
         self.assertIn("if (use_vl_router_semantics)", moe_source)
         self.assertIn(
-            "router_topk8_softmax_256_text_kernel, dim3(tokens), dim3(64)",
+            "HIP_KERNEL_NAME(router_topk8_softmax_256_text_kernel<true>)",
             moe_source,
         )
+        self.assertIn(
+            "HIP_KERNEL_NAME(router_topk8_softmax_256_text_kernel<false>)",
+            moe_source,
+        )
+        self.assertEqual(moe_source.count("dim3(tokens), dim3(64)"), 2)
         text_router = moe_source.split(
             "__global__ void router_topk8_softmax_256_text_kernel(", 1
         )[1].split(
@@ -393,6 +398,9 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         self.assertIn(
             "const __hip_bfloat16 rounded_probability", text_router
         )
+        self.assertIn("__shared__ float row_values[kExperts]", text_router)
+        self.assertIn("__shfl_down(best, offset, kRouterWave)", text_router)
+        self.assertIn("if constexpr (kWeightsAreBfloat16)", text_router)
         self.assertIn(
             "__bfloat162float(rounded_probability)", text_router
         )

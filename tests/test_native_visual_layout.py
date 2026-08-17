@@ -171,7 +171,26 @@ class NativeVisualLayoutTest(unittest.TestCase):
         self.assertIn('#include "visual_model_layout.h"', loader)
         self.assertIn("NativeWeightStore::load_visual", loader)
         self.assertIn("generated::visual::kExpectedPayloadXor", loader)
-        self.assertIn("weights.load_resident", resident)
+        self.assertIn("NativeWeightStore visual_weights", resident)
+        self.assertIn("impl_->weights.load(language_weight_options)", resident)
+        self.assertIn(
+            "impl_->visual_weights.load_visual(visual_weight_options)",
+            resident,
+        )
+        self.assertLess(
+            resident.index("impl_->weights.load(language_weight_options)"),
+            resident.index("impl_->prefill_workspace.build"),
+        )
+        self.assertLess(
+            resident.index("impl_->prefill_workspace.build"),
+            resident.index(
+                "impl_->visual_weights.load_visual(visual_weight_options)"
+            ),
+        )
+        self.assertIn(
+            "native-resident-split-scatter/v1", resident
+        )
+        self.assertIn("write_resident_weight_report", resident)
         self.assertIn("NativeWeightStore::load_resident", loader)
         self.assertIn("generated::kExpectedPayloadXor ^", loader)
         self.assertIn("torch_owned_safetensors_loader.hip.cpp", build)

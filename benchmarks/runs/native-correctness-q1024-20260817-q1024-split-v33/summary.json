@@ -1,0 +1,73 @@
+{
+  "schema": "aima-amd395-qwen36/native-single-context-correctness/v1",
+  "complete": true,
+  "qualified": true,
+  "qualification_scope": "q1024 frozen-text full-vocabulary first-token oracle",
+  "engine": {
+    "path": "${AIMA_CANDIDATE_ENGINE}",
+    "sha256": "591f1f874b960d34db87029fcbcd4f0c1df04005698e5c7dd3b26b7925be9125",
+    "source_commit": "39bf6082b42787593ca622eef20677fe660e70c1-native-vl-final-q1024-split-v33"
+  },
+  "runtime_dependencies": {
+    "fmha_provider_path": "${AIMA_CANDIDATE_FMHA_PROVIDER}",
+    "fmha_provider_sha256": "98e6c47c017837ab796e3ca2e8256740d1e9cb6ec2f460af45ee586cd5fb7bd1",
+    "aotriton_runtime_sha256": "e0638806efa5d35cef04fd7fb02c62cd038b3a38727ecb5d87a49045aa1b9aa5",
+    "aotriton_selected_image_sha256": "0f3a6a2f9dee6620443ee2145ee1f8257bde65a378589952840d99bf3d485c10",
+    "vision_attention_sha256": "b709a058a77d61e14db73c1ff7d7f4c20859d997bec811cad7339d3e59223d00"
+  },
+  "fixture": {
+    "context_tokens": 1024,
+    "uniform_input_token_id": 1,
+    "max_new_tokens": 1,
+    "prefix_cache": "disabled",
+    "oracle_path": "${AIMA_Q1024_FROZEN_UNIFORM1_ORACLE}",
+    "oracle_sha256": "8b4b9cab6ba68abcdc3b36182ca7f2c9f832b990c4dbe2fc6447cd3cd0298156"
+  },
+  "full_vocabulary": {
+    "elements": 248320,
+    "finite_elements": 248320,
+    "reference_top1_token_id": 248046,
+    "actual_top1_token_id": 248046,
+    "top1_match": true,
+    "exact_elements": 247299,
+    "maximum_absolute_error": 0.07509279251098633,
+    "relative_l2_error": 0.00044603340435207876,
+    "kl_divergence": 0.000013813921765257257,
+    "kl_divergence_threshold": 0.005,
+    "qualified": true
+  },
+  "request": {
+    "output_token_ids": [248046],
+    "first_token_certified": true,
+    "prefill_wall_ms": 616.095957,
+    "prefill_tokens_per_second": 1662.0787530991702
+  },
+  "load": {
+    "command_to_ready_wall_ms": 43435.01825,
+    "prefill_workspace_bytes": 679511320,
+    "model_payload_bytes": 70214363872,
+    "language_model_payload_bytes": 69321221376,
+    "visual_model_payload_bytes": 893142496,
+    "model_tensor_count": 1026,
+    "language_model_tensor_count": 693,
+    "visual_model_tensor_count": 333
+  },
+  "workspace_accounting": {
+    "frozen_q1024_owner_bytes": 669879552,
+    "current_q1024_owned_tail_bytes": 5359616,
+    "composed_hidden_bytes": 4198400,
+    "padded_prefill_conv_snapshot_bytes": 49152,
+    "mrope_position_state_bytes": 24600,
+    "sum_bytes": 679511320
+  },
+  "raw": {
+    "result_path": "raw/result.json",
+    "result_sha256": "d06ab8e52c01ab6751ad618551cbc8ea84aa42506792281eb80e7b338ca7fcd7",
+    "load_path": "raw/load.json",
+    "load_sha256": "56fdd9518616a950cd2cd96d6b3574e2743b9b622d625c380797ea95f8a6a42d",
+    "language_load_sha256": "34c5b6db66b098843d61866b5232adeb3c8805569801215c7f02f35aacf2b6f6",
+    "visual_load_sha256": "c1e9043c84cd2ab787070c49265dfe38814b518ff0de44574dd57e537cf28b4d",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr_empty": true
+  }
+}

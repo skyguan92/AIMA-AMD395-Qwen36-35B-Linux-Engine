@@ -1,0 +1,114 @@
+{
+  "schema": "aima-amd395-qwen36/native-paired-prefill-diagnostic/v1",
+  "complete": true,
+  "qualified": true,
+  "qualification_scope": "q32768 cold-prefill output1 diagnostic only; this is not the 19-cell G3 matrix",
+  "engines": {
+    "baseline": {
+      "path": "${AIMA_V151_RELEASE_BASELINE}",
+      "sha256": "a9f18771175757af080c8a1d8d7e3fb3906c9aa41b43a496686103b626f80262",
+      "source_commit": "65c198415709dad6d046c247acab3dc9df2a95a0",
+      "version": "1.5.1-native"
+    },
+    "candidate": {
+      "path": "${AIMA_CANDIDATE_ENGINE}",
+      "sha256": "591f1f874b960d34db87029fcbcd4f0c1df04005698e5c7dd3b26b7925be9125",
+      "source_commit": "39bf6082b42787593ca622eef20677fe660e70c1-native-vl-final-q1024-split-v33"
+    }
+  },
+  "runtime_dependencies": {
+    "aotriton_provider_sha256": "98e6c47c017837ab796e3ca2e8256740d1e9cb6ec2f460af45ee586cd5fb7bd1",
+    "ck_provider_sha256": "f4666f47f7dd185c8d8017b13d7af823f10cc1d47175a737f867d0ba3dea4a29",
+    "q16384_hybrid_provider_sha256": "983b986eb7e8ce93624565d1611a528f64216772bcae9114727574b073c5d3ef",
+    "aotriton_runtime_sha256": "e0638806efa5d35cef04fd7fb02c62cd038b3a38727ecb5d87a49045aa1b9aa5",
+    "aotriton_selected_image_sha256": "0f3a6a2f9dee6620443ee2145ee1f8257bde65a378589952840d99bf3d485c10",
+    "vision_attention_sha256": "b709a058a77d61e14db73c1ff7d7f4c20859d997bec811cad7339d3e59223d00"
+  },
+  "protocol": {
+    "input_tokens": 32768,
+    "output_tokens": 1,
+    "uniform_input_token_id": 1,
+    "pair_count": 5,
+    "execution_order": "baseline,candidate for odd pairs; candidate,baseline for even pairs",
+    "pair_locality": "adjacent fresh processes",
+    "prefix_cache": "disabled",
+    "throughput_gate": "median(baseline prefill ms / candidate prefill ms) >= 1.000",
+    "latency_gate": "median(candidate prefill ms / baseline prefill ms) <= 1.000",
+    "startup_gate_ms": 44900.0,
+    "outlier_policy": "retain every completed pair"
+  },
+  "pairs": [
+    {
+      "pair_index": 1,
+      "execution_order": ["baseline", "candidate"],
+      "baseline_prefill_wall_ms": 24158.849033,
+      "candidate_prefill_wall_ms": 24064.451678,
+      "throughput_ratio": 1.0039226887968653,
+      "latency_ratio": 0.9960926385660569,
+      "baseline_report_sha256": "c8d2f4502ce79bea2adae1ab08a2159b50a4a281ddb70349b3c9292464663b63",
+      "candidate_report_sha256": "1591fa8daabdc2af17e8a8d8f00466fe83db5200674351eaf2deb061447d891d"
+    },
+    {
+      "pair_index": 2,
+      "execution_order": ["candidate", "baseline"],
+      "baseline_prefill_wall_ms": 24135.327020,
+      "candidate_prefill_wall_ms": 24038.801723,
+      "throughput_ratio": 1.0040153955306201,
+      "latency_ratio": 0.9960006633877381,
+      "baseline_report_sha256": "a90d8f35ae0ed70e445cef617356d0d0ad2623e86fcfe039ae21e5368af1f05f",
+      "candidate_report_sha256": "837ed2d35d85e394bb89e3901808b6e781a2865ccd47bbb8f14e243b741b3247"
+    },
+    {
+      "pair_index": 3,
+      "execution_order": ["baseline", "candidate"],
+      "baseline_prefill_wall_ms": 24066.351851,
+      "candidate_prefill_wall_ms": 24161.325887,
+      "throughput_ratio": 0.9960691711852163,
+      "latency_ratio": 1.0039463412065113,
+      "baseline_report_sha256": "5e772825711c3fed5e7ca3f3db8b879b677a3af6a52f40b1d4db0d03eefd636d",
+      "candidate_report_sha256": "da8a56041b301f689951efceb67523106e43e07c1ebaa09de6c56d630555b111"
+    },
+    {
+      "pair_index": 4,
+      "execution_order": ["candidate", "baseline"],
+      "baseline_prefill_wall_ms": 24033.130865,
+      "candidate_prefill_wall_ms": 24206.421756,
+      "throughput_ratio": 0.992841119073824,
+      "latency_ratio": 1.0072105000373617,
+      "baseline_report_sha256": "8705e6e4aca91d8acc98121abc2a6304d25b26e4ec8cf0b5a1a2601a4f654fcc",
+      "candidate_report_sha256": "a21748c1b0b22a943c1196e1d6dfd6c21f7ddbc909790af0638fcb98e123e5b5"
+    },
+    {
+      "pair_index": 5,
+      "execution_order": ["baseline", "candidate"],
+      "baseline_prefill_wall_ms": 24110.554267,
+      "candidate_prefill_wall_ms": 24087.599039,
+      "throughput_ratio": 1.0009529894599638,
+      "latency_ratio": 0.9990479178642767,
+      "baseline_report_sha256": "c6f458ba616de23d7b9c3772a7d0bb3773ed02218f6696e77c8519435c6057fd",
+      "candidate_report_sha256": "f3cef313d69d9e724caaef39764de7a533424934588d0be44cb4a452084eb33c"
+    }
+  ],
+  "medians": {
+    "throughput_ratio": 1.0009529894599638,
+    "latency_ratio": 0.9990479178642767,
+    "baseline_command_to_ready_wall_ms": 41519.341359,
+    "candidate_command_to_ready_wall_ms": 41261.951616
+  },
+  "checks": {
+    "throughput_gate": true,
+    "latency_gate": true,
+    "startup_gate": true,
+    "all_output_token_ids_equal": true,
+    "all_output_token_ids": [1],
+    "all_stderr_empty": true
+  },
+  "memory": {
+    "baseline_prefill_workspace_bytes": 9062120448,
+    "candidate_prefill_workspace_bytes": 9068266520,
+    "candidate_minus_baseline_bytes": 6146072,
+    "frozen_q1024_owner_bytes": 669879552,
+    "current_q1024_owned_tail_bytes": 5359616,
+    "current_q1024_split_offset_bytes": 668730624
+  }
+}

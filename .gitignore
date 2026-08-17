@@ -53,7 +53,14 @@ benchmarks/runs/*
 !benchmarks/runs/native-portable-bundle-20260805-v150-release/**
 !benchmarks/runs/native-product-surfaces-20260805-v150-release/
 !benchmarks/runs/native-product-surfaces-20260805-v150-release/**
+!benchmarks/runs/native-paired-q32768-20260817-q1024-split-v33/
+!benchmarks/runs/native-paired-q32768-20260817-q1024-split-v33/**
+!benchmarks/runs/native-correctness-q1024-20260817-q1024-split-v33/
+!benchmarks/runs/native-correctness-q1024-20260817-q1024-split-v33/**
+!benchmarks/runs/native-vl-cross-request-20260817-q1024-split-v33/
+!benchmarks/runs/native-vl-cross-request-20260817-q1024-split-v33/**
 *.log
+!benchmarks/runs/native-vl-cross-request-20260817-q1024-split-v33/*.log
 *.pid
 *.so
 *.so.*

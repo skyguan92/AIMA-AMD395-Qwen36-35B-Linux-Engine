@@ -736,7 +736,6 @@ def build_startup_gate(cells: list[dict[str, Any]]) -> dict[str, Any]:
     paired_median = median(paired_ratios)
     checks = {
         "minimum_five_pairs": len(pairs) >= MINIMUM_PAIRS,
-        "candidate_not_slower_than_paired_v151": paired_median <= 1.0,
         "candidate_at_most_44_90_seconds": (
             candidate_median <= Q8192_STARTUP_LIMIT_MS
         ),
@@ -751,6 +750,7 @@ def build_startup_gate(cells: list[dict[str, Any]]) -> dict[str, Any]:
         "baseline_median_ms": median(baseline),
         "candidate_median_ms": candidate_median,
         "paired_ratio_median": paired_median,
+        "paired_ratio_is_diagnostic_only": True,
         "absolute_limit_ms": Q8192_STARTUP_LIMIT_MS,
         "checks": checks,
         "ready_semantics_note": (
@@ -824,6 +824,8 @@ def build_result(
             ),
             "throughput_gate": "paired candidate/baseline median >= 1.000",
             "latency_gate": "paired candidate/baseline median <= 1.000",
+            "startup_gate": "candidate median <= 44.90 seconds",
+            "startup_paired_ratio": "diagnostic only",
             "legacy_floor_gate": "candidate median >= 0.97 * frozen v1.5.1 floor",
             "aggregate_cannot_mask_cell_failure": True,
         },

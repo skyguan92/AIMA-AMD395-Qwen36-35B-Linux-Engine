@@ -1,0 +1,118 @@
+{
+  "case_id": "text_after_vl",
+  "client_wall_ms": 535.0761860609055,
+  "request": {
+    "max_tokens": 1,
+    "messages": [
+      {
+        "content": "Reply with one token after VL requests.",
+        "role": "user"
+      }
+    ],
+    "model": "aima-amd395-qwen36-35b",
+    "stream": false,
+    "temperature": 0
+  },
+  "request_sha256": "df6d78dd2ee3bb32e2bfa46cf8ec5e903b5c8330acd45848ac8a1c35007bfc78",
+  "response": {
+    "aima_amd395": {
+      "aot_prefill_bucket_tokens": 1024,
+      "aot_prefill_segments": 1,
+      "aot_prefill_tokens": 20,
+      "client_cancelled": false,
+      "cold_prompt_decode_tokens": 0,
+      "cold_prompt_decode_wall_ms": 0.0,
+      "completion_tokens": 1,
+      "decode_tokens_per_second": 0.0,
+      "http_request_wall_ms": 534.787869,
+      "model_loads": 1,
+      "mrope": {
+        "decode_steps": 0,
+        "enabled": false,
+        "fmha_launches": 10,
+        "full_attention_launches": 0,
+        "position_delta": 0,
+        "position_upload_bytes": 0,
+        "unified_attention_launches": 0
+      },
+      "oracle_tensor_reads": 0,
+      "output_token_ids_sha256": "528b0f3da89facc67ed8e768c09172db38862e5133ec94197299ff4b8471f241",
+      "padded_prefill_tokens": 1004,
+      "prefill_tokens_per_second": 37.425267985175196,
+      "prefix_cache": {
+        "hits": 0,
+        "implemented": true,
+        "lookup": "miss",
+        "matched_tokens": 0,
+        "misses": 3,
+        "scope": "capacity-bounded-variable-exact-or-append-lru",
+        "suffix_aot_launches": 0,
+        "suffix_decode_tokens": 0,
+        "suffix_native_launches": 0,
+        "suffix_tokens": 20,
+        "suffix_wall_ms": 0.0,
+        "transfer_bytes": 64802816
+      },
+      "prompt_execution": "cold-aot-padded",
+      "prompt_source": "chat_template",
+      "prompt_tokens": 20,
+      "request_index": 3,
+      "request_wall_ms": 534.403711,
+      "runtime": "native-resident-q20",
+      "structured_decoding": {
+        "enabled": false,
+        "token_mask_upload_bytes": 0,
+        "token_selections": 0
+      },
+      "ttft_ms": 534.398311,
+      "vl": {
+        "embedding_injection_wall_ms": 0.0,
+        "enabled": false,
+        "host_to_device_bytes": 0,
+        "image_count": 0,
+        "media_cache_entries": 0,
+        "media_cache_hits": 0,
+        "media_cache_misses": 0,
+        "media_cache_resident_bytes": 0,
+        "media_count": 0,
+        "media_decode_wall_ms": 0.0,
+        "media_load_decode_wall_ms": 0.0,
+        "media_load_wall_ms": 0.0,
+        "processor_wall_ms": 0.0,
+        "source_bytes": 0,
+        "video_count": 0,
+        "vision_batch_count": 0,
+        "vision_encode_wall_ms": 0.0,
+        "vision_max_batch_patches": 0,
+        "vision_max_batch_tokens": 0,
+        "vision_patches": 0,
+        "vision_plan_build_wall_ms": 0.0,
+        "vision_plan_cache_entries": 0,
+        "vision_plan_cache_hit": false,
+        "visual_tokens": 0
+      }
+    },
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "content": "OK",
+          "role": "assistant"
+        }
+      }
+    ],
+    "created": 1786932724,
+    "id": "chatcmpl-native-3",
+    "model": "aima-amd395-qwen36-35b",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1,
+      "prompt_tokens": 20,
+      "total_tokens": 21
+    }
+  },
+  "response_sha256": "e42bacb164fc759559c6c351db461f8e45e5cb3768b83f209e384496f1d52cc7",
+  "sequence_index": 3,
+  "status_code": 200
+}

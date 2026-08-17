@@ -82,7 +82,7 @@ class PackedLinearDecodeAotTests(unittest.TestCase):
             self.assertTrue(result["checks"]["selected_state_changed"])
             self.assertTrue(result["checks"]["output_finite"])
 
-    def test_native_runtime_replaces_only_the_historical_recurrent_launch(self) -> None:
+    def test_native_runtime_keeps_text_state_swaps_out_of_the_vl_path(self) -> None:
         schedule = json.loads(
             (
                 ROOT / "native/aot/gfx1151/q8192-output2/decode-schedule.json"
@@ -102,10 +102,18 @@ class PackedLinearDecodeAotTests(unittest.TestCase):
         invocation = (
             ROOT / "native/src/native_decode_invocation.cpp"
         ).read_text(encoding="utf-8")
-        self.assertNotIn(
+        self.assertIn(
             'swap_named(launches_[base + 2], "h0", "ht")', invocation
         )
         self.assertIn("if (swaps != 30)", invocation)
+        runner = (
+            ROOT / "native/src/native_decode_runner.hip.cpp"
+        ).read_text(encoding="utf-8")
+        self.assertIn("if (!use_mrope)", runner)
+        self.assertIn(
+            "invocations.swap_linear_decode_recurrent_state_buffers()",
+            runner,
+        )
 
     def test_default_build_embeds_packed_kernel_manifest(self) -> None:
         build = (ROOT / "scripts/build-native-runtime.sh").read_text(

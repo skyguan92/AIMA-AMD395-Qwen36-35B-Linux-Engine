@@ -87,6 +87,22 @@ class AotritonClosureTest(unittest.TestCase):
                 self.assertIn('"aotriton_runtime"', source)
                 self.assertIn('"aotriton_image"', source)
 
+    def test_native_build_stages_and_validates_the_complete_closure(self) -> None:
+        source = (ROOT / "scripts/build-native.sh").read_text(encoding="utf-8")
+        self.assertIn(
+            f'AOTRITON_IMAGE_SHA256="{aotriton_closure.FROZEN_AOTRITON_IMAGE_SHA256}"',
+            source,
+        )
+        self.assertIn(
+            'install -m755 "${AOTRITON_LIBRARY}"',
+            source,
+        )
+        self.assertIn(
+            '"${OUT_DIR}/aotriton.images/${AOTRITON_IMAGE_RELATIVE}"',
+            source,
+        )
+        self.assertIn("require_aotriton_closure", source)
+
 
 if __name__ == "__main__":
     unittest.main()

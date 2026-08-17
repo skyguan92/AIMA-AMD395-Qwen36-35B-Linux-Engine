@@ -5,14 +5,45 @@
 
 #include "aima/bf16_gemm.h"
 
+#include <hip/hip_runtime.h>
+
 #include <memory>
 #include <stdexcept>
+#include <string>
 
 namespace aima {
 namespace {
 
 constexpr std::size_t kHidden = 2048;
 constexpr std::size_t kWorkspaceLimit = 128ULL * 1024ULL * 1024ULL;
+
+void check_hip(hipError_t status, const char* operation) {
+  if (status != hipSuccess) {
+    throw std::runtime_error(
+        std::string(operation) + ": " + hipGetErrorString(status));
+  }
+}
+
+class WarmupAllocation {
+ public:
+  explicit WarmupAllocation(std::size_t bytes) {
+    check_hip(hipMalloc(&pointer_, bytes), "hipMalloc prefill GEMM warmup");
+    check_hip(hipMemset(pointer_, 0, bytes),
+              "hipMemset prefill GEMM warmup");
+  }
+  ~WarmupAllocation() {
+    if (pointer_ != nullptr) {
+      const hipError_t ignored = hipFree(pointer_);
+      static_cast<void>(ignored);
+    }
+  }
+  WarmupAllocation(const WarmupAllocation&) = delete;
+  WarmupAllocation& operator=(const WarmupAllocation&) = delete;
+  void* get() const { return pointer_; }
+
+ private:
+  void* pointer_ = nullptr;
+};
 
 template <typename Factory>
 Bf16GemmPlan& get_or_build(std::unique_ptr<Bf16GemmPlan>& value,
@@ -163,6 +194,23 @@ void NativeQ8192PrefillGemmPlans::prepare_all() {
   (void)moe_shared_projection();
   (void)moe_shared_down();
   (void)moe_router();
+}
+
+void NativeQ8192PrefillGemmPlans::warm_up_q1024_text() {
+  if (impl_->tokens != 1024) {
+    throw std::invalid_argument(
+        "native q1024 text GEMM warmup requires the q1024 plan owner");
+  }
+  prepare_all();
+  // linear_fused_input is the largest B/D geometry; linear_output requires
+  // the largest A geometry.  Reuse three private aligned owners for both.
+  WarmupAllocation a(1024ULL * 4096ULL * sizeof(std::uint16_t));
+  WarmupAllocation b(2048ULL * 12352ULL * sizeof(std::uint16_t));
+  WarmupAllocation d(1024ULL * 12352ULL * sizeof(std::uint16_t));
+  linear_fused_input().launch(a.get(), b.get(), d.get());
+  linear_output().launch(a.get(), b.get(), d.get());
+  check_hip(hipDeviceSynchronize(),
+            "hipDeviceSynchronize prefill GEMM warmup");
 }
 
 std::size_t NativeQ8192PrefillGemmPlans::built_plan_count() const {

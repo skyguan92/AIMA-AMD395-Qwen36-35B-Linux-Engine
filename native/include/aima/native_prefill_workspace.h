@@ -37,7 +37,11 @@ struct NativePrefillWorkspaceMetrics {
   std::uint64_t logical_payload_bytes = 0;
   std::uint64_t runtime_scratch_payload_bytes = 0;
   std::uint64_t total_logical_payload_bytes = 0;
+  // Logical byte extent of this schedule's view map.  A workspace may map a
+  // shared prefix and own only its non-overlapping tail.
   std::uint64_t allocation_bytes = 0;
+  // Bytes physically owned by this instance; shared bytes are never counted.
+  std::uint64_t physical_allocation_bytes = 0;
   double allocation_and_zero_ms = 0.0;
 };
 
@@ -48,14 +52,32 @@ class NativePrefillWorkspace {
   NativePrefillWorkspace(const NativePrefillWorkspace&) = delete;
   NativePrefillWorkspace& operator=(const NativePrefillWorkspace&) = delete;
 
-  NativePrefillWorkspaceMetrics build(int device = 0,
-                                      std::size_t context_tokens = 8192,
-                                      bool include_frozen_text = false);
+  NativePrefillWorkspaceMetrics build(
+      int device = 0, std::size_t context_tokens = 8192,
+      bool frozen_text_schedule = false,
+      // With a non-zero split offset, bindings below the offset alias this
+      // allocation and bindings at or above it use a separately owned tail.
+      void* shared_allocation = nullptr,
+      std::uint64_t shared_allocation_bytes = 0,
+      std::uint64_t split_allocation_offset = 0);
   const NativePrefillWorkspaceView* find(std::string_view name) const;
   const std::vector<NativePrefillWorkspaceView>& views() const {
     return views_;
   }
   bool built() const { return allocation_ != nullptr; }
+  void* allocation() const { return allocation_; }
+  std::uint64_t allocation_bytes() const { return allocation_bytes_; }
+  std::uint64_t physical_allocation_bytes() const {
+    return physical_allocation_bytes_;
+  }
+  bool owns_allocation() const {
+    return owns_allocation_ || tail_allocation_ != nullptr;
+  }
+  bool owns_primary_allocation() const { return owns_allocation_; }
+  bool has_split_allocation() const { return tail_allocation_ != nullptr; }
+  std::uint64_t split_allocation_offset() const {
+    return split_allocation_offset_;
+  }
   std::size_t context_tokens() const { return context_tokens_; }
   bool includes_frozen_text() const { return includes_frozen_text_; }
   void reset() noexcept;
@@ -64,6 +86,11 @@ class NativePrefillWorkspace {
   int device_ = 0;
   void* allocation_ = nullptr;
   std::uint64_t allocation_bytes_ = 0;
+  std::uint64_t physical_allocation_bytes_ = 0;
+  bool owns_allocation_ = false;
+  void* tail_allocation_ = nullptr;
+  std::uint64_t tail_allocation_bytes_ = 0;
+  std::uint64_t split_allocation_offset_ = 0;
   std::size_t context_tokens_ = 0;
   bool includes_frozen_text_ = false;
   std::vector<NativePrefillWorkspaceView> views_;

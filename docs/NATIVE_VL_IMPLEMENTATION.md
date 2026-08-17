@@ -16,7 +16,7 @@ blocking condition in the governing goal can move a gate to `passed`.
 |---|---|---|---|
 | G1 full VL functional parity | the native HTTP path passes the frozen 30-case status/finish/tool/SSE surface and the corrected deterministic execution envelope passes 23/23 cells; mixed/conversation, verified HTTPS, request-level media I/O, error compatibility and cache identity/invariance have reference-exact resident evidence; the frozen 12-case long image/video corpus passes its task-quality gate without regression; consolidated current-HEAD processor-to-output generation is qualified, while two long-generation token vectors remain diagnostic mismatches | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | close the two long-generation parity divergences and run the complete G3 text/release no-regression protocol |
 | G2 VL correctness parity | the five private and five independently rendered real-HTTP language prompts pass final norm and 84/84 selected full-vocabulary rows bit-exact; current-HEAD tool generation binds exact prompt prefixes, 120/120 prefill states, 82/82 whole-layer rows, 26/26 linear, 30/30 tail and 12/12 full-attention boundaries, with exact top-1 and selected tokens; image task quality is `1.000000` and video task quality is `0.947368`, equal to the fixed vLLM reference, with long generated token vectors exact for 10/12 | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | resolve the two remaining long deterministic-generation divergences, then run the final G2/G3 correctness gates |
-| G3 text product no regression | the exact portable `v1.5.1` executable is retained as an immutable paired baseline; a resumable 19-cell alternating comparator now enforces the 1.000x no-regression rule and text-path VL-idle checks, while the full live matrix and remaining correctness/API/cache/memory evidence have not completed | paired 19-cell, maximum-window, correctness, MMLU, API, cache, startup and memory requalification | finish current-head text correctness and run the complete paired baseline/candidate protocol |
+| G3 text product no regression | the exact portable `v1.5.1` executable is retained as an immutable paired baseline; current-head nine-context logits, q8192 exact128, OpenAI features and MMLU-256 are qualified; the allocation-order v33 candidate passes q1024/q32768 diagnostics and cross-request text/VL switching but fails the formal q16384 prefill cell; a numerically equivalent parallel text router in v34 clears q16384 in five adjacent pairs and both q1024 formal cells, but that diagnostic build used a snapshot label rather than a real commit | paired 19-cell, maximum-window, correctness, MMLU, API, cache, startup and memory requalification | rebuild from the exact implementation commit and run its single authoritative 19-cell matrix, then rerun exact-prefix, cache, full correctness and memory gates |
 | G4 native VL performance | the 23-cell native execution envelope now records per-request stage timings, but it is a single candidate qualification rather than paired performance evidence | paired per-cell stage timings and memory records against the fixed VL-enabled vLLM | run the same frozen cells with the alternating paired vLLM/candidate timing protocol |
 | G5 native release product | the full runtime includes all qualified vision sources, loads the 333 visual tensors in one resident native process and survives the complete execution envelope; the external vision-attention code object is hash-checked and wired into the portable package contract, but final package qualification has not run | native-only package, security, isolated bundle, second-host, soak and rollback evidence | generate a clean product qualification containing the vision code object, then run isolated bundle, second-host, soak and rollback gates |
 
@@ -60,8 +60,10 @@ Each cell is decided independently from the median paired ratio. Candidate
 prefill/decode throughput must be at least `1.000x`; component and composed
 request latency must be at most `1.000x`. The historical `0.97x` floor remains
 an additional safety check and cannot mask a paired regression. The q8192
-startup gate independently requires both paired non-regression and an absolute
-candidate median no greater than `44.90 s`. In candidate text records, M-RoPE,
+startup gate uses five or more candidate runs and requires their median to be
+no greater than the frozen `44.90 s` ceiling. Its paired release ratio remains
+an ordering/noise diagnostic, not a second blocking threshold absent from the
+governing goal. In candidate text records, M-RoPE,
 VL unified attention, logical projection and request-level VL workspace
 metrics must all remain disabled or zero. HTTP media/vision-idle behavior and
 `READY=1` vision readiness remain separate surface gates rather than being
@@ -114,6 +116,145 @@ from dedicated VL qualification probes. Singleton decode selects the same
 text/VL shared-activation split from its existing M-RoPE/current-projection
 flag. Every such split must pass both text full-vocabulary requalification and
 the current-head VL numerical chain before its evidence can be refreshed.
+
+Arithmetic flags alone were not sufficient at q1024. The VL work had
+recaptured the complete q1024 closure: manifest, launch schedule, FLA merge
+shape and fused-MoE images all differ from the frozen text product. Trying to
+compensate for that closure inside shared C++ code improved some logits while
+remaining numerically wrong. The product therefore embeds two explicit q1024
+owners:
+
+- `q1024-output1` remains the current VL closure;
+- `q1024-text-v151` is the checksum-identical frozen text closure, with manifest
+  SHA-256 `93853b9f9837deba0a9e051bf5be4c516d74d1c5ea1a33e8e7e47ee81e914125`
+  and schedule SHA-256
+  `10565e59b0805ca407ef453caf72f3dfd254752d150903131e188527b910fb97`.
+
+`generate-native-decode-registry.py --prefill-registry frozen-text` validates
+the second owner against those fixed identities and its BT32 launch shape;
+the current owner remains BT64. Both registries are embedded. Captured
+`transient.N` names describe lifetimes inside one capture; they are not
+semantic tensor identities across the frozen and current captures. The
+previous name-based union changed 123 of 137 frozen binding offsets or
+capacities and produced a repeatable q1024 prefill regression. The runtime now
+keeps independent current and frozen view maps, preserving the exact
+`674,086,144`-byte current layout and `669,875,456`-byte frozen layout. Because
+requests execute serially, their common prefix can alias without merging a
+single binding identity. Text requests select both frozen owners; VL requests
+select both current owners. Conditions that interpret a schedule inspect the
+selected closure's symbols rather than assuming that every q1024 schedule has
+the same merge shape.
+
+ROCm traces isolated the remaining first-request gap to the two q1024
+hipBLASLt projection shapes. Their plans and private zero-buffer launches are
+now materialized before `READY=1`; the temporary warmup buffers are released
+before service readiness. On the exact `v1.5.1` release binary and candidate
+SHA-256 `74f2157519df134415bb8b4353501296d45e990d58b5a1247e5ec3f2010462d2`,
+the first physically isolated diagnostic used five adjacent alternating
+q1024 pairs and qualified both standard cells. The
+paired medians were `1.016477474553908x` prefill,
+`1.0114218777931574x` output512 decode and
+`1.010452851065543x` output1024 decode; composed latency ratios were
+`0.9886920320042178x` and `0.9896282324783033x`. That result proves the layout
+and warmup fix in isolation, but not its resident integration.
+
+The first integrated owner made the larger current workspace the physical
+allocation. Including its prompt-id upload, that owner is `674,090,240` bytes,
+versus `669,879,552` bytes for the release-shaped frozen owner. The extra
+`4,210,688` bytes were allocated before every later text workspace. ROCm traces
+showed no extra q32768 dispatch after normalizing four semantically equivalent
+renamed kernels; the request tails were exactly 1,162 kernels in the same
+order. Moving vision residency behind the complete language topology recovered
+most of the gap, but candidate SHA-256
+`bb7db8fc6acf5dbe77f28d535ad490435b03536f6d1e00e1ebc8f3ca8941dcc6`
+still failed five q32768 output1 pairs at `0.998382959085x` prefill throughput
+and `1.001619659972x` latency. Its startup median was a passing
+`42,399.074301 ms`; startup was not the cause.
+
+The final layout reverses physical ownership. The frozen workspace now owns
+the exact `669,879,552`-byte allocation in the original q1024 slot. The
+current view aliases bindings below offset `668,730,624`; no binding crosses
+that boundary. Bindings beginning with `transient.73` use a separately owned
+`5,359,616`-byte tail allocated only after all text workspaces, decode/cache
+state and prefill GEMM plans are resident. Physical q1024 residency is therefore
+`675,239,168` bytes: only `1,148,928` bytes above the previous shared owner,
+without dynamic reset or rebinding. Logical and physical byte metrics are
+separate, so the shared prefix is counted exactly once.
+
+Candidate SHA-256
+`591f1f874b960d34db87029fcbcd4f0c1df04005698e5c7dd3b26b7925be9125`
+(`39bf6082b42787593ca622eef20677fe660e70c1-native-vl-final-q1024-split-v33`)
+passes the frozen q1024 full-vocabulary oracle with top-1 `248046`, KLD
+`0.000013813921765257257`, and all 248,320 logits finite. Its five adjacent,
+alternating q32768 output1 pairs retain every sample and pass at
+`1.0009529894599638x` median prefill throughput and
+`0.9990479178642767x` median latency. Candidate startup median is
+`41,261.951616 ms`; all ten outputs match and every stderr is empty. The raw
+q1024 record is under
+`benchmarks/runs/native-correctness-q1024-20260817-q1024-split-v33/`; the raw
+q32768 diagnostic and hash-bound summary are under
+`benchmarks/runs/native-paired-q32768-20260817-q1024-split-v33/`. This closes
+that diagnostic cell only. The official final-binary 19-cell run and the
+remaining G3 gates are still blocking. The structural contract is covered by
+`tests/test_native_text_closure_isolation.py`.
+
+The separately owned tail must also survive serial switching between the two
+q1024 views. A single q32768 resident v33 server therefore executed cold text,
+cold image, different cold text, then the original exact image request without
+reloading the model. Both text requests matched the frozen `OK` token hash;
+the image requests matched the frozen `The` token, prompt hash, 256-patch and
+64-visual-token oracle. The middle text request was a real cache miss and used
+the frozen padded q1024 schedule after current-VL execution. The final image
+then recovered an 82-token exact prefix and one media-cache hit with identical
+output. All four requests reported `model_loads=1`, zero oracle reads and an
+empty server stderr. The normalized, hash-bound 9/9-check record is under
+`benchmarks/runs/native-vl-cross-request-20260817-q1024-split-v33/`.
+
+The v33 formal matrix run cannot be promoted. Its five q16384 prefill
+throughput ratios were
+`0.9969017861205566`, `1.0021752243079622`, `0.9957627018956212`,
+`0.9963280417366079` and `0.9983899030187419`; the blocking median was
+`0.9969017861205566x`. Replacing additional q16384 hybrid-attention layers
+with CK changed the full-vocabulary distribution: every tested layer set other
+than the already qualified layer 39 exceeded the KLD limit. The attention
+provider policy therefore remains frozen.
+
+The remaining serial work was the v1.5.1-compatible text router. It formerly
+used one thread to scan all 256 experts eight times. The v34 implementation
+loads the BF16 row once and performs each maximum search with two wave32
+reductions. Lower expert index wins equal-value reductions; the subsequent
+source-order threshold gather, bitonic ordering, sequential `expf` denominator
+and BF16 probability rounding remain unchanged. The VL/current router is not
+modified.
+
+Candidate SHA-256
+`0abe1f5267d93ea26f30063dd37b71f9d08cc0165de8698503ccc60314398e6a`
+(`39bf6082b42787593ca622eef20677fe660e70c1-native-vl-final-q16384-router-v34`)
+reproduces the v33 q1024 certificate exactly: top-1 `248046`, 247,299 exact
+logits and KLD `0.000013813921765257257`. It also reproduces the q16384
+certificate exactly: top-1 `1`, one exact logit and KLD
+`0.0021737683334905086`. Both have 248,320 finite logits and empty stderr.
+Five adjacent alternating q16384 output1 diagnostic pairs produced throughput
+ratios `1.019866231284811`, `1.022637066328316`, `1.018299641734469`,
+`1.018973523525051` and `1.017964868732992`; the median is
+`1.018973523525051x` and every paired wall ratio is below `1.0`. This closes
+the isolated regression diagnosis only. A fresh v34 matrix also passed both
+q1024 cells at `1.0481097991311443x` prefill, `1.0114559871890065x`
+output512 decode and `1.0108736052011436x` output1024 decode; composed latency
+ratios were `0.9869931566088613x` and `0.9883753217600323x`. That run was
+intentionally stopped after its first complete q2048 pair because the embedded
+v34 source identity was a diagnostic snapshot label. G5 requires a real,
+immutable source commit, so no v33/v34 cell will be reused by the authoritative
+exact-commit matrix.
+
+The text correctness runner is also fail-closed before the first model load.
+`--reference-correctness` must cover exactly the requested context set and
+must bind every input-token period, oracle SHA-256 and the q8192 exact-output
+fixture. That reference digest is copied into every resumable raw record, so a
+run cannot resume across a changed frozen contract. Candidate, oracle and
+qualification paths are normalized to explicit environment placeholders;
+runtime provider, AOTriton runtime/image, q16384 hybrid, vision image, engine
+and reference identities remain independently hash-bound.
 
 ## Phase 0 invariants
 
