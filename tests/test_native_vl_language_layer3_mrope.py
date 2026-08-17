@@ -30,6 +30,13 @@ class NativeVlLanguageLayer3MropeTest(unittest.TestCase):
         self.assertIn("mrope_axis_for_pair", source)
         self.assertIn("triton_bf16_product_rtz", source)
         self.assertIn(
+            "ATen's vectorized reduction uses a 32-wide block", source
+        )
+        self.assertIn("first_three = first_pair + accumulator[2]", source)
+        self.assertIn("first_squared_components[0]", source)
+        self.assertIn("second_squared_components[0]", source)
+        self.assertIn("sum = first_half + second_half", source)
+        self.assertIn(
             "launch_full_attention_head_norm_rope_prefill_impl<false>",
             source,
         )

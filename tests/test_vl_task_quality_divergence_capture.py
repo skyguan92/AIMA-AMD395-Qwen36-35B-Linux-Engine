@@ -63,6 +63,36 @@ class VlTaskQualityDivergenceCaptureTest(unittest.TestCase):
         self.assertIn('"g1_passed": False', source)
         self.assertIn('"g2_passed": False', source)
 
+    def test_layer_attribution_overrides_are_fail_closed(self) -> None:
+        self.assertEqual(
+            self.module.parse_case_int_overrides(
+                ["image_central_red_circle=23"],
+                option="--case-full-attention-layer",
+                maximum=40,
+            ),
+            {"image_central_red_circle": 23},
+        )
+        for values in (
+            ["unknown=3"],
+            ["image_central_red_circle=-1"],
+            ["image_central_red_circle=40"],
+            ["image_central_red_circle=3", "image_central_red_circle=7"],
+        ):
+            with self.subTest(values=values):
+                with self.assertRaises(ValueError):
+                    self.module.parse_case_int_overrides(
+                        values,
+                        option="--case-full-attention-layer",
+                        maximum=40,
+                    )
+
+        source = SCRIPT.read_text(encoding="utf-8")
+        self.assertIn("InstallGenerationLayerHooks", source)
+        self.assertIn('"decode_layers"', source)
+        self.assertIn('"reference_decode_boundary_dir"', source)
+        self.assertIn('"reference_decode_full_attention_dir"', source)
+        self.assertIn('"reference_decode_linear_boundary_dir"', source)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -436,6 +436,8 @@ __global__ void full_attention_head_norm_rope_prefill_kernel(
   // square rounded independently instead of allowing a fused multiply-add.
   const unsigned vector_base = lane * 4;
   float accumulator[4];
+  float first_squared_components[4];
+  float second_squared_components[4];
 #pragma unroll
   for (unsigned component = 0; component < 4; ++component) {
     const float first = __bfloat162float(input[vector_base + component]);
@@ -443,12 +445,36 @@ __global__ void full_attention_head_norm_rope_prefill_kernel(
         __bfloat162float(input[128 + vector_base + component]);
     volatile float first_squared = first * first;
     volatile float second_squared = second * second;
+    first_squared_components[component] = first_squared;
+    second_squared_components[component] = second_squared;
     accumulator[component] = first_squared + second_squared;
   }
-  float sum = accumulator[0];
-#pragma unroll
-  for (unsigned component = 1; component < 4; ++component) {
-    sum = sum + accumulator[component];
+  // ATen's vectorized reduction uses a 32-wide block for the 16-row Q norm:
+  // each lane joins the same component from the two 128-element halves, then
+  // folds those four accumulators. The 2-row K norm instead uses a 64-wide
+  // block: two logical lanes each fold four contiguous values before the
+  // first shared-memory reduction joins the two halves. Emulate both with one
+  // physical wave. The distinction is usually hidden by the BF16 store, but
+  // long decode can retain a one-ULP K value in cache and amplify it later.
+  float sum = 0.0f;
+  if (query) {
+    volatile float first_pair = accumulator[0] + accumulator[1];
+    volatile float first_three = first_pair + accumulator[2];
+    sum = first_three + accumulator[3];
+  } else {
+    volatile float first_pair =
+        first_squared_components[0] + first_squared_components[1];
+    volatile float first_three =
+        first_pair + first_squared_components[2];
+    volatile float first_half =
+        first_three + first_squared_components[3];
+    volatile float second_pair =
+        second_squared_components[0] + second_squared_components[1];
+    volatile float second_three =
+        second_pair + second_squared_components[2];
+    volatile float second_half =
+        second_three + second_squared_components[3];
+    sum = first_half + second_half;
   }
   for (unsigned offset = 1; offset < 32; offset <<= 1) {
     sum = sum + __shfl_down(sum, offset, 32);

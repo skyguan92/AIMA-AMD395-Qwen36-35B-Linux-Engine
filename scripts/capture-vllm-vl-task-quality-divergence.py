@@ -26,7 +26,6 @@ sys.path.insert(0, str(ROOT))
 
 from aima_engine.vl_oracle import (  # noqa: E402
     canonical_int_list_sha256,
-    write_raw_tensor,
 )
 from aima_engine.vl_reference import (  # noqa: E402
     atomic_json,
@@ -46,13 +45,36 @@ from aima_engine.vl_task_quality import (  # noqa: E402
 
 BASE_CAPTURE = ROOT / "scripts/capture-vllm-vl-oracles.py"
 CAPABILITY_PROBE = ROOT / "scripts/probe-vllm-vl-api-capabilities.py"
+LAYER_CAPTURE = ROOT / "scripts/capture-vllm-vl-generation-layer-oracles.py"
 MODEL_ID = "aima-amd395-qwen36-35b"
-MODEL_VOCABULARY_SIZE = 248_320
 TARGETS = {
     "image_central_red_circle": 122,
     "video_blue_square_moves_down": 172,
 }
 SCHEMA = "aima-amd395-qwen36/vllm-vl-task-quality-divergence/v1"
+
+
+def parse_case_int_overrides(
+    values: list[str] | None,
+    *,
+    option: str,
+    maximum: int | None = None,
+) -> dict[str, int]:
+    overrides: dict[str, int] = {}
+    for value in values or []:
+        case_id, separator, integer_text = value.partition("=")
+        if separator != "=" or case_id not in TARGETS:
+            raise ValueError(f"{option} must be CASE_ID=INTEGER")
+        if case_id in overrides:
+            raise ValueError(f"duplicate {option} case: {case_id}")
+        try:
+            integer = int(integer_text)
+        except ValueError as error:
+            raise ValueError(f"{option} must be CASE_ID=INTEGER") from error
+        if integer < 0 or (maximum is not None and integer >= maximum):
+            raise ValueError(f"{option} is out of range: {value}")
+        overrides[case_id] = integer
+    return overrides
 
 
 def load_module(path: Path, name: str) -> ModuleType:
@@ -63,166 +85,6 @@ def load_module(path: Path, name: str) -> ModuleType:
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
-
-
-def first_tensor(value: Any) -> Any | None:
-    import torch
-
-    if isinstance(value, torch.Tensor):
-        return value
-    if isinstance(value, dict):
-        for item in value.values():
-            tensor = first_tensor(item)
-            if tensor is not None:
-                return tensor
-    if isinstance(value, (tuple, list)):
-        for item in value:
-            tensor = first_tensor(item)
-            if tensor is not None:
-                return tensor
-    return None
-
-
-def find_model_root(model: Any) -> Any:
-    queue = [model]
-    seen: set[int] = set()
-    while queue:
-        candidate = queue.pop(0)
-        if id(candidate) in seen:
-            continue
-        seen.add(id(candidate))
-        if hasattr(candidate, "visual") and hasattr(candidate, "language_model"):
-            return candidate
-        for name in ("model", "module"):
-            child = getattr(candidate, name, None)
-            if child is not None:
-                queue.append(child)
-    raise RuntimeError("could not locate the multimodal model root")
-
-
-class InstallLogitsHook:
-    """Serializable worker hook for one generated-token distribution."""
-
-    def __init__(self, *, case_id: str, output_index: int) -> None:
-        self.case_id = case_id
-        self.output_index = output_index
-
-    def __call__(self, model: Any) -> dict[str, Any]:
-        root = find_model_root(model)
-        previous = getattr(root, "_aima_task_quality_logits_state", None)
-        if isinstance(previous, dict):
-            for handle in previous.get("handles", []):
-                handle.remove()
-        state: dict[str, Any] = {
-            "case_id": self.case_id,
-            "target_output_index": self.output_index,
-            "prefill_calls": 0,
-            "decode_calls": 0,
-            "call_shapes": [],
-            "captured_output_index": None,
-            "logits": None,
-            "handles": [],
-        }
-
-        def hook(_module: Any, _args: Any, output: Any) -> None:
-            logits = first_tensor(output)
-            if logits is None or logits.ndim != 2:
-                return
-            if logits.shape[1] != MODEL_VOCABULARY_SIZE:
-                raise RuntimeError(
-                    f"generation vocabulary changed: {list(logits.shape)}"
-                )
-            state["call_shapes"].append(list(logits.shape))
-            if logits.shape[0] > 1:
-                state["prefill_calls"] += 1
-                # Prompt logprobs make the teacher-forced prompt matrix a
-                # separate call. It is not generated output index zero.
-                return
-            if logits.shape[0] != 1:
-                return
-            state["decode_calls"] += 1
-            output_index = state["decode_calls"] - 1
-            if (
-                output_index == state["target_output_index"]
-                and state["logits"] is None
-            ):
-                state["captured_output_index"] = output_index
-                state["logits"] = logits[-1].detach().float().contiguous().cpu()
-
-        state["handles"].append(
-            root.language_model.logits_processor.register_forward_hook(hook)
-        )
-        root._aima_task_quality_logits_state = state
-        return {"installed": True}
-
-
-class FinalizeLogitsHook:
-    def __init__(
-        self, *, output_root: str, expected_token_id: int
-    ) -> None:
-        self.output_root = output_root
-        self.expected_token_id = expected_token_id
-
-    def __call__(self, model: Any) -> dict[str, Any]:
-        import torch
-
-        root = find_model_root(model)
-        state = getattr(root, "_aima_task_quality_logits_state", None)
-        if not isinstance(state, dict):
-            raise RuntimeError("task-quality logits hook was not installed")
-        for handle in state.get("handles", []):
-            handle.remove()
-        logits = state.get("logits")
-        if not isinstance(logits, torch.Tensor):
-            raise RuntimeError(
-                "target generation logits were not captured: "
-                f"target={state['target_output_index']} "
-                f"shapes={state['call_shapes']}"
-            )
-        case_id = state["case_id"]
-        component = write_raw_tensor(
-            Path(self.output_root), f"{case_id}/divergence-logits", logits
-        )
-        values, indices = torch.topk(logits, k=20)
-        target_logit = float(logits[self.expected_token_id].item())
-        target_rank = (
-            int(torch.count_nonzero(logits > logits[self.expected_token_id]).item())
-            + 1
-        )
-        result = {
-            "component": component,
-            "captured_output_index": state["captured_output_index"],
-            "prefill_calls": state["prefill_calls"],
-            "decode_calls": state["decode_calls"],
-            "call_shapes": state["call_shapes"],
-            "raw_top_tokens": [
-                {
-                    "rank": rank + 1,
-                    "token_id": int(token_id),
-                    "logit": float(value),
-                }
-                for rank, (token_id, value) in enumerate(
-                    zip(indices.tolist(), values.tolist(), strict=True)
-                )
-            ],
-            "expected_token_id": self.expected_token_id,
-            "expected_token_logit": target_logit,
-            "expected_token_raw_rank": target_rank,
-        }
-        delattr(root, "_aima_task_quality_logits_state")
-        return result
-
-
-class RemoveLogitsHook:
-    def __call__(self, model: Any) -> bool:
-        root = find_model_root(model)
-        state = getattr(root, "_aima_task_quality_logits_state", None)
-        if not isinstance(state, dict):
-            return False
-        for handle in state.get("handles", []):
-            handle.remove()
-        delattr(root, "_aima_task_quality_logits_state")
-        return True
 
 
 def canonical_round_trip(value: Any) -> Any:
@@ -236,6 +98,7 @@ def source_components() -> list[dict[str, Any]]:
         Path(__file__).resolve(),
         BASE_CAPTURE,
         CAPABILITY_PROBE,
+        LAYER_CAPTURE,
         ROOT / "aima_engine/vl_oracle.py",
         ROOT / "aima_engine/vl_reference.py",
         ROOT / "aima_engine/vl_task_quality.py",
@@ -255,6 +118,76 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
     )
     from vllm.outputs import RequestOutput
 
+    targets = dict(TARGETS)
+    targets.update(
+        parse_case_int_overrides(
+            args.case_output_index,
+            option="--case-output-index",
+            maximum=1_024,
+        )
+    )
+    extra_video_indices: list[int] = []
+    if args.extra_video_output_indices:
+        try:
+            extra_video_indices = [
+                int(value)
+                for value in args.extra_video_output_indices.split(",")
+            ]
+        except ValueError as error:
+            raise ValueError(
+                "--extra-video-output-indices must be comma-separated integers"
+            ) from error
+        if (
+            not extra_video_indices
+            or len(set(extra_video_indices)) != len(extra_video_indices)
+            or any(index <= 0 or index >= 1_024 for index in extra_video_indices)
+        ):
+            raise ValueError(
+                "--extra-video-output-indices contains an invalid index"
+            )
+    capture_targets = [
+        (case_id, case_id, target_index)
+        for case_id, target_index in targets.items()
+    ]
+    capture_targets.extend(
+        (
+            f"video_blue_square_moves_down__output_{target_index:03d}",
+            "video_blue_square_moves_down",
+            target_index,
+        )
+        for target_index in extra_video_indices
+        if target_index != targets["video_blue_square_moves_down"]
+    )
+    linear_layers = {case_id: 0 for case_id in targets}
+    linear_layers.update(
+        parse_case_int_overrides(
+            args.case_linear_attention_layer,
+            option="--case-linear-attention-layer",
+            maximum=40,
+        )
+    )
+    for case_id, layer_index in linear_layers.items():
+        if layer_index % 4 == 3:
+            raise ValueError(
+                "--case-linear-attention-layer selected a full-attention "
+                f"layer: {case_id}={layer_index}"
+            )
+    full_layers = {case_id: 3 for case_id in targets}
+    full_layers.update(
+        parse_case_int_overrides(
+            args.case_full_attention_layer,
+            option="--case-full-attention-layer",
+            maximum=40,
+        )
+    )
+    for case_id, layer_index in full_layers.items():
+        if layer_index % 4 != 3:
+            raise ValueError(
+                "--case-full-attention-layer selected a linear-attention "
+                f"layer: {case_id}={layer_index}"
+            )
+    full_projection_cases = set(args.case_full_attention_projection or [])
+
     output_root = args.output_root.resolve()
     if output_root.exists() and any(output_root.iterdir()):
         raise ValueError(f"diagnostic output root must be empty: {output_root}")
@@ -272,6 +205,7 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
 
     base = load_module(BASE_CAPTURE, "aima_task_quality_divergence_base")
     probe = load_module(CAPABILITY_PROBE, "aima_task_quality_divergence_probe")
+    layer = load_module(LAYER_CAPTURE, "aima_task_quality_divergence_layer")
     versions = base._runtime_versions()
     for name, expected in base.PINNED_PACKAGES.items():
         actual = versions.get(name)
@@ -286,12 +220,13 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
     specs = {
         spec["case_id"]: spec
         for spec in build_cases(fixtures, MODEL_ID)
-        if spec["case_id"] in TARGETS
+        if spec["case_id"] in targets
     }
-    if set(specs) != set(TARGETS):
+    if set(specs) != set(targets):
         raise RuntimeError("task-quality divergence case set changed")
 
     cloudpickle.register_pickle_by_value(sys.modules[__name__])
+    cloudpickle.register_pickle_by_value(layer)
     llm_kwargs = base._llm_kwargs(args.model_dir.resolve(), fixture_root)
     llm_kwargs["skip_mm_profiling"] = True
     llm = LLM(**llm_kwargs)
@@ -299,7 +234,7 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
     cases: list[dict[str, Any]] = []
     native_cases: list[dict[str, Any]] = []
     try:
-        for case_id, target_index in TARGETS.items():
+        for artifact_case_id, case_id, target_index in capture_targets:
             reference_case = reference_cases[case_id]
             reference_ids = [int(token) for token in reference_case["output_token_ids"]]
             expected_token = reference_ids[target_index]
@@ -330,18 +265,23 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
             )
 
             def install_callable(model: Any) -> dict[str, Any]:
-                return InstallLogitsHook(
-                    case_id=case_id, output_index=target_index
+                return layer.InstallGenerationLayerHooks(
+                    case_id=artifact_case_id,
+                    output_index=target_index,
+                    linear_attention_layer_index=linear_layers[case_id],
+                    full_attention_layer_index=full_layers[case_id],
+                    capture_full_attention_projection=(
+                        case_id in full_projection_cases
+                    ),
                 )(model)
 
             def finalize_callable(model: Any) -> dict[str, Any]:
-                return FinalizeLogitsHook(
-                    output_root=str(output_root),
-                    expected_token_id=expected_token,
+                return layer.FinalizeGenerationLayerHooks(
+                    output_root=str(output_root)
                 )(model)
 
             def cleanup_callable(model: Any) -> bool:
-                return RemoveLogitsHook()(model)
+                return layer.RemoveGenerationLayerHooks()(model)
 
             installation = llm.apply_model(install_callable)
             try:
@@ -379,19 +319,21 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
                     f"frozen task-quality prefix changed: {case_id} "
                     f"output_index={mismatch}"
                 )
-            logits = finalization[0]
-            if logits["captured_output_index"] != target_index:
+            layer_record = finalization[0]
+            if layer_record["captured_logits_output_index"] != target_index:
                 raise RuntimeError(f"task-quality logit step changed: {case_id}")
-            if logits["decode_calls"] != len(output_ids):
+            if layer_record["logits_decode_calls"] != len(output_ids):
                 raise RuntimeError(
                     f"task-quality logit call count changed: {case_id}"
                 )
-            if logits["raw_top_tokens"][0]["token_id"] != expected_token:
+            if layer_record["target_logits_top1_token_id"] != expected_token:
                 raise RuntimeError(f"task-quality raw top-1 changed: {case_id}")
-            component_path = output_root / logits["component"]["path"]
+            logits_component = layer_record["target_logits_component"]
+            component_path = output_root / logits_component["path"]
             cases.append(
                 {
-                    "case_id": case_id,
+                    "case_id": artifact_case_id,
+                    "source_case_id": case_id,
                     "prompt_tokens": len(prompt_ids),
                     "prompt_token_ids_sha256": canonical_int_list_sha256(prompt_ids),
                     "target_output_index": target_index,
@@ -402,24 +344,57 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
                     "captured_prefix_token_ids_sha256": canonical_int_list_sha256(
                         output_ids
                     ),
-                    "reference_logits": logits,
+                    "reference_logits": {
+                        "component": logits_component,
+                        "captured_output_index": layer_record[
+                            "captured_logits_output_index"
+                        ],
+                        "prefill_calls": layer_record["logits_prefill_calls"],
+                        "decode_calls": layer_record["logits_decode_calls"],
+                        "top1_token_id": layer_record[
+                            "target_logits_top1_token_id"
+                        ],
+                    },
+                    "decode_layers": layer_record,
                 }
             )
             native_cases.append(
                 {
-                    "case_id": case_id,
+                    "case_id": artifact_case_id,
                     "request": payload,
                     "expected_prefix_token_ids": reference_ids[:target_index],
                     "expected_reference_token_id": expected_token,
                     "expected_selected_token_id": expected_token,
                     "reference_logits": str(component_path),
                     "reference_logits_output_index": target_index,
+                    "reference_decode_output_index": target_index,
+                    "reference_decode_linear_layer_index": linear_layers[case_id],
+                    "reference_decode_full_attention_layer_index": full_layers[
+                        case_id
+                    ],
+                    "reference_decode_boundary_dir": str(
+                        (output_root / artifact_case_id).resolve()
+                    ),
+                    "reference_decode_linear_boundary_dir": str(
+                        (output_root / artifact_case_id / "linear").resolve()
+                    ),
+                    "reference_decode_layer0_tail_boundary_dir": str(
+                        (output_root / artifact_case_id / "layer0-tail").resolve()
+                    ),
+                    "reference_decode_full_attention_dir": str(
+                        (
+                            output_root
+                            / artifact_case_id
+                            / "full-attention"
+                        ).resolve()
+                    ),
                 }
             )
             print(
                 json.dumps(
                     {
-                        "case_id": case_id,
+                        "case_id": artifact_case_id,
+                        "source_case_id": case_id,
                         "event": "task_quality_divergence_case_complete",
                         "target_output_index": target_index,
                         "expected_token_id": expected_token,
@@ -437,9 +412,12 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
     payload = seal_manifest(
         {
             "schema": SCHEMA,
-            "complete": len(cases) == len(TARGETS),
-            "qualified_for_attribution": len(cases) == len(TARGETS),
-            "scope": "two-task-quality-first-divergence-full-vocabulary-logits",
+            "complete": len(cases) == len(capture_targets),
+            "qualified_for_attribution": len(cases) == len(capture_targets),
+            "scope": (
+                "two-task-quality-first-divergence-full-vocabulary-logits-"
+                "plus-decode-layer-boundaries"
+            ),
             "source": {
                 **git_identity(ROOT),
                 "files": source_components(),
@@ -462,9 +440,21 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
             "cases": cases,
             "native_cases": file_component(args.native_cases, args.native_cases.name),
             "decision": {
-                "two_prompts_exact": len(cases) == 2,
-                "two_reference_prefixes_exact": len(cases) == 2,
-                "two_reference_top1_rows_captured": len(cases) == 2,
+                "two_prompts_exact": len(cases) == len(targets) == 2,
+                "two_reference_prefixes_exact": len(cases) == len(targets) == 2,
+                "two_reference_top1_rows_captured": len(cases) == len(targets) == 2,
+                "two_decode_layer_boundary_sets_captured": (
+                    len(cases) == len(targets) == 2
+                ),
+                "two_selected_linear_boundary_sets_captured": (
+                    len(cases) == len(targets) == 2
+                ),
+                "two_layer0_tail_boundary_sets_captured": (
+                    len(cases) == len(targets) == 2
+                ),
+                "two_layer3_full_attention_sets_captured": (
+                    len(cases) == len(targets) == 2
+                ),
                 "product_runtime_dependency": False,
                 "g1_passed": False,
                 "g2_passed": False,
@@ -483,6 +473,31 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-root", type=Path, required=True)
     parser.add_argument("--native-cases", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--case-output-index",
+        action="append",
+        help="override one target as CASE_ID=OUTPUT_INDEX",
+    )
+    parser.add_argument(
+        "--case-linear-attention-layer",
+        action="append",
+        help="capture one selected linear layer as CASE_ID=LAYER_INDEX",
+    )
+    parser.add_argument(
+        "--case-full-attention-layer",
+        action="append",
+        help="capture one selected full-attention layer as CASE_ID=LAYER_INDEX",
+    )
+    parser.add_argument(
+        "--case-full-attention-projection",
+        action="append",
+        choices=tuple(TARGETS),
+        help="capture layer-3 projection and tail boundaries for one case",
+    )
+    parser.add_argument(
+        "--extra-video-output-indices",
+        help="capture additional video targets as comma-separated indices",
+    )
     parser.add_argument(
         "--oracle-root-label",
         default="diagnostics/vl-task-quality-divergence",
