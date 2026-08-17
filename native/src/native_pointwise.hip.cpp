@@ -449,15 +449,18 @@ __global__ void full_attention_head_norm_rope_prefill_kernel(
     second_squared_components[component] = second_squared;
     accumulator[component] = first_squared + second_squared;
   }
-  // ATen's vectorized reduction uses a 32-wide block for the 16-row Q norm:
-  // each lane joins the same component from the two 128-element halves, then
-  // folds those four accumulators. The 2-row K norm instead uses a 64-wide
-  // block: two logical lanes each fold four contiguous values before the
-  // first shared-memory reduction joins the two halves. Emulate both with one
-  // physical wave. The distinction is usually hidden by the BF16 store, but
-  // long decode can retain a one-ULP K value in cache and amplify it later.
+  // ATen's vectorized reduction uses a 32-wide block whenever the flattened
+  // row count is at least 16. That always covers Q (16 heads per token) and K
+  // batches of at least 8 tokens: each lane joins the same component from the
+  // two 128-element halves, then folds those four accumulators. A smaller K
+  // batch uses a 64-wide block: two logical lanes each fold four contiguous
+  // values before the first shared-memory reduction joins the halves. Emulate
+  // both with one physical wave. The distinction is usually hidden by the
+  // BF16 store, but long decode can retain a one-ULP K value in cache and
+  // amplify it later.
+  const bool wide_k_reduction = !query && gridDim.x < 8;
   float sum = 0.0f;
-  if (query) {
+  if (!wide_k_reduction) {
     volatile float first_pair = accumulator[0] + accumulator[1];
     volatile float first_three = first_pair + accumulator[2];
     sum = first_three + accumulator[3];

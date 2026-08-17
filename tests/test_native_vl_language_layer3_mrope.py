@@ -32,6 +32,7 @@ class NativeVlLanguageLayer3MropeTest(unittest.TestCase):
         self.assertIn(
             "ATen's vectorized reduction uses a 32-wide block", source
         )
+        self.assertIn("wide_k_reduction = !query && gridDim.x < 8", source)
         self.assertIn("first_three = first_pair + accumulator[2]", source)
         self.assertIn("first_squared_components[0]", source)
         self.assertIn("second_squared_components[0]", source)
