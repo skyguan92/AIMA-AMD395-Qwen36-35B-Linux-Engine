@@ -87,6 +87,7 @@ class NativeSurfacesQualificationTest(unittest.TestCase):
             "vl_logical_projections_enabled": False,
             "vl_logical_projection_plan_build_wall_ms": 0.0,
             "prefix_cache_restore_wall_ms": 0.0,
+            "prefix_cache_active_kv_reused": False,
         }
         payload = {
             "schema": "aima-amd395-qwen36/native-resident-session-probe/v1",
@@ -113,6 +114,7 @@ class NativeSurfacesQualificationTest(unittest.TestCase):
                     "prefix_cache_suffix_aot_launches": 0,
                     "prefix_cache_suffix_native_launches": 0,
                     "prefix_cache_restore_wall_ms": 8.0,
+                    "prefix_cache_active_kv_reused": True,
                     "prefill_wall_ms": 10.0,
                     "decode_tokens_per_second": 31.0031,
                 },
@@ -130,6 +132,12 @@ class NativeSurfacesQualificationTest(unittest.TestCase):
                 engine_sha256="b" * 64,
                 minimum_ttft_speedup=2637.0,
                 minimum_decode_retention=1.0003,
+            )
+        )
+        payload["requests"][1]["prefix_cache_active_kv_reused"] = False
+        self.assertFalse(
+            surfaces.prefix_cache_report_valid(
+                payload, engine_sha256="b" * 64
             )
         )
 

@@ -4797,6 +4797,8 @@ int run_resident_session_probe(int argc, char** argv) {
               << request.prefix_cache_misses
               << ",\"prefix_cache_transfer_bytes\":"
               << request.prefix_cache_transfer_bytes
+              << ",\"prefix_cache_active_kv_reused\":"
+              << (request.prefix_cache_active_kv_reused ? "true" : "false")
               << ",\"prefix_cache_restore_wall_ms\":"
               << request.prefix_cache_restore_wall_ms
               << ",\"prefix_cache_suffix_decode_tokens\":"

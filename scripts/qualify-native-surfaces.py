@@ -240,7 +240,7 @@ def prefix_cache_report_valid(
     *,
     engine_sha256: str,
     require_text_path_idle: bool = True,
-    require_deferred_exact_restore: bool = True,
+    require_active_kv_reuse: bool = True,
 ) -> bool:
     try:
         cold, hit = payload["requests"]
@@ -262,11 +262,14 @@ def prefix_cache_report_valid(
             and int(hit["prefix_cache_suffix_aot_launches"]) == 0
             and int(hit["prefix_cache_suffix_native_launches"]) == 0
             and (
-                not require_deferred_exact_restore
+                not require_active_kv_reuse
                 or (
                     float(cold.get("prefix_cache_restore_wall_ms", -1.0))
                     == 0.0
                     and float(hit["prefix_cache_restore_wall_ms"]) > 0.0
+                    and cold.get("prefix_cache_active_kv_reused", False)
+                    is False
+                    and hit["prefix_cache_active_kv_reused"] is True
                 )
             )
             and cold["output_token_ids_sha256"]
@@ -431,7 +434,7 @@ def paired_prefix_report_valid(
         payload,
         engine_sha256=engine_sha256,
         require_text_path_idle=role == "candidate",
-        require_deferred_exact_restore=role == "candidate",
+        require_active_kv_reuse=role == "candidate",
     ):
         return False
     try:

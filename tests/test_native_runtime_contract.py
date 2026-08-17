@@ -755,7 +755,7 @@ class NativeRuntimeContractTest(unittest.TestCase):
         self.assertIn("resident_prefill_buckets", header)
         self.assertIn("aot_prefill_tokens", header)
 
-    def test_exact_prefix_restore_is_deferred_until_first_token_is_visible(
+    def test_consecutive_exact_prefix_reuses_active_kv_before_first_token(
         self,
     ) -> None:
         resident = (
@@ -764,22 +764,32 @@ class NativeRuntimeContractTest(unittest.TestCase):
         header = (
             ROOT / "native/include/aima/native_resident_engine.h"
         ).read_text(encoding="utf-8")
-        terminal = resident.index(
-            "exact_prefix_restore_pending = true;"
+        main = (ROOT / "native/src/main.cpp").read_text(encoding="utf-8")
+        server = (
+            ROOT / "native/src/native_http_server.cpp"
+        ).read_text(encoding="utf-8")
+        reuse = resident.index(
+            "const bool reuse_active_prefix_kv ="
+        )
+        partial_restore = resident.index(".restore_linear_state();", reuse)
+        active_restore = resident.index(
+            "hipStreamSynchronize active-KV exact-prefix restore",
+            partial_restore,
         )
         ttft = resident.index(
             "metrics.prefill_wall_ms = elapsed_ms(request_started);",
-            terminal,
+            active_restore,
         )
         callback = resident.index(
             "request.token_callback(first_token_id, 0)", ttft
         )
-        restore = resident.index(
-            "hipStreamSynchronize deferred exact-prefix restore", callback
-        )
-        self.assertLess(terminal, ttft)
+        self.assertLess(reuse, partial_restore)
+        self.assertLess(partial_restore, active_restore)
+        self.assertLess(active_restore, ttft)
         self.assertLess(ttft, callback)
-        self.assertLess(callback, restore)
+        self.assertIn("prefix_cache_active_kv_reused", header)
+        self.assertIn("prefix_cache_active_kv_reused", main)
+        self.assertIn("active_kv_reused", server)
         self.assertIn("prefix_cache_restore_wall_ms", header)
 
     def test_native_weight_foundation_has_target_measurement(self) -> None:

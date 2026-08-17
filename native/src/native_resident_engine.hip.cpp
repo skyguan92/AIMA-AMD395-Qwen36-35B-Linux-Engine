@@ -335,6 +335,16 @@ class NativeExactPrefixCache {
   }
 
   std::uint64_t restore(void* stream_value = nullptr) const {
+    return restore_slices(true, stream_value);
+  }
+
+  std::uint64_t restore_linear_state(void* stream_value = nullptr) const {
+    return restore_slices(false, stream_value);
+  }
+
+ private:
+  std::uint64_t restore_slices(bool include_attention_kv,
+                               void* stream_value) const {
     if (!valid_ || allocation_ == nullptr) {
       throw std::runtime_error("native exact-prefix cache is empty");
     }
@@ -342,6 +352,7 @@ class NativeExactPrefixCache {
     const auto* source = static_cast<const unsigned char*>(allocation_);
     std::uint64_t transfer_bytes = 0;
     for (const Slice& slice : slices_) {
+      if (!include_attention_kv && slice.bytes_per_token != 0) continue;
       const std::uint64_t copy_bytes = slice.bytes_per_token == 0
                                            ? slice.capacity_bytes
                                            : tokens_.size() *
@@ -354,6 +365,7 @@ class NativeExactPrefixCache {
     return transfer_bytes;
   }
 
+ public:
   const void* terminal_hidden() const {
     if (!valid_) throw std::runtime_error("native exact-prefix cache is empty");
     return static_cast<const unsigned char*>(allocation_) + terminal_offset_;
@@ -461,6 +473,7 @@ struct NativeResidentEngine::Impl {
   std::array<std::uint64_t, kPrefixCacheEntries> prefix_cache_use{};
   std::uint64_t prefix_cache_clock = 0;
   std::size_t prefix_cache_entries = 0;
+  std::size_t active_kv_prefix_cache_index = kPrefixCacheEntries;
   NativeResidentLoadMetrics metrics;
   int device = 0;
   int cu_count = 0;
@@ -1375,6 +1388,12 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
   const bool prefix_hit = prompt_plan.prefix_hit;
   const bool exact_prefix_hit = prompt_plan.exact_prefix_hit;
   const bool prefix_extension_hit = prompt_plan.prefix_extension_hit;
+  const bool reuse_active_prefix_kv =
+      exact_prefix_hit &&
+      impl_->active_kv_prefix_cache_index == matched_prefix_cache_index;
+  // A request may overwrite the live attention cache. Re-establish ownership
+  // only after the selected cache state has been restored or captured.
+  impl_->active_kv_prefix_cache_index = impl_->prefix_cache_entries;
   if (prompt_plan.prompt_decode_required(request.input_token_ids.size())) {
     throw std::runtime_error(
         "native prompt planner left an unexpected serial decode tail");
@@ -1603,14 +1622,29 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
     if (exact_prefix_hit) {
       last_hidden =
           impl_->prefix_caches[matched_prefix_cache_index].terminal_hidden();
-      // The cached terminal hidden is sufficient to select and publish the
-      // first token.  KV and recurrent state are only consumed by the next
-      // decode step, so restoring them before the first-token callback adds
-      // avoidable TTFT without changing any visible result.
-      exact_prefix_restore_pending = true;
+      if (reuse_active_prefix_kv) {
+        // Decode only appends after the prompt, so a consecutive exact hit
+        // still owns byte-identical prompt KV in the live attention cache.
+        // Restore only the mutable linear recurrent/conv state. This avoids
+        // copying the prompt KV a second time without changing cache state.
+        const auto restore_started = std::chrono::steady_clock::now();
+        metrics.prefix_cache_transfer_bytes =
+            impl_->prefix_caches[matched_prefix_cache_index]
+                .restore_linear_state();
+        check_hip(hipStreamSynchronize(nullptr),
+                  "hipStreamSynchronize active-KV exact-prefix restore");
+        metrics.prefix_cache_restore_wall_ms = elapsed_ms(restore_started);
+        metrics.prefix_cache_active_kv_reused = true;
+        impl_->active_kv_prefix_cache_index = matched_prefix_cache_index;
+      } else {
+        // The cached terminal hidden is sufficient to publish the first
+        // token. Restore a non-active KV owner before the next decode step.
+        exact_prefix_restore_pending = true;
+      }
     } else {
       metrics.prefix_cache_transfer_bytes =
           impl_->prefix_caches[matched_prefix_cache_index].restore();
+      impl_->active_kv_prefix_cache_index = matched_prefix_cache_index;
     }
   } else {
     metrics.prefix_cache_lookup =
@@ -2143,6 +2177,7 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
             request.input_token_ids, request.multimodal_cache_namespace,
             prompt_terminal_hidden);
     impl_->prefix_cache_use[capture_index] = ++impl_->prefix_cache_clock;
+    impl_->active_kv_prefix_cache_index = capture_index;
   }
   metrics.output_token_ids.push_back(first_token_id);
   metrics.prefill_wall_ms = elapsed_ms(request_started);
@@ -2166,6 +2201,7 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
     check_hip(hipStreamSynchronize(nullptr),
               "hipStreamSynchronize deferred exact-prefix restore");
     metrics.prefix_cache_restore_wall_ms = elapsed_ms(restore_started);
+    impl_->active_kv_prefix_cache_index = matched_prefix_cache_index;
   }
   if (timeline_enabled) {
     double linear_attention_ms = 0.0;

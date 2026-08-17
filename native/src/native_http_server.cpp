@@ -679,6 +679,8 @@ Json request_metrics_json(const NativeResidentRequestMetrics& metrics) {
                             {"misses", metrics.prefix_cache_misses},
                             {"transfer_bytes",
                              metrics.prefix_cache_transfer_bytes},
+                            {"active_kv_reused",
+                             metrics.prefix_cache_active_kv_reused},
                             {"restore_wall_ms",
                              metrics.prefix_cache_restore_wall_ms},
                             {"suffix_decode_tokens",
