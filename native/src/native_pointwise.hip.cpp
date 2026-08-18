@@ -412,7 +412,7 @@ __device__ __forceinline__ float triton_bf16_product_rtz(float left,
 
 template <std::size_t QRowStride, std::size_t KRowStride,
           std::size_t VRowStride, bool CopyV,
-          bool TruncateRotaryProducts>
+          bool TruncateRotaryProducts, bool UseWideKReduction>
 __global__ void full_attention_head_norm_rope_prefill_kernel(
     const __hip_bfloat16* q_gate, const __hip_bfloat16* k_raw,
     const __hip_bfloat16* v_raw,
@@ -445,8 +445,10 @@ __global__ void full_attention_head_norm_rope_prefill_kernel(
         __bfloat162float(input[128 + vector_base + component]);
     volatile float first_squared = first * first;
     volatile float second_squared = second * second;
-    first_squared_components[component] = first_squared;
-    second_squared_components[component] = second_squared;
+    if constexpr (UseWideKReduction) {
+      first_squared_components[component] = first_squared;
+      second_squared_components[component] = second_squared;
+    }
     accumulator[component] = first_squared + second_squared;
   }
   // ATen's vectorized reduction uses a 32-wide block whenever the flattened
@@ -455,15 +457,20 @@ __global__ void full_attention_head_norm_rope_prefill_kernel(
   // two 128-element halves, then folds those four accumulators. A smaller K
   // batch uses a 64-wide block: two logical lanes each fold four contiguous
   // values before the first shared-memory reduction joins the halves. Emulate
-  // both with one physical wave. The distinction is usually hidden by the
-  // BF16 store, but long decode can retain a one-ULP K value in cache and
-  // amplify it later.
-  const bool wide_k_reduction = !query && gridDim.x < 8;
-  float sum = 0.0f;
-  if (!wide_k_reduction) {
-    volatile float first_pair = accumulator[0] + accumulator[1];
-    volatile float first_three = first_pair + accumulator[2];
-    sum = first_three + accumulator[3];
+  // both with one physical wave. Select the small-batch K geometry at host
+  // dispatch so every normal prefill compiles back to the frozen v1.5.1
+  // branch-free reduction and carries no decode-only component arrays.
+  float sum = accumulator[0];
+  if constexpr (!UseWideKReduction) {
+#pragma unroll
+    for (unsigned component = 1; component < 4; ++component) {
+      sum = sum + accumulator[component];
+    }
+  } else if (query) {
+#pragma unroll
+    for (unsigned component = 1; component < 4; ++component) {
+      sum = sum + accumulator[component];
+    }
   } else {
     volatile float first_pair =
         first_squared_components[0] + first_squared_components[1];
@@ -550,7 +557,7 @@ __global__ void full_attention_head_norm_rope_prefill_kernel(
   }
 }
 
-template <bool TruncateRotaryProducts>
+template <bool TruncateRotaryProducts, bool UseWideKReduction>
 void launch_full_attention_head_norm_rope_prefill_impl(
     const void* q_gate, const void* k_raw, const void* v_raw,
     const void* q_norm_weight, const void* k_norm_weight,
@@ -579,7 +586,8 @@ void launch_full_attention_head_norm_rope_prefill_impl(
   if (split_projection) {
     hipLaunchKernelGGL(
         (full_attention_head_norm_rope_prefill_kernel<
-            8192, 512, 0, false, TruncateRotaryProducts>),
+            8192, 512, 0, false, TruncateRotaryProducts,
+            UseWideKReduction>),
         dim3(token_count), dim3(32, kQueryHeads + kKvHeads), 0,
         static_cast<hipStream_t>(stream_value),
         static_cast<const __hip_bfloat16*>(q_gate),
@@ -593,7 +601,8 @@ void launch_full_attention_head_norm_rope_prefill_impl(
   } else if (fused_qk_projection) {
     hipLaunchKernelGGL(
         (full_attention_head_norm_rope_prefill_kernel<
-            9216, 9216, 0, false, TruncateRotaryProducts>),
+            9216, 9216, 0, false, TruncateRotaryProducts,
+            UseWideKReduction>),
         dim3(token_count), dim3(32, kQueryHeads + kKvHeads), 0,
         static_cast<hipStream_t>(stream_value),
         static_cast<const __hip_bfloat16*>(q_gate),
@@ -607,7 +616,8 @@ void launch_full_attention_head_norm_rope_prefill_impl(
   } else {
     hipLaunchKernelGGL(
         (full_attention_head_norm_rope_prefill_kernel<
-            9216, 9216, 9216, true, TruncateRotaryProducts>),
+            9216, 9216, 9216, true, TruncateRotaryProducts,
+            UseWideKReduction>),
         dim3(token_count), dim3(32, kQueryHeads + kKvHeads), 0,
         static_cast<hipStream_t>(stream_value),
         static_cast<const __hip_bfloat16*>(q_gate),
@@ -1104,10 +1114,17 @@ void launch_full_attention_head_norm_rope_prefill(
     std::size_t token_count, std::size_t q_row_stride,
     std::size_t k_row_stride, std::size_t v_row_stride,
     void* stream_value) {
-  launch_full_attention_head_norm_rope_prefill_impl<false>(
-      q_gate, k_raw, v_raw, q_norm_weight, k_norm_weight, cosine_fp32,
-      sine_fp32, q_output, k_output, v_output, token_count, q_row_stride,
-      k_row_stride, v_row_stride, stream_value);
+  if (token_count < 8) {
+    launch_full_attention_head_norm_rope_prefill_impl<false, true>(
+        q_gate, k_raw, v_raw, q_norm_weight, k_norm_weight, cosine_fp32,
+        sine_fp32, q_output, k_output, v_output, token_count, q_row_stride,
+        k_row_stride, v_row_stride, stream_value);
+  } else {
+    launch_full_attention_head_norm_rope_prefill_impl<false, false>(
+        q_gate, k_raw, v_raw, q_norm_weight, k_norm_weight, cosine_fp32,
+        sine_fp32, q_output, k_output, v_output, token_count, q_row_stride,
+        k_row_stride, v_row_stride, stream_value);
+  }
 }
 
 void launch_full_attention_head_norm_mrope_prefill(
@@ -1118,10 +1135,17 @@ void launch_full_attention_head_norm_mrope_prefill(
     std::size_t token_count, std::size_t q_row_stride,
     std::size_t k_row_stride, std::size_t v_row_stride,
     void* stream_value) {
-  launch_full_attention_head_norm_rope_prefill_impl<true>(
-      q_gate, k_raw, v_raw, q_norm_weight, k_norm_weight, cosine_fp32,
-      sine_fp32, q_output, k_output, v_output, token_count, q_row_stride,
-      k_row_stride, v_row_stride, stream_value);
+  if (token_count < 8) {
+    launch_full_attention_head_norm_rope_prefill_impl<true, true>(
+        q_gate, k_raw, v_raw, q_norm_weight, k_norm_weight, cosine_fp32,
+        sine_fp32, q_output, k_output, v_output, token_count, q_row_stride,
+        k_row_stride, v_row_stride, stream_value);
+  } else {
+    launch_full_attention_head_norm_rope_prefill_impl<true, false>(
+        q_gate, k_raw, v_raw, q_norm_weight, k_norm_weight, cosine_fp32,
+        sine_fp32, q_output, k_output, v_output, token_count, q_row_stride,
+        k_row_stride, v_row_stride, stream_value);
+  }
 }
 
 void launch_q8192_full_attention_sigmoid_gate_f32(

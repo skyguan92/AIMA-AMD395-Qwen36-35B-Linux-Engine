@@ -32,17 +32,26 @@ class NativeVlLanguageLayer3MropeTest(unittest.TestCase):
         self.assertIn(
             "ATen's vectorized reduction uses a 32-wide block", source
         )
-        self.assertIn("wide_k_reduction = !query && gridDim.x < 8", source)
-        self.assertIn("first_three = first_pair + accumulator[2]", source)
+        self.assertIn("bool UseWideKReduction", source)
+        self.assertIn("if constexpr (!UseWideKReduction)", source)
+        self.assertIn("else if (query)", source)
         self.assertIn("first_squared_components[0]", source)
         self.assertIn("second_squared_components[0]", source)
         self.assertIn("sum = first_half + second_half", source)
         self.assertIn(
-            "launch_full_attention_head_norm_rope_prefill_impl<false>",
+            "launch_full_attention_head_norm_rope_prefill_impl<false, true>",
             source,
         )
         self.assertIn(
-            "launch_full_attention_head_norm_rope_prefill_impl<true>",
+            "launch_full_attention_head_norm_rope_prefill_impl<false, false>",
+            source,
+        )
+        self.assertIn(
+            "launch_full_attention_head_norm_rope_prefill_impl<true, true>",
+            source,
+        )
+        self.assertIn(
+            "launch_full_attention_head_norm_rope_prefill_impl<true, false>",
             source,
         )
         self.assertIn("__float2bfloat16(cosf(angle))", source)
