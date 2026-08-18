@@ -357,6 +357,7 @@ class ReleaseContractTest(unittest.TestCase):
         self.assertTrue(direct["default"])
         self.assertEqual(direct["tensor_count"], 693)
         self.assertEqual(direct["payload_bytes"], 69_321_221_376)
+        self.assertEqual(direct["chunk_bytes"], 128 * 1024 * 1024)
         self.assertEqual(direct["workers"], 1)
         self.assertEqual(
             direct["plan"]["path"],

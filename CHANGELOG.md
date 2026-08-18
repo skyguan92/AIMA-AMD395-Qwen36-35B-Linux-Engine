@@ -5,6 +5,11 @@ Versioning.
 
 ## Unreleased
 
+- Reduced the default direct-checkpoint read chunk from 512 MiB to 128 MiB.
+  Balanced AMD395 measurements cut median language-weight load time by about
+  15% while retaining the single-reader policy that avoids same-device
+  contention.
+
 ## 1.5.1 - 2026-08-10
 
 - Replaced variable-length cold-prompt and prefix-extension serial decode
