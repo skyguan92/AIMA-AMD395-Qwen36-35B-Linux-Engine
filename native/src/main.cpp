@@ -4432,6 +4432,7 @@ int run_resident_session_probe(int argc, char** argv) {
     throw std::runtime_error(
         "--prompt-tokens plus output exceeds --cache-capacity");
   }
+  options.prefix_cache_enabled = !disable_prefix_cache;
 
   std::vector<std::uint32_t> prompt(request_prompt_tokens);
   if (have_uniform_token) {

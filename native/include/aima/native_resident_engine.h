@@ -41,6 +41,11 @@ struct NativeResidentEngineOptions {
   std::size_t prompt_tokens = 8192;
   // Includes prompt and decoded cache entries.
   std::size_t cache_capacity = 9216;
+  // Qualification and diagnostic processes that disable prefix caching for
+  // every request can omit the otherwise resident cache backing. Product
+  // servers retain the default so READY continues to cover the full cache
+  // surface.
+  bool prefix_cache_enabled = true;
 };
 
 struct NativeResidentLoadMetrics {

@@ -746,6 +746,9 @@ class NativeRuntimeContractTest(unittest.TestCase):
         self.assertIn("prefix_cache_entries", resident)
         self.assertIn("kPrefixCacheEntries = 4", resident)
         self.assertIn("options.cache_capacity <= 131072 ? 2 : 1", resident)
+        self.assertIn("bool prefix_cache_enabled = true", header)
+        self.assertIn("options.prefix_cache_enabled", resident)
+        self.assertIn("impl_->prefix_cache_entries == 0", resident)
         self.assertIn("resident_prefill_buckets", server)
         self.assertIn("prefix_cache_entries", server)
         self.assertIn("aot_prefill_tokens", server)
@@ -754,6 +757,28 @@ class NativeRuntimeContractTest(unittest.TestCase):
         self.assertIn("padded_prefill_tokens", server)
         self.assertIn("resident_prefill_buckets", header)
         self.assertIn("aot_prefill_tokens", header)
+
+    def test_all_request_prefix_cache_disable_omits_resident_backing(
+        self,
+    ) -> None:
+        main = (ROOT / "native/src/main.cpp").read_text(encoding="utf-8")
+        resident = (
+            ROOT / "native/src/native_resident_engine.hip.cpp"
+        ).read_text(encoding="utf-8")
+        assignment = main.index(
+            "options.prefix_cache_enabled = !disable_prefix_cache;"
+        )
+        load = main.index("engine.load(options);", assignment)
+        self.assertLess(assignment, load)
+        self.assertIn(
+            "options.prefix_cache_enabled\n"
+            "          ? (options.cache_capacity <= 32768",
+            resident,
+        )
+        self.assertIn(
+            "native resident prefix cache was disabled before READY",
+            resident,
+        )
 
     def test_consecutive_exact_prefix_reuses_active_kv_before_first_token(
         self,

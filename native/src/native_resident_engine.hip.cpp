@@ -925,9 +925,11 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
   const NativeFullAttentionStateMetrics attention_metrics =
       impl_->attention_state.build(options.cache_capacity, impl_->device);
   impl_->prefix_cache_entries =
-      options.cache_capacity <= 32768
-          ? 4
-          : (options.cache_capacity <= 131072 ? 2 : 1);
+      options.prefix_cache_enabled
+          ? (options.cache_capacity <= 32768
+                 ? 4
+                 : (options.cache_capacity <= 131072 ? 2 : 1))
+          : 0;
   std::uint64_t prefix_cache_bytes = 0;
   for (std::size_t index = 0; index < impl_->prefix_cache_entries; ++index) {
     prefix_cache_bytes += impl_->prefix_caches[index].build(
@@ -1250,6 +1252,10 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
       throw std::invalid_argument(
           "native resident stop token is outside the vocabulary");
     }
+  }
+  if (!request.disable_prefix_cache && impl_->prefix_cache_entries == 0) {
+    throw std::invalid_argument(
+        "native resident prefix cache was disabled before READY");
   }
   const bool has_decode_observer =
       static_cast<bool>(request.decode_layer_observer) ||
