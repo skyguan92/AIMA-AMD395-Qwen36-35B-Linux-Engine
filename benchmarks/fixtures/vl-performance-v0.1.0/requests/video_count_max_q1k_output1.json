@@ -1,0 +1,221 @@
+{
+  "max_tokens": 1,
+  "messages": [
+    {
+      "content": [
+        {
+          "text": "Benchmark ${AIMA_VL_PROMPT_NONCE}. Inspect every supplied media item. Answer with one token.",
+          "type": "text"
+        },
+        {
+          "type": "video_url",
+          "video_url": {
+            "url": "file://${AIMA_VL_MEDIA_ROOT}/vl-envelope-v0.1.0/video-minimum-2f-2fps-32x32.mp4"
+          }
+        },
+        {
+          "text": "Media item 2 follows.",
+          "type": "text"
+        },
+        {
+          "type": "video_url",
+          "video_url": {
+            "url": "file://${AIMA_VL_MEDIA_ROOT}/vl-envelope-v0.1.0/video-minimum-2f-2fps-32x32.mp4"
+          }
+        },
+        {
+          "text": "Media item 3 follows.",
+          "type": "text"
+        },
+        {
+          "type": "video_url",
+          "video_url": {
+            "url": "file://${AIMA_VL_MEDIA_ROOT}/vl-envelope-v0.1.0/video-minimum-2f-2fps-32x32.mp4"
+          }
+        },
+        {
+          "text": "Media item 4 follows.",
+          "type": "text"
+        },
+        {
+          "type": "video_url",
+          "video_url": {
+            "url": "file://${AIMA_VL_MEDIA_ROOT}/vl-envelope-v0.1.0/video-minimum-2f-2fps-32x32.mp4"
+          }
+        },
+        {
+          "text": "Media item 5 follows.",
+          "type": "text"
+        },
+        {
+          "type": "video_url",
+          "video_url": {
+            "url": "file://${AIMA_VL_MEDIA_ROOT}/vl-envelope-v0.1.0/video-minimum-2f-2fps-32x32.mp4"
+          }
+        },
+        {
+          "text": "Media item 6 follows.",
+          "type": "text"
+        },
+        {
+          "type": "video_url",
+          "video_url": {
+            "url": "file://${AIMA_VL_MEDIA_ROOT}/vl-envelope-v0.1.0/video-minimum-2f-2fps-32x32.mp4"
+          }
+        },
+        {
+          "text": "Media item 7 follows.",
+          "type": "text"
+        },
+        {
+          "type": "video_url",
+          "video_url": {
+            "url": "file://${AIMA_VL_MEDIA_ROOT}/vl-envelope-v0.1.0/video-minimum-2f-2fps-32x32.mp4"
+          }
+        },
+        {
+          "text": "Media item 8 follows.",
+          "type": "text"
+        },
+        {
+          "type": "video_url",
+          "video_url": {
+            "url": "file://${AIMA_VL_MEDIA_ROOT}/vl-envelope-v0.1.0/video-minimum-2f-2fps-32x32.mp4"
+          }
+        },
+        {
+          "text": "Media item 9 follows.",
+          "type": "text"
+        },
+        {
+          "type": "video_url",
+          "video_url": {
+            "url": "file://${AIMA_VL_MEDIA_ROOT}/vl-envelope-v0.1.0/video-minimum-2f-2fps-32x32.mp4"
+          }
+        },
+        {
+          "text": "Media item 10 follows.",
+          "type": "text"
+        },
+        {
+          "type": "video_url",
+          "video_url": {
+            "url": "file://${AIMA_VL_MEDIA_ROOT}/vl-envelope-v0.1.0/video-minimum-2f-2fps-32x32.mp4"
+          }
+        },
+        {
+          "text": "Media item 11 follows.",
+          "type": "text"
+        },
+        {
+          "type": "video_url",
+          "video_url": {
+            "url": "file://${AIMA_VL_MEDIA_ROOT}/vl-envelope-v0.1.0/video-minimum-2f-2fps-32x32.mp4"
+          }
+        },
+        {
+          "text": "Media item 12 follows.",
+          "type": "text"
+        },
+        {
+          "type": "video_url",
+          "video_url": {
+            "url": "file://${AIMA_VL_MEDIA_ROOT}/vl-envelope-v0.1.0/video-minimum-2f-2fps-32x32.mp4"
+          }
+        },
+        {
+          "text": "Media item 13 follows.",
+          "type": "text"
+        },
+        {
+          "type": "video_url",
+          "video_url": {
+            "url": "file://${AIMA_VL_MEDIA_ROOT}/vl-envelope-v0.1.0/video-minimum-2f-2fps-32x32.mp4"
+          }
+        },
+        {
+          "text": "Media item 14 follows.",
+          "type": "text"
+        },
+        {
+          "type": "video_url",
+          "video_url": {
+            "url": "file://${AIMA_VL_MEDIA_ROOT}/vl-envelope-v0.1.0/video-minimum-2f-2fps-32x32.mp4"
+          }
+        },
+        {
+          "text": "Media item 15 follows.",
+          "type": "text"
+        },
+        {
+          "type": "video_url",
+          "video_url": {
+            "url": "file://${AIMA_VL_MEDIA_ROOT}/vl-envelope-v0.1.0/video-minimum-2f-2fps-32x32.mp4"
+          }
+        },
+        {
+          "text": "Media item 16 follows.",
+          "type": "text"
+        },
+        {
+          "type": "video_url",
+          "video_url": {
+            "url": "file://${AIMA_VL_MEDIA_ROOT}/vl-envelope-v0.1.0/video-minimum-2f-2fps-32x32.mp4"
+          }
+        },
+        {
+          "text": "Media item 17 follows.",
+          "type": "text"
+        },
+        {
+          "type": "video_url",
+          "video_url": {
+            "url": "file://${AIMA_VL_MEDIA_ROOT}/vl-envelope-v0.1.0/video-minimum-2f-2fps-32x32.mp4"
+          }
+        },
+        {
+          "text": "Media item 18 follows.",
+          "type": "text"
+        },
+        {
+          "type": "video_url",
+          "video_url": {
+            "url": "file://${AIMA_VL_MEDIA_ROOT}/vl-envelope-v0.1.0/video-minimum-2f-2fps-32x32.mp4"
+          }
+        },
+        {
+          "text": "Media item 19 follows.",
+          "type": "text"
+        },
+        {
+          "type": "video_url",
+          "video_url": {
+            "url": "file://${AIMA_VL_MEDIA_ROOT}/vl-envelope-v0.1.0/video-minimum-2f-2fps-32x32.mp4"
+          }
+        },
+        {
+          "text": "Media item 20 follows.",
+          "type": "text"
+        },
+        {
+          "type": "video_url",
+          "video_url": {
+            "url": "file://${AIMA_VL_MEDIA_ROOT}/vl-envelope-v0.1.0/video-minimum-2f-2fps-32x32.mp4"
+          }
+        },
+        {
+          "text": "Media item 21 follows.",
+          "type": "text"
+        },
+        {
+          "type": "video_url",
+          "video_url": {
+            "url": "file://${AIMA_VL_MEDIA_ROOT}/vl-envelope-v0.1.0/video-minimum-2f-2fps-32x32.mp4"
+          }
+        }
+      ],
+      "role": "user"
+    }
+  ],
+  "temperature": 0
+}

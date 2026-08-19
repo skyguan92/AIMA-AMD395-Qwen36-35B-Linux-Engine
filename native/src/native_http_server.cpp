@@ -535,6 +535,8 @@ ServerOptions parse_options(int argc, char** argv) {
           std::filesystem::absolute(next("--remote-tls-ca-bundle"));
     } else if (argument == "--disable-media-cache") {
       options.media_cache_capacity_bytes = 0;
+    } else if (argument == "--disable-prefix-cache") {
+      options.engine.prefix_cache_enabled = false;
     } else if (argument == "--media-cache-capacity-bytes") {
       options.media_cache_capacity_bytes =
           parse_size(next("--media-cache-capacity-bytes"),
@@ -650,6 +652,16 @@ Json request_metrics_json(const NativeResidentRequestMetrics& metrics) {
                    metrics.vl_vision_plan_cache_hit},
                   {"vision_plan_cache_entries",
                    metrics.vl_vision_plan_cache_entries},
+                  {"logical_projection_tokens",
+                   metrics.vl_logical_projection_tokens},
+                  {"logical_projection_plan_count",
+                   metrics.vl_logical_projection_plan_count},
+                  {"logical_projection_workspace_bytes",
+                   metrics.vl_logical_projection_workspace_bytes},
+                  {"logical_projection_plan_build_wall_ms",
+                   metrics.vl_logical_projection_plan_build_wall_ms},
+                  {"logical_projection_plan_reused",
+                   metrics.vl_logical_projection_plan_reused},
                   {"host_to_device_bytes",
                    metrics.vl_host_to_device_bytes},
                   {"media_load_decode_wall_ms",
@@ -824,6 +836,7 @@ struct ParsedCompletionRequest {
   bool stream = false;
   bool include_usage = false;
   bool raw_prompt_tokens = false;
+  bool disable_prefix_cache = false;
 };
 
 std::size_t positive_integer_field(const Json& request, const char* field) {
@@ -1058,6 +1071,7 @@ Json chat_completion(NativeResidentEngine& engine, NativeTokenizer& tokenizer,
   native_request.vl_input = std::move(parsed.vl_input);
   native_request.max_new_tokens = parsed.max_tokens;
   native_request.stop_token_ids = {tokenizer.eos_token_id()};
+  native_request.disable_prefix_cache = parsed.disable_prefix_cache;
   if (parsed.named_tool_json_constraint != nullptr) {
     const auto constraint = parsed.named_tool_json_constraint;
     native_request.next_token_mask =
@@ -1157,6 +1171,7 @@ bool stream_chat_completion(
   native_request.vl_input = std::move(parsed.vl_input);
   native_request.max_new_tokens = parsed.max_tokens;
   native_request.stop_token_ids = {tokenizer.eos_token_id()};
+  native_request.disable_prefix_cache = parsed.disable_prefix_cache;
   if (parsed.named_tool_json_constraint != nullptr) {
     const auto constraint = parsed.named_tool_json_constraint;
     native_request.next_token_mask =
@@ -1394,6 +1409,18 @@ int run_native_http_server(int argc, char** argv) {
                      {"native_vl", true},
                      {"vision_plan_cache_capacity",
                       load.vision_plan_cache_capacity},
+                     {"vision_warmup_patches",
+                      load.vision_warmup_patches},
+                     {"vision_warmup_visual_tokens",
+                      load.vision_warmup_visual_tokens},
+                     {"vision_plan_cache_entries_at_ready",
+                      load.vision_plan_cache_entries_at_ready},
+                     {"vision_warmup_plan_build_wall_ms",
+                      load.vision_warmup_plan_build_wall_ms},
+                     {"vision_warmup_encode_wall_ms",
+                      load.vision_warmup_encode_wall_ms},
+                     {"vision_warmup_completed",
+                      load.vision_warmup_completed},
                      {"allowed_local_media_roots",
                       options.media_policy.allowed_local_roots.size()},
                      {"allowed_media_domains",
@@ -1463,6 +1490,18 @@ int run_native_http_server(int argc, char** argv) {
                    {"native_vl", true},
                    {"vision_plan_cache_capacity",
                     load.vision_plan_cache_capacity},
+                   {"vision_warmup_patches",
+                    load.vision_warmup_patches},
+                   {"vision_warmup_visual_tokens",
+                    load.vision_warmup_visual_tokens},
+                   {"vision_plan_cache_entries_at_ready",
+                    load.vision_plan_cache_entries_at_ready},
+                   {"vision_warmup_plan_build_wall_ms",
+                    load.vision_warmup_plan_build_wall_ms},
+                   {"vision_warmup_encode_wall_ms",
+                    load.vision_warmup_encode_wall_ms},
+                   {"vision_warmup_completed",
+                    load.vision_warmup_completed},
                    {"media_cache_capacity_bytes",
                     media_cache.capacity_bytes()},
                    {"media_cache_capacity_entries",
@@ -1491,6 +1530,8 @@ int run_native_http_server(int argc, char** argv) {
               parse_completion_request(tokenizer, body,
                                        options.media_policy, media_cache,
                                        load.cache_capacity);
+          parsed.disable_prefix_cache =
+              !options.engine.prefix_cache_enabled;
           if (parsed.stream) {
             if (stream_chat_completion(client.get(), engine, tokenizer,
                                        std::move(parsed), started)) {

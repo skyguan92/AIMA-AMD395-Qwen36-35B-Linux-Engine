@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import importlib.util
 from pathlib import Path
 import sys
@@ -18,6 +19,14 @@ SPEC.loader.exec_module(surfaces)
 
 
 class NativeSurfacesQualificationTest(unittest.TestCase):
+    def test_prefix_cpu_list_is_strict_and_canonical(self) -> None:
+        self.assertEqual(surfaces.parse_cpu_list("8-15"), "8-15")
+        self.assertEqual(surfaces.parse_cpu_list("2,4-7"), "2,4-7")
+        for invalid in ("", "15-8", "1,", "1 2", "0-3:2"):
+            with self.subTest(invalid=invalid):
+                with self.assertRaises(argparse.ArgumentTypeError):
+                    surfaces.parse_cpu_list(invalid)
+
     def test_defaults_match_native_vl_goal(self) -> None:
         self.assertEqual(surfaces.STARTUP_CEILING_MS, 44_900.0)
         self.assertEqual(surfaces.MINIMUM_PREFIX_PAIRS, 5)

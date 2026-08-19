@@ -18,6 +18,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace aima {
 namespace {
@@ -176,7 +177,10 @@ __global__ void vision_exact_gelu_kernel(const __hip_bfloat16* input,
 
 struct NativeVisionBlockSuffixPlan::Impl {
   Impl(const NativeWeightStore& weights, std::size_t requested_block_index,
-       std::size_t patches)
+       std::size_t patches,
+       std::shared_ptr<Bf16GemmPlan> shared_attention_projection_gemm,
+       std::shared_ptr<Bf16GemmPlan> shared_mlp_fc1_gemm,
+       std::shared_ptr<Bf16GemmPlan> shared_mlp_fc2_gemm)
       : block_index_value(validate_block_index(requested_block_index)),
         patch_count_value(validate_patch_count(patches)),
         attention_projection_weight(require_tensor(
@@ -208,12 +212,10 @@ struct NativeVisionBlockSuffixPlan::Impl {
             weights,
             block_tensor_name(block_index_value, "mlp.linear_fc2.bias"), 1,
             kVisionHidden * sizeof(std::uint16_t))),
-        attention_projection_gemm(patch_count_value, kVisionHidden,
-                                  kVisionHidden, kWorkspaceLimit, true, true),
-        mlp_fc1_gemm(patch_count_value, kVisionIntermediate, kVisionHidden,
-                     kWorkspaceLimit, true, true),
-        mlp_fc2_gemm(patch_count_value, kVisionHidden, kVisionIntermediate,
-                     kWorkspaceLimit, true, true) {
+        attention_projection_gemm(
+            std::move(shared_attention_projection_gemm)),
+        mlp_fc1_gemm(std::move(shared_mlp_fc1_gemm)),
+        mlp_fc2_gemm(std::move(shared_mlp_fc2_gemm)) {
     const std::array<std::uint32_t, 5> hidden_shape{
         static_cast<std::uint32_t>(kVisionHidden), 1, 1, 1, 1};
     const std::array<std::uint32_t, 5> intermediate_shape{
@@ -233,7 +235,20 @@ struct NativeVisionBlockSuffixPlan::Impl {
         mlp_fc1_weight.shape != fc1_weight_shape ||
         mlp_fc1_bias.shape != intermediate_shape ||
         mlp_fc2_weight.shape != fc2_weight_shape ||
-        mlp_fc2_bias.shape != hidden_shape) {
+        mlp_fc2_bias.shape != hidden_shape ||
+        !attention_projection_gemm || !mlp_fc1_gemm || !mlp_fc2_gemm ||
+        attention_projection_gemm->m() != patch_count_value ||
+        attention_projection_gemm->n() != kVisionHidden ||
+        attention_projection_gemm->k() != kVisionHidden ||
+        !attention_projection_gemm->bias_epilogue() ||
+        mlp_fc1_gemm->m() != patch_count_value ||
+        mlp_fc1_gemm->n() != kVisionIntermediate ||
+        mlp_fc1_gemm->k() != kVisionHidden ||
+        !mlp_fc1_gemm->bias_epilogue() ||
+        mlp_fc2_gemm->m() != patch_count_value ||
+        mlp_fc2_gemm->n() != kVisionHidden ||
+        mlp_fc2_gemm->k() != kVisionIntermediate ||
+        !mlp_fc2_gemm->bias_epilogue()) {
       throw std::runtime_error(
           "native vision block suffix weight shape is invalid");
     }
@@ -249,15 +264,36 @@ struct NativeVisionBlockSuffixPlan::Impl {
   const NativeTensorView& mlp_fc1_bias;
   const NativeTensorView& mlp_fc2_weight;
   const NativeTensorView& mlp_fc2_bias;
-  Bf16GemmPlan attention_projection_gemm;
-  Bf16GemmPlan mlp_fc1_gemm;
-  Bf16GemmPlan mlp_fc2_gemm;
+  std::shared_ptr<Bf16GemmPlan> attention_projection_gemm;
+  std::shared_ptr<Bf16GemmPlan> mlp_fc1_gemm;
+  std::shared_ptr<Bf16GemmPlan> mlp_fc2_gemm;
 };
 
 NativeVisionBlockSuffixPlan::NativeVisionBlockSuffixPlan(
     const NativeWeightStore& weights, std::size_t block_index,
     std::size_t patch_count)
-    : impl_(std::make_unique<Impl>(weights, block_index, patch_count)) {}
+    : NativeVisionBlockSuffixPlan(
+          weights, block_index, patch_count,
+          std::make_shared<Bf16GemmPlan>(
+              patch_count, kVisionHidden, kVisionHidden, kWorkspaceLimit,
+              true, true),
+          std::make_shared<Bf16GemmPlan>(
+              patch_count, kVisionIntermediate, kVisionHidden,
+              kWorkspaceLimit, true, true),
+          std::make_shared<Bf16GemmPlan>(
+              patch_count, kVisionHidden, kVisionIntermediate,
+              kWorkspaceLimit, true, true)) {}
+
+NativeVisionBlockSuffixPlan::NativeVisionBlockSuffixPlan(
+    const NativeWeightStore& weights, std::size_t block_index,
+    std::size_t patch_count,
+    std::shared_ptr<Bf16GemmPlan> attention_projection_gemm,
+    std::shared_ptr<Bf16GemmPlan> mlp_fc1_gemm,
+    std::shared_ptr<Bf16GemmPlan> mlp_fc2_gemm)
+    : impl_(std::make_unique<Impl>(
+          weights, block_index, patch_count,
+          std::move(attention_projection_gemm), std::move(mlp_fc1_gemm),
+          std::move(mlp_fc2_gemm))) {}
 NativeVisionBlockSuffixPlan::~NativeVisionBlockSuffixPlan() = default;
 NativeVisionBlockSuffixPlan::NativeVisionBlockSuffixPlan(
     NativeVisionBlockSuffixPlan&&) noexcept = default;
@@ -307,7 +343,7 @@ void NativeVisionBlockSuffixPlan::launch_attention_projection(
     throw std::invalid_argument(
         "native vision attention projection launch is invalid");
   }
-  impl_->attention_projection_gemm.launch_with_bias(
+  impl_->attention_projection_gemm->launch_with_bias(
       attention_device, impl_->attention_projection_weight.device_pointer,
       impl_->attention_projection_bias.device_pointer, output_device,
       stream_pointer);
@@ -359,7 +395,7 @@ void NativeVisionBlockSuffixPlan::launch_mlp_fc1(
       input_device == output_device) {
     throw std::invalid_argument("native vision MLP FC1 launch is invalid");
   }
-  impl_->mlp_fc1_gemm.launch_with_bias(
+  impl_->mlp_fc1_gemm->launch_with_bias(
       input_device, impl_->mlp_fc1_weight.device_pointer,
       impl_->mlp_fc1_bias.device_pointer, output_device, stream_pointer);
 }
@@ -390,7 +426,7 @@ void NativeVisionBlockSuffixPlan::launch_mlp_fc2(
       input_device == output_device) {
     throw std::invalid_argument("native vision MLP FC2 launch is invalid");
   }
-  impl_->mlp_fc2_gemm.launch_with_bias(
+  impl_->mlp_fc2_gemm->launch_with_bias(
       input_device, impl_->mlp_fc2_weight.device_pointer,
       impl_->mlp_fc2_bias.device_pointer, output_device, stream_pointer);
 }
@@ -404,9 +440,9 @@ std::size_t NativeVisionBlockSuffixPlan::patch_count() const {
 }
 
 std::size_t NativeVisionBlockSuffixPlan::workspace_bytes() const {
-  return impl_->attention_projection_gemm.workspace_bytes() +
-         impl_->mlp_fc1_gemm.workspace_bytes() +
-         impl_->mlp_fc2_gemm.workspace_bytes();
+  return impl_->attention_projection_gemm->workspace_bytes() +
+         impl_->mlp_fc1_gemm->workspace_bytes() +
+         impl_->mlp_fc2_gemm->workspace_bytes();
 }
 
 }  // namespace aima

@@ -1,14 +1,14 @@
 {
   "binary": {
-    "bytes": 39136800,
+    "bytes": 39498520,
     "path": "build/native/aima-engine-native",
-    "sha256": "5f14765dba20b146fd7828253c151618c0f4f24997be3dcbbd21ddb83abffa9e"
+    "sha256": "8524beee2e98bb9d261bb00d6f1febefc980953d5d02c8e0b005f56c5ee98339"
   },
   "build_info": {
-    "source_commit": "c7bae9436339b3794a627e40d432158a89b00805",
+    "source_commit": "1c5f6387898d0ae37d06234c5930221fe0ec5404",
     "version": "1.5.1-native"
   },
-  "captured_at": "2026-08-16T11:23:52+00:00",
+  "captured_at": "2026-08-17T22:56:00+00:00",
   "checks": {
     "case_order_exact": true,
     "probe_attribution_qualified": true,
@@ -138,7 +138,7 @@
   },
   "integrity": {
     "algorithm": "sha256",
-    "canonical_payload_sha256": "1105750fbe74d043e6a22205cb25d9f350ce5256b80e9f99ebf36030ce53adff"
+    "canonical_payload_sha256": "3df0024a737aaeae0e01d1f14ffd1973aac8bd303b7c7d5361ca1ab5e46f2879"
   },
   "launch": {
     "command": [
@@ -2411,7 +2411,7 @@
           "cold_prompt_decode_tokens": 0,
           "cold_prompt_decode_wall_ms": 0.0,
           "completion_tokens": 15,
-          "decode_tokens_per_second": 23.243350652651205,
+          "decode_tokens_per_second": 23.35776789432759,
           "model_loads": 1,
           "mrope": {
             "decode_steps": 14,
@@ -2426,13 +2426,15 @@
           "output_token_ids_canonical_sha256": "1a267e3f026aa329637ce18e7ff67a13481ca66074de3ae18ec7c202a2c03960",
           "output_token_ids_sha256": "c52e75b27e09862c4d3c0b359b4e3b99a826c11c33bf5a50f9d366dafecf5dbb",
           "padded_prefill_tokens": 675,
-          "prefill_tokens_per_second": 279.8750462971667,
+          "prefill_tokens_per_second": 283.7354106646092,
           "prefix_cache": {
+            "active_kv_reused": false,
             "hits": 0,
             "implemented": true,
             "lookup": "disabled",
             "matched_tokens": 0,
             "misses": 0,
+            "restore_wall_ms": 0.0,
             "scope": "capacity-bounded-variable-exact-or-append-lru",
             "suffix_aot_launches": 0,
             "suffix_decode_tokens": 0,
@@ -2445,16 +2447,16 @@
           "prompt_token_ids_sha256": "c00ccaf4063b7a0eb5f30ca053d3484cd2658aac57d1ef7ee79d38287d940566",
           "prompt_tokens": 349,
           "request_index": 1,
-          "request_wall_ms": 1908.12845,
+          "request_wall_ms": 1889.267678,
           "runtime": "native-resident-q349",
           "structured_decoding": {
             "enabled": true,
             "token_mask_upload_bytes": 3724800,
             "token_selections": 15
           },
-          "ttft_ms": 1246.985055,
+          "ttft_ms": 1230.01919,
           "vl": {
-            "embedding_injection_wall_ms": 1.132955,
+            "embedding_injection_wall_ms": 1.214722,
             "enabled": true,
             "host_to_device_bytes": 788340,
             "image_count": 1,
@@ -2463,18 +2465,18 @@
             "media_cache_misses": 1,
             "media_cache_resident_bytes": 786863,
             "media_count": 1,
-            "media_decode_wall_ms": 0.541037,
-            "media_load_decode_wall_ms": 0.618148,
-            "media_load_wall_ms": 0.077111,
-            "processor_wall_ms": 0.244413,
+            "media_decode_wall_ms": 0.593081,
+            "media_load_decode_wall_ms": 0.658011,
+            "media_load_wall_ms": 0.06493,
+            "processor_wall_ms": 0.40245,
             "source_bytes": 5467,
             "video_count": 0,
             "vision_batch_count": 1,
-            "vision_encode_wall_ms": 26.137277,
+            "vision_encode_wall_ms": 18.676016,
             "vision_max_batch_patches": 256,
             "vision_max_batch_tokens": 64,
             "vision_patches": 256,
-            "vision_plan_build_wall_ms": 134.486552,
+            "vision_plan_build_wall_ms": 135.692784,
             "vision_plan_cache_entries": 1,
             "vision_plan_cache_hit": false,
             "visual_tokens": 64
@@ -4887,7 +4889,7 @@
           "cold_prompt_decode_tokens": 0,
           "cold_prompt_decode_wall_ms": 0.0,
           "completion_tokens": 94,
-          "decode_tokens_per_second": 24.933898318596405,
+          "decode_tokens_per_second": 24.91357205260724,
           "model_loads": 1,
           "mrope": {
             "decode_steps": 93,
@@ -4902,13 +4904,15 @@
           "output_token_ids_canonical_sha256": "b273e74f9b00682deb03748e5a383e6e810a58bc9d473ec23f4e2d9571f0a311",
           "output_token_ids_sha256": "e28506f05dd5b7de8f19295ec68d763b3b9d6f24eeb760635630100ef0c9411f",
           "padded_prefill_tokens": 672,
-          "prefill_tokens_per_second": 322.85705897196056,
+          "prefill_tokens_per_second": 324.07081316266414,
           "prefix_cache": {
+            "active_kv_reused": false,
             "hits": 0,
             "implemented": true,
             "lookup": "disabled",
             "matched_tokens": 0,
             "misses": 0,
+            "restore_wall_ms": 0.0,
             "scope": "capacity-bounded-variable-exact-or-append-lru",
             "suffix_aot_launches": 0,
             "suffix_decode_tokens": 0,
@@ -4921,16 +4925,16 @@
           "prompt_token_ids_sha256": "36946ec2e298a02ef43f7c7d33f01d04a26479a2944ef8b0b55148838f77867b",
           "prompt_tokens": 352,
           "request_index": 2,
-          "request_wall_ms": 4820.882925,
+          "request_wall_ms": 4819.665601,
           "runtime": "native-resident-q352",
           "structured_decoding": {
             "enabled": false,
             "token_mask_upload_bytes": 0,
             "token_selections": 0
           },
-          "ttft_ms": 1090.26577,
+          "ttft_ms": 1086.182358,
           "vl": {
-            "embedding_injection_wall_ms": 0.053771,
+            "embedding_injection_wall_ms": 0.05241,
             "enabled": true,
             "host_to_device_bytes": 788352,
             "image_count": 1,
@@ -4940,13 +4944,13 @@
             "media_cache_resident_bytes": 786863,
             "media_count": 1,
             "media_decode_wall_ms": 0.0,
-            "media_load_decode_wall_ms": 0.045081,
-            "media_load_wall_ms": 0.045081,
+            "media_load_decode_wall_ms": 0.04481,
+            "media_load_wall_ms": 0.04481,
             "processor_wall_ms": 0.0,
             "source_bytes": 5467,
             "video_count": 0,
             "vision_batch_count": 1,
-            "vision_encode_wall_ms": 16.022426,
+            "vision_encode_wall_ms": 16.911024,
             "vision_max_batch_patches": 256,
             "vision_max_batch_tokens": 64,
             "vision_patches": 256,
@@ -4985,20 +4989,20 @@
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     "stdout": {
-      "bytes": 136229,
+      "bytes": 136317,
       "path": "native-vl-generation-current-head-v0.1.0-raw/probe.stdout.json",
-      "sha256": "a1541db008d0be5eed64768da7fcdd1f60a31ff423e472224e78ec172907c180"
+      "sha256": "25c06ad4c789ed584d03ff2234ffbcbfe9392114ab959c213c530858a5ebbd91"
     },
     "weight_load": {
-      "bytes": 1150,
+      "bytes": 3019,
       "path": "native-vl-generation-current-head-v0.1.0-raw/native-weight-load.json",
-      "sha256": "7658e55985053d59f8ffbfb15918a0973930526c003d63baca0b8bbffb3c0289"
+      "sha256": "b961809222c62195b8d8e51bcda8ad18f645ce29e952ccc33406fe2047a7b13c"
     }
   },
   "schema": "aima-amd395-qwen36/native-vl-generation-qualification/v1",
   "scope": "current-head-two-vl-tool-generation-logits-layers-and-prefill-state",
   "source": {
-    "commit": "c7bae9436339b3794a627e40d432158a89b00805",
+    "commit": "1c5f6387898d0ae37d06234c5930221fe0ec5404",
     "dirty": false,
     "files": [
       {
@@ -5032,9 +5036,9 @@
         "sha256": "d87fab7c64f6fd53b92106203694f0f8fb4159de4f80d96c5a097cbb5369b1be"
       },
       {
-        "bytes": 8714,
+        "bytes": 9589,
         "path": "native/include/aima/native_pointwise.h",
-        "sha256": "4acdcfa2306a77daf40d134696bd84db5102767899b82e922bb4eb33054ee993"
+        "sha256": "5694a49f6fdd58805b088c4fd8d40aa487d033586887cadabac3638098c01f23"
       },
       {
         "bytes": 14309,
@@ -5042,19 +5046,19 @@
         "sha256": "1b6b62085e295c8c61a17e8cf003042c16842c96b6d23bcd0e758f94a08a9861"
       },
       {
-        "bytes": 13116,
+        "bytes": 13250,
         "path": "native/src/native_decode_runner.hip.cpp",
-        "sha256": "761d05a5e503d5805a0aca75dd2a31569b631e4903cd929fc4c01cd6255f9b7b"
+        "sha256": "5698dfdc509b9364795697557da2f4c9510056a7c4697cf54d4178e23ff64b53"
       },
       {
-        "bytes": 91711,
+        "bytes": 106656,
         "path": "native/src/native_resident_engine.hip.cpp",
-        "sha256": "5868f76a024e4303744370abecdb01236415c219cb4a61f8e0c482250789348d"
+        "sha256": "06556de7926f58f9ea42da5200d94206a8a01018a17aef4827054fdee6298b96"
       },
       {
-        "bytes": 108263,
+        "bytes": 108497,
         "path": "native/src/native_http_server.cpp",
-        "sha256": "b9c2802b5daa994fc6c613a4ecd32f02132a6f56bdb0d3515a0693854e491eb5"
+        "sha256": "fc44751093fb82abec43c0ccc5347611a826bc42e5f457c9ce102c2a835f04e6"
       },
       {
         "bytes": 47428,
@@ -5072,24 +5076,24 @@
         "sha256": "e23cf46f5b1b3f026591a494cc593a68d65edeaec643ce8eb30ff35416ebe541"
       },
       {
-        "bytes": 18760,
+        "bytes": 19391,
         "path": "native/src/native_full_layer.hip.cpp",
-        "sha256": "de4f85b24e2b525593efb79e1cfebdcc152902660a07880d5307a9f51df9343b"
+        "sha256": "cd9196da53cbc325bbd077c0935857e800508b9e1e13f4c8ee68c460b5ffa84d"
       },
       {
-        "bytes": 28309,
+        "bytes": 31001,
         "path": "native/src/native_linear_layer.hip.cpp",
-        "sha256": "7b99f7a7bbf3d8ceee67a254f2528de8a96fb21fd78db24bb6ae8cb1298395f3"
+        "sha256": "512820285da893a1a479e4bc5e8ca6fe2f9443ad236846b73560216c5c19efb7"
       },
       {
-        "bytes": 53106,
+        "bytes": 60163,
         "path": "native/src/native_pointwise.hip.cpp",
-        "sha256": "91dbfbee0ec37d62080358d3629de4772a768160310b0ff9402a2b96248d5b49"
+        "sha256": "92ff6433ce8ce0ed09d549dc05b766d1df006c0f4e15dd885654bb85e82a4a98"
       },
       {
-        "bytes": 241306,
+        "bytes": 241545,
         "path": "native/src/main.cpp",
-        "sha256": "74cfbf76bf328d308648698f7a9f55d2b3c74806baade57291aa88558fef2763"
+        "sha256": "6c7886c9f604092b11e2e25160d2cd806502fedf3a8ea4f32fce1d44f054484a"
       },
       {
         "bytes": 39050,

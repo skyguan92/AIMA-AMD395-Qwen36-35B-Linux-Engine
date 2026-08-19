@@ -145,6 +145,38 @@ class NativePairedTextMatrixTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             paired.pair_order(0)
 
+    def test_pair_count_override_only_extends_one_frozen_job(self) -> None:
+        counts = paired.resolve_pair_counts(5, ["261632/512=7"])
+        self.assertEqual(counts[(261632, (512,))], 7)
+        self.assertEqual(counts[(261120, (1024,))], 5)
+        self.assertEqual(counts[(8192, (512, 1024))], 5)
+
+        with self.assertRaisesRegex(ValueError, "cannot reduce"):
+            paired.resolve_pair_counts(5, ["261632/512=4"])
+        with self.assertRaisesRegex(ValueError, "not a frozen job"):
+            paired.resolve_pair_counts(5, ["7680/1=7"])
+        with self.assertRaisesRegex(ValueError, "duplicate"):
+            paired.resolve_pair_counts(
+                5, ["261632/512=7", "261632/512=9"]
+            )
+
+    def test_resume_sequence_appends_after_existing_records(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            older = root / "raw/q1024-o512-1024/pair-01/baseline.json"
+            newer = root / "raw/q261120-o1024/pair-05/candidate.json"
+            ignored = root / "raw/q261120-o1024/pair-05/load.json"
+            for path, value in ((older, 1), (newer, 110)):
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(
+                    json.dumps({"qualification": {"sequence_index": value}}),
+                    encoding="utf-8",
+                )
+            ignored.write_text("{}", encoding="utf-8")
+            self.assertEqual(
+                paired.maximum_recorded_sequence_index(root), 110
+            )
+
     def write_pairs(
         self,
         root: Path,
@@ -257,6 +289,42 @@ class NativePairedTextMatrixTest(unittest.TestCase):
         self.assertTrue(paired.candidate_text_path_is_idle(clean))
         clean["requests"][0]["prefill_vl_unified_attention_launches"] = 1
         self.assertFalse(paired.candidate_text_path_is_idle(clean))
+
+    def test_single_request_candidate_omits_disabled_cache_backing(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            path = paired.report_path(root, 261120, (1024,), 1, "candidate")
+            path.parent.mkdir(parents=True)
+            value = payload(
+                role="candidate",
+                pair_index=1,
+                context=261120,
+                outputs=(1024,),
+                engine_sha256="c" * 64,
+                prefill_tps=560.0,
+                prefill_wall_ms=466_000.0,
+                decode_tps=18.0,
+                decode_wall_ms=57_000.0,
+            )
+            value["requests"][0]["prefix_cache_lookup"] = "disabled"
+            value["load"].update(
+                {"prefix_cache_entries": 0, "exact_prefix_cache_bytes": 0}
+            )
+            path.write_text(json.dumps(value), encoding="utf-8")
+            arguments = {
+                "context": 261120,
+                "outputs": (1024,),
+                "role": "candidate",
+                "pair_index": 1,
+                "order": paired.pair_order(1),
+                "engine_sha256": "c" * 64,
+            }
+            self.assertTrue(paired.report_complete(path, **arguments))
+            value["load"]["exact_prefix_cache_bytes"] = 1
+            path.write_text(json.dumps(value), encoding="utf-8")
+            self.assertFalse(paired.report_complete(path, **arguments))
 
     def test_startup_gate_uses_the_frozen_absolute_ceiling(self) -> None:
         pairs = [

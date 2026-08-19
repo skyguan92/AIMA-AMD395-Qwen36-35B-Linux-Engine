@@ -38,6 +38,9 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
             ROOT / "native/src/native_resident_engine.hip.cpp"
         ).read_text(encoding="utf-8")
         main = (ROOT / "native/src/main.cpp").read_text(encoding="utf-8")
+        http = (ROOT / "native/src/native_http_server.cpp").read_text(
+            encoding="utf-8"
+        )
         runtime_build = (ROOT / "scripts/build-native-runtime.sh").read_text(
             encoding="utf-8"
         )
@@ -53,7 +56,12 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         self.assertIn('prefix + "a.weight"', source)
         self.assertIn('prefix + "b.weight"', source)
         self.assertIn("tokens, kMergedColumns, kHidden", source)
-        self.assertIn("router_gemm_plans->moe_router()", source)
+        self.assertIn(
+            "router_gemm_plans->prepare_logical_linear_and_moe()", source
+        )
+        self.assertIn("void prepare_logical_linear_and_moe();", (
+            ROOT / "native/include/aima/native_prefill_gemm_plans.h"
+        ).read_text(encoding="utf-8"))
 
         self.assertIn("logical_ab_gemm_plan->launch", linear)
         self.assertIn("launch_extract_compact_linear_ab", linear)
@@ -62,11 +70,20 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
 
         self.assertIn("if (mrope_plan != nullptr)", resident)
         self.assertIn("segment.bucket_tokens != 1024 || !segment.padded()", resident)
+        self.assertIn("segment.bucket_tokens == 1024 && segment.padded()", resident)
         self.assertIn("vl_logical_projections.prepare", resident)
         self.assertIn("attention_options.logical_ab_gemm_plan", resident)
         self.assertIn("moe_options.logical_router_gemm_plans", resident)
         self.assertIn("vl_logical_projections_enabled", main)
         self.assertIn("vl_logical_projection_plan_reused", main)
+        for metric in (
+            "logical_projection_tokens",
+            "logical_projection_plan_count",
+            "logical_projection_workspace_bytes",
+            "logical_projection_plan_build_wall_ms",
+            "logical_projection_plan_reused",
+        ):
+            self.assertIn(f'{{"{metric}"', http)
         self.assertIn("native_vl_logical_projections.hip.cpp", runtime_build)
         self.assertIn("native_vl_logical_projections.hip.cpp", layer0_build)
 
@@ -169,6 +186,15 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         self.assertIn(
             "q1024_official_fla && options.use_vl_rmsnorm_semantics",
             linear_source,
+        )
+        self.assertIn("tokens != bucket_tokens", linear_source)
+        self.assertIn(
+            "attention_options.active_tokens = segment.input_tokens",
+            resident_source,
+        )
+        self.assertIn(
+            "moe_options.active_tokens = segment.input_tokens",
+            resident_source,
         )
         self.assertIn(
             "attention_options.use_vl_rmsnorm_semantics = vl_input != nullptr",

@@ -6,6 +6,7 @@
 
 namespace aima {
 
+class Bf16GemmPlan;
 class NativeWeightStore;
 
 // Executes the suffix of one Qwen3.6 vision block after segmented attention:
@@ -16,6 +17,12 @@ class NativeVisionBlockSuffixPlan {
   NativeVisionBlockSuffixPlan(const NativeWeightStore& weights,
                               std::size_t block_index,
                               std::size_t patch_count);
+  NativeVisionBlockSuffixPlan(
+      const NativeWeightStore& weights, std::size_t block_index,
+      std::size_t patch_count,
+      std::shared_ptr<Bf16GemmPlan> attention_projection_gemm,
+      std::shared_ptr<Bf16GemmPlan> mlp_fc1_gemm,
+      std::shared_ptr<Bf16GemmPlan> mlp_fc2_gemm);
   ~NativeVisionBlockSuffixPlan();
   NativeVisionBlockSuffixPlan(const NativeVisionBlockSuffixPlan&) = delete;
   NativeVisionBlockSuffixPlan& operator=(

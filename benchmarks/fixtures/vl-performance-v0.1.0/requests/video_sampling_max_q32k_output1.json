@@ -1,0 +1,21 @@
+{
+  "max_tokens": 1,
+  "messages": [
+    {
+      "content": [
+        {
+          "text": "Benchmark ${AIMA_VL_PROMPT_NONCE}. Inspect every supplied media item. Answer with one token.",
+          "type": "text"
+        },
+        {
+          "type": "video_url",
+          "video_url": {
+            "url": "file://${AIMA_VL_MEDIA_ROOT}/vl-envelope-v0.1.0/video-sampling-maximum-9216f-24fps-256x256.mp4"
+          }
+        }
+      ],
+      "role": "user"
+    }
+  ],
+  "temperature": 0
+}

@@ -161,7 +161,8 @@ NativeVlLogicalProjectionState::prepare(std::size_t tokens) {
   metrics.tokens = tokens;
   if (impl_->prepared_tokens == tokens && impl_->ab_plan != nullptr &&
       impl_->router_gemm_plans != nullptr) {
-    metrics.plan_count = 2;
+    metrics.plan_count =
+        impl_->router_gemm_plans->built_plan_count() + 1;
     metrics.workspace_bytes =
         impl_->ab_plan->workspace_bytes() +
         impl_->router_gemm_plans->workspace_bytes();
@@ -176,11 +177,12 @@ NativeVlLogicalProjectionState::prepare(std::size_t tokens) {
   impl_->prepared_tokens = 0;
   impl_->router_gemm_plans =
       std::make_unique<NativeQ8192PrefillGemmPlans>(tokens);
-  (void)impl_->router_gemm_plans->moe_router();
+  impl_->router_gemm_plans->prepare_logical_linear_and_moe();
   impl_->ab_plan = std::make_unique<Bf16GemmPlan>(
       tokens, kMergedColumns, kHidden, kWorkspaceLimit, true);
   impl_->prepared_tokens = tokens;
-  metrics.plan_count = 2;
+  metrics.plan_count =
+      impl_->router_gemm_plans->built_plan_count() + 1;
   metrics.workspace_bytes =
       impl_->ab_plan->workspace_bytes() +
       impl_->router_gemm_plans->workspace_bytes();

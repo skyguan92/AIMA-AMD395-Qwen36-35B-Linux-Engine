@@ -31,11 +31,10 @@ struct NativeVlLogicalProjectionPrepareMetrics {
   bool prepared = false;
 };
 
-// Resident owner for the two logical-M projection surfaces that differ from
-// the zero-padded q1024 hipBLASLt geometry: the merged 64-column linear A/B
-// projection and the 256-column MoE router. A/B weights and compact output
-// scratch are ready-time residents; only the two shape descriptors change
-// when a multimodal prompt has a new logical token count.
+// Resident owner for the logical-M projection surfaces of a padded q1024 VL
+// request. A/B weights and compact output scratch are ready-time residents;
+// only the hipBLASLt shape descriptors change when a multimodal prompt has a
+// new logical token count. The fixed AOT storage/grid capacity remains q1024.
 class NativeVlLogicalProjectionState {
  public:
   NativeVlLogicalProjectionState();

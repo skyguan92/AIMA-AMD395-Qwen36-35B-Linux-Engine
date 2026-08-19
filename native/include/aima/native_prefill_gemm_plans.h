@@ -38,6 +38,9 @@ class NativeQ8192PrefillGemmPlans {
   Bf16GemmPlan& moe_router();
 
   void prepare_all();
+  // Materializes only the linear-attention and MoE plans consumed by the
+  // active-token VL path. Full-attention stays on the resident q1024 owner.
+  void prepare_logical_linear_and_moe();
   // Materializes the two hipBLASLt kernels that otherwise pay a one-time
   // module/solution setup gap inside the first frozen q1024 text request.
   // The warmup uses private zero buffers and is complete before READY.

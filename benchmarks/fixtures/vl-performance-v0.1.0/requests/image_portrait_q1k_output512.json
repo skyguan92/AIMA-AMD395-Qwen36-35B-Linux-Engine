@@ -1,0 +1,21 @@
+{
+  "max_tokens": 512,
+  "messages": [
+    {
+      "content": [
+        {
+          "text": "Benchmark ${AIMA_VL_PROMPT_NONCE}. Inspect every supplied media item. For deterministic decode measurement, emit the digit 1 followed by one space repeatedly. Do not explain, conclude, or stop; continue until the server output limit.",
+          "type": "text"
+        },
+        {
+          "image_url": {
+            "url": "file://${AIMA_VL_MEDIA_ROOT}/vl-envelope-v0.1.0/image-portrait-256x1024.png"
+          },
+          "type": "image_url"
+        }
+      ],
+      "role": "user"
+    }
+  ],
+  "temperature": 0
+}

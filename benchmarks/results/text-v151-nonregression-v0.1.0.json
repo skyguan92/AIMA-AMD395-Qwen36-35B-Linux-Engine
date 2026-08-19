@@ -1,0 +1,190 @@
+{
+  "baseline": {
+    "binary_sha256": "a9f18771175757af080c8a1d8d7e3fb3906c9aa41b43a496686103b626f80262",
+    "release": "v1.5.1",
+    "source_commit": "65c198415709dad6d046c247acab3dc9df2a95a0"
+  },
+  "candidate": {
+    "binary_sha256": "99bd1e3f7f3248192c1309af27ecc4f9c696b6d2fa5d30fd8356bd33cb5b64d7",
+    "source_commit": "91f7e8b300d87655f9cce6399519b284c1e5a978"
+  },
+  "checks": {
+    "correctness": {
+      "all_kld_strictly_below_0_005": true,
+      "all_top1_match": true,
+      "candidate_identity": true,
+      "complete": true,
+      "nine_contexts_exact": true,
+      "q8192_exact_128_qualified": true,
+      "qualified": true
+    },
+    "doctor": {
+      "all_26_model_shards": true,
+      "all_required_checks_pass": true,
+      "complete": true,
+      "gfx1151": true,
+      "gtt_at_least_96_gib": true,
+      "qualified": true,
+      "source_identity": true,
+      "vram_512_mib": true
+    },
+    "mmlu256": {
+      "all_256_items_completed": true,
+      "all_text_paths_idle": true,
+      "candidate_identity": true,
+      "complete": true,
+      "invalid_answers_zero": true,
+      "prompt_hashes_256_of_256": true,
+      "qualified": true,
+      "reference_nonregression": true,
+      "score_at_least_218": true
+    },
+    "openai_features": {
+      "all_api_surfaces_pass": true,
+      "all_fourteen_text_paths_idle": true,
+      "candidate_identity": true,
+      "complete": true,
+      "qualified": true,
+      "single_resident_model_load": true
+    },
+    "paired_text_matrix": {
+      "all_candidate_text_paths_idle": true,
+      "all_cells_six_pair_order_balanced_strict_no_regression": true,
+      "baseline_identity": true,
+      "candidate_identity": true,
+      "complete": true,
+      "exactly_nineteen_frozen_cells": true,
+      "q8192_startup_qualified": true,
+      "qualified": true
+    },
+    "product_surfaces": {
+      "baseline_identity": true,
+      "candidate_identity": true,
+      "complete": true,
+      "prefix_five_pair_no_regression": true,
+      "qualified": true,
+      "resident_http_and_text_idle": true,
+      "startup_at_most_44_90_seconds": true
+    }
+  },
+  "complete": true,
+  "cross_evidence_checks": {
+    "one_exact_candidate_binary": true,
+    "one_exact_candidate_source": true,
+    "one_exact_release_baseline": true,
+    "same_host": true
+  },
+  "decision": {
+    "g1_full_vl_functional_parity": false,
+    "g2_vl_correctness_parity": false,
+    "g3_text_product_no_regression": true,
+    "g4_native_vl_performance": false,
+    "g5_native_release_product": false,
+    "next_blocking_boundary": "run the G4 VL diagnostic and any required optimization first, then replay exact-source G1/G2/G3 evidence once on the final engine before G4 and G5 release qualification"
+  },
+  "inputs": {
+    "correctness": {
+      "bytes": 10003,
+      "path": "benchmarks/runs/native-correctness-20260818-native-vl-final/correctness.json",
+      "sha256": "401659a914469e11d20582761c3403a6160528de5faa84d6a008629b94d72d05"
+    },
+    "doctor": {
+      "bytes": 4594,
+      "path": "benchmarks/runs/native-doctor-20260818-native-vl-final/doctor.json",
+      "sha256": "26098d80588913586a52dba1ab1a2016fe2c0d2317e267fdf13807cb0d6358ca"
+    },
+    "generator": {
+      "bytes": 23350,
+      "path": "scripts/generate-native-vl-g3-qualification.py",
+      "sha256": "a1c3d15a27c5963028af0b0af5a7b9dd6266762e007ce7bba2156dd5c18c5866"
+    },
+    "goal": {
+      "bytes": 18354,
+      "path": "docs/NATIVE_VL_GOAL.md",
+      "sha256": "4884803ea4c74a3082d949646ad31684536e672a39e229da796589009b0d212c"
+    },
+    "mmlu256": {
+      "bytes": 310285,
+      "path": "benchmarks/runs/native-mmlu256-eval-20260818-native-vl-final/mmlu256.json",
+      "sha256": "e7115148ec991af412667c9ba37bfb93f52ef6b925f5735a00127816374bbf08"
+    },
+    "openai_features": {
+      "bytes": 21190,
+      "path": "benchmarks/runs/native-openai-features-20260818-native-vl-final/features.json",
+      "sha256": "345c8b542e49fbc9e95591cb01397be58cea4d873b8404bfbf60ee6e76583df3"
+    },
+    "paired_text_matrix": {
+      "bytes": 223448,
+      "path": "benchmarks/runs/native-paired-text-matrix-20260818-native-vl-final-v46-balanced6/matrix.json",
+      "sha256": "f40a188b4a4d10fb456a1eb697b238c7deb8b0d3619f99783fd5847ca035d1b0"
+    },
+    "product_surfaces": {
+      "bytes": 11310,
+      "path": "benchmarks/runs/native-product-surfaces-20260818-native-vl-final/surfaces.json",
+      "sha256": "102fb25a117d2c2e98a8934e7e4b5d0da61701a73adbc294b5cf07d2d379d25a"
+    }
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "canonical_payload_sha256": "520097e1436d5e1f900af5a89cfd9ae32a6df29e57980af334dfde09a236f69c"
+  },
+  "qualified": true,
+  "recorded_on": "2026-08-19",
+  "schema": "aima-amd395-qwen36/text-v151-nonregression/v1",
+  "scope": "NATIVE_VL_GOAL.md G3 exact-binary text product no-regression",
+  "summaries": {
+    "correctness": {
+      "case_count": 9,
+      "context_tokens": [
+        1024,
+        2048,
+        4096,
+        8192,
+        16384,
+        32768,
+        65536,
+        131072,
+        261632
+      ],
+      "exact_completion_tokens": 128,
+      "exact_output_token_ids_sha256": "aa910692fd03ed4a8e89c04497751e3a28eee36c6148237f7e97c74a6dd68201",
+      "maximum_kl_divergence": 0.0021737683334905086,
+      "top1_matches": 9
+    },
+    "doctor": {
+      "gtt_bytes": 103079215104,
+      "model_shards": 26,
+      "required_checks": 13,
+      "required_checks_passed": 13,
+      "vram_bytes": 536870912
+    },
+    "mmlu256": {
+      "correct": 218,
+      "correct_delta": 2,
+      "invalid_answers": 0,
+      "items": 256,
+      "prompt_token_hash_matches": 256,
+      "reference_correct": 216
+    },
+    "openai_features": {
+      "model_loads": 1,
+      "served": 14,
+      "surface_count": 7,
+      "text_path_idle_requests": 14
+    },
+    "paired_text_matrix": {
+      "cell_count": 19,
+      "maximum_total_wall_candidate_over_baseline": 0.9902703643424347,
+      "minimum_decode_tps_candidate_over_baseline": 1.0089887130948163,
+      "minimum_pair_count": 6,
+      "minimum_prefill_tps_candidate_over_baseline": 1.0031282016047185,
+      "q8192_candidate_command_to_ready_median_ms": 40356.5707445
+    },
+    "product_surfaces": {
+      "prefix_decode_retention_candidate_over_baseline": 1.0003603600330426,
+      "prefix_pair_count": 5,
+      "prefix_ttft_speedup_candidate_over_baseline": 2.906077155268618,
+      "startup_command_to_ready_median_ms": 39324.177083
+    }
+  }
+}

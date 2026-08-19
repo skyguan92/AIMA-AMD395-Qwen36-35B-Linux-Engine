@@ -317,7 +317,7 @@ def build_requirements() -> list[dict[str, Any]]:
         requirement(
             "G1.2.1.generation",
             "Greedy tokens, finish reason, usage and response parity",
-            "partial",
+            "covered",
             [
                 evidence(
                     "native_capability",
@@ -348,15 +348,10 @@ def build_requirements() -> list[dict[str, Any]]:
                 evidence(
                     "task_quality_native",
                     note=(
-                        "12/12 long image/video tasks meet the fixed-vLLM quality "
-                        "floor; prompt vectors are 12/12 exact"
+                        "12/12 long image/video tasks are reference-exact for "
+                        "generated content, output tokens, usage, finish reason "
+                        "and rendered prompt vectors"
                     ),
-                ),
-            ],
-            [
-                (
-                    "two long greedy task cases retain generated-content and "
-                    "output-token parity diagnostics"
                 ),
             ],
         ),
@@ -764,11 +759,19 @@ def validate_inputs(payloads: dict[str, dict[str, Any]]) -> None:
         task_native["decision"].get(
             "twelve_long_greedy_cases_reference_exact"
         )
-        is not False
+        is not True
+        or task_native["decision"].get(
+            "twelve_output_token_vectors_exact"
+        )
+        is not True
         or task_native["matrix"].get("exact_output_token_vectors")
-        != "10/12"
+        != "12/12"
+        or task_native["matrix"].get("exact_generated_content") != "12/12"
+        or task_native["matrix"].get("exact_reference_usage") != "12/12"
+        or task_native["matrix"].get("exact_reference_finish_reason")
+        != "12/12"
     ):
-        raise SystemExit("native task-quality generation gap changed")
+        raise SystemExit("native task-quality generation exactness changed")
     generation_errors = validate_generation_oracle_manifest(
         generation_oracle, oracle_root=GENERATION_ORACLE_ROOT
     )
@@ -1035,7 +1038,7 @@ def build_payload() -> dict[str, Any]:
     ]
     return {
         "schema": "aima-amd395-qwen36/native-vl-g1-coverage-audit/v1",
-        "audited_on": "2026-08-16",
+        "audited_on": "2026-08-18",
         "complete": True,
         "qualified": False,
         "scope": "goal-sections-2.1-through-2.4-requirement-to-evidence",
@@ -1051,13 +1054,11 @@ def build_payload() -> dict[str, Any]:
         "blocking_gaps": blockers,
         "next_evidence": [
             {
-                "evidence_id": "g1-long-generation-and-g3-requalification",
+                "evidence_id": "g3-requalification",
                 "requirement_ids": [
-                    "G1.2.1.generation",
                     "G1.2.3.product_preservation",
                 ],
                 "cases": [
-                    "resolve_two_long_greedy_generation_differences",
                     "complete_g3_text_nonregression",
                 ],
             },
@@ -1067,7 +1068,7 @@ def build_payload() -> dict[str, Any]:
             "all_referenced_cases_qualified": True,
             "current_head_processor_to_output_qualified": True,
             "twelve_task_quality_cases_qualified": True,
-            "twelve_long_greedy_cases_reference_exact": False,
+            "twelve_long_greedy_cases_reference_exact": True,
             "coverage_complete": counts["partial"] == 0
             and counts["missing"] == 0,
             "new_evidence_required": counts["partial"] > 0

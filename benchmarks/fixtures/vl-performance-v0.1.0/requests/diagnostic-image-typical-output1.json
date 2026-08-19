@@ -1,0 +1,21 @@
+{
+  "max_tokens": 1,
+  "messages": [
+    {
+      "content": [
+        {
+          "image_url": {
+            "url": "file://${AIMA_VL_MEDIA_ROOT}/vl-envelope-v0.1.0/image-portrait-256x1024.png"
+          },
+          "type": "image_url"
+        },
+        {
+          "text": "Describe briefly.",
+          "type": "text"
+        }
+      ],
+      "role": "user"
+    }
+  ],
+  "temperature": 0
+}

@@ -48,20 +48,27 @@ struct NativeVisionAotBlockStackPlan::Impl {
             checked_multiply(patches, kVisionHidden),
             sizeof(std::uint16_t))),
         attention(std::make_shared<NativeVisionAotAttentionPlan>(
-            attention_image_path, patches, cu_seqlens)) {
+            attention_image_path, patches, cu_seqlens)),
+        gemm_plans(
+            std::make_shared<NativeVisionAotBlockGemmPlans>(patches)) {
     if (patches == 0) {
       throw std::invalid_argument("native AOT vision block stack is empty");
     }
-    library_workspace_bytes_value = attention->workspace_bytes();
+    library_workspace_bytes_value =
+        checked_add(attention->workspace_bytes(),
+                    gemm_plans->workspace_bytes());
     blocks.reserve(kVisionBlockCount);
     for (std::size_t block_index = 0; block_index < kVisionBlockCount;
          ++block_index) {
-      blocks.emplace_back(weights, block_index, patches, attention);
+      blocks.emplace_back(weights, block_index, patches, attention,
+                          gemm_plans);
       block_temporary_bytes =
           std::max(block_temporary_bytes, blocks.back().temporary_bytes());
-      library_workspace_bytes_value = checked_add(
-          library_workspace_bytes_value,
-          blocks.back().library_workspace_bytes());
+      if (blocks.back().library_workspace_bytes() !=
+          gemm_plans->workspace_bytes()) {
+        throw std::runtime_error(
+            "native AOT vision block stack GEMM plans disagree");
+      }
     }
     temporary_bytes_value =
         checked_add(intermediate_bytes, block_temporary_bytes);
@@ -73,6 +80,7 @@ struct NativeVisionAotBlockStackPlan::Impl {
   std::size_t temporary_bytes_value = 0;
   std::size_t library_workspace_bytes_value = 0;
   std::shared_ptr<const NativeVisionAotAttentionPlan> attention;
+  std::shared_ptr<NativeVisionAotBlockGemmPlans> gemm_plans;
   std::vector<NativeVisionAotBlockPlan> blocks;
 };
 

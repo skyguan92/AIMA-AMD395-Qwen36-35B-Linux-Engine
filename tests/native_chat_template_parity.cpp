@@ -96,6 +96,23 @@ int main(int argc, char** argv) {
       "e763e00178be9cbb2df3de13e9b393d815e976ecdd4e8e9ddea01260b165566c",
       333);
 
+  constexpr std::size_t kNearWindowVisualTokens = 245760;
+  constexpr std::uint32_t kImagePadTokenId = 248056;
+  std::string near_window_media_tokens;
+  near_window_media_tokens.reserve(
+      kNearWindowVisualTokens * std::string("<|image_pad|>").size());
+  for (std::size_t index = 0; index < kNearWindowVisualTokens; ++index) {
+    near_window_media_tokens += "<|image_pad|>";
+  }
+  const std::vector<std::uint32_t> near_window_ids =
+      tokenizer.encode(near_window_media_tokens);
+  if (near_window_ids.size() != kNearWindowVisualTokens ||
+      !std::all_of(near_window_ids.begin(), near_window_ids.end(),
+                   [](std::uint32_t id) { return id == kImagePadTokenId; })) {
+    std::cerr << "near-window added-token scan drifted\n";
+    return 1;
+  }
+
   const Json named_tool_request = {
       {"messages",
        Json::array({{{"role", "user"}, {"content", "Inspect it"}}})},

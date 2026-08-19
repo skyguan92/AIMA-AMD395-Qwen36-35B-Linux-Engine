@@ -16,6 +16,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <thread>
 
 namespace aima {
 namespace {
@@ -48,6 +49,44 @@ std::size_t checked_sum(std::size_t left, std::size_t right,
     throw std::invalid_argument(std::string(label) + " overflows");
   }
   return left + right;
+}
+
+template <typename RowFunction>
+void for_each_resize_row(std::size_t row_count, std::size_t column_count,
+                         RowFunction function) {
+  constexpr std::size_t kParallelPixelThreshold = 128 * 1024;
+  constexpr std::size_t kMaximumWorkers = 16;
+  const std::size_t pixels =
+      checked_product(row_count, column_count, "VL resize work");
+  const unsigned int hardware_workers = std::thread::hardware_concurrency();
+  const std::size_t worker_count =
+      pixels >= kParallelPixelThreshold && hardware_workers > 1
+          ? std::min(
+                {row_count, kMaximumWorkers,
+                 static_cast<std::size_t>(hardware_workers)})
+          : 1;
+  if (worker_count <= 1) {
+    for (std::size_t row = 0; row < row_count; ++row) function(row);
+    return;
+  }
+
+  std::vector<std::thread> workers;
+  workers.reserve(worker_count - 1);
+  const auto run_worker = [&](std::size_t worker) {
+    const std::size_t begin = row_count * worker / worker_count;
+    const std::size_t end = row_count * (worker + 1) / worker_count;
+    for (std::size_t row = begin; row < end; ++row) function(row);
+  };
+  try {
+    for (std::size_t worker = 1; worker < worker_count; ++worker) {
+      workers.emplace_back(run_worker, worker);
+    }
+  } catch (...) {
+    for (std::thread& worker : workers) worker.join();
+    throw;
+  }
+  run_worker(0);
+  for (std::thread& worker : workers) worker.join();
 }
 
 // Python round() and NumPy rint use ties-to-even. std::round instead rounds
@@ -337,7 +376,7 @@ NativeRgbFrame resize_width(const NativeRgbFrame& frame,
   output.pixels.resize(checked_product(
       checked_product(output.height, output.width, "VL resized frame"),
       kRgbChannels, "VL resized frame"));
-  for (std::size_t y = 0; y < output.height; ++y) {
+  for_each_resize_row(output.height, output.width, [&](std::size_t y) {
     for (std::size_t x = 0; x < output.width; ++x) {
       const std::size_t start = axis.starts[x];
       const std::int16_t* const weights =
@@ -355,7 +394,7 @@ NativeRgbFrame resize_width(const NativeRgbFrame& frame,
             fixed_resize_sample(accumulated, axis.precision);
       }
     }
-  }
+  });
   return output;
 }
 
@@ -370,7 +409,7 @@ NativeRgbFrame resize_height(const NativeRgbFrame& frame,
   output.pixels.resize(checked_product(
       checked_product(output.height, output.width, "VL resized frame"),
       kRgbChannels, "VL resized frame"));
-  for (std::size_t y = 0; y < output.height; ++y) {
+  for_each_resize_row(output.height, output.width, [&](std::size_t y) {
     const std::size_t start = axis.starts[y];
     const std::int16_t* const weights =
         axis.weights.data() + y * axis.weight_stride;
@@ -388,7 +427,7 @@ NativeRgbFrame resize_height(const NativeRgbFrame& frame,
             fixed_resize_sample(accumulated, axis.precision);
       }
     }
-  }
+  });
   return output;
 }
 

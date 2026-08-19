@@ -196,6 +196,15 @@ void NativeQ8192PrefillGemmPlans::prepare_all() {
   (void)moe_router();
 }
 
+void NativeQ8192PrefillGemmPlans::prepare_logical_linear_and_moe() {
+  (void)linear_fused_input();
+  (void)linear_output();
+  (void)moe_shared_gate();
+  (void)moe_shared_projection();
+  (void)moe_shared_down();
+  (void)moe_router();
+}
+
 void NativeQ8192PrefillGemmPlans::warm_up_q1024_text() {
   if (impl_->tokens != 1024) {
     throw std::invalid_argument(

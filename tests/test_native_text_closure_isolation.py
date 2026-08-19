@@ -130,6 +130,9 @@ class NativeTextClosureIsolationTest(unittest.TestCase):
         )[0]
         self.assertIn("launches[5].launch->symbol", q1024_owner)
         self.assertIn("merge_16x16_to_64x64_inverse_kernel", q1024_owner)
+        self.assertIn("tokens != bucket_tokens", linear)
+        self.assertIn("attention_options.active_tokens = segment.input_tokens", resident)
+        self.assertIn("moe_options.active_tokens = segment.input_tokens", resident)
         self.assertIn("frozen_text_q1024_invocations", resident)
         self.assertIn("frozen_text_q1024_workspace", resident)
         self.assertIn(

@@ -430,6 +430,15 @@ struct NativeResidentVisionPlanEntry {
   std::uint64_t use = 0;
 };
 
+struct NativeResidentVisionWarmupMetrics {
+  std::size_t patches = 0;
+  std::size_t visual_tokens = 0;
+  std::size_t plan_cache_entries = 0;
+  double plan_build_wall_ms = 0.0;
+  double encode_wall_ms = 0.0;
+  bool completed = false;
+};
+
 bool same_vision_grids(const std::vector<NativeVlGrid>& left,
                        const std::vector<NativeVlGrid>& right) {
   if (left.size() != right.size()) return false;
@@ -637,6 +646,53 @@ struct NativeResidentEngine::Impl {
     return *vision_plans.back().pipeline;
   }
 
+  NativeResidentVisionWarmupMetrics warm_up_standard_vision() {
+    // vLLM profiles the visual tower before publishing READY. Match that
+    // boundary with the frozen standard portrait geometry, so the first user
+    // request does not own plan construction or first-dispatch setup.
+    const std::vector<NativeVlGrid> grids{{1, 64, 16}};
+    bool cache_hit = false;
+    double plan_build_wall_ms = 0.0;
+    NativeVisionPipelinePlan& pipeline =
+        vision_plan(grids, &cache_hit, &plan_build_wall_ms);
+    if (cache_hit || pipeline.patch_count() != 1024 ||
+        pipeline.merged_token_count() != 256) {
+      throw std::runtime_error(
+          "native standard vision warmup geometry is inconsistent");
+    }
+    const std::uint64_t pixel_bytes =
+        pipeline.patch_count() * kVisionPixelColumns *
+        sizeof(std::uint16_t);
+    const std::uint64_t embedding_bytes =
+        pipeline.merged_token_count() * kHidden *
+        sizeof(std::uint16_t);
+    ensure_vision_allocation(
+        &vision_pixel_values, &vision_pixel_capacity_bytes, pixel_bytes,
+        "hipMalloc standard vision warmup pixels");
+    ensure_vision_allocation(
+        &vision_embeddings, &vision_embedding_capacity_bytes,
+        embedding_bytes, "hipMalloc standard vision warmup embeddings");
+    ensure_vision_allocation(
+        &vision_temporary, &vision_temporary_capacity_bytes,
+        pipeline.temporary_bytes(),
+        "hipMalloc standard vision warmup temporary arena");
+    check_hip(hipMemset(vision_pixel_values, 0, pixel_bytes),
+              "hipMemset standard vision warmup pixels");
+    const auto encode_started = std::chrono::steady_clock::now();
+    pipeline.launch(vision_pixel_values, vision_embeddings,
+                    vision_temporary, vision_temporary_capacity_bytes);
+    check_hip(hipDeviceSynchronize(),
+              "hipDeviceSynchronize standard vision warmup");
+    NativeResidentVisionWarmupMetrics metrics;
+    metrics.patches = pipeline.patch_count();
+    metrics.visual_tokens = pipeline.merged_token_count();
+    metrics.plan_cache_entries = vision_plans.size();
+    metrics.plan_build_wall_ms = plan_build_wall_ms;
+    metrics.encode_wall_ms = elapsed_ms(encode_started);
+    metrics.completed = true;
+    return metrics;
+  }
+
   ~Impl() {
     if (chunked_hidden != nullptr) {
       (void)hipSetDevice(device);
@@ -802,6 +858,7 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
   NativeWeightLoadMetrics weight_metrics =
       impl_->weights.load(language_weight_options);
   NativeVlLogicalProjectionLoadMetrics vl_logical_load_metrics;
+  NativeResidentVisionWarmupMetrics vision_warmup_metrics;
   const NativeDerivedWeightMetrics derived_metrics =
       impl_->derived.build(impl_->weights, impl_->device);
   const NativeLmHeadMetrics lm_head_metrics =
@@ -1064,6 +1121,7 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
           options.cache_capacity, impl_->device);
   impl_->attention_state.bind_decode_unified_attention(
       impl_->vl_unified_attention.get());
+  vision_warmup_metrics = impl_->warm_up_standard_vision();
   write_resident_weight_report(
       combined_weight_report, language_weight_report,
       visual_weight_report, weight_metrics);
@@ -1195,6 +1253,17 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
       impl_->structured_token_mask_bytes;
   impl_->metrics.vision_plan_cache_capacity =
       kVisionPlanCacheEntries;
+  impl_->metrics.vision_warmup_patches = vision_warmup_metrics.patches;
+  impl_->metrics.vision_warmup_visual_tokens =
+      vision_warmup_metrics.visual_tokens;
+  impl_->metrics.vision_plan_cache_entries_at_ready =
+      vision_warmup_metrics.plan_cache_entries;
+  impl_->metrics.vision_warmup_plan_build_wall_ms =
+      vision_warmup_metrics.plan_build_wall_ms;
+  impl_->metrics.vision_warmup_encode_wall_ms =
+      vision_warmup_metrics.encode_wall_ms;
+  impl_->metrics.vision_warmup_completed =
+      vision_warmup_metrics.completed;
   impl_->metrics.decode_workspace_bytes =
       decode_workspace_metrics.allocation_bytes;
   impl_->metrics.attention_state_bytes = attention_metrics.allocation_bytes;
@@ -1974,6 +2043,9 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
           attention_options.has_initial_state = has_initial_state;
           attention_options.gemm_plans = chunk_gemm_plans;
           if (logical_vl_segment) {
+            attention_options.active_tokens = segment.input_tokens;
+            attention_options.gemm_plans =
+                &impl_->vl_logical_projections.router_gemm_plans();
             attention_options.logical_ab_gemm_plan =
                 &impl_->vl_logical_projections.ab_plan();
             attention_options.logical_ab_weight =
@@ -2044,6 +2116,9 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
         moe_options.comparison_tokens = segment.input_tokens;
         moe_options.gemm_plans = chunk_gemm_plans;
         if (logical_vl_segment) {
+          moe_options.active_tokens = segment.input_tokens;
+          moe_options.gemm_plans =
+              &impl_->vl_logical_projections.router_gemm_plans();
           moe_options.logical_router_gemm_plans =
               &impl_->vl_logical_projections.router_gemm_plans();
         }

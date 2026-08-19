@@ -1,0 +1,1702 @@
+{
+  "bindings": {
+    "capability_envelope": {
+      "bytes": 25910,
+      "path": "benchmarks/results/vl-capability-envelope-v0.1.0.json",
+      "sha256": "7f8431565404000ef1692da31d461d93c02c3322e420e35fefc6dc3dcd2976a6"
+    },
+    "capability_manifest": {
+      "bytes": 86659,
+      "path": "benchmarks/results/vl-capability-manifest.json",
+      "sha256": "72e64b8d5cb0c1de8a355617676c46c98c1e0f05cec7a6e3a7df79dd36560d7a"
+    },
+    "fixture_manifest": {
+      "bytes": 15241,
+      "path": "benchmarks/fixtures/vl-envelope-v0.1.0/fixtures-manifest.json",
+      "sha256": "5833acac02f6eb68d057c431e73f57434b4fc6c20c000e0ed3eec5dc00236161"
+    },
+    "generator": {
+      "bytes": 21987,
+      "path": "scripts/generate-vl-performance-matrix.py",
+      "sha256": "d63710a2baba8c500ac9d91610fe4814df57add80563eca760abcb9efda9a011"
+    }
+  },
+  "cells": [
+    {
+      "aggregate_visual_tokens": 64,
+      "cache_process": "disabled",
+      "cell_id": "image_min_short_output1",
+      "context_bucket": "short",
+      "coverage": {
+        "cache": [
+          "disabled"
+        ],
+        "context": [
+          "short"
+        ],
+        "image": [
+          "single_minimum",
+          "square"
+        ],
+        "output": [
+          "1"
+        ]
+      },
+      "expected_prompt_tokens_range": [
+        1,
+        1023
+      ],
+      "media": [
+        {
+          "bytes": 69,
+          "fixture_id": "image-minimum-1x1.png",
+          "index": 0,
+          "modality": "image",
+          "sha256": "7721891a73c6cf8be659c0873626cc6bed443e8a0493864119032a869a99ab4a"
+        }
+      ],
+      "media_cache_expectation": "disabled",
+      "output_tokens": 1,
+      "prefix_cache_expectation": "disabled",
+      "request": {
+        "bytes": 463,
+        "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/image_min_short_output1.json",
+        "sha256": "eb50cafc84938cc2d3088ec6be62b75f1d375409211a66a959c679160460cf9d"
+      },
+      "source_capability_cases": [],
+      "source_execution_cells": [
+        "image_minimum"
+      ],
+      "text_padding_tokens": 0
+    },
+    {
+      "aggregate_visual_tokens": 256,
+      "cache_process": "disabled",
+      "cell_id": "image_portrait_q1k_output512",
+      "context_bucket": "1k",
+      "coverage": {
+        "cache": [
+          "disabled"
+        ],
+        "context": [
+          "1k"
+        ],
+        "image": [
+          "single_typical",
+          "portrait"
+        ],
+        "output": [
+          "512"
+        ]
+      },
+      "expected_prompt_tokens_range": [
+        960,
+        1088
+      ],
+      "media": [
+        {
+          "bytes": 2192,
+          "fixture_id": "image-portrait-256x1024.png",
+          "index": 0,
+          "modality": "image",
+          "sha256": "419ba57fd5d1ec9b53285b8dc8d7eaad0270403484228a1eff6d84440d0652a6"
+        }
+      ],
+      "media_cache_expectation": "disabled",
+      "output_tokens": 512,
+      "prefix_cache_expectation": "disabled",
+      "request": {
+        "bytes": 612,
+        "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/image_portrait_q1k_output512.json",
+        "sha256": "b318ac7b207b160320fef914e5a2d107b535d5f1f344d0860bf8576af9991b8a"
+      },
+      "source_capability_cases": [],
+      "source_execution_cells": [
+        "image_typical_portrait"
+      ],
+      "text_padding_tokens": 704
+    },
+    {
+      "aggregate_visual_tokens": 256,
+      "cache_process": "disabled",
+      "cell_id": "image_landscape_q8k_output1",
+      "context_bucket": "8k",
+      "coverage": {
+        "cache": [
+          "disabled"
+        ],
+        "context": [
+          "8k"
+        ],
+        "image": [
+          "single_typical",
+          "landscape"
+        ],
+        "output": [
+          "1"
+        ]
+      },
+      "expected_prompt_tokens_range": [
+        8128,
+        8256
+      ],
+      "media": [
+        {
+          "bytes": 1408,
+          "fixture_id": "image-landscape-1024x256.png",
+          "index": 0,
+          "modality": "image",
+          "sha256": "31e6ea8c7e2fbfa42211efa72c707f047a070b006287ae6c7ac924bca9f11491"
+        }
+      ],
+      "media_cache_expectation": "disabled",
+      "output_tokens": 1,
+      "prefix_cache_expectation": "disabled",
+      "request": {
+        "bytes": 470,
+        "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/image_landscape_q8k_output1.json",
+        "sha256": "2b29d5e517628266cca93b7dd1cfe166207344c1bb0c9b2d0d9d8bedfd7e3232"
+      },
+      "source_capability_cases": [],
+      "source_execution_cells": [
+        "image_typical_landscape"
+      ],
+      "text_padding_tokens": 7872
+    },
+    {
+      "aggregate_visual_tokens": 16384,
+      "cache_process": "disabled",
+      "cell_id": "image_max_q32k_output1",
+      "context_bucket": "32k",
+      "coverage": {
+        "cache": [
+          "disabled"
+        ],
+        "context": [
+          "32k"
+        ],
+        "image": [
+          "single_maximum",
+          "square"
+        ],
+        "output": [
+          "1"
+        ]
+      },
+      "expected_prompt_tokens_range": [
+        32704,
+        32832
+      ],
+      "media": [
+        {
+          "bytes": 56421,
+          "fixture_id": "image-maximum-4096x4096.png",
+          "index": 0,
+          "modality": "image",
+          "sha256": "1cccfc8917cb9f4d800fe7ee4b3d28d123250c6d9b8edd28ebf6e44804a9112b"
+        }
+      ],
+      "media_cache_expectation": "disabled",
+      "output_tokens": 1,
+      "prefix_cache_expectation": "disabled",
+      "request": {
+        "bytes": 469,
+        "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/image_max_q32k_output1.json",
+        "sha256": "2cfffea1a09913e1d2b19bb63a29fb0460d2797625f593ee77446032da43a9bc"
+      },
+      "source_capability_cases": [],
+      "source_execution_cells": [
+        "image_maximum_pixels"
+      ],
+      "text_padding_tokens": 16320
+    },
+    {
+      "aggregate_visual_tokens": 512,
+      "cache_process": "disabled",
+      "cell_id": "image_multi_typical_q128k_output1",
+      "context_bucket": "128k",
+      "coverage": {
+        "cache": [
+          "disabled"
+        ],
+        "context": [
+          "128k"
+        ],
+        "image": [
+          "multi_typical",
+          "portrait",
+          "landscape"
+        ],
+        "output": [
+          "1"
+        ]
+      },
+      "expected_prompt_tokens_range": [
+        131008,
+        131136
+      ],
+      "media": [
+        {
+          "bytes": 2192,
+          "fixture_id": "image-portrait-256x1024.png",
+          "index": 0,
+          "modality": "image",
+          "sha256": "419ba57fd5d1ec9b53285b8dc8d7eaad0270403484228a1eff6d84440d0652a6"
+        },
+        {
+          "bytes": 1408,
+          "fixture_id": "image-landscape-1024x256.png",
+          "index": 1,
+          "modality": "image",
+          "sha256": "31e6ea8c7e2fbfa42211efa72c707f047a070b006287ae6c7ac924bca9f11491"
+        }
+      ],
+      "media_cache_expectation": "disabled",
+      "output_tokens": 1,
+      "prefix_cache_expectation": "disabled",
+      "request": {
+        "bytes": 745,
+        "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/image_multi_typical_q128k_output1.json",
+        "sha256": "c329fa7e527bbbb8ed234bbbd0c7fb51195baf9cb41b2d3212e52d3ce4b96591"
+      },
+      "source_capability_cases": [
+        "multi_image_interleaved"
+      ],
+      "source_execution_cells": [
+        "image_typical_portrait",
+        "image_typical_landscape"
+      ],
+      "text_padding_tokens": 130496
+    },
+    {
+      "aggregate_visual_tokens": 1024,
+      "cache_process": "disabled",
+      "cell_id": "image_count_max_q8k_output1",
+      "context_bucket": "8k",
+      "coverage": {
+        "cache": [
+          "disabled"
+        ],
+        "context": [
+          "8k"
+        ],
+        "image": [
+          "multi_maximum_count",
+          "square"
+        ],
+        "output": [
+          "1"
+        ]
+      },
+      "expected_prompt_tokens_range": [
+        8128,
+        8256
+      ],
+      "media": [
+        {
+          "bytes": 69,
+          "fixture_id": "image-minimum-1x1.png",
+          "index": 0,
+          "modality": "image",
+          "sha256": "7721891a73c6cf8be659c0873626cc6bed443e8a0493864119032a869a99ab4a"
+        },
+        {
+          "bytes": 69,
+          "fixture_id": "image-minimum-1x1.png",
+          "index": 1,
+          "modality": "image",
+          "sha256": "7721891a73c6cf8be659c0873626cc6bed443e8a0493864119032a869a99ab4a"
+        },
+        {
+          "bytes": 69,
+          "fixture_id": "image-minimum-1x1.png",
+          "index": 2,
+          "modality": "image",
+          "sha256": "7721891a73c6cf8be659c0873626cc6bed443e8a0493864119032a869a99ab4a"
+        },
+        {
+          "bytes": 69,
+          "fixture_id": "image-minimum-1x1.png",
+          "index": 3,
+          "modality": "image",
+          "sha256": "7721891a73c6cf8be659c0873626cc6bed443e8a0493864119032a869a99ab4a"
+        },
+        {
+          "bytes": 69,
+          "fixture_id": "image-minimum-1x1.png",
+          "index": 4,
+          "modality": "image",
+          "sha256": "7721891a73c6cf8be659c0873626cc6bed443e8a0493864119032a869a99ab4a"
+        },
+        {
+          "bytes": 69,
+          "fixture_id": "image-minimum-1x1.png",
+          "index": 5,
+          "modality": "image",
+          "sha256": "7721891a73c6cf8be659c0873626cc6bed443e8a0493864119032a869a99ab4a"
+        },
+        {
+          "bytes": 69,
+          "fixture_id": "image-minimum-1x1.png",
+          "index": 6,
+          "modality": "image",
+          "sha256": "7721891a73c6cf8be659c0873626cc6bed443e8a0493864119032a869a99ab4a"
+        },
+        {
+          "bytes": 69,
+          "fixture_id": "image-minimum-1x1.png",
+          "index": 7,
+          "modality": "image",
+          "sha256": "7721891a73c6cf8be659c0873626cc6bed443e8a0493864119032a869a99ab4a"
+        },
+        {
+          "bytes": 69,
+          "fixture_id": "image-minimum-1x1.png",
+          "index": 8,
+          "modality": "image",
+          "sha256": "7721891a73c6cf8be659c0873626cc6bed443e8a0493864119032a869a99ab4a"
+        },
+        {
+          "bytes": 69,
+          "fixture_id": "image-minimum-1x1.png",
+          "index": 9,
+          "modality": "image",
+          "sha256": "7721891a73c6cf8be659c0873626cc6bed443e8a0493864119032a869a99ab4a"
+        },
+        {
+          "bytes": 69,
+          "fixture_id": "image-minimum-1x1.png",
+          "index": 10,
+          "modality": "image",
+          "sha256": "7721891a73c6cf8be659c0873626cc6bed443e8a0493864119032a869a99ab4a"
+        },
+        {
+          "bytes": 69,
+          "fixture_id": "image-minimum-1x1.png",
+          "index": 11,
+          "modality": "image",
+          "sha256": "7721891a73c6cf8be659c0873626cc6bed443e8a0493864119032a869a99ab4a"
+        },
+        {
+          "bytes": 69,
+          "fixture_id": "image-minimum-1x1.png",
+          "index": 12,
+          "modality": "image",
+          "sha256": "7721891a73c6cf8be659c0873626cc6bed443e8a0493864119032a869a99ab4a"
+        },
+        {
+          "bytes": 69,
+          "fixture_id": "image-minimum-1x1.png",
+          "index": 13,
+          "modality": "image",
+          "sha256": "7721891a73c6cf8be659c0873626cc6bed443e8a0493864119032a869a99ab4a"
+        },
+        {
+          "bytes": 69,
+          "fixture_id": "image-minimum-1x1.png",
+          "index": 14,
+          "modality": "image",
+          "sha256": "7721891a73c6cf8be659c0873626cc6bed443e8a0493864119032a869a99ab4a"
+        },
+        {
+          "bytes": 69,
+          "fixture_id": "image-minimum-1x1.png",
+          "index": 15,
+          "modality": "image",
+          "sha256": "7721891a73c6cf8be659c0873626cc6bed443e8a0493864119032a869a99ab4a"
+        }
+      ],
+      "media_cache_expectation": "disabled",
+      "output_tokens": 1,
+      "prefix_cache_expectation": "disabled",
+      "request": {
+        "bytes": 4505,
+        "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/image_count_max_q8k_output1.json",
+        "sha256": "0dabe7488411468f895e0c5260b5895b239476f261c6c805a2ba321b88e634c3"
+      },
+      "source_capability_cases": [
+        "multi_image_interleaved"
+      ],
+      "source_execution_cells": [
+        "image_count_maximum_small"
+      ],
+      "text_padding_tokens": 7088
+    },
+    {
+      "aggregate_visual_tokens": 245760,
+      "cache_process": "disabled",
+      "cell_id": "image_multi_max_near_window_output1",
+      "context_bucket": "near_262144",
+      "coverage": {
+        "cache": [
+          "disabled"
+        ],
+        "context": [
+          "near_262144"
+        ],
+        "image": [
+          "multi_near_window_maximum",
+          "single_maximum",
+          "square"
+        ],
+        "output": [
+          "1"
+        ]
+      },
+      "expected_prompt_tokens_range": [
+        261120,
+        262143
+      ],
+      "media": [
+        {
+          "bytes": 56421,
+          "fixture_id": "image-maximum-4096x4096.png",
+          "index": 0,
+          "modality": "image",
+          "sha256": "1cccfc8917cb9f4d800fe7ee4b3d28d123250c6d9b8edd28ebf6e44804a9112b"
+        },
+        {
+          "bytes": 56421,
+          "fixture_id": "image-maximum-4096x4096.png",
+          "index": 1,
+          "modality": "image",
+          "sha256": "1cccfc8917cb9f4d800fe7ee4b3d28d123250c6d9b8edd28ebf6e44804a9112b"
+        },
+        {
+          "bytes": 56421,
+          "fixture_id": "image-maximum-4096x4096.png",
+          "index": 2,
+          "modality": "image",
+          "sha256": "1cccfc8917cb9f4d800fe7ee4b3d28d123250c6d9b8edd28ebf6e44804a9112b"
+        },
+        {
+          "bytes": 56421,
+          "fixture_id": "image-maximum-4096x4096.png",
+          "index": 3,
+          "modality": "image",
+          "sha256": "1cccfc8917cb9f4d800fe7ee4b3d28d123250c6d9b8edd28ebf6e44804a9112b"
+        },
+        {
+          "bytes": 56421,
+          "fixture_id": "image-maximum-4096x4096.png",
+          "index": 4,
+          "modality": "image",
+          "sha256": "1cccfc8917cb9f4d800fe7ee4b3d28d123250c6d9b8edd28ebf6e44804a9112b"
+        },
+        {
+          "bytes": 56421,
+          "fixture_id": "image-maximum-4096x4096.png",
+          "index": 5,
+          "modality": "image",
+          "sha256": "1cccfc8917cb9f4d800fe7ee4b3d28d123250c6d9b8edd28ebf6e44804a9112b"
+        },
+        {
+          "bytes": 56421,
+          "fixture_id": "image-maximum-4096x4096.png",
+          "index": 6,
+          "modality": "image",
+          "sha256": "1cccfc8917cb9f4d800fe7ee4b3d28d123250c6d9b8edd28ebf6e44804a9112b"
+        },
+        {
+          "bytes": 56421,
+          "fixture_id": "image-maximum-4096x4096.png",
+          "index": 7,
+          "modality": "image",
+          "sha256": "1cccfc8917cb9f4d800fe7ee4b3d28d123250c6d9b8edd28ebf6e44804a9112b"
+        },
+        {
+          "bytes": 56421,
+          "fixture_id": "image-maximum-4096x4096.png",
+          "index": 8,
+          "modality": "image",
+          "sha256": "1cccfc8917cb9f4d800fe7ee4b3d28d123250c6d9b8edd28ebf6e44804a9112b"
+        },
+        {
+          "bytes": 56421,
+          "fixture_id": "image-maximum-4096x4096.png",
+          "index": 9,
+          "modality": "image",
+          "sha256": "1cccfc8917cb9f4d800fe7ee4b3d28d123250c6d9b8edd28ebf6e44804a9112b"
+        },
+        {
+          "bytes": 56421,
+          "fixture_id": "image-maximum-4096x4096.png",
+          "index": 10,
+          "modality": "image",
+          "sha256": "1cccfc8917cb9f4d800fe7ee4b3d28d123250c6d9b8edd28ebf6e44804a9112b"
+        },
+        {
+          "bytes": 56421,
+          "fixture_id": "image-maximum-4096x4096.png",
+          "index": 11,
+          "modality": "image",
+          "sha256": "1cccfc8917cb9f4d800fe7ee4b3d28d123250c6d9b8edd28ebf6e44804a9112b"
+        },
+        {
+          "bytes": 56421,
+          "fixture_id": "image-maximum-4096x4096.png",
+          "index": 12,
+          "modality": "image",
+          "sha256": "1cccfc8917cb9f4d800fe7ee4b3d28d123250c6d9b8edd28ebf6e44804a9112b"
+        },
+        {
+          "bytes": 56421,
+          "fixture_id": "image-maximum-4096x4096.png",
+          "index": 13,
+          "modality": "image",
+          "sha256": "1cccfc8917cb9f4d800fe7ee4b3d28d123250c6d9b8edd28ebf6e44804a9112b"
+        },
+        {
+          "bytes": 211180,
+          "fixture_id": "image-above-maximum-8192x8192.png",
+          "index": 14,
+          "modality": "image",
+          "sha256": "b16b671618fd32d36557ae4633045d720acfbf4b562fd1dd473ad5094e65314b"
+        }
+      ],
+      "media_cache_expectation": "disabled",
+      "output_tokens": 1,
+      "prefix_cache_expectation": "disabled",
+      "request": {
+        "bytes": 4331,
+        "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/image_multi_max_near_window_output1.json",
+        "sha256": "3b1339f7135ecc6ed13cd74da3c3da457fb7fdfe0121c7c969202a713bf3647c"
+      },
+      "source_capability_cases": [
+        "multi_image_interleaved"
+      ],
+      "source_execution_cells": [
+        "image_near_window_maximum",
+        "image_above_maximum_clamp"
+      ],
+      "text_padding_tokens": 15700
+    },
+    {
+      "aggregate_visual_tokens": 4,
+      "cache_process": "disabled",
+      "cell_id": "video_min_short_output1",
+      "context_bucket": "short",
+      "coverage": {
+        "cache": [
+          "disabled"
+        ],
+        "context": [
+          "short"
+        ],
+        "output": [
+          "1"
+        ],
+        "video": [
+          "single_minimum"
+        ]
+      },
+      "expected_prompt_tokens_range": [
+        1,
+        1023
+      ],
+      "media": [
+        {
+          "bytes": 889,
+          "fixture_id": "video-minimum-2f-2fps-32x32.mp4",
+          "index": 0,
+          "modality": "video",
+          "sha256": "f3f3af9f7b666a7b0fd8f6cc6cf4a0ba63f5a56ee3e95dda3ccba298bf09fdb3"
+        }
+      ],
+      "media_cache_expectation": "disabled",
+      "output_tokens": 1,
+      "prefix_cache_expectation": "disabled",
+      "request": {
+        "bytes": 473,
+        "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/video_min_short_output1.json",
+        "sha256": "3b02bdbe30b0e895d0518a7790e4d52dbbb61225e16b91f72a50597feef4bb75"
+      },
+      "source_capability_cases": [],
+      "source_execution_cells": [
+        "video_minimum"
+      ],
+      "text_padding_tokens": 0
+    },
+    {
+      "aggregate_visual_tokens": 128,
+      "cache_process": "disabled",
+      "cell_id": "video_typical_q1k_output1024",
+      "context_bucket": "1k",
+      "coverage": {
+        "cache": [
+          "disabled"
+        ],
+        "context": [
+          "1k"
+        ],
+        "output": [
+          "1024"
+        ],
+        "video": [
+          "single_typical"
+        ]
+      },
+      "expected_prompt_tokens_range": [
+        960,
+        1088
+      ],
+      "media": [
+        {
+          "bytes": 1691,
+          "fixture_id": "video-typical-4f-2fps-256x256.mp4",
+          "index": 0,
+          "modality": "video",
+          "sha256": "63a252dd2073844f1a2d354c77d73380dd191c578f16c5eab4a63e50654583b4"
+        }
+      ],
+      "media_cache_expectation": "disabled",
+      "output_tokens": 1024,
+      "prefix_cache_expectation": "disabled",
+      "request": {
+        "bytes": 619,
+        "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/video_typical_q1k_output1024.json",
+        "sha256": "159365de9e68f8fb74595c136465ea7328b3d9d9f43031d18ea5b7ac5bb0ffee"
+      },
+      "source_capability_cases": [],
+      "source_execution_cells": [
+        "video_typical"
+      ],
+      "text_padding_tokens": 832
+    },
+    {
+      "aggregate_visual_tokens": 12288,
+      "cache_process": "disabled",
+      "cell_id": "video_max_shape_q32k_output1",
+      "context_bucket": "32k",
+      "coverage": {
+        "cache": [
+          "disabled"
+        ],
+        "context": [
+          "32k"
+        ],
+        "output": [
+          "1"
+        ],
+        "video": [
+          "single_maximum_shape"
+        ]
+      },
+      "expected_prompt_tokens_range": [
+        32704,
+        32832
+      ],
+      "media": [
+        {
+          "bytes": 142192,
+          "fixture_id": "video-maximum-2f-2fps-4096x3072.mp4",
+          "index": 0,
+          "modality": "video",
+          "sha256": "1090ffdb2411fdf10c830f13e93767931dad0b5baf8bed1d2889a818e0a487b0"
+        }
+      ],
+      "media_cache_expectation": "disabled",
+      "output_tokens": 1,
+      "prefix_cache_expectation": "disabled",
+      "request": {
+        "bytes": 477,
+        "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/video_max_shape_q32k_output1.json",
+        "sha256": "639b5eb569d2cb9e525e4768b7e21538defbd9c6b59ad1ac27fac0660aea8af3"
+      },
+      "source_capability_cases": [],
+      "source_execution_cells": [
+        "video_maximum_feature_shape"
+      ],
+      "text_padding_tokens": 20416
+    },
+    {
+      "aggregate_visual_tokens": 128,
+      "cache_process": "disabled",
+      "cell_id": "video_sampling_min_q32k_output1",
+      "context_bucket": "32k",
+      "coverage": {
+        "cache": [
+          "disabled"
+        ],
+        "context": [
+          "32k"
+        ],
+        "output": [
+          "1"
+        ],
+        "video": [
+          "sampling_minimum"
+        ]
+      },
+      "expected_prompt_tokens_range": [
+        32704,
+        32832
+      ],
+      "media": [
+        {
+          "bytes": 5836,
+          "fixture_id": "video-sampling-minimum-48f-24fps-256x256.mp4",
+          "index": 0,
+          "modality": "video",
+          "sha256": "7f0fcf4b9c273971e6c5fab777910a156590c5b4527d4d94b23ebefe28e8c51c"
+        }
+      ],
+      "media_cache_expectation": "disabled",
+      "output_tokens": 1,
+      "prefix_cache_expectation": "disabled",
+      "request": {
+        "bytes": 486,
+        "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/video_sampling_min_q32k_output1.json",
+        "sha256": "817ed2305501ff65f4c6321f665af5045fabc7cd40836ba03f503ee95cc331bb"
+      },
+      "source_capability_cases": [],
+      "source_execution_cells": [
+        "video_sampling_minimum"
+      ],
+      "text_padding_tokens": 32576
+    },
+    {
+      "aggregate_visual_tokens": 640,
+      "cache_process": "disabled",
+      "cell_id": "video_sampling_typical_q128k_output1",
+      "context_bucket": "128k",
+      "coverage": {
+        "cache": [
+          "disabled"
+        ],
+        "context": [
+          "128k"
+        ],
+        "output": [
+          "1"
+        ],
+        "video": [
+          "sampling_typical"
+        ]
+      },
+      "expected_prompt_tokens_range": [
+        131008,
+        131136
+      ],
+      "media": [
+        {
+          "bytes": 25991,
+          "fixture_id": "video-sampling-typical-240f-24fps-256x256.mp4",
+          "index": 0,
+          "modality": "video",
+          "sha256": "ba7ed0bae740715fccd0ffefa86882baf56301cde7d8a46a2315e56186ce793a"
+        }
+      ],
+      "media_cache_expectation": "disabled",
+      "output_tokens": 1,
+      "prefix_cache_expectation": "disabled",
+      "request": {
+        "bytes": 487,
+        "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/video_sampling_typical_q128k_output1.json",
+        "sha256": "58d17bdfd33063ae5a2a10053303c8c0a5644d6ac9d6c6042d98ca19e4af637c"
+      },
+      "source_capability_cases": [],
+      "source_execution_cells": [
+        "video_sampling_typical"
+      ],
+      "text_padding_tokens": 130368
+    },
+    {
+      "aggregate_visual_tokens": 9600,
+      "cache_process": "disabled",
+      "cell_id": "video_sampling_max_q32k_output1",
+      "context_bucket": "32k",
+      "coverage": {
+        "cache": [
+          "disabled"
+        ],
+        "context": [
+          "32k"
+        ],
+        "output": [
+          "1"
+        ],
+        "video": [
+          "sampling_maximum"
+        ]
+      },
+      "expected_prompt_tokens_range": [
+        32704,
+        32832
+      ],
+      "media": [
+        {
+          "bytes": 956152,
+          "fixture_id": "video-sampling-maximum-9216f-24fps-256x256.mp4",
+          "index": 0,
+          "modality": "video",
+          "sha256": "a889d615669b49c0ae9c04b98bb024d0012e4cd43ff5810d749137e196900426"
+        }
+      ],
+      "media_cache_expectation": "disabled",
+      "output_tokens": 1,
+      "prefix_cache_expectation": "disabled",
+      "request": {
+        "bytes": 488,
+        "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/video_sampling_max_q32k_output1.json",
+        "sha256": "dffe73ca276c11b3a54508c26d8293ec19b7cbea290ee7f1a74311e591c30140"
+      },
+      "source_capability_cases": [],
+      "source_execution_cells": [
+        "video_sampling_maximum"
+      ],
+      "text_padding_tokens": 23104
+    },
+    {
+      "aggregate_visual_tokens": 9600,
+      "cache_process": "disabled",
+      "cell_id": "video_sampling_clamp_q32k_output1",
+      "context_bucket": "32k",
+      "coverage": {
+        "cache": [
+          "disabled"
+        ],
+        "context": [
+          "32k"
+        ],
+        "output": [
+          "1"
+        ],
+        "video": [
+          "sampling_above_maximum_clamp"
+        ]
+      },
+      "expected_prompt_tokens_range": [
+        32704,
+        32832
+      ],
+      "media": [
+        {
+          "bytes": 1931217,
+          "fixture_id": "video-sampling-above-maximum-18432f-24fps-256x256.mp4",
+          "index": 0,
+          "modality": "video",
+          "sha256": "100a35ebd78e70985d0116492d8d10267db3c96e5a02d75205f05f26437db7e1"
+        }
+      ],
+      "media_cache_expectation": "disabled",
+      "output_tokens": 1,
+      "prefix_cache_expectation": "disabled",
+      "request": {
+        "bytes": 495,
+        "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/video_sampling_clamp_q32k_output1.json",
+        "sha256": "af24d86be47d903a34ef163e2cdc17107bb71cc52f160127278dd53e1b91dd23"
+      },
+      "source_capability_cases": [],
+      "source_execution_cells": [
+        "video_sampling_maximum"
+      ],
+      "text_padding_tokens": 23104
+    },
+    {
+      "aggregate_visual_tokens": 256,
+      "cache_process": "disabled",
+      "cell_id": "video_multi_typical_q32k_output1",
+      "context_bucket": "32k",
+      "coverage": {
+        "cache": [
+          "disabled"
+        ],
+        "context": [
+          "32k"
+        ],
+        "output": [
+          "1"
+        ],
+        "video": [
+          "multi_typical"
+        ]
+      },
+      "expected_prompt_tokens_range": [
+        32704,
+        32832
+      ],
+      "media": [
+        {
+          "bytes": 1691,
+          "fixture_id": "video-typical-4f-2fps-256x256.mp4",
+          "index": 0,
+          "modality": "video",
+          "sha256": "63a252dd2073844f1a2d354c77d73380dd191c578f16c5eab4a63e50654583b4"
+        },
+        {
+          "bytes": 1691,
+          "fixture_id": "video-typical-4f-2fps-256x256.mp4",
+          "index": 1,
+          "modality": "video",
+          "sha256": "63a252dd2073844f1a2d354c77d73380dd191c578f16c5eab4a63e50654583b4"
+        }
+      ],
+      "media_cache_expectation": "disabled",
+      "output_tokens": 1,
+      "prefix_cache_expectation": "disabled",
+      "request": {
+        "bytes": 756,
+        "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/video_multi_typical_q32k_output1.json",
+        "sha256": "d36a05a0cf07e2c3f8c750d7401d4b641bd2775b01b9b3cd579ea0f9b6a28ced"
+      },
+      "source_capability_cases": [
+        "multi_video"
+      ],
+      "source_execution_cells": [
+        "video_typical",
+        "video_typical"
+      ],
+      "text_padding_tokens": 32448
+    },
+    {
+      "aggregate_visual_tokens": 84,
+      "cache_process": "disabled",
+      "cell_id": "video_count_max_q1k_output1",
+      "context_bucket": "1k",
+      "coverage": {
+        "cache": [
+          "disabled"
+        ],
+        "context": [
+          "1k"
+        ],
+        "output": [
+          "1"
+        ],
+        "video": [
+          "multi_maximum_count"
+        ]
+      },
+      "expected_prompt_tokens_range": [
+        960,
+        1088
+      ],
+      "media": [
+        {
+          "bytes": 889,
+          "fixture_id": "video-minimum-2f-2fps-32x32.mp4",
+          "index": 0,
+          "modality": "video",
+          "sha256": "f3f3af9f7b666a7b0fd8f6cc6cf4a0ba63f5a56ee3e95dda3ccba298bf09fdb3"
+        },
+        {
+          "bytes": 889,
+          "fixture_id": "video-minimum-2f-2fps-32x32.mp4",
+          "index": 1,
+          "modality": "video",
+          "sha256": "f3f3af9f7b666a7b0fd8f6cc6cf4a0ba63f5a56ee3e95dda3ccba298bf09fdb3"
+        },
+        {
+          "bytes": 889,
+          "fixture_id": "video-minimum-2f-2fps-32x32.mp4",
+          "index": 2,
+          "modality": "video",
+          "sha256": "f3f3af9f7b666a7b0fd8f6cc6cf4a0ba63f5a56ee3e95dda3ccba298bf09fdb3"
+        },
+        {
+          "bytes": 889,
+          "fixture_id": "video-minimum-2f-2fps-32x32.mp4",
+          "index": 3,
+          "modality": "video",
+          "sha256": "f3f3af9f7b666a7b0fd8f6cc6cf4a0ba63f5a56ee3e95dda3ccba298bf09fdb3"
+        },
+        {
+          "bytes": 889,
+          "fixture_id": "video-minimum-2f-2fps-32x32.mp4",
+          "index": 4,
+          "modality": "video",
+          "sha256": "f3f3af9f7b666a7b0fd8f6cc6cf4a0ba63f5a56ee3e95dda3ccba298bf09fdb3"
+        },
+        {
+          "bytes": 889,
+          "fixture_id": "video-minimum-2f-2fps-32x32.mp4",
+          "index": 5,
+          "modality": "video",
+          "sha256": "f3f3af9f7b666a7b0fd8f6cc6cf4a0ba63f5a56ee3e95dda3ccba298bf09fdb3"
+        },
+        {
+          "bytes": 889,
+          "fixture_id": "video-minimum-2f-2fps-32x32.mp4",
+          "index": 6,
+          "modality": "video",
+          "sha256": "f3f3af9f7b666a7b0fd8f6cc6cf4a0ba63f5a56ee3e95dda3ccba298bf09fdb3"
+        },
+        {
+          "bytes": 889,
+          "fixture_id": "video-minimum-2f-2fps-32x32.mp4",
+          "index": 7,
+          "modality": "video",
+          "sha256": "f3f3af9f7b666a7b0fd8f6cc6cf4a0ba63f5a56ee3e95dda3ccba298bf09fdb3"
+        },
+        {
+          "bytes": 889,
+          "fixture_id": "video-minimum-2f-2fps-32x32.mp4",
+          "index": 8,
+          "modality": "video",
+          "sha256": "f3f3af9f7b666a7b0fd8f6cc6cf4a0ba63f5a56ee3e95dda3ccba298bf09fdb3"
+        },
+        {
+          "bytes": 889,
+          "fixture_id": "video-minimum-2f-2fps-32x32.mp4",
+          "index": 9,
+          "modality": "video",
+          "sha256": "f3f3af9f7b666a7b0fd8f6cc6cf4a0ba63f5a56ee3e95dda3ccba298bf09fdb3"
+        },
+        {
+          "bytes": 889,
+          "fixture_id": "video-minimum-2f-2fps-32x32.mp4",
+          "index": 10,
+          "modality": "video",
+          "sha256": "f3f3af9f7b666a7b0fd8f6cc6cf4a0ba63f5a56ee3e95dda3ccba298bf09fdb3"
+        },
+        {
+          "bytes": 889,
+          "fixture_id": "video-minimum-2f-2fps-32x32.mp4",
+          "index": 11,
+          "modality": "video",
+          "sha256": "f3f3af9f7b666a7b0fd8f6cc6cf4a0ba63f5a56ee3e95dda3ccba298bf09fdb3"
+        },
+        {
+          "bytes": 889,
+          "fixture_id": "video-minimum-2f-2fps-32x32.mp4",
+          "index": 12,
+          "modality": "video",
+          "sha256": "f3f3af9f7b666a7b0fd8f6cc6cf4a0ba63f5a56ee3e95dda3ccba298bf09fdb3"
+        },
+        {
+          "bytes": 889,
+          "fixture_id": "video-minimum-2f-2fps-32x32.mp4",
+          "index": 13,
+          "modality": "video",
+          "sha256": "f3f3af9f7b666a7b0fd8f6cc6cf4a0ba63f5a56ee3e95dda3ccba298bf09fdb3"
+        },
+        {
+          "bytes": 889,
+          "fixture_id": "video-minimum-2f-2fps-32x32.mp4",
+          "index": 14,
+          "modality": "video",
+          "sha256": "f3f3af9f7b666a7b0fd8f6cc6cf4a0ba63f5a56ee3e95dda3ccba298bf09fdb3"
+        },
+        {
+          "bytes": 889,
+          "fixture_id": "video-minimum-2f-2fps-32x32.mp4",
+          "index": 15,
+          "modality": "video",
+          "sha256": "f3f3af9f7b666a7b0fd8f6cc6cf4a0ba63f5a56ee3e95dda3ccba298bf09fdb3"
+        },
+        {
+          "bytes": 889,
+          "fixture_id": "video-minimum-2f-2fps-32x32.mp4",
+          "index": 16,
+          "modality": "video",
+          "sha256": "f3f3af9f7b666a7b0fd8f6cc6cf4a0ba63f5a56ee3e95dda3ccba298bf09fdb3"
+        },
+        {
+          "bytes": 889,
+          "fixture_id": "video-minimum-2f-2fps-32x32.mp4",
+          "index": 17,
+          "modality": "video",
+          "sha256": "f3f3af9f7b666a7b0fd8f6cc6cf4a0ba63f5a56ee3e95dda3ccba298bf09fdb3"
+        },
+        {
+          "bytes": 889,
+          "fixture_id": "video-minimum-2f-2fps-32x32.mp4",
+          "index": 18,
+          "modality": "video",
+          "sha256": "f3f3af9f7b666a7b0fd8f6cc6cf4a0ba63f5a56ee3e95dda3ccba298bf09fdb3"
+        },
+        {
+          "bytes": 889,
+          "fixture_id": "video-minimum-2f-2fps-32x32.mp4",
+          "index": 19,
+          "modality": "video",
+          "sha256": "f3f3af9f7b666a7b0fd8f6cc6cf4a0ba63f5a56ee3e95dda3ccba298bf09fdb3"
+        },
+        {
+          "bytes": 889,
+          "fixture_id": "video-minimum-2f-2fps-32x32.mp4",
+          "index": 20,
+          "modality": "video",
+          "sha256": "f3f3af9f7b666a7b0fd8f6cc6cf4a0ba63f5a56ee3e95dda3ccba298bf09fdb3"
+        }
+      ],
+      "media_cache_expectation": "disabled",
+      "output_tokens": 1,
+      "prefix_cache_expectation": "disabled",
+      "request": {
+        "bytes": 6065,
+        "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/video_count_max_q1k_output1.json",
+        "sha256": "0a29ce9debc20bfe0265a4384f155d6bb3a2884624b95607885c56458acbc577"
+      },
+      "source_capability_cases": [
+        "multi_video"
+      ],
+      "source_execution_cells": [
+        "video_count_maximum_small"
+      ],
+      "text_padding_tokens": 832
+    },
+    {
+      "aggregate_visual_tokens": 16388,
+      "cache_process": "disabled",
+      "cell_id": "mixed_cross_batch_q32k_output1",
+      "context_bucket": "32k",
+      "coverage": {
+        "cache": [
+          "disabled"
+        ],
+        "context": [
+          "32k"
+        ],
+        "mixed": [
+          "image_video",
+          "text_media_interleave"
+        ],
+        "output": [
+          "1"
+        ]
+      },
+      "expected_prompt_tokens_range": [
+        32704,
+        32832
+      ],
+      "media": [
+        {
+          "bytes": 56421,
+          "fixture_id": "image-maximum-4096x4096.png",
+          "index": 0,
+          "modality": "image",
+          "sha256": "1cccfc8917cb9f4d800fe7ee4b3d28d123250c6d9b8edd28ebf6e44804a9112b"
+        },
+        {
+          "bytes": 889,
+          "fixture_id": "video-minimum-2f-2fps-32x32.mp4",
+          "index": 1,
+          "modality": "video",
+          "sha256": "f3f3af9f7b666a7b0fd8f6cc6cf4a0ba63f5a56ee3e95dda3ccba298bf09fdb3"
+        }
+      ],
+      "media_cache_expectation": "disabled",
+      "output_tokens": 1,
+      "prefix_cache_expectation": "disabled",
+      "request": {
+        "bytes": 748,
+        "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/mixed_cross_batch_q32k_output1.json",
+        "sha256": "f0c5d80a8fbfb8024f45ce041895d08953baee8e0154d159293f2d03acb51ebe"
+      },
+      "source_capability_cases": [
+        "mixed_image_then_video"
+      ],
+      "source_execution_cells": [
+        "mixed_cross_batch_boundary"
+      ],
+      "text_padding_tokens": 16304
+    },
+    {
+      "aggregate_visual_tokens": 384,
+      "cache_process": "disabled",
+      "cell_id": "mixed_multi_turn_q8k_output512",
+      "context_bucket": "8k",
+      "coverage": {
+        "cache": [
+          "disabled"
+        ],
+        "context": [
+          "8k"
+        ],
+        "mixed": [
+          "image_video",
+          "multi_turn"
+        ],
+        "output": [
+          "512"
+        ]
+      },
+      "expected_prompt_tokens_range": [
+        8128,
+        8256
+      ],
+      "media": [
+        {
+          "bytes": 2192,
+          "fixture_id": "image-portrait-256x1024.png",
+          "index": 0,
+          "modality": "image",
+          "sha256": "419ba57fd5d1ec9b53285b8dc8d7eaad0270403484228a1eff6d84440d0652a6"
+        },
+        {
+          "bytes": 1691,
+          "fixture_id": "video-typical-4f-2fps-256x256.mp4",
+          "index": 1,
+          "modality": "video",
+          "sha256": "63a252dd2073844f1a2d354c77d73380dd191c578f16c5eab4a63e50654583b4"
+        }
+      ],
+      "media_cache_expectation": "disabled",
+      "output_tokens": 512,
+      "prefix_cache_expectation": "disabled",
+      "request": {
+        "bytes": 1109,
+        "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/mixed_multi_turn_q8k_output512.json",
+        "sha256": "76bb04a3dd6f260cbb5811dc9202d871608c5be4f5b1e67324dbd85cec93a7a6"
+      },
+      "source_capability_cases": [
+        "mixed_image_then_video",
+        "conversation_prior_image"
+      ],
+      "source_execution_cells": [
+        "image_typical_portrait",
+        "video_typical"
+      ],
+      "text_padding_tokens": 7744
+    },
+    {
+      "aggregate_visual_tokens": 256,
+      "cache_process": "disabled",
+      "cell_id": "cache_a_disabled_output1",
+      "context_bucket": "short",
+      "coverage": {
+        "cache": [
+          "disabled"
+        ],
+        "context": [
+          "short"
+        ],
+        "image": [
+          "single_typical",
+          "portrait"
+        ],
+        "output": [
+          "1"
+        ]
+      },
+      "expected_prompt_tokens_range": [
+        1,
+        1023
+      ],
+      "media": [
+        {
+          "bytes": 2192,
+          "fixture_id": "image-portrait-256x1024.png",
+          "index": 0,
+          "modality": "image",
+          "sha256": "419ba57fd5d1ec9b53285b8dc8d7eaad0270403484228a1eff6d84440d0652a6"
+        }
+      ],
+      "media_cache_expectation": "disabled",
+      "output_tokens": 1,
+      "prefix_cache_expectation": "disabled",
+      "request": {
+        "bytes": 469,
+        "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/cache_a_disabled_output1.json",
+        "sha256": "e3df90dabddad8abbdce802e4889bd48a9174544f169ce39514d13b6ce4e1b33"
+      },
+      "source_capability_cases": [],
+      "source_execution_cells": [
+        "image_typical_portrait"
+      ],
+      "text_padding_tokens": 0
+    },
+    {
+      "aggregate_visual_tokens": 256,
+      "cache_process": "enabled",
+      "cache_sequence": "A1",
+      "cell_id": "cache_a_cold_output1",
+      "context_bucket": "short",
+      "coverage": {
+        "cache": [
+          "cold_media",
+          "a_b_a"
+        ],
+        "context": [
+          "short"
+        ],
+        "output": [
+          "1"
+        ]
+      },
+      "expected_prompt_tokens_range": [
+        1,
+        1023
+      ],
+      "media": [
+        {
+          "bytes": 2192,
+          "fixture_id": "image-portrait-256x1024.png",
+          "index": 0,
+          "modality": "image",
+          "sha256": "419ba57fd5d1ec9b53285b8dc8d7eaad0270403484228a1eff6d84440d0652a6"
+        }
+      ],
+      "media_cache_expectation": "cold",
+      "output_tokens": 1,
+      "prefix_cache_expectation": "disabled",
+      "request": {
+        "bytes": 469,
+        "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/cache_a_cold_output1.json",
+        "sha256": "e3df90dabddad8abbdce802e4889bd48a9174544f169ce39514d13b6ce4e1b33"
+      },
+      "source_capability_cases": [],
+      "source_execution_cells": [
+        "image_typical_portrait"
+      ],
+      "text_padding_tokens": 0
+    },
+    {
+      "aggregate_visual_tokens": 256,
+      "cache_process": "enabled",
+      "cache_sequence": "A2",
+      "cell_id": "cache_a_exact_output1",
+      "context_bucket": "short",
+      "coverage": {
+        "cache": [
+          "warm_media",
+          "media_exact_hit",
+          "a_b_a"
+        ],
+        "context": [
+          "short"
+        ],
+        "output": [
+          "1"
+        ]
+      },
+      "expected_prompt_tokens_range": [
+        1,
+        1023
+      ],
+      "media": [
+        {
+          "bytes": 2192,
+          "fixture_id": "image-portrait-256x1024.png",
+          "index": 0,
+          "modality": "image",
+          "sha256": "419ba57fd5d1ec9b53285b8dc8d7eaad0270403484228a1eff6d84440d0652a6"
+        }
+      ],
+      "media_cache_expectation": "exact",
+      "output_tokens": 1,
+      "prefix_cache_expectation": "disabled",
+      "request": {
+        "bytes": 469,
+        "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/cache_a_exact_output1.json",
+        "sha256": "e3df90dabddad8abbdce802e4889bd48a9174544f169ce39514d13b6ce4e1b33"
+      },
+      "source_capability_cases": [],
+      "source_execution_cells": [
+        "image_typical_portrait"
+      ],
+      "text_padding_tokens": 0
+    },
+    {
+      "aggregate_visual_tokens": 256,
+      "cache_process": "enabled",
+      "cache_sequence": "B",
+      "cell_id": "cache_b_cold_output1",
+      "context_bucket": "short",
+      "coverage": {
+        "cache": [
+          "cold_media",
+          "a_b_a"
+        ],
+        "context": [
+          "short"
+        ],
+        "output": [
+          "1"
+        ]
+      },
+      "expected_prompt_tokens_range": [
+        1,
+        1023
+      ],
+      "media": [
+        {
+          "bytes": 1408,
+          "fixture_id": "image-landscape-1024x256.png",
+          "index": 0,
+          "modality": "image",
+          "sha256": "31e6ea8c7e2fbfa42211efa72c707f047a070b006287ae6c7ac924bca9f11491"
+        }
+      ],
+      "media_cache_expectation": "cold",
+      "output_tokens": 1,
+      "prefix_cache_expectation": "disabled",
+      "request": {
+        "bytes": 470,
+        "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/cache_b_cold_output1.json",
+        "sha256": "2b29d5e517628266cca93b7dd1cfe166207344c1bb0c9b2d0d9d8bedfd7e3232"
+      },
+      "source_capability_cases": [],
+      "source_execution_cells": [
+        "image_typical_landscape"
+      ],
+      "text_padding_tokens": 0
+    },
+    {
+      "aggregate_visual_tokens": 256,
+      "cache_process": "enabled",
+      "cache_sequence": "A3",
+      "cell_id": "cache_a_restored_output1",
+      "context_bucket": "short",
+      "coverage": {
+        "cache": [
+          "warm_media",
+          "media_exact_hit",
+          "a_b_a"
+        ],
+        "context": [
+          "short"
+        ],
+        "output": [
+          "1"
+        ]
+      },
+      "expected_prompt_tokens_range": [
+        1,
+        1023
+      ],
+      "media": [
+        {
+          "bytes": 2192,
+          "fixture_id": "image-portrait-256x1024.png",
+          "index": 0,
+          "modality": "image",
+          "sha256": "419ba57fd5d1ec9b53285b8dc8d7eaad0270403484228a1eff6d84440d0652a6"
+        }
+      ],
+      "media_cache_expectation": "exact",
+      "output_tokens": 1,
+      "prefix_cache_expectation": "disabled",
+      "request": {
+        "bytes": 469,
+        "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/cache_a_restored_output1.json",
+        "sha256": "e3df90dabddad8abbdce802e4889bd48a9174544f169ce39514d13b6ce4e1b33"
+      },
+      "source_capability_cases": [],
+      "source_execution_cells": [
+        "image_typical_portrait"
+      ],
+      "text_padding_tokens": 0
+    }
+  ],
+  "complete": true,
+  "context_buckets": {
+    "128k": [
+      131008,
+      131136
+    ],
+    "1k": [
+      960,
+      1088
+    ],
+    "32k": [
+      32704,
+      32832
+    ],
+    "8k": [
+      8128,
+      8256
+    ],
+    "near_262144": [
+      261120,
+      262143
+    ],
+    "short": [
+      1,
+      1023
+    ]
+  },
+  "derivation": {
+    "cartesian_product": false,
+    "minimum_alternating_pairs_per_cell": 5,
+    "rejected_boundary_performance": false,
+    "strategy": "all accepted min/typical/max and discrete sampling/count boundaries plus pairwise context/output/media/cache combinations"
+  },
+  "generated_at": "2026-08-19T08:00:00+00:00",
+  "integrity": {
+    "algorithm": "sha256",
+    "canonical_payload_sha256": "06ac598ecf78cdc3cdb3ee987e73e157886fff29dcfb20446898587881420d62"
+  },
+  "observed_coverage": {
+    "cache": [
+      "a_b_a",
+      "cold_media",
+      "disabled",
+      "media_exact_hit",
+      "warm_media"
+    ],
+    "context": [
+      "128k",
+      "1k",
+      "32k",
+      "8k",
+      "near_262144",
+      "short"
+    ],
+    "image": [
+      "landscape",
+      "multi_maximum_count",
+      "multi_near_window_maximum",
+      "multi_typical",
+      "portrait",
+      "single_maximum",
+      "single_minimum",
+      "single_typical",
+      "square"
+    ],
+    "mixed": [
+      "image_video",
+      "multi_turn",
+      "text_media_interleave"
+    ],
+    "output": [
+      "1",
+      "1024",
+      "512"
+    ],
+    "video": [
+      "multi_maximum_count",
+      "multi_typical",
+      "sampling_above_maximum_clamp",
+      "sampling_maximum",
+      "sampling_minimum",
+      "sampling_typical",
+      "single_maximum_shape",
+      "single_minimum",
+      "single_typical"
+    ]
+  },
+  "output_lengths": [
+    1,
+    512,
+    1024
+  ],
+  "process_groups": [
+    {
+      "balanced_orders": [
+        [
+          "image_min_short_output1",
+          "image_portrait_q1k_output512",
+          "image_landscape_q8k_output1",
+          "image_max_q32k_output1",
+          "image_multi_typical_q128k_output1",
+          "image_count_max_q8k_output1",
+          "image_multi_max_near_window_output1",
+          "video_min_short_output1",
+          "video_typical_q1k_output1024",
+          "video_max_shape_q32k_output1",
+          "video_sampling_min_q32k_output1",
+          "video_sampling_typical_q128k_output1",
+          "video_sampling_max_q32k_output1",
+          "video_sampling_clamp_q32k_output1",
+          "video_multi_typical_q32k_output1",
+          "video_count_max_q1k_output1",
+          "mixed_cross_batch_q32k_output1",
+          "mixed_multi_turn_q8k_output512",
+          "cache_a_disabled_output1"
+        ],
+        [
+          "cache_a_disabled_output1",
+          "mixed_multi_turn_q8k_output512",
+          "mixed_cross_batch_q32k_output1",
+          "video_count_max_q1k_output1",
+          "video_multi_typical_q32k_output1",
+          "video_sampling_clamp_q32k_output1",
+          "video_sampling_max_q32k_output1",
+          "video_sampling_typical_q128k_output1",
+          "video_sampling_min_q32k_output1",
+          "video_max_shape_q32k_output1",
+          "video_typical_q1k_output1024",
+          "video_min_short_output1",
+          "image_multi_max_near_window_output1",
+          "image_count_max_q8k_output1",
+          "image_multi_typical_q128k_output1",
+          "image_max_q32k_output1",
+          "image_landscape_q8k_output1",
+          "image_portrait_q1k_output512",
+          "image_min_short_output1"
+        ]
+      ],
+      "media_cache": "disabled",
+      "prefix_cache": "disabled",
+      "process_group": "disabled"
+    },
+    {
+      "balanced_orders": [
+        [
+          "cache_a_cold_output1",
+          "cache_a_exact_output1",
+          "cache_b_cold_output1",
+          "cache_a_restored_output1"
+        ],
+        [
+          "cache_a_cold_output1",
+          "cache_a_exact_output1",
+          "cache_b_cold_output1",
+          "cache_a_restored_output1"
+        ]
+      ],
+      "media_cache": "enabled",
+      "ordered_cache_sequence": [
+        "A1",
+        "A2",
+        "B",
+        "A3"
+      ],
+      "prefix_cache": "disabled",
+      "process_group": "enabled"
+    }
+  ],
+  "required_coverage": {
+    "cache": [
+      "disabled",
+      "cold_media",
+      "warm_media",
+      "media_exact_hit",
+      "a_b_a"
+    ],
+    "context": [
+      "short",
+      "1k",
+      "8k",
+      "32k",
+      "128k",
+      "near_262144"
+    ],
+    "image": [
+      "single_minimum",
+      "single_typical",
+      "single_maximum",
+      "multi_typical",
+      "multi_maximum_count",
+      "multi_near_window_maximum",
+      "portrait",
+      "landscape",
+      "square"
+    ],
+    "mixed": [
+      "image_video",
+      "text_media_interleave",
+      "multi_turn"
+    ],
+    "output": [
+      "1",
+      "512",
+      "1024"
+    ],
+    "video": [
+      "single_minimum",
+      "single_typical",
+      "single_maximum_shape",
+      "sampling_minimum",
+      "sampling_typical",
+      "sampling_maximum",
+      "sampling_above_maximum_clamp",
+      "multi_typical",
+      "multi_maximum_count"
+    ]
+  },
+  "schema": "aima-amd395-qwen36/vl-performance-matrix/v1"
+}

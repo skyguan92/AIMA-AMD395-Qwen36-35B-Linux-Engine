@@ -253,6 +253,41 @@ def jobs() -> list[tuple[int, tuple[int, ...]]]:
     return result
 
 
+def resolve_pair_counts(
+    default_pair_count: int, overrides: Iterable[str]
+) -> dict[tuple[int, tuple[int, ...]], int]:
+    if default_pair_count < MINIMUM_PAIRS:
+        raise ValueError(
+            f"paired qualification requires at least {MINIMUM_PAIRS} pairs"
+        )
+    result = {job: default_pair_count for job in jobs()}
+    seen: set[tuple[int, tuple[int, ...]]] = set()
+    for raw in overrides:
+        try:
+            job_text, pair_text = raw.rsplit("=", 1)
+            context_text, outputs_text = job_text.split("/", 1)
+            job = (
+                int(context_text),
+                tuple(int(value) for value in outputs_text.split(",")),
+            )
+            pair_count = int(pair_text)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                "pair-count override must be CONTEXT/OUTPUT[,OUTPUT]=PAIRS"
+            ) from exc
+        if job not in result:
+            raise ValueError(f"pair-count override is not a frozen job: {raw}")
+        if job in seen:
+            raise ValueError(f"duplicate pair-count override: {raw}")
+        if pair_count < default_pair_count:
+            raise ValueError(
+                "pair-count override cannot reduce the default pair count"
+            )
+        seen.add(job)
+        result[job] = pair_count
+    return result
+
+
 def pair_order(pair_index: int) -> tuple[str, str]:
     if pair_index <= 0:
         raise ValueError("pair index must be positive")
@@ -280,6 +315,24 @@ def report_path(
     )
 
 
+def maximum_recorded_sequence_index(output_dir: Path) -> int:
+    maximum = 0
+    raw = output_dir / "raw"
+    if not raw.is_dir():
+        return maximum
+    for path in raw.rglob("*.json"):
+        try:
+            qualification = load_json(path).get("qualification")
+            if not isinstance(qualification, dict):
+                continue
+            value = qualification.get("sequence_index")
+            if isinstance(value, int) and not isinstance(value, bool):
+                maximum = max(maximum, value)
+        except (OSError, RuntimeError, json.JSONDecodeError):
+            continue
+    return maximum
+
+
 def candidate_text_path_is_idle(payload: dict[str, Any]) -> bool:
     try:
         for request in payload["requests"]:
@@ -301,6 +354,25 @@ def candidate_text_path_is_idle(payload: dict[str, Any]) -> bool:
             if float(request.get("vl_logical_projection_plan_build_wall_ms", -1)) != 0:
                 return False
         return True
+    except (KeyError, TypeError, ValueError):
+        return False
+
+
+def candidate_disabled_cache_backing_is_absent(
+    payload: dict[str, Any], outputs: tuple[int, ...]
+) -> bool:
+    if len(outputs) != 1:
+        return True
+    try:
+        load = payload["load"]
+        return bool(
+            int(load.get("prefix_cache_entries", -1)) == 0
+            and int(load.get("exact_prefix_cache_bytes", -1)) == 0
+            and all(
+                request.get("prefix_cache_lookup") == "disabled"
+                for request in payload["requests"]
+            )
+        )
     except (KeyError, TypeError, ValueError):
         return False
 
@@ -357,6 +429,9 @@ def report_complete(
             complete = bool(
                 complete
                 and candidate_text_path_is_idle(payload)
+                and candidate_disabled_cache_backing_is_absent(
+                    payload, outputs
+                )
                 and (
                     candidate_runtime_binding_sha256 is None
                     or (
@@ -763,7 +838,7 @@ def build_startup_gate(cells: list[dict[str, Any]]) -> dict[str, Any]:
 def build_result(
     *,
     output_dir: Path,
-    pair_count: int,
+    pair_counts: dict[tuple[int, tuple[int, ...]], int],
     identities: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
     engine_sha256 = {
@@ -774,6 +849,7 @@ def build_result(
     )
     cells: list[dict[str, Any]] = []
     for context, outputs in jobs():
+        pair_count = pair_counts[(context, outputs)]
         for output_index in range(len(outputs)):
             cell = build_cell(
                 output_dir=output_dir,
@@ -812,7 +888,16 @@ def build_result(
         "engines": identities,
         "model_dir": "${AIMA_MODEL_DIR}",
         "protocol": {
-            "pair_count": pair_count,
+            "pair_count": min(pair_counts.values()),
+            "pair_count_is_minimum": True,
+            "minimum_observed_pair_count": min(pair_counts.values()),
+            "maximum_observed_pair_count": max(pair_counts.values()),
+            "pair_counts_by_job": {
+                f"q{context}-o{'-'.join(map(str, outputs))}": pair_counts[
+                    (context, outputs)
+                ]
+                for context, outputs in jobs()
+            },
             "minimum_pairs": MINIMUM_PAIRS,
             "execution_order": (
                 "baseline,candidate for odd pairs; candidate,baseline for even pairs"
@@ -849,7 +934,9 @@ def build_result(
                 )
             )
             for context, outputs in jobs()
-            for pair_index in range(1, pair_count + 1)
+            for pair_index in range(
+                1, pair_counts[(context, outputs)] + 1
+            )
         ),
     }
 
@@ -883,6 +970,16 @@ def main() -> None:
     parser.add_argument("--candidate-source-commit", required=True)
     parser.add_argument("--baseline-version", default=V151_VERSION)
     parser.add_argument("--pairs", type=int, default=DEFAULT_PAIRS)
+    parser.add_argument(
+        "--pair-count-override",
+        action="append",
+        default=[],
+        metavar="CONTEXT/OUTPUT[,OUTPUT]=PAIRS",
+        help=(
+            "increase repetitions for one frozen job without rerunning every "
+            "matrix cell; may be repeated"
+        ),
+    )
     parser.add_argument("--uniform-input-token-id", type=int, default=1)
     parser.add_argument("--resume", action="store_true")
     cli = parser.parse_args()
@@ -921,8 +1018,10 @@ def main() -> None:
             raise SystemExit(f"{role} engine is not executable")
     if not model_dir.is_dir():
         raise SystemExit("model directory is missing")
-    if cli.pairs < MINIMUM_PAIRS:
-        raise SystemExit(f"paired qualification requires at least {MINIMUM_PAIRS} pairs")
+    try:
+        pair_counts = resolve_pair_counts(cli.pairs, cli.pair_count_override)
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
     if not 0 <= cli.uniform_input_token_id < 248320:
         raise SystemExit("--uniform-input-token-id is invalid")
 
@@ -1002,12 +1101,14 @@ def main() -> None:
         # replace that product routing policy and invalidate paired results.
         "candidate": (),
     }
-    sequence_index = 0
+    sequence_index = (
+        maximum_recorded_sequence_index(output_dir) if cli.resume else 0
+    )
     for context, outputs in jobs():
-        for pair_index in range(1, cli.pairs + 1):
+        pair_count = pair_counts[(context, outputs)]
+        for pair_index in range(1, pair_count + 1):
             order = pair_order(pair_index)
             for role in order:
-                sequence_index += 1
                 path = report_path(
                     output_dir, context, outputs, pair_index, role
                 )
@@ -1030,6 +1131,7 @@ def main() -> None:
                         ),
                     )
                 ):
+                    sequence_index += 1
                     run_report(
                         engine=engines[role],
                         model_dir=model_dir,
@@ -1056,14 +1158,14 @@ def main() -> None:
                 output_dir / "matrix.json",
                 build_result(
                     output_dir=output_dir,
-                    pair_count=cli.pairs,
+                    pair_counts=pair_counts,
                     identities=identities,
                 ),
             )
 
     result = build_result(
         output_dir=output_dir,
-        pair_count=cli.pairs,
+        pair_counts=pair_counts,
         identities=identities,
     )
     atomic_json(output_dir / "matrix.json", result)
@@ -1073,7 +1175,8 @@ def main() -> None:
                 "complete": result["complete"],
                 "qualified": result["qualified"],
                 "cell_count": result["observed_cell_count"],
-                "pair_count": cli.pairs,
+                "minimum_pair_count": min(pair_counts.values()),
+                "maximum_pair_count": max(pair_counts.values()),
                 "output": str(output_dir / "matrix.json"),
             },
             sort_keys=True,

@@ -12,7 +12,9 @@ import http.client
 import json
 import os
 from pathlib import Path
+import re
 import selectors
+import shutil
 import statistics
 import subprocess
 import time
@@ -410,6 +412,20 @@ def prefix_pair_order(pair_index: int) -> tuple[str, str]:
     )
 
 
+def parse_cpu_list(text: str) -> str:
+    if not re.fullmatch(r"[0-9]+(?:-[0-9]+)?(?:,[0-9]+(?:-[0-9]+)?)*", text):
+        raise argparse.ArgumentTypeError(
+            "CPU list must use taskset syntax such as 8-15 or 2,4-7"
+        )
+    for item in text.split(","):
+        bounds = [int(value) for value in item.split("-")]
+        if len(bounds) == 2 and bounds[0] > bounds[1]:
+            raise argparse.ArgumentTypeError(
+                "CPU list ranges must be ascending"
+            )
+    return text
+
+
 def paired_prefix_report_path(
     output_dir: Path, pair_index: int, role: str
 ) -> Path:
@@ -429,6 +445,8 @@ def paired_prefix_report_valid(
     pair_index: int,
     order: tuple[str, str],
     engine_sha256: str,
+    cpu_list: str | None,
+    taskset_sha256: str | None,
 ) -> bool:
     if not prefix_cache_report_valid(
         payload,
@@ -439,12 +457,22 @@ def paired_prefix_report_valid(
         return False
     try:
         qualification = payload["qualification"]
+        affinity = qualification.get("cpu_affinity")
+        expected_affinity = (
+            None
+            if cpu_list is None
+            else {
+                "cpu_list": cpu_list,
+                "taskset_sha256": taskset_sha256,
+            }
+        )
         return bool(
             qualification.get("schema")
-            == "aima-amd395-qwen36/native-paired-prefix-binding/v1"
+            == "aima-amd395-qwen36/native-paired-prefix-binding/v2"
             and qualification.get("engine_role") == role
             and int(qualification.get("pair_index")) == pair_index
             and tuple(qualification.get("pair_order", [])) == order
+            and affinity == expected_affinity
         )
     except (KeyError, TypeError, ValueError):
         return False
@@ -595,6 +623,9 @@ def run_paired_prefix_report(
     pair_index: int,
     order: tuple[str, str],
     sequence_index: int,
+    cpu_list: str | None,
+    taskset: Path | None,
+    taskset_sha256: str | None,
 ) -> Path:
     report = paired_prefix_report_path(output_dir, pair_index, role)
     if report.is_file():
@@ -605,12 +636,14 @@ def run_paired_prefix_report(
             pair_index=pair_index,
             order=order,
             engine_sha256=engine_sha256,
+            cpu_list=cpu_list,
+            taskset_sha256=taskset_sha256,
         ) and paired_prefix_artifacts_valid(report, existing):
             return report
     report.parent.mkdir(parents=True, exist_ok=True)
     load_report = report.with_suffix(".load.json")
     stderr_path = report.with_suffix(".stderr.txt")
-    command = [
+    engine_command = [
         str(engine),
         "resident-session-probe",
         "--model-dir",
@@ -626,6 +659,11 @@ def run_paired_prefix_report(
         "--report",
         str(load_report),
     ]
+    command = (
+        [str(taskset), "--cpu-list", cpu_list, *engine_command]
+        if taskset is not None and cpu_list is not None
+        else engine_command
+    )
     print(
         json.dumps(
             {
@@ -656,12 +694,20 @@ def run_paired_prefix_report(
     if not isinstance(payload, dict):
         raise RuntimeError("paired prefix run emitted non-object JSON")
     payload["qualification"] = {
-        "schema": "aima-amd395-qwen36/native-paired-prefix-binding/v1",
+        "schema": "aima-amd395-qwen36/native-paired-prefix-binding/v2",
         "engine_role": role,
         "engine_sha256": engine_sha256,
         "pair_index": pair_index,
         "pair_order": list(order),
         "sequence_index": sequence_index,
+        "cpu_affinity": (
+            None
+            if cpu_list is None
+            else {
+                "cpu_list": cpu_list,
+                "taskset_sha256": taskset_sha256,
+            }
+        ),
         "command": command,
         "load_report": str(load_report),
         "load_report_sha256": (
@@ -686,6 +732,8 @@ def run_paired_prefix_report(
             pair_index=pair_index,
             order=order,
             engine_sha256=engine_sha256,
+            cpu_list=cpu_list,
+            taskset_sha256=taskset_sha256,
         )
         or not paired_prefix_artifacts_valid(report, payload)
     ):
@@ -717,6 +765,9 @@ def qualify_paired_prefix_cache(
     candidate_sha256: str,
     baseline_sha256: str,
     pair_count: int,
+    cpu_list: str | None,
+    taskset: Path | None,
+    taskset_sha256: str | None,
 ) -> dict[str, Any]:
     engines = {
         "candidate": candidate_engine,
@@ -742,6 +793,9 @@ def qualify_paired_prefix_cache(
                 pair_index=pair_index,
                 order=order,
                 sequence_index=sequence_index,
+                cpu_list=cpu_list,
+                taskset=taskset,
+                taskset_sha256=taskset_sha256,
             )
     pairs: list[dict[str, Any]] = []
     for pair_index in range(1, pair_count + 1):
@@ -764,6 +818,8 @@ def qualify_paired_prefix_cache(
                 pair_index=pair_index,
                 order=order,
                 engine_sha256=engine_sha256[role],
+                cpu_list=cpu_list,
+                taskset_sha256=taskset_sha256,
             )
             and paired_prefix_artifacts_valid(path, payloads[role])
             for role, path in paths.items()
@@ -808,6 +864,15 @@ def qualify_paired_prefix_cache(
             ),
             "pair_locality": "adjacent fresh processes",
             "per_process_requests": "one cold request then one exact hit",
+            "cpu_affinity": (
+                None
+                if cpu_list is None
+                else {
+                    "cpu_list": cpu_list,
+                    "taskset": str(taskset),
+                    "taskset_sha256": taskset_sha256,
+                }
+            ),
             "decision": (
                 "paired candidate/release median >= 1.0 for TTFT "
                 "speedup and decode retention"
@@ -1017,6 +1082,14 @@ def main() -> None:
     parser.add_argument(
         "--prefix-pairs", type=int, default=DEFAULT_PREFIX_PAIRS
     )
+    parser.add_argument(
+        "--prefix-cpu-list",
+        type=parse_cpu_list,
+        help=(
+            "optional taskset CPU list applied symmetrically to paired "
+            "prefix-cache processes"
+        ),
+    )
     parser.add_argument("--model-dir", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--port-base", type=int, default=18080)
@@ -1060,6 +1133,18 @@ def main() -> None:
         )
     baseline_engine: Path | None = None
     baseline_sha256: str | None = None
+    taskset: Path | None = None
+    taskset_sha256: str | None = None
+    if cli.prefix_cpu_list is not None:
+        if not paired_prefix_requested:
+            raise SystemExit(
+                "--prefix-cpu-list requires paired prefix qualification"
+            )
+        taskset_command = shutil.which("taskset")
+        if taskset_command is None:
+            raise SystemExit("--prefix-cpu-list requires taskset")
+        taskset = Path(taskset_command).resolve()
+        taskset_sha256 = sha256(taskset)
     if paired_prefix_requested:
         if cli.prefix_pairs < MINIMUM_PREFIX_PAIRS:
             raise SystemExit(
@@ -1096,6 +1181,9 @@ def main() -> None:
             candidate_sha256=engine_sha256,
             baseline_sha256=baseline_sha256,
             pair_count=cli.prefix_pairs,
+            cpu_list=cli.prefix_cpu_list,
+            taskset=taskset,
+            taskset_sha256=taskset_sha256,
         )
         prefix_pass = bool(prefix_result["qualified"])
     else:

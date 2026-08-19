@@ -1,14 +1,14 @@
 {
   "binary": {
-    "bytes": 39136800,
+    "bytes": 39498520,
     "path": "build/native/aima-engine-native",
-    "sha256": "ceefb13d2a1deb7c83fbe41c01ab82f84d0e8087315268d1cfb34f37abb477aa"
+    "sha256": "8524beee2e98bb9d261bb00d6f1febefc980953d5d02c8e0b005f56c5ee98339"
   },
   "build_info": {
-    "source_commit": "fffea697af4d4b40ecbc2a8dfa3fb5aa0b9ddf0d",
+    "source_commit": "1c5f6387898d0ae37d06234c5930221fe0ec5404",
     "version": "1.5.1-native"
   },
-  "captured_at": "2026-08-16T11:06:47+00:00",
+  "captured_at": "2026-08-17T22:49:07+00:00",
   "complete": true,
   "decision": {
     "g1_passed": false,
@@ -22,8 +22,8 @@
     "runtime_triton": false,
     "runtime_vllm": false,
     "single_resident_model_load": true,
-    "twelve_long_greedy_cases_reference_exact": false,
-    "twelve_output_token_vectors_exact": false,
+    "twelve_long_greedy_cases_reference_exact": true,
+    "twelve_output_token_vectors_exact": true,
     "twelve_render_prompt_vectors_exact": true,
     "twelve_task_quality_cases_qualified": true,
     "video_task_quality_not_below_reference": true
@@ -66,7 +66,7 @@
   },
   "integrity": {
     "algorithm": "sha256",
-    "canonical_payload_sha256": "d4bbcfd672cb72af6dc73c3db60bb100938585bdd4c6a341e8f2eee9ce3361d9"
+    "canonical_payload_sha256": "75fdd8a6758567f146cb1b74f2bdf9e251bbd9595bc28c0e93bff3955df0f152"
   },
   "launch": {
     "checks": {
@@ -98,7 +98,7 @@
       "--host",
       "127.0.0.1",
       "--port",
-      "18166",
+      "18243",
       "--max-requests",
       "12",
       "--request-timeout-ms",
@@ -114,7 +114,7 @@
     "health": {
       "admitted_prompt_tokens": 2048,
       "authentication": "none",
-      "command_to_ready_wall_ms": 41742.538504,
+      "command_to_ready_wall_ms": 49450.636799,
       "context_capacity": 2048,
       "fmha_provider_backend": "AOTriton 0.11.1",
       "http_shutdown_enabled": true,
@@ -139,16 +139,16 @@
       "static_prefill_tokens": 1024,
       "status": "ok",
       "structured_token_mask_bytes": 248320,
-      "uptime_ms": 41852.02603,
+      "uptime_ms": 49469.70954,
       "vision_plan_cache_capacity": 4
     },
     "ready": {
       "allowed_local_media_roots": 1,
       "allowed_media_domains": 0,
       "authentication": "none",
-      "command_to_ready_wall_ms": 41742.538504,
+      "command_to_ready_wall_ms": 49450.636799,
       "context_capacity": 2048,
-      "engine_load_wall_ms": 41346.577813,
+      "engine_load_wall_ms": 49058.962826,
       "event": "ready",
       "fmha_provider_backend": "AOTriton 0.11.1",
       "fmha_provider_path": "${AIMA_FMHA_PROVIDER}",
@@ -165,7 +165,7 @@
       "model_tensor_count": 1026,
       "mrope_position_state_bytes": 49152,
       "native_vl": true,
-      "port": 18166,
+      "port": 18243,
       "prefix_cache_entries": 4,
       "prompt_token_ids_extension": true,
       "request_timeout_ms": 600000,
@@ -199,14 +199,14 @@
         "case_id": "image_central_red_circle",
         "expected_accept": true,
         "modality": "image",
-        "output_text": "The user wants me to identify the main shape and its color in the provided image.\n\n1.  **Analyze the image:** The image shows a red circle in the center of a white background. This is the flag of Japan.\n2.  **Identify the shape:** It is a circle.\n3.  **Identify the color:** It is red.\n4.  **Formulate the sentence:** \"The large central shape is a red circle.\" or \"The image features a large red circle in the center.\"\n5.  **Check constraints:**\n    *   One complete sentence? Yes.\n    *   Mention both facts (shape and color)? Yes.\n\nDraft: The large central shape is a red circle.\nRefinement: The large central shape is a red circle. (Simple and direct).\n</think>\n\nThe large central shape is a red circle.",
-        "output_token_ids_sha256": "884d76b98fdea6336b474e0871feddb74269723929510a1eebd7d40511bbfe1e",
+        "output_text": "The user wants me to identify the main shape and its color in the provided image.\n\n1.  **Analyze the image:** The image shows a red circle in the center of a white background. This is the flag of Japan.\n2.  **Identify the shape:** It is a circle.\n3.  **Identify the color:** It is red.\n4.  **Formulate the sentence:** \"The large central shape is a red circle.\" or \"The image features a large red circle in the center.\"\n5.  **Check constraints:**\n    *   Identify large central shape? Yes (circle).\n    *   Identify color? Yes (red).\n    *   One complete sentence? Yes.\n    *   Mention both facts? Yes.\n\nFinal Answer construction: \"The large central shape is a red circle.\"\n</think>\n\nThe large central shape is a red circle.",
+        "output_token_ids_sha256": "6c0b2215a4b2dae186d2f8cefa67ea493cbc2d27f8fce24fc0b39bf5f3d454cc",
         "parity_diagnostics": {
           "finish_reason_reference_exact": true,
-          "generated_content_reference_exact": false,
-          "output_token_ids_reference_exact": false,
+          "generated_content_reference_exact": true,
+          "output_token_ids_reference_exact": true,
           "score_reference_exact": true,
-          "usage_reference_exact": false
+          "usage_reference_exact": true
         },
         "passed": true,
         "qualification_checks": {
@@ -266,12 +266,12 @@
             "client_cancelled": false,
             "cold_prompt_decode_tokens": 0,
             "cold_prompt_decode_wall_ms": 0.0,
-            "completion_tokens": 185,
-            "decode_tokens_per_second": 25.169969961851436,
-            "http_request_wall_ms": 8185.940418,
+            "completion_tokens": 190,
+            "decode_tokens_per_second": 25.25458539219051,
+            "http_request_wall_ms": 8341.750763,
             "model_loads": 1,
             "mrope": {
-              "decode_steps": 184,
+              "decode_steps": 189,
               "enabled": true,
               "fmha_launches": 0,
               "full_attention_launches": 10,
@@ -280,16 +280,18 @@
               "unified_attention_launches": 10
             },
             "oracle_tensor_reads": 0,
-            "output_token_ids_canonical_sha256": "884d76b98fdea6336b474e0871feddb74269723929510a1eebd7d40511bbfe1e",
-            "output_token_ids_sha256": "dfb24614a8ea0f859dd03368ca86314a2dc206e2a352cfd5a41941ca1cbb3215",
+            "output_token_ids_canonical_sha256": "6c0b2215a4b2dae186d2f8cefa67ea493cbc2d27f8fce24fc0b39bf5f3d454cc",
+            "output_token_ids_sha256": "9779f11caab72c9beb8859724e354e95f428497280ebe86ede645d50b557c850",
             "padded_prefill_tokens": 799,
-            "prefill_tokens_per_second": 258.75083954297395,
+            "prefill_tokens_per_second": 264.13626907045665,
             "prefix_cache": {
+              "active_kv_reused": false,
               "hits": 0,
               "implemented": true,
               "lookup": "miss",
               "matched_tokens": 0,
               "misses": 1,
+              "restore_wall_ms": 0.0,
               "scope": "capacity-bounded-variable-exact-or-append-lru",
               "suffix_aot_launches": 0,
               "suffix_decode_tokens": 0,
@@ -303,16 +305,16 @@
             "prompt_token_ids_sha256": "35f63b05704909bc68bcff71f6f7bb52d2d89791b56d165630c9d93c00cef060",
             "prompt_tokens": 225,
             "request_index": 1,
-            "request_wall_ms": 8181.062424,
+            "request_wall_ms": 8336.406376,
             "runtime": "native-resident-q225",
             "structured_decoding": {
               "enabled": false,
               "token_mask_upload_bytes": 0,
               "token_selections": 0
             },
-            "ttft_ms": 869.562396,
+            "ttft_ms": 851.833036,
             "vl": {
-              "embedding_injection_wall_ms": 1.264464,
+              "embedding_injection_wall_ms": 1.224895,
               "enabled": true,
               "host_to_device_bytes": 2361732,
               "image_count": 1,
@@ -321,18 +323,18 @@
               "media_cache_misses": 1,
               "media_cache_resident_bytes": 2359727,
               "media_count": 1,
-              "media_decode_wall_ms": 1.510015,
-              "media_load_decode_wall_ms": 1.5510830000000002,
-              "media_load_wall_ms": 0.041068,
-              "processor_wall_ms": 0.699215,
+              "media_decode_wall_ms": 1.873282,
+              "media_load_decode_wall_ms": 1.914391,
+              "media_load_wall_ms": 0.041109,
+              "processor_wall_ms": 0.779922,
               "source_bytes": 1660,
               "video_count": 0,
               "vision_batch_count": 1,
-              "vision_encode_wall_ms": 59.038969,
+              "vision_encode_wall_ms": 51.658715,
               "vision_max_batch_patches": 768,
               "vision_max_batch_tokens": 192,
               "vision_patches": 768,
-              "vision_plan_build_wall_ms": 147.886599,
+              "vision_plan_build_wall_ms": 145.389561,
               "vision_plan_cache_entries": 1,
               "vision_plan_cache_hit": false,
               "visual_tokens": 192
@@ -343,7 +345,7 @@
               "finish_reason": "stop",
               "index": 0,
               "message": {
-                "content": "The user wants me to identify the main shape and its color in the provided image.\n\n1.  **Analyze the image:** The image shows a red circle in the center of a white background. This is the flag of Japan.\n2.  **Identify the shape:** It is a circle.\n3.  **Identify the color:** It is red.\n4.  **Formulate the sentence:** \"The large central shape is a red circle.\" or \"The image features a large red circle in the center.\"\n5.  **Check constraints:**\n    *   One complete sentence? Yes.\n    *   Mention both facts (shape and color)? Yes.\n\nDraft: The large central shape is a red circle.\nRefinement: The large central shape is a red circle. (Simple and direct).\n</think>\n\nThe large central shape is a red circle.",
+                "content": "The user wants me to identify the main shape and its color in the provided image.\n\n1.  **Analyze the image:** The image shows a red circle in the center of a white background. This is the flag of Japan.\n2.  **Identify the shape:** It is a circle.\n3.  **Identify the color:** It is red.\n4.  **Formulate the sentence:** \"The large central shape is a red circle.\" or \"The image features a large red circle in the center.\"\n5.  **Check constraints:**\n    *   Identify large central shape? Yes (circle).\n    *   Identify color? Yes (red).\n    *   One complete sentence? Yes.\n    *   Mention both facts? Yes.\n\nFinal Answer construction: \"The large central shape is a red circle.\"\n</think>\n\nThe large central shape is a red circle.",
                 "role": "assistant"
               }
             }
@@ -351,13 +353,13 @@
           "model": "aima-amd395-qwen36-35b",
           "object": "chat.completion",
           "usage": {
-            "completion_tokens": 185,
+            "completion_tokens": 190,
             "prompt_tokens": 225,
-            "total_tokens": 410
+            "total_tokens": 415
           }
         },
-        "response_bytes": 3096,
-        "response_sha256": "3a4395d1acbef57fa90c6cabe59fe77b7c7981fb397dedf65acaa6dca6dadecc",
+        "response_bytes": 3152,
+        "response_sha256": "3796b03cdfabed054afa35aa6021290c290c9bdf61dd06e63812c4e610a0886e",
         "rubric": [
           {
             "any_of": [
@@ -395,7 +397,7 @@
           "task_quality"
         ],
         "timings": {
-          "total_seconds": 8.195367828011513,
+          "total_seconds": 8.351649195887148,
           "ttft_seconds": null
         },
         "transport_request_sha256": "079bdc2f3a0c93bf8ea7dac61dae1673aacd891938a68074ea55f58c43a6b6c2"
@@ -473,8 +475,8 @@
             "cold_prompt_decode_tokens": 0,
             "cold_prompt_decode_wall_ms": 0.0,
             "completion_tokens": 192,
-            "decode_tokens_per_second": 25.182206189083338,
-            "http_request_wall_ms": 8286.089214,
+            "decode_tokens_per_second": 25.227454280771983,
+            "http_request_wall_ms": 8277.037,
             "model_loads": 1,
             "mrope": {
               "decode_steps": 191,
@@ -489,13 +491,15 @@
             "output_token_ids_canonical_sha256": "4603c90e0917568b9df75b06e3c4975358e4870ddc4375479d35425b7fa5c6de",
             "output_token_ids_sha256": "462b546ab0c43fb21fbf008c30cf53b23142ff8c5b01560d58f6da1a08490c2c",
             "padded_prefill_tokens": 799,
-            "prefill_tokens_per_second": 323.28987176123877,
+            "prefill_tokens_per_second": 321.8094015938731,
             "prefix_cache": {
+              "active_kv_reused": false,
               "hits": 0,
               "implemented": true,
               "lookup": "miss",
               "matched_tokens": 0,
               "misses": 2,
+              "restore_wall_ms": 0.0,
               "scope": "capacity-bounded-variable-exact-or-append-lru",
               "suffix_aot_launches": 0,
               "suffix_decode_tokens": 0,
@@ -509,16 +513,16 @@
             "prompt_token_ids_sha256": "fd845ceb8e6f3ee0d39e5f6509fc7aed5a51964deab57af86c45867c14a7821e",
             "prompt_tokens": 225,
             "request_index": 2,
-            "request_wall_ms": 8281.513599,
+            "request_wall_ms": 8271.137053,
             "runtime": "native-resident-q225",
             "structured_decoding": {
               "enabled": false,
               "token_mask_upload_bytes": 0,
               "token_selections": 0
             },
-            "ttft_ms": 695.969839,
+            "ttft_ms": 699.171618,
             "vl": {
-              "embedding_injection_wall_ms": 0.043279,
+              "embedding_injection_wall_ms": 0.043898,
               "enabled": true,
               "host_to_device_bytes": 2361732,
               "image_count": 1,
@@ -527,14 +531,14 @@
               "media_cache_misses": 1,
               "media_cache_resident_bytes": 4719454,
               "media_count": 1,
-              "media_decode_wall_ms": 1.313493,
-              "media_load_decode_wall_ms": 1.326502,
-              "media_load_wall_ms": 0.013009,
-              "processor_wall_ms": 0.785431,
+              "media_decode_wall_ms": 2.094205,
+              "media_load_decode_wall_ms": 2.106624,
+              "media_load_wall_ms": 0.012419,
+              "processor_wall_ms": 1.315072,
               "source_bytes": 1522,
               "video_count": 0,
               "vision_batch_count": 1,
-              "vision_encode_wall_ms": 48.582062,
+              "vision_encode_wall_ms": 48.764792,
               "vision_max_batch_patches": 768,
               "vision_max_batch_tokens": 192,
               "vision_patches": 768,
@@ -562,8 +566,8 @@
             "total_tokens": 417
           }
         },
-        "response_bytes": 3098,
-        "response_sha256": "c4c56f4a5df69bf5b0eff6b3a3d0fefe7286069e73a8d7bbefcb3b7172319062",
+        "response_bytes": 3141,
+        "response_sha256": "797a41af0e34e9c78f87fae14bd10ccd2d63cda71da31f764a27a776faeaedce",
         "rubric": [
           {
             "any_of": [
@@ -636,7 +640,7 @@
           "task_quality"
         ],
         "timings": {
-          "total_seconds": 8.286580057814717,
+          "total_seconds": 8.277544621378183,
           "ttft_seconds": null
         },
         "transport_request_sha256": "08a1fe8765588bcc755ed428d28eabf5446e80f1284626a600b341fe42a7fc2d"
@@ -714,8 +718,8 @@
             "cold_prompt_decode_tokens": 0,
             "cold_prompt_decode_wall_ms": 0.0,
             "completion_tokens": 192,
-            "decode_tokens_per_second": 25.16858539807907,
-            "http_request_wall_ms": 8294.110612,
+            "decode_tokens_per_second": 25.248384562188182,
+            "http_request_wall_ms": 8269.576634,
             "model_loads": 1,
             "mrope": {
               "decode_steps": 191,
@@ -730,13 +734,15 @@
             "output_token_ids_canonical_sha256": "0dd6e9c43311e0107994f3e72e9300252fabb8c0324052000b9b6d7e8ec886e1",
             "output_token_ids_sha256": "b420c2f2ef4c3c8a08001a673e4adb124f0a9688fe5ed11cff52153d6395f29e",
             "padded_prefill_tokens": 804,
-            "prefill_tokens_per_second": 314.5095840048065,
+            "prefill_tokens_per_second": 315.10374476408754,
             "prefix_cache": {
+              "active_kv_reused": false,
               "hits": 0,
               "implemented": true,
               "lookup": "miss",
               "matched_tokens": 0,
               "misses": 3,
+              "restore_wall_ms": 0.0,
               "scope": "capacity-bounded-variable-exact-or-append-lru",
               "suffix_aot_launches": 0,
               "suffix_decode_tokens": 0,
@@ -750,16 +756,16 @@
             "prompt_token_ids_sha256": "99326330b363f6e61ca0d1b89f0834d41c271ce60b72206cbcec315c29c628c3",
             "prompt_tokens": 220,
             "request_index": 3,
-            "request_wall_ms": 8289.271395,
+            "request_wall_ms": 8264.390651,
             "runtime": "native-resident-q220",
             "structured_decoding": {
               "enabled": false,
               "token_mask_upload_bytes": 0,
               "token_selections": 0
             },
-            "ttft_ms": 699.501736,
+            "ttft_ms": 698.182753,
             "vl": {
-              "embedding_injection_wall_ms": 0.059667,
+              "embedding_injection_wall_ms": 0.063378,
               "enabled": true,
               "host_to_device_bytes": 2361712,
               "image_count": 1,
@@ -768,14 +774,14 @@
               "media_cache_misses": 1,
               "media_cache_resident_bytes": 7079181,
               "media_count": 1,
-              "media_decode_wall_ms": 1.356341,
-              "media_load_decode_wall_ms": 1.37087,
-              "media_load_wall_ms": 0.014529,
-              "processor_wall_ms": 0.964326,
+              "media_decode_wall_ms": 1.40603,
+              "media_load_decode_wall_ms": 1.420839,
+              "media_load_wall_ms": 0.014809,
+              "processor_wall_ms": 1.197206,
               "source_bytes": 1627,
               "video_count": 0,
               "vision_batch_count": 1,
-              "vision_encode_wall_ms": 46.722135,
+              "vision_encode_wall_ms": 46.791435,
               "vision_max_batch_patches": 768,
               "vision_max_batch_tokens": 192,
               "vision_patches": 768,
@@ -803,8 +809,8 @@
             "total_tokens": 412
           }
         },
-        "response_bytes": 3096,
-        "response_sha256": "b40e2a75af0b17646c0279fa5d3134d7ee1f07c91f71ccee4d3e6d3c69c2eb5e",
+        "response_bytes": 3145,
+        "response_sha256": "b673f1a33d4c742fa700bddbad0948be0abf7c381882bde07358e6f81aa7fb62",
         "rubric": [
           {
             "all_of": [
@@ -861,7 +867,7 @@
           "task_quality"
         ],
         "timings": {
-          "total_seconds": 8.294614213518798,
+          "total_seconds": 8.270097225904465,
           "ttft_seconds": null
         },
         "transport_request_sha256": "49b8294c546baee2b95dfb8e40de025f4283b9cb76afb0603d6e24c6cfaf3d7b"
@@ -939,8 +945,8 @@
             "cold_prompt_decode_tokens": 0,
             "cold_prompt_decode_wall_ms": 0.0,
             "completion_tokens": 192,
-            "decode_tokens_per_second": 25.178052181973218,
-            "http_request_wall_ms": 8289.101469,
+            "decode_tokens_per_second": 25.240321829226378,
+            "http_request_wall_ms": 8273.555982,
             "model_loads": 1,
             "mrope": {
               "decode_steps": 191,
@@ -955,13 +961,15 @@
             "output_token_ids_canonical_sha256": "adcbc7c5567410e04256a8b28631c23a98827798ba302fdb6f94366a61e8892d",
             "output_token_ids_sha256": "b6c371e0a0a5c5a8e5a30fc7916f424f7f802702e2f734b11eb7043037ed5d1a",
             "padded_prefill_tokens": 802,
-            "prefill_tokens_per_second": 318.48914259753116,
+            "prefill_tokens_per_second": 317.65981354682515,
             "prefix_cache": {
+              "active_kv_reused": false,
               "hits": 0,
               "implemented": true,
               "lookup": "miss",
               "matched_tokens": 0,
               "misses": 4,
+              "restore_wall_ms": 0.0,
               "scope": "capacity-bounded-variable-exact-or-append-lru",
               "suffix_aot_launches": 0,
               "suffix_decode_tokens": 0,
@@ -975,16 +983,16 @@
             "prompt_token_ids_sha256": "3d57c701d984325fc4971f5f1e8b1aca20c25bc72148acb7a637d0203d312ddf",
             "prompt_tokens": 222,
             "request_index": 4,
-            "request_wall_ms": 8283.909805,
+            "request_wall_ms": 8268.205003,
             "runtime": "native-resident-q222",
             "structured_decoding": {
               "enabled": false,
               "token_mask_upload_bytes": 0,
               "token_selections": 0
             },
-            "ttft_ms": 697.04103,
+            "ttft_ms": 698.860827,
             "vl": {
-              "embedding_injection_wall_ms": 0.059268,
+              "embedding_injection_wall_ms": 0.064668,
               "enabled": true,
               "host_to_device_bytes": 2361720,
               "image_count": 1,
@@ -993,14 +1001,14 @@
               "media_cache_misses": 1,
               "media_cache_resident_bytes": 9438908,
               "media_count": 1,
-              "media_decode_wall_ms": 1.508456,
-              "media_load_decode_wall_ms": 1.522176,
-              "media_load_wall_ms": 0.01372,
-              "processor_wall_ms": 1.143039,
+              "media_decode_wall_ms": 1.503076,
+              "media_load_decode_wall_ms": 1.516275,
+              "media_load_wall_ms": 0.013199,
+              "processor_wall_ms": 1.353082,
               "source_bytes": 1498,
               "video_count": 0,
               "vision_batch_count": 1,
-              "vision_encode_wall_ms": 47.756433,
+              "vision_encode_wall_ms": 47.924316,
               "vision_max_batch_patches": 768,
               "vision_max_batch_tokens": 192,
               "vision_patches": 768,
@@ -1028,8 +1036,8 @@
             "total_tokens": 414
           }
         },
-        "response_bytes": 2964,
-        "response_sha256": "38ccb0d5d91b57b5ada0cdc709f179d7db6ff5f2386fa0b19628023d209c4e54",
+        "response_bytes": 3013,
+        "response_sha256": "c5344d7083bdd300be98675c8eb24dda980c52795af5fe18a76a45bb73dd250c",
         "rubric": [
           {
             "any_of": [
@@ -1059,7 +1067,7 @@
           "task_quality"
         ],
         "timings": {
-          "total_seconds": 8.289615342393517,
+          "total_seconds": 8.27407533209771,
           "ttft_seconds": null
         },
         "transport_request_sha256": "e54654f1ee48d9bdf9095a20587d9b922f30f42aa2b9bfa48a7826078b308016"
@@ -1137,8 +1145,8 @@
             "cold_prompt_decode_tokens": 0,
             "cold_prompt_decode_wall_ms": 0.0,
             "completion_tokens": 192,
-            "decode_tokens_per_second": 25.178804186606808,
-            "http_request_wall_ms": 8298.808129,
+            "decode_tokens_per_second": 25.235270111102228,
+            "http_request_wall_ms": 8282.215975,
             "model_loads": 1,
             "mrope": {
               "decode_steps": 191,
@@ -1153,13 +1161,15 @@
             "output_token_ids_canonical_sha256": "4287f7d02c728627fa8250f6286d1b6011524fef011aec628d6036432edf0a4c",
             "output_token_ids_sha256": "85a23023c9348b004062f42cd508392df1771537d71f71fd19ca8db360ed6f54",
             "padded_prefill_tokens": 797,
-            "prefill_tokens_per_second": 321.1415117923411,
+            "prefill_tokens_per_second": 321.118274274293,
             "prefix_cache": {
+              "active_kv_reused": false,
               "hits": 0,
               "implemented": true,
               "lookup": "miss",
               "matched_tokens": 0,
               "misses": 5,
+              "restore_wall_ms": 0.0,
               "scope": "capacity-bounded-variable-exact-or-append-lru",
               "suffix_aot_launches": 0,
               "suffix_decode_tokens": 0,
@@ -1173,16 +1183,16 @@
             "prompt_token_ids_sha256": "04e0073bb39f5b896dfc7b26133026ed736e12e55eb30bc69eab82da650ba1b5",
             "prompt_tokens": 227,
             "request_index": 5,
-            "request_wall_ms": 8293.618724,
+            "request_wall_ms": 8276.963953,
             "runtime": "native-resident-q227",
             "structured_decoding": {
               "enabled": false,
               "token_mask_upload_bytes": 0,
               "token_selections": 0
             },
-            "ttft_ms": 706.853495,
+            "ttft_ms": 706.904646,
             "vl": {
-              "embedding_injection_wall_ms": 0.064048,
+              "embedding_injection_wall_ms": 0.062208,
               "enabled": true,
               "host_to_device_bytes": 2361740,
               "image_count": 1,
@@ -1191,14 +1201,14 @@
               "media_cache_misses": 1,
               "media_cache_resident_bytes": 11798635,
               "media_count": 1,
-              "media_decode_wall_ms": 1.429989,
-              "media_load_decode_wall_ms": 1.438208,
-              "media_load_wall_ms": 0.008219,
-              "processor_wall_ms": 1.250546,
+              "media_decode_wall_ms": 1.513056,
+              "media_load_decode_wall_ms": 1.521526,
+              "media_load_wall_ms": 0.00847,
+              "processor_wall_ms": 1.252795,
               "source_bytes": 1151,
               "video_count": 0,
               "vision_batch_count": 1,
-              "vision_encode_wall_ms": 47.856625,
+              "vision_encode_wall_ms": 46.625934,
               "vision_max_batch_patches": 768,
               "vision_max_batch_tokens": 192,
               "vision_patches": 768,
@@ -1226,8 +1236,8 @@
             "total_tokens": 419
           }
         },
-        "response_bytes": 3140,
-        "response_sha256": "8b6839ebb93cb1b53d8d61fdd438b2ade765cd46576a266f8fb00accf23730ac",
+        "response_bytes": 3185,
+        "response_sha256": "8fce51c2f4aa045ce6c931e64e02a570029a6c8d33e833d799b48bca072046c5",
         "rubric": [
           {
             "any_of": [
@@ -1281,7 +1291,7 @@
           "task_quality"
         ],
         "timings": {
-          "total_seconds": 8.299310910515487,
+          "total_seconds": 8.282915609888732,
           "ttft_seconds": null
         },
         "transport_request_sha256": "5b2bdcb62be1b46d60bc2b71c5275bfab147e03f7908bbacf99638ff36fe9db4"
@@ -1359,8 +1369,8 @@
             "cold_prompt_decode_tokens": 0,
             "cold_prompt_decode_wall_ms": 0.0,
             "completion_tokens": 169,
-            "decode_tokens_per_second": 25.16873040458158,
-            "http_request_wall_ms": 7389.652269,
+            "decode_tokens_per_second": 25.236762631875102,
+            "http_request_wall_ms": 7373.847758,
             "model_loads": 1,
             "mrope": {
               "decode_steps": 168,
@@ -1375,13 +1385,15 @@
             "output_token_ids_canonical_sha256": "5216499e9aa8c4122fe0b7e8562545c27ff8792acfcbcb7bc9efda145b979ef8",
             "output_token_ids_sha256": "8da8e06a2eb1415c31772b40dff9a976191b8bb78c0e7d2d80311afd73db8121",
             "padded_prefill_tokens": 802,
-            "prefill_tokens_per_second": 313.21875017340784,
+            "prefill_tokens_per_second": 312.35868715356753,
             "prefix_cache": {
+              "active_kv_reused": false,
               "hits": 0,
               "implemented": true,
               "lookup": "miss",
               "matched_tokens": 0,
               "misses": 6,
+              "restore_wall_ms": 0.0,
               "scope": "capacity-bounded-variable-exact-or-append-lru",
               "suffix_aot_launches": 0,
               "suffix_decode_tokens": 0,
@@ -1395,16 +1407,16 @@
             "prompt_token_ids_sha256": "ad5cbaa92ae853d49958ffe11d4bdbdbf6df0fdeba6b54147c3fc7d8c9f503ec",
             "prompt_tokens": 222,
             "request_index": 6,
-            "request_wall_ms": 7384.415395,
+            "request_wall_ms": 7368.671674,
             "runtime": "native-resident-q222",
             "structured_decoding": {
               "enabled": false,
               "token_mask_upload_bytes": 0,
               "token_selections": 0
             },
-            "ttft_ms": 708.769829,
+            "ttft_ms": 710.721389,
             "vl": {
-              "embedding_injection_wall_ms": 0.060727,
+              "embedding_injection_wall_ms": 0.071097,
               "enabled": true,
               "host_to_device_bytes": 2361720,
               "image_count": 1,
@@ -1413,14 +1425,14 @@
               "media_cache_misses": 1,
               "media_cache_resident_bytes": 14158362,
               "media_count": 1,
-              "media_decode_wall_ms": 1.460419,
-              "media_load_decode_wall_ms": 1.473968,
-              "media_load_wall_ms": 0.013549,
-              "processor_wall_ms": 1.271585,
+              "media_decode_wall_ms": 1.443808,
+              "media_load_decode_wall_ms": 1.456788,
+              "media_load_wall_ms": 0.01298,
+              "processor_wall_ms": 1.262075,
               "source_bytes": 1528,
               "video_count": 0,
               "vision_batch_count": 1,
-              "vision_encode_wall_ms": 46.969603,
+              "vision_encode_wall_ms": 46.925076,
               "vision_max_batch_patches": 768,
               "vision_max_batch_tokens": 192,
               "vision_patches": 768,
@@ -1448,8 +1460,8 @@
             "total_tokens": 391
           }
         },
-        "response_bytes": 3049,
-        "response_sha256": "1333ac26c11f26ea52a334df42e6ce0a0bf6890813a316024ace102ebd1177ab",
+        "response_bytes": 3096,
+        "response_sha256": "d5d6116bdcc1ab316d13f3b41cbd7fbfaaeba1bde714dccb21d7659312d0e2e0",
         "rubric": [
           {
             "any_of": [
@@ -1477,7 +1489,7 @@
           "task_quality"
         ],
         "timings": {
-          "total_seconds": 7.390154520981014,
+          "total_seconds": 7.374382209032774,
           "ttft_seconds": null
         },
         "transport_request_sha256": "c020e543c8184aed5878ccf091db0b8f03f7e9b332a99330bd65b9a843ad33a7"
@@ -1555,8 +1567,8 @@
             "cold_prompt_decode_tokens": 0,
             "cold_prompt_decode_wall_ms": 0.0,
             "completion_tokens": 192,
-            "decode_tokens_per_second": 25.155239850124957,
-            "http_request_wall_ms": 8686.612465,
+            "decode_tokens_per_second": 25.216546758629033,
+            "http_request_wall_ms": 8554.328537,
             "model_loads": 1,
             "mrope": {
               "decode_steps": 191,
@@ -1571,13 +1583,15 @@
             "output_token_ids_canonical_sha256": "1ac349c5ffa7c07c0ce5029aca9f1750c5e2d15e9d449d1f09238a54a578ab75",
             "output_token_ids_sha256": "853520cca49901a916e46ff6ca1294223f3b382455a473f52dc6cc579501ed10",
             "padded_prefill_tokens": 527,
-            "prefill_tokens_per_second": 461.84976314722564,
+            "prefill_tokens_per_second": 516.477919914753,
             "prefix_cache": {
+              "active_kv_reused": false,
               "hits": 0,
               "implemented": true,
               "lookup": "miss",
               "matched_tokens": 0,
               "misses": 7,
+              "restore_wall_ms": 0.0,
               "scope": "capacity-bounded-variable-exact-or-append-lru",
               "suffix_aot_launches": 0,
               "suffix_decode_tokens": 0,
@@ -1591,16 +1605,16 @@
             "prompt_token_ids_sha256": "ae8c4295e1402363a530f8fab5558b611aafdeac952f6457711df848c578d456",
             "prompt_tokens": 497,
             "request_index": 7,
-            "request_wall_ms": 8670.191587,
+            "request_wall_ms": 8537.883217,
             "runtime": "native-resident-q497",
             "structured_decoding": {
               "enabled": false,
               "token_mask_upload_bytes": 0,
               "token_selections": 0
             },
-            "ttft_ms": 1076.107513,
+            "ttft_ms": 962.287023,
             "vl": {
-              "embedding_injection_wall_ms": 0.095867,
+              "embedding_injection_wall_ms": 0.078347,
               "enabled": true,
               "host_to_device_bytes": 5313860,
               "image_count": 0,
@@ -1609,18 +1623,18 @@
               "media_cache_misses": 1,
               "media_cache_resident_bytes": 19467273,
               "media_count": 1,
-              "media_decode_wall_ms": 1.98428,
-              "media_load_decode_wall_ms": 2.103975,
-              "media_load_wall_ms": 0.119695,
-              "processor_wall_ms": 2.910727,
+              "media_decode_wall_ms": 1.95879,
+              "media_load_decode_wall_ms": 2.069946,
+              "media_load_wall_ms": 0.111156,
+              "processor_wall_ms": 2.885107,
               "source_bytes": 12517,
               "video_count": 1,
               "vision_batch_count": 1,
-              "vision_encode_wall_ms": 98.754144,
+              "vision_encode_wall_ms": 97.760734,
               "vision_max_batch_patches": 1728,
               "vision_max_batch_tokens": 432,
               "vision_patches": 1728,
-              "vision_plan_build_wall_ms": 223.222547,
+              "vision_plan_build_wall_ms": 150.839561,
               "vision_plan_cache_entries": 2,
               "vision_plan_cache_hit": false,
               "visual_tokens": 432
@@ -1644,8 +1658,8 @@
             "total_tokens": 689
           }
         },
-        "response_bytes": 3009,
-        "response_sha256": "9df7078d9ce32a9cacfd60fe2ca69efebb46b8d1256561a6c29e729381c9744e",
+        "response_bytes": 3053,
+        "response_sha256": "f7bb5e863e58094876711b77c1832e7867a2de6042b51f2ad549149a61130295",
         "rubric": [
           {
             "any_of": [
@@ -1694,7 +1708,7 @@
           "task_quality"
         ],
         "timings": {
-          "total_seconds": 8.687217243947089,
+          "total_seconds": 8.554910846054554,
           "ttft_seconds": null
         },
         "transport_request_sha256": "242448ea04a29caa3e83dbd7db721d26d68b2b340df1bf9c9a3f5cca9935e147"
@@ -1704,12 +1718,12 @@
         "case_id": "video_blue_square_moves_down",
         "expected_accept": true,
         "modality": "video",
-        "output_text": "The user wants a description of the blue square's motion.\n\n1.  **Identify the object:** It's a blue square.\n2.  **Identify the color:** Blue.\n3.  **Analyze the motion:**\n    *   At 00:00, the square is near the top center.\n    *   At 00:01, it has moved slightly down.\n    *   At 00:02, it has moved further down.\n    *   At 00:03, it is near the bottom center.\n    *   The motion is a continuous downward movement.\n\n4.  **Formulate the response:**\n    *   Object: Blue square.\n    *   Color: Blue.\n    *   Direction: Downwards.\n    *   Combine these into a sentence describing the motion from start to finish.\n</think>",
-        "output_token_ids_sha256": "7da7f4d66d6776223f10f4d4cb4d6e8aa286a842fb2e68db30f00b08d832bd5f",
+        "output_text": "The user wants a description of the blue square's motion.\n\n1.  **Identify the object:** It's a blue square.\n2.  **Identify the color:** Blue.\n3.  **Analyze the motion:**\n    *   At 00:00, the square is near the top center.\n    *   At 00:01, it has moved slightly down.\n    *   At 00:02, it has moved further down.\n    *   At 00:03, it is near the bottom center.\n    *   The motion is a continuous downward movement.\n\n4.  **Formulate the response:**\n    *   Object: Blue square.\n    *   Color: Blue.\n    *   Direction: Downwards (from top to bottom).\n    *   Combine these elements into a coherent sentence. \"The",
+        "output_token_ids_sha256": "cc9c7e0078857ad7cf12e3b18180d52af72097211adb8c1de03aeb29b2f68fd1",
         "parity_diagnostics": {
           "finish_reason_reference_exact": true,
-          "generated_content_reference_exact": false,
-          "output_token_ids_reference_exact": false,
+          "generated_content_reference_exact": true,
+          "output_token_ids_reference_exact": true,
           "score_reference_exact": true,
           "usage_reference_exact": true
         },
@@ -1772,8 +1786,8 @@
             "cold_prompt_decode_tokens": 0,
             "cold_prompt_decode_wall_ms": 0.0,
             "completion_tokens": 192,
-            "decode_tokens_per_second": 25.143360917869295,
-            "http_request_wall_ms": 8419.597115,
+            "decode_tokens_per_second": 25.211889620431144,
+            "http_request_wall_ms": 8398.536542,
             "model_loads": 1,
             "mrope": {
               "decode_steps": 191,
@@ -1785,16 +1799,18 @@
               "unified_attention_launches": 10
             },
             "oracle_tensor_reads": 0,
-            "output_token_ids_canonical_sha256": "7da7f4d66d6776223f10f4d4cb4d6e8aa286a842fb2e68db30f00b08d832bd5f",
-            "output_token_ids_sha256": "5b45bf0766fb6c74fd9354e77e717a9c0affb7a0cd0b729cf5735c56183d1db9",
+            "output_token_ids_canonical_sha256": "cc9c7e0078857ad7cf12e3b18180d52af72097211adb8c1de03aeb29b2f68fd1",
+            "output_token_ids_sha256": "38f7de6170ff5534553287331cac1324a724f9f82575513d4cba266820ff467a",
             "padded_prefill_tokens": 527,
-            "prefill_tokens_per_second": 617.7921171292088,
+            "prefill_tokens_per_second": 616.4468694551953,
             "prefix_cache": {
+              "active_kv_reused": false,
               "hits": 0,
               "implemented": true,
               "lookup": "miss",
               "matched_tokens": 0,
               "misses": 8,
+              "restore_wall_ms": 0.0,
               "scope": "capacity-bounded-variable-exact-or-append-lru",
               "suffix_aot_launches": 0,
               "suffix_decode_tokens": 0,
@@ -1808,16 +1824,16 @@
             "prompt_token_ids_sha256": "dcd1a4ed194ecf85825ffa3f44daeaca578bd6e1732ea35d2af7feac32e589cc",
             "prompt_tokens": 497,
             "request_index": 8,
-            "request_wall_ms": 8402.314115,
+            "request_wall_ms": 8383.807808,
             "runtime": "native-resident-q497",
             "structured_decoding": {
               "enabled": false,
               "token_mask_upload_bytes": 0,
               "token_selections": 0
             },
-            "ttft_ms": 804.47773,
+            "ttft_ms": 806.23331,
             "vl": {
-              "embedding_injection_wall_ms": 0.110556,
+              "embedding_injection_wall_ms": 0.076877,
               "enabled": true,
               "host_to_device_bytes": 5313860,
               "image_count": 0,
@@ -1826,14 +1842,14 @@
               "media_cache_misses": 1,
               "media_cache_resident_bytes": 24776184,
               "media_count": 1,
-              "media_decode_wall_ms": 1.305104,
-              "media_load_decode_wall_ms": 1.365572,
-              "media_load_wall_ms": 0.060468,
-              "processor_wall_ms": 2.072257,
+              "media_decode_wall_ms": 1.187858,
+              "media_load_decode_wall_ms": 1.244396,
+              "media_load_wall_ms": 0.056538,
+              "processor_wall_ms": 1.814785,
               "source_bytes": 6815,
               "video_count": 1,
               "vision_batch_count": 1,
-              "vision_encode_wall_ms": 91.704084,
+              "vision_encode_wall_ms": 93.865208,
               "vision_max_batch_patches": 1728,
               "vision_max_batch_tokens": 432,
               "vision_patches": 1728,
@@ -1848,7 +1864,7 @@
               "finish_reason": "length",
               "index": 0,
               "message": {
-                "content": "The user wants a description of the blue square's motion.\n\n1.  **Identify the object:** It's a blue square.\n2.  **Identify the color:** Blue.\n3.  **Analyze the motion:**\n    *   At 00:00, the square is near the top center.\n    *   At 00:01, it has moved slightly down.\n    *   At 00:02, it has moved further down.\n    *   At 00:03, it is near the bottom center.\n    *   The motion is a continuous downward movement.\n\n4.  **Formulate the response:**\n    *   Object: Blue square.\n    *   Color: Blue.\n    *   Direction: Downwards.\n    *   Combine these into a sentence describing the motion from start to finish.\n</think>",
+                "content": "The user wants a description of the blue square's motion.\n\n1.  **Identify the object:** It's a blue square.\n2.  **Identify the color:** Blue.\n3.  **Analyze the motion:**\n    *   At 00:00, the square is near the top center.\n    *   At 00:01, it has moved slightly down.\n    *   At 00:02, it has moved further down.\n    *   At 00:03, it is near the bottom center.\n    *   The motion is a continuous downward movement.\n\n4.  **Formulate the response:**\n    *   Object: Blue square.\n    *   Color: Blue.\n    *   Direction: Downwards (from top to bottom).\n    *   Combine these elements into a coherent sentence. \"The",
                 "role": "assistant"
               }
             }
@@ -1861,8 +1877,8 @@
             "total_tokens": 689
           }
         },
-        "response_bytes": 2993,
-        "response_sha256": "12fe2ca9599ec3f14b726be035e419d8b209d44ace8fdfc7d4c0f5ccf460dfa0",
+        "response_bytes": 3032,
+        "response_sha256": "ddda874a992dd0eb8c74379b4bf96cbba0182c872989b9afc4fa2c5974d6f2dc",
         "rubric": [
           {
             "any_of": [
@@ -1912,7 +1928,7 @@
           "task_quality"
         ],
         "timings": {
-          "total_seconds": 8.420198664069176,
+          "total_seconds": 8.399082341231406,
           "ttft_seconds": null
         },
         "transport_request_sha256": "1ff76da361b2f85f9db234381937ca754668559160537e16cbd7128515396206"
@@ -1990,8 +2006,8 @@
             "cold_prompt_decode_tokens": 0,
             "cold_prompt_decode_wall_ms": 0.0,
             "completion_tokens": 192,
-            "decode_tokens_per_second": 25.145836113676175,
-            "http_request_wall_ms": 8415.944314,
+            "decode_tokens_per_second": 25.21085457910895,
+            "http_request_wall_ms": 8402.211964,
             "model_loads": 1,
             "mrope": {
               "decode_steps": 191,
@@ -2006,13 +2022,15 @@
             "output_token_ids_canonical_sha256": "3f2b2313ea4afde8ffff04d459f41f7dd828a50ea20d1dd406b261d9203c379a",
             "output_token_ids_sha256": "92dcac77987fa6db112034722f162e7249c4d12c23d404865d72748a735b90ae",
             "padded_prefill_tokens": 528,
-            "prefill_tokens_per_second": 617.4243494965186,
+            "prefill_tokens_per_second": 613.720320092465,
             "prefix_cache": {
+              "active_kv_reused": false,
               "hits": 0,
               "implemented": true,
               "lookup": "miss",
               "matched_tokens": 0,
               "misses": 9,
+              "restore_wall_ms": 0.0,
               "scope": "capacity-bounded-variable-exact-or-append-lru",
               "suffix_aot_launches": 0,
               "suffix_decode_tokens": 0,
@@ -2026,16 +2044,16 @@
             "prompt_token_ids_sha256": "85af12c296395d5cbf6ae979390d03fb96a5253d97ff5e1bddb5f8fad7f7ef85",
             "prompt_tokens": 496,
             "request_index": 9,
-            "request_wall_ms": 8401.28715,
+            "request_wall_ms": 8387.670914,
             "runtime": "native-resident-q496",
             "structured_decoding": {
               "enabled": false,
               "token_mask_upload_bytes": 0,
               "token_selections": 0
             },
-            "ttft_ms": 803.337284,
+            "ttft_ms": 808.185722,
             "vl": {
-              "embedding_injection_wall_ms": 0.076328,
+              "embedding_injection_wall_ms": 0.082217,
               "enabled": true,
               "host_to_device_bytes": 5313856,
               "image_count": 0,
@@ -2044,14 +2062,14 @@
               "media_cache_misses": 1,
               "media_cache_resident_bytes": 30085095,
               "media_count": 1,
-              "media_decode_wall_ms": 1.195408,
-              "media_load_decode_wall_ms": 1.310684,
-              "media_load_wall_ms": 0.115276,
-              "processor_wall_ms": 1.729789,
+              "media_decode_wall_ms": 1.189767,
+              "media_load_decode_wall_ms": 1.297214,
+              "media_load_wall_ms": 0.107447,
+              "processor_wall_ms": 1.69053,
               "source_bytes": 11880,
               "video_count": 1,
               "vision_batch_count": 1,
-              "vision_encode_wall_ms": 93.014058,
+              "vision_encode_wall_ms": 93.465785,
               "vision_max_batch_patches": 1728,
               "vision_max_batch_tokens": 432,
               "vision_patches": 1728,
@@ -2079,8 +2097,8 @@
             "total_tokens": 688
           }
         },
-        "response_bytes": 2939,
-        "response_sha256": "8d012a11c4580f1baa7276960fced41f66692f744f06b3f4c70220bc3db770e4",
+        "response_bytes": 2984,
+        "response_sha256": "43681e3f59b6a0945e66f5602d752a855ee09c1d99c7a31e7a51f61ce29ec487",
         "rubric": [
           {
             "any_of": [
@@ -2132,7 +2150,7 @@
           "task_quality"
         ],
         "timings": {
-          "total_seconds": 8.416515953838825,
+          "total_seconds": 8.402763513848186,
           "ttft_seconds": null
         },
         "transport_request_sha256": "b50159fa0529c5eb997d60b28328654effe5e75589071cc80e58a963643a2346"
@@ -2210,8 +2228,8 @@
             "cold_prompt_decode_tokens": 0,
             "cold_prompt_decode_wall_ms": 0.0,
             "completion_tokens": 192,
-            "decode_tokens_per_second": 25.147842755461905,
-            "http_request_wall_ms": 8414.130474,
+            "decode_tokens_per_second": 25.20439853719167,
+            "http_request_wall_ms": 8399.368324,
             "model_loads": 1,
             "mrope": {
               "decode_steps": 191,
@@ -2226,13 +2244,15 @@
             "output_token_ids_canonical_sha256": "91bc9259385ea6ebf8ef8cfa67de7d226383538af4a03a89db0a48c24ab6971b",
             "output_token_ids_sha256": "d4b1c22882f7a9e999bb7a281fb048416a64a7090f303765c114b8c7ba647ddb",
             "padded_prefill_tokens": 527,
-            "prefill_tokens_per_second": 620.2035909508387,
+            "prefill_tokens_per_second": 618.7309228963431,
             "prefix_cache": {
+              "active_kv_reused": false,
               "hits": 0,
               "implemented": true,
               "lookup": "miss",
               "matched_tokens": 0,
               "misses": 10,
+              "restore_wall_ms": 0.0,
               "scope": "capacity-bounded-variable-exact-or-append-lru",
               "suffix_aot_launches": 0,
               "suffix_decode_tokens": 0,
@@ -2246,16 +2266,16 @@
             "prompt_token_ids_sha256": "59028eb83d4c89aa5ffb1319a3dfa99b53c008f8e24b113e33bc0684eeb4d277",
             "prompt_tokens": 497,
             "request_index": 10,
-            "request_wall_ms": 8399.442529,
+            "request_wall_ms": 8384.410028,
             "runtime": "native-resident-q497",
             "structured_decoding": {
               "enabled": false,
               "token_mask_upload_bytes": 0,
               "token_selections": 0
             },
-            "ttft_ms": 801.349762,
+            "ttft_ms": 803.257089,
             "vl": {
-              "embedding_injection_wall_ms": 0.084987,
+              "embedding_injection_wall_ms": 0.080797,
               "enabled": true,
               "host_to_device_bytes": 5313860,
               "image_count": 0,
@@ -2264,14 +2284,14 @@
               "media_cache_misses": 1,
               "media_cache_resident_bytes": 35394006,
               "media_count": 1,
-              "media_decode_wall_ms": 1.227557,
-              "media_load_decode_wall_ms": 1.355803,
-              "media_load_wall_ms": 0.128246,
-              "processor_wall_ms": 1.742109,
+              "media_decode_wall_ms": 1.240525,
+              "media_load_decode_wall_ms": 1.3653410000000001,
+              "media_load_wall_ms": 0.124816,
+              "processor_wall_ms": 1.936131,
               "source_bytes": 13236,
               "video_count": 1,
               "vision_batch_count": 1,
-              "vision_encode_wall_ms": 91.256982,
+              "vision_encode_wall_ms": 92.683267,
               "vision_max_batch_patches": 1728,
               "vision_max_batch_tokens": 432,
               "vision_patches": 1728,
@@ -2299,8 +2319,8 @@
             "total_tokens": 689
           }
         },
-        "response_bytes": 2974,
-        "response_sha256": "ec4223f22ee31d6485b6426dcf344e97c02ef7a2e2e54ea20dc588d8f74f030f",
+        "response_bytes": 3030,
+        "response_sha256": "265344ef21359d0c9e17b7d69109b7f2edf53cc6e173044833d6a362dd36eb27",
         "rubric": [
           {
             "any_of": [
@@ -2351,7 +2371,7 @@
           "task_quality"
         ],
         "timings": {
-          "total_seconds": 8.414681764319539,
+          "total_seconds": 8.399945401586592,
           "ttft_seconds": null
         },
         "transport_request_sha256": "61f2c36e66e8daa6b91ae3eb73e1a945984f2204e6dac2e8aa7ad0beb7a84fcd"
@@ -2429,8 +2449,8 @@
             "cold_prompt_decode_tokens": 0,
             "cold_prompt_decode_wall_ms": 0.0,
             "completion_tokens": 192,
-            "decode_tokens_per_second": 25.16327925588198,
-            "http_request_wall_ms": 8395.52683,
+            "decode_tokens_per_second": 25.215120490176016,
+            "http_request_wall_ms": 8390.975485,
             "model_loads": 1,
             "mrope": {
               "decode_steps": 191,
@@ -2445,13 +2465,15 @@
             "output_token_ids_canonical_sha256": "a2f8822f8c939d0a73cd06584ce708548479782c69c435d23477fe7489bb7d91",
             "output_token_ids_sha256": "0cc0f64adf9b36888f489c9d71b3126869ca919525b4db1d544fd32996770f0b",
             "padded_prefill_tokens": 528,
-            "prefill_tokens_per_second": 628.1287316909497,
+            "prefill_tokens_per_second": 621.3495494742237,
             "prefix_cache": {
+              "active_kv_reused": false,
               "hits": 0,
               "implemented": true,
               "lookup": "miss",
               "matched_tokens": 0,
               "misses": 11,
+              "restore_wall_ms": 0.0,
               "scope": "capacity-bounded-variable-exact-or-append-lru",
               "suffix_aot_launches": 0,
               "suffix_decode_tokens": 0,
@@ -2465,16 +2487,16 @@
             "prompt_token_ids_sha256": "0624838219fea68e64a4f56c32d3da6aef2110f992f3c54b754155428e6c8d7d",
             "prompt_tokens": 496,
             "request_index": 11,
-            "request_wall_ms": 8380.746416,
+            "request_wall_ms": 8376.061588,
             "runtime": "native-resident-q496",
             "structured_decoding": {
               "enabled": false,
               "token_mask_upload_bytes": 0,
               "token_selections": 0
             },
-            "ttft_ms": 789.64705,
+            "ttft_ms": 798.262428,
             "vl": {
-              "embedding_injection_wall_ms": 0.080877,
+              "embedding_injection_wall_ms": 0.082867,
               "enabled": true,
               "host_to_device_bytes": 5313856,
               "image_count": 0,
@@ -2483,14 +2505,14 @@
               "media_cache_misses": 1,
               "media_cache_resident_bytes": 40702917,
               "media_count": 1,
-              "media_decode_wall_ms": 1.257496,
-              "media_load_decode_wall_ms": 1.43351,
-              "media_load_wall_ms": 0.176014,
-              "processor_wall_ms": 1.757828,
+              "media_decode_wall_ms": 1.188098,
+              "media_load_decode_wall_ms": 1.3484820000000002,
+              "media_load_wall_ms": 0.160384,
+              "processor_wall_ms": 1.889922,
               "source_bytes": 17793,
               "video_count": 1,
               "vision_batch_count": 1,
-              "vision_encode_wall_ms": 91.074577,
+              "vision_encode_wall_ms": 94.132189,
               "vision_max_batch_patches": 1728,
               "vision_max_batch_tokens": 432,
               "vision_patches": 1728,
@@ -2518,8 +2540,8 @@
             "total_tokens": 688
           }
         },
-        "response_bytes": 2983,
-        "response_sha256": "210c9260eff599712ea39223259a39c9ce8e8d1d2716b99330a456899ee1d780",
+        "response_bytes": 3044,
+        "response_sha256": "4cbb88a18e0391e6478bbbbfd17d5fafcb937b21d218f94be2c658db2d24ced2",
         "rubric": [
           {
             "any_of": [
@@ -2584,7 +2606,7 @@
           "task_quality"
         ],
         "timings": {
-          "total_seconds": 8.396130559034646,
+          "total_seconds": 8.39157173410058,
           "ttft_seconds": null
         },
         "transport_request_sha256": "ab7c34ee8e843ee50cf8575da7b7a9eaafde42af2c6115ba3035436a42f3fe16"
@@ -2662,8 +2684,8 @@
             "cold_prompt_decode_tokens": 0,
             "cold_prompt_decode_wall_ms": 0.0,
             "completion_tokens": 192,
-            "decode_tokens_per_second": 25.149591577920873,
-            "http_request_wall_ms": 8414.968027,
+            "decode_tokens_per_second": 25.209484108006688,
+            "http_request_wall_ms": 8399.284727,
             "model_loads": 1,
             "mrope": {
               "decode_steps": 191,
@@ -2678,13 +2700,15 @@
             "output_token_ids_canonical_sha256": "ec8063fd35fa3b7da749d7c5889c99d7fc793732b40775106d62574ce287ae88",
             "output_token_ids_sha256": "633b398e2237f642c76a267fc56d6d3723aa11071e48c8309c054096add2d6ab",
             "padded_prefill_tokens": 529,
-            "prefill_tokens_per_second": 616.2469803960208,
+            "prefill_tokens_per_second": 612.983558689969,
             "prefix_cache": {
+              "active_kv_reused": false,
               "hits": 0,
               "implemented": true,
               "lookup": "miss",
               "matched_tokens": 0,
               "misses": 12,
+              "restore_wall_ms": 0.0,
               "scope": "capacity-bounded-variable-exact-or-append-lru",
               "suffix_aot_launches": 0,
               "suffix_decode_tokens": 0,
@@ -2698,16 +2722,16 @@
             "prompt_token_ids_sha256": "b5fe2482033200bcd4b4d8da9d230ce496bdaac6c4e5292d91fa9f932a4c4461",
             "prompt_tokens": 495,
             "request_index": 12,
-            "request_wall_ms": 8400.430683,
+            "request_wall_ms": 8384.694178,
             "runtime": "native-resident-q495",
             "structured_decoding": {
               "enabled": false,
               "token_mask_upload_bytes": 0,
               "token_selections": 0
             },
-            "ttft_ms": 803.249372,
+            "ttft_ms": 807.525737,
             "vl": {
-              "embedding_injection_wall_ms": 0.083907,
+              "embedding_injection_wall_ms": 0.077727,
               "enabled": true,
               "host_to_device_bytes": 5313852,
               "image_count": 0,
@@ -2716,14 +2740,14 @@
               "media_cache_misses": 1,
               "media_cache_resident_bytes": 46011828,
               "media_count": 1,
-              "media_decode_wall_ms": 1.16292,
-              "media_load_decode_wall_ms": 1.2994649999999999,
-              "media_load_wall_ms": 0.136545,
-              "processor_wall_ms": 1.595814,
+              "media_decode_wall_ms": 1.199167,
+              "media_load_decode_wall_ms": 1.3299120000000002,
+              "media_load_wall_ms": 0.130745,
+              "processor_wall_ms": 1.70296,
               "source_bytes": 14869,
               "video_count": 1,
               "vision_batch_count": 1,
-              "vision_encode_wall_ms": 91.941927,
+              "vision_encode_wall_ms": 93.667889,
               "vision_max_batch_patches": 1728,
               "vision_max_batch_tokens": 432,
               "vision_patches": 1728,
@@ -2751,8 +2775,8 @@
             "total_tokens": 687
           }
         },
-        "response_bytes": 3063,
-        "response_sha256": "59c84fafa611b6b1cbf0b1c910ac6705823eb7f808c8a87e96c4dd853279127f",
+        "response_bytes": 3109,
+        "response_sha256": "63f784dab84c63d4a33912d0cbb5d2e61037ab3443d47004d3beed601694d533",
         "rubric": [
           {
             "any_of": [
@@ -2809,16 +2833,16 @@
           "task_quality"
         ],
         "timings": {
-          "total_seconds": 8.415544416755438,
+          "total_seconds": 8.399862526915967,
           "ttft_seconds": null
         },
         "transport_request_sha256": "2a2d3a36812e1215f71f1f68cd08d38de1f2674616377bfe15d913d2b2daeb92"
       }
     ],
-    "exact_generated_content": "10/12",
-    "exact_output_token_vectors": "10/12",
+    "exact_generated_content": "12/12",
+    "exact_output_token_vectors": "12/12",
     "exact_reference_finish_reason": "12/12",
-    "exact_reference_usage": "11/12",
+    "exact_reference_usage": "12/12",
     "exact_render_prompt_vectors": "12/12",
     "modality_non_regression": {
       "image": true,
@@ -2857,30 +2881,30 @@
   "qualified": true,
   "raw": {
     "cases": {
-      "bytes": 101093,
-      "path": "native-vl-task-quality-v0.1.0-raw/cases.json",
-      "sha256": "53e0c6e7526db363e319d966cf2662136849524a44f31c994966c4e225b4087d"
+      "bytes": 102014,
+      "path": "task-quality-raw/cases.json",
+      "sha256": "6547bb83f49cd25a243aa9eeff9b43dcfa86d99435b685996480c80c1d23fa99"
     },
     "stderr": {
       "bytes": 0,
-      "path": "native-vl-task-quality-v0.1.0-raw/server.stderr.log",
+      "path": "task-quality-raw/server.stderr.log",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     "stdout": {
-      "bytes": 1422,
-      "path": "native-vl-task-quality-v0.1.0-raw/server.stdout.log",
-      "sha256": "784097dad3ee53ccb754a4fe7c936b5c0f72046273ba9820db9bb0e54a25271e"
+      "bytes": 1449,
+      "path": "task-quality-raw/server.stdout.log",
+      "sha256": "d688ae9e86043c4a020b4d84b38fe9db4f42695f02298dc80238201fe2487fee"
     },
     "weight_load": {
-      "bytes": 1150,
-      "path": "native-vl-task-quality-v0.1.0-raw/native-weight-load.json",
-      "sha256": "adc45dbff26fc3a760137530876980946cac2b4aa47e08ae8ae89bd7cb5a8df1"
+      "bytes": 3019,
+      "path": "task-quality-raw/native-weight-load.json",
+      "sha256": "fd90894eeaaf59440522261e5135eb3036a8a7a638ba240bd13e9da34a4a6b94"
     }
   },
   "schema": "aima-amd395-qwen36/native-vl-task-quality/v1",
   "scope": "resident-native-twelve-case-long-greedy-vl-quality",
   "source": {
-    "commit": "fffea697af4d4b40ecbc2a8dfa3fb5aa0b9ddf0d",
+    "commit": "1c5f6387898d0ae37d06234c5930221fe0ec5404",
     "dirty": false,
     "files": [
       {
@@ -2894,9 +2918,9 @@
         "sha256": "8a8533505d6317c186a130a8afa6b1f1e4dc8901180f633e28b3225a37764dd7"
       },
       {
-        "bytes": 14305,
+        "bytes": 14396,
         "path": "native/include/aima/native_resident_engine.h",
-        "sha256": "5fed1b991d1c6b919e4a89dd17129418122cb6b570318d8dbf7e0d27c2eedd65"
+        "sha256": "162b6e0899ee3ec1639c78aac3125a1bfcea8491ba6d7ede614597c3eb55afe6"
       },
       {
         "bytes": 2635,
@@ -2914,14 +2938,14 @@
         "sha256": "bd88355afcad716b09f82ccdf51588616d1333904331236436c502890cf396a4"
       },
       {
-        "bytes": 13116,
+        "bytes": 13250,
         "path": "native/src/native_decode_runner.hip.cpp",
-        "sha256": "761d05a5e503d5805a0aca75dd2a31569b631e4903cd929fc4c01cd6255f9b7b"
+        "sha256": "5698dfdc509b9364795697557da2f4c9510056a7c4697cf54d4178e23ff64b53"
       },
       {
-        "bytes": 91711,
+        "bytes": 106656,
         "path": "native/src/native_resident_engine.hip.cpp",
-        "sha256": "5868f76a024e4303744370abecdb01236415c219cb4a61f8e0c482250789348d"
+        "sha256": "06556de7926f58f9ea42da5200d94206a8a01018a17aef4827054fdee6298b96"
       },
       {
         "bytes": 23260,
@@ -2934,9 +2958,9 @@
         "sha256": "e23cf46f5b1b3f026591a494cc593a68d65edeaec643ce8eb30ff35416ebe541"
       },
       {
-        "bytes": 108263,
+        "bytes": 108497,
         "path": "native/src/native_http_server.cpp",
-        "sha256": "b9c2802b5daa994fc6c613a4ecd32f02132a6f56bdb0d3515a0693854e491eb5"
+        "sha256": "fc44751093fb82abec43c0ccc5347611a826bc42e5f457c9ce102c2a835f04e6"
       },
       {
         "bytes": 2573,

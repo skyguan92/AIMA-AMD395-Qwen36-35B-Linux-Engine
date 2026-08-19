@@ -115,6 +115,12 @@ class VlCapabilityEnvelopeTest(unittest.TestCase):
         self.assertIn("kVisionPlanCachePatchBudget", resident)
         self.assertIn("kVisionPlanCacheSharedPatchLimit", resident)
         self.assertIn("kNativeVlVisionBatchPatchLimit", resident)
+        self.assertIn("warm_up_standard_vision", resident)
+        self.assertIn(
+            "const std::vector<NativeVlGrid> grids{{1, 64, 16}};",
+            resident,
+        )
+        self.assertIn("vision_warmup_completed", http)
         release_all = resident.index("vision_plans.clear();")
         eviction = resident.index("vision_plans.erase(oldest);")
         construction = resident.index(

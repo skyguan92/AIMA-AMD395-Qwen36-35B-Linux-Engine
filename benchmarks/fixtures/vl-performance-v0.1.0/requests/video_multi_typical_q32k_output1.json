@@ -1,0 +1,31 @@
+{
+  "max_tokens": 1,
+  "messages": [
+    {
+      "content": [
+        {
+          "text": "Benchmark ${AIMA_VL_PROMPT_NONCE}. Inspect every supplied media item. Answer with one token.",
+          "type": "text"
+        },
+        {
+          "type": "video_url",
+          "video_url": {
+            "url": "file://${AIMA_VL_MEDIA_ROOT}/vl-envelope-v0.1.0/video-typical-4f-2fps-256x256.mp4"
+          }
+        },
+        {
+          "text": "Media item 2 follows.",
+          "type": "text"
+        },
+        {
+          "type": "video_url",
+          "video_url": {
+            "url": "file://${AIMA_VL_MEDIA_ROOT}/vl-envelope-v0.1.0/video-typical-4f-2fps-256x256.mp4"
+          }
+        }
+      ],
+      "role": "user"
+    }
+  ],
+  "temperature": 0
+}

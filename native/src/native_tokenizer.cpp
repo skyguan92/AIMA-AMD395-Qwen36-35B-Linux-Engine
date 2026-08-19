@@ -118,6 +118,7 @@ struct NativeTokenizer::Impl {
   std::vector<std::string> id_to_token;
   std::unordered_set<std::uint32_t> added_ids;
   std::vector<AddedToken> added_tokens;
+  std::array<std::vector<std::size_t>, 256> added_tokens_by_first_byte;
   std::unordered_map<std::string, std::size_t> merge_ranks;
   std::unordered_map<std::string, std::vector<std::uint32_t>> bpe_cache;
   std::array<std::string, 256> bytes_to_unicode = byte_encoder();
@@ -137,7 +138,13 @@ struct NativeTokenizer::Impl {
       throw std::runtime_error("conflicting tokenizer token id");
     }
     id_to_token[id] = content;
-    if (added_ids.insert(id).second) added_tokens.push_back(AddedToken{id, content});
+    if (added_ids.insert(id).second) {
+      const std::size_t index = added_tokens.size();
+      added_tokens.push_back(AddedToken{id, content});
+      added_tokens_by_first_byte[
+          static_cast<unsigned char>(content.front())]
+          .push_back(index);
+    }
   }
 
   std::vector<std::uint32_t> bpe(std::string_view piece) {
@@ -232,21 +239,30 @@ struct NativeTokenizer::Impl {
     std::vector<std::uint32_t> output;
     std::size_t cursor = 0;
     while (cursor < text.size()) {
-      std::size_t next_position = std::string_view::npos;
+      std::size_t next_position = cursor;
       const AddedToken* next_token = nullptr;
-      for (const AddedToken& token : added_tokens) {
-        const std::size_t position = text.find(token.content, cursor);
-        if (position == std::string_view::npos) continue;
-        if (next_token == nullptr || position < next_position ||
-            (position == next_position && token.content.size() > next_token->content.size())) {
-          next_position = position;
-          next_token = &token;
+      for (; next_position < text.size() && next_token == nullptr;
+           ++next_position) {
+        const auto& candidates = added_tokens_by_first_byte[
+            static_cast<unsigned char>(text[next_position])];
+        for (const std::size_t index : candidates) {
+          const AddedToken& token = added_tokens[index];
+          if (token.content.size() > text.size() - next_position ||
+              text.compare(next_position, token.content.size(),
+                           token.content) != 0) {
+            continue;
+          }
+          if (next_token == nullptr ||
+              token.content.size() > next_token->content.size()) {
+            next_token = &token;
+          }
         }
       }
       if (next_token == nullptr) {
         encode_normal_span(text.substr(cursor), &output);
         break;
       }
+      --next_position;
       encode_normal_span(text.substr(cursor, next_position - cursor), &output);
       output.push_back(next_token->id);
       cursor = next_position + next_token->content.size();

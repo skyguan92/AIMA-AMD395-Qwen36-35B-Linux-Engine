@@ -25,12 +25,12 @@ QUALIFIED_COMMIT = "c3ab45ad4d6215c7cfa5c6772c90e75e9d1db9cd"
 REFERENCE_SHA256 = (
     "51b3d95e3ce420584d765350bfe6b73f76d5786a8d9d629cf7c3e69ac11b8bce"
 )
-NATIVE_QUALIFIED_COMMIT = "fffea697af4d4b40ecbc2a8dfa3fb5aa0b9ddf0d"
+NATIVE_QUALIFIED_COMMIT = "1c5f6387898d0ae37d06234c5930221fe0ec5404"
 NATIVE_BINARY_SHA256 = (
-    "ceefb13d2a1deb7c83fbe41c01ab82f84d0e8087315268d1cfb34f37abb477aa"
+    "8524beee2e98bb9d261bb00d6f1febefc980953d5d02c8e0b005f56c5ee98339"
 )
 NATIVE_SHA256 = (
-    "38585272a5ecc5b401e106f971efad425f8b1b85e87023492108d473341aabe0"
+    "4333e176ff9df0e3bb9c64b62d78a6559b4ca2a6ada8a500f2826288b5b9b249"
 )
 
 
@@ -200,7 +200,7 @@ class VlTaskQualityEvidenceTest(unittest.TestCase):
             },
         )
 
-    def test_native_quality_passes_with_generation_parity_diagnostic_open(
+    def test_native_quality_and_generation_parity_pass_exactly(
         self,
     ) -> None:
         result = self.native
@@ -213,9 +213,9 @@ class VlTaskQualityEvidenceTest(unittest.TestCase):
             all(all(case["qualification_checks"].values()) for case in cases)
         )
         self.assertEqual(matrix["exact_render_prompt_vectors"], "12/12")
-        self.assertEqual(matrix["exact_generated_content"], "10/12")
-        self.assertEqual(matrix["exact_output_token_vectors"], "10/12")
-        self.assertEqual(matrix["exact_reference_usage"], "11/12")
+        self.assertEqual(matrix["exact_generated_content"], "12/12")
+        self.assertEqual(matrix["exact_output_token_vectors"], "12/12")
+        self.assertEqual(matrix["exact_reference_usage"], "12/12")
         self.assertEqual(matrix["exact_reference_finish_reason"], "12/12")
         self.assertEqual(
             matrix["native_aggregate"], matrix["reference_aggregate"]
@@ -228,18 +228,11 @@ class VlTaskQualityEvidenceTest(unittest.TestCase):
             matrix["native_aggregate"]["video"]["score_millionths"],
             947_368,
         )
-        self.assertEqual(
-            {
-                case["case_id"]
+        self.assertTrue(
+            all(
+                all(case["parity_diagnostics"].values())
                 for case in cases
-                if not case["parity_diagnostics"][
-                    "output_token_ids_reference_exact"
-                ]
-            },
-            {
-                "image_central_red_circle",
-                "video_blue_square_moves_down",
-            },
+            )
         )
         self.assertTrue(all(result["launch"]["checks"].values()))
         self.assertEqual(
@@ -253,8 +246,8 @@ class VlTaskQualityEvidenceTest(unittest.TestCase):
         self.assertTrue(decision["image_task_quality_not_below_reference"])
         self.assertTrue(decision["video_task_quality_not_below_reference"])
         self.assertTrue(decision["single_resident_model_load"])
-        self.assertFalse(decision["twelve_long_greedy_cases_reference_exact"])
-        self.assertFalse(decision["twelve_output_token_vectors_exact"])
+        self.assertTrue(decision["twelve_long_greedy_cases_reference_exact"])
+        self.assertTrue(decision["twelve_output_token_vectors_exact"])
         for runtime in ("python", "torch", "triton", "vllm"):
             self.assertFalse(decision[f"runtime_{runtime}"])
 

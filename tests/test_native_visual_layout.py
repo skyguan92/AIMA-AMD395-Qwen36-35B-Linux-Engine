@@ -967,8 +967,13 @@ class NativeVisualLayoutTest(unittest.TestCase):
         self.assertIn("impl_->norm2.launch", block)
         self.assertIn("NativeVisionLayerNormReciprocal::kFastAmdReciprocal", block)
         self.assertIn("std::make_shared<NativeVisionAotAttentionPlan>", stack)
+        self.assertIn("std::make_shared<NativeVisionAotBlockGemmPlans>", stack)
         self.assertIn("constexpr std::size_t kVisionBlockCount = 27", stack)
-        self.assertIn("blocks.emplace_back(weights, block_index, patches, attention)", stack)
+        self.assertIn(
+            "blocks.emplace_back(weights, block_index, patches, attention,",
+            stack,
+        )
+        self.assertIn("gemm_plans", stack)
         self.assertIn("plan.launch_through(last_block_index", probe)
         self.assertIn("native-vision-aot-block-stack-oracle/v1", probe)
         self.assertIn("native_vision_aot_attention.hip.cpp", build)

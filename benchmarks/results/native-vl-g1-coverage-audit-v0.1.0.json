@@ -1,12 +1,6 @@
 {
-  "audited_on": "2026-08-16",
+  "audited_on": "2026-08-18",
   "blocking_gaps": [
-    {
-      "gaps": [
-        "two long greedy task cases retain generated-content and output-token parity diagnostics"
-      ],
-      "requirement_id": "G1.2.1.generation"
-    },
     {
       "gaps": [
         "the complete G3 text and release no-regression protocol has not run"
@@ -17,9 +11,9 @@
   "complete": true,
   "coverage": {
     "counts": {
-      "covered": 12,
+      "covered": 13,
       "missing": 0,
-      "partial": 2
+      "partial": 1
     },
     "items": [
       {
@@ -243,14 +237,12 @@
           },
           {
             "artifact": "task_quality_native",
-            "note": "12/12 long image/video tasks meet the fixed-vLLM quality floor; prompt vectors are 12/12 exact"
+            "note": "12/12 long image/video tasks are reference-exact for generated content, output tokens, usage, finish reason and rendered prompt vectors"
           }
         ],
-        "gaps": [
-          "two long greedy task cases retain generated-content and output-token parity diagnostics"
-        ],
+        "gaps": [],
         "requirement_id": "G1.2.1.generation",
-        "status": "partial",
+        "status": "covered",
         "title": "Greedy tokens, finish reason, usage and response parity"
       },
       {
@@ -551,7 +543,7 @@
     "g4_passed": false,
     "g5_passed": false,
     "new_evidence_required": true,
-    "twelve_long_greedy_cases_reference_exact": false,
+    "twelve_long_greedy_cases_reference_exact": true,
     "twelve_task_quality_cases_qualified": true
   },
   "inputs": {
@@ -586,9 +578,9 @@
       "sha256": "70cec2c7884b5e641884037212a34f6ffc6ac1944af08d59c19dc90353915188"
     },
     "generation_native": {
-      "bytes": 212909,
+      "bytes": 213054,
       "path": "benchmarks/results/native-vl-generation-current-head-v0.1.0.json",
-      "sha256": "0c142b13aaa90f4b14ae062c6d0af13664db4293b2767762f3fc14d9a8dbf62b"
+      "sha256": "c215e30acb6e86aabf1cc4857b84e5521d86ebda2415587828ccda5b7a462332"
     },
     "generation_oracle": {
       "bytes": 26545,
@@ -596,14 +588,14 @@
       "sha256": "954c6e55389cd90390cb517224df14719f2556555ce7bf44571cae1ad1812888"
     },
     "generator": {
-      "bytes": 43717,
+      "bytes": 43811,
       "path": "scripts/generate-native-vl-g1-coverage-audit.py",
-      "sha256": "42f9fc6c8c683fcb781bb7034c4c40c0dde4460c813494aa7b196eb3c7a336d1"
+      "sha256": "7637d52026c67c092789406b26fb5c64e5e620877e3e65e211c6827a765177c8"
     },
     "goal": {
-      "bytes": 17981,
+      "bytes": 18354,
       "path": "docs/NATIVE_VL_GOAL.md",
-      "sha256": "174f2a994da6cb1aaacb37a16c38886f8d725fe3fe052b2a4d3f59855b2253dd"
+      "sha256": "4884803ea4c74a3082d949646ad31684536e672a39e229da796589009b0d212c"
     },
     "language_boundary": {
       "bytes": 17611,
@@ -646,9 +638,9 @@
       "sha256": "9a894c5e54b8ca95160629e2fad7ca2eff6fa27a78ba91b83a795b87ec434fe2"
     },
     "task_quality_native": {
-      "bytes": 117907,
+      "bytes": 118807,
       "path": "benchmarks/results/native-vl-task-quality-v0.1.0.json",
-      "sha256": "38585272a5ecc5b401e106f971efad425f8b1b85e87023492108d473341aabe0"
+      "sha256": "4333e176ff9df0e3bb9c64b62d78a6559b4ca2a6ada8a500f2826288b5b9b249"
     },
     "task_quality_reference": {
       "bytes": 186682,
@@ -673,17 +665,15 @@
   },
   "integrity": {
     "algorithm": "sha256",
-    "canonical_payload_sha256": "30a791bb12581128db0ec25123ce180a3a9c0a39c7f2dc35ebd5beae9726283b"
+    "canonical_payload_sha256": "cf3c7b0d594aacc4698a0fb187c2165b5b5bd0b9a365d72f18b707a09f1a5293"
   },
   "next_evidence": [
     {
       "cases": [
-        "resolve_two_long_greedy_generation_differences",
         "complete_g3_text_nonregression"
       ],
-      "evidence_id": "g1-long-generation-and-g3-requalification",
+      "evidence_id": "g3-requalification",
       "requirement_ids": [
-        "G1.2.1.generation",
         "G1.2.3.product_preservation"
       ]
     }

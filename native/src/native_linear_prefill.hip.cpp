@@ -27,6 +27,8 @@ constexpr std::size_t kLinearQkv = 8192;
 constexpr std::size_t kLinearKey = 2048;
 constexpr std::size_t kLinearValue = 4096;
 constexpr std::size_t kLinearHeads = 32;
+constexpr std::size_t kLinearFused =
+    kLinearQkv + kLinearValue + 2 * kLinearHeads;
 constexpr std::size_t kStateElements = 32 * 128 * 128;
 constexpr std::size_t kLinearConvChannels = 8192;
 constexpr std::size_t kLinearConvStateTokens = 3;
@@ -670,6 +672,33 @@ probe_native_q8192_linear_prefill_layer0_oracle(
     result.layer.dense_gemm_launches += 4;
   } else {
     fused_plan->launch(h1, fused_weight->device_pointer, qkv);
+    if (tokens != bucket_tokens) {
+      // The captured q1024 FLA kernels still traverse their frozen storage
+      // geometry. Re-establish the exact zero-input projection tail after the
+      // logical-M GEMM so those kernels see the same padded rows as before.
+      const std::size_t tail_tokens = bucket_tokens - tokens;
+      check_hip(
+          hipMemsetAsync(
+              static_cast<unsigned char*>(qkv) +
+                  tokens * kLinearFused * sizeof(std::uint16_t),
+              0, tail_tokens * kLinearFused * sizeof(std::uint16_t),
+              nullptr),
+          "hipMemsetAsync native logical linear projection tail");
+      check_hip(
+          hipMemsetAsync(
+              static_cast<unsigned char*>(a) +
+                  tokens * kLinearHeads * sizeof(std::uint16_t),
+              0, tail_tokens * kLinearHeads * sizeof(std::uint16_t),
+              nullptr),
+          "hipMemsetAsync native logical linear A tail");
+      check_hip(
+          hipMemsetAsync(
+              static_cast<unsigned char*>(b) +
+                  tokens * kLinearHeads * sizeof(std::uint16_t),
+              0, tail_tokens * kLinearHeads * sizeof(std::uint16_t),
+              nullptr),
+          "hipMemsetAsync native logical linear B tail");
+    }
     launch_extract_linear_ab_fused(qkv, a, b, tokens);
     ++result.layer.dense_gemm_launches;
     ++result.layer.native_pointwise_launches;
@@ -887,7 +916,7 @@ probe_native_q8192_linear_prefill_layer0_oracle(
         boundary_file("launch-005-Ai")));
   }
   const bool use_short_prefill_recompute_w_u =
-      q1024_official_fla && comparison_tokens < tokens;
+      q1024_official_fla && comparison_tokens < bucket_tokens;
   if (use_short_prefill_recompute_w_u) {
     // The fixed q1024 schedule carries non-zero convolution tail rows beyond
     // the logical request. vLLM autotunes and launches recompute-W/U at the
@@ -913,11 +942,11 @@ probe_native_q8192_linear_prefill_layer0_oracle(
           recompute.kernel_params);
     } catch (...) {
       invocations.set_int32_argument(
-          base + 6, "T", static_cast<std::int32_t>(tokens));
+          base + 6, "T", static_cast<std::int32_t>(bucket_tokens));
       throw;
     }
     invocations.set_int32_argument(
-        base + 6, "T", static_cast<std::int32_t>(tokens));
+        base + 6, "T", static_cast<std::int32_t>(bucket_tokens));
   } else {
     executor.launch(launches[base + 6]);
   }
