@@ -1184,7 +1184,8 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
   weight_metrics.ingest_ms += visual_weight_metrics.ingest_ms;
   weight_metrics.load_wall_ms += visual_weight_metrics.load_wall_ms;
   vl_logical_load_metrics = impl_->vl_logical_projections.build(
-      impl_->weights, 1024, impl_->device);
+      impl_->weights, kNativeVlLogicalProjectionMaximumTokens,
+      impl_->device);
   check_hip(hipMalloc(&impl_->mrope_positions,
                       impl_->mrope_position_state_bytes),
             "hipMalloc resident M-RoPE positions");
@@ -1587,7 +1588,12 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
   std::size_t vl_logical_projection_tokens = 0;
   if (mrope_plan != nullptr) {
     for (const NativePromptAotSegment& segment : prompt_plan.aot_segments) {
-      if (segment.bucket_tokens != 1024 || !segment.padded()) continue;
+      if (segment.bucket_tokens > 2048 ||
+          segment.input_tokens >
+              kNativeVlLogicalProjectionMaximumTokens ||
+          !segment.padded()) {
+        continue;
+      }
       if (vl_logical_projection_tokens != 0 &&
           vl_logical_projection_tokens != segment.input_tokens) {
         throw std::runtime_error(
@@ -2008,7 +2014,10 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
         NativeQ8192PrefillGemmPlans* chunk_gemm_plans = owner.gemm_plans;
         const bool logical_vl_segment =
             metrics.vl_logical_projections_enabled &&
-            segment.bucket_tokens == 1024 && segment.padded() &&
+            segment.bucket_tokens <= 2048 &&
+            segment.input_tokens <=
+                kNativeVlLogicalProjectionMaximumTokens &&
+            segment.padded() &&
             segment.input_tokens == metrics.vl_logical_projection_tokens;
         const std::size_t hidden_offset =
             segment.input_offset - matched_prefix_tokens;
@@ -2056,6 +2065,10 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
           attention_options.synchronize_substages = timeline_enabled;
           attention_options.decode_attention_state = &impl_->attention_state;
           attention_options.gemm_plans = chunk_gemm_plans;
+          if (logical_vl_segment && segment.input_offset == 0) {
+            attention_options.gemm_plans =
+                &impl_->vl_logical_projections.router_gemm_plans();
+          }
           attention_options.bindings = &impl_->bindings;
           attention_options.vl_unified_attention =
               impl_->vl_unified_attention.get();

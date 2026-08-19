@@ -9,9 +9,14 @@
 
 #include <hip/hip_runtime.h>
 
+#include <algorithm>
+#include <array>
 #include <chrono>
+#include <future>
 #include <stdexcept>
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace aima {
 namespace {
@@ -22,6 +27,8 @@ constexpr std::size_t kMergedColumns = 2 * kProjectionColumns;
 constexpr std::size_t kLanguageLayers = 40;
 constexpr std::size_t kFullAttentionPeriod = 4;
 constexpr std::size_t kLinearLayers = 30;
+constexpr std::array<std::size_t, 4> kResidentPlanTokenBins = {
+    128, 384, 768, kNativeVlLogicalProjectionMaximumTokens};
 constexpr std::size_t kWorkspaceLimit = 128ULL * 1024ULL * 1024ULL;
 constexpr std::size_t kProjectionBytes =
     kProjectionColumns * kHidden * sizeof(std::uint16_t);
@@ -53,26 +60,31 @@ std::size_t linear_slot(std::size_t layer_index) {
 }  // namespace
 
 struct NativeVlLogicalProjectionState::Impl {
+  struct PlanEntry {
+    std::size_t tokens = 0;
+    std::unique_ptr<NativeQ8192PrefillGemmPlans> gemm_plans;
+    std::unique_ptr<Bf16GemmPlan> ab_plan;
+  };
+
   int device = 0;
   void* weights = nullptr;
   void* output = nullptr;
   std::size_t maximum_tokens = 0;
   std::size_t prepared_tokens = 0;
-  std::unique_ptr<NativeQ8192PrefillGemmPlans> router_gemm_plans;
-  std::unique_ptr<Bf16GemmPlan> ab_plan;
+  std::vector<PlanEntry> resident_plans;
+  PlanEntry* active_plan = nullptr;
   NativeVlLogicalProjectionLoadMetrics load_metrics;
 
   void reset() noexcept {
-    ab_plan.reset();
-    router_gemm_plans.reset();
+    (void)hipSetDevice(device);
+    active_plan = nullptr;
+    resident_plans.clear();
     prepared_tokens = 0;
     if (output != nullptr) {
-      (void)hipSetDevice(device);
       (void)hipFree(output);
       output = nullptr;
     }
     if (weights != nullptr) {
-      (void)hipSetDevice(device);
       (void)hipFree(weights);
       weights = nullptr;
     }
@@ -90,7 +102,7 @@ NativeVlLogicalProjectionState::~NativeVlLogicalProjectionState() = default;
 NativeVlLogicalProjectionLoadMetrics NativeVlLogicalProjectionState::build(
     const NativeWeightStore& weights, std::size_t maximum_tokens, int device) {
   if (impl_->weights != nullptr || !weights.loaded() || maximum_tokens == 0 ||
-      maximum_tokens > 1024) {
+      maximum_tokens > kNativeVlLogicalProjectionMaximumTokens) {
     throw std::invalid_argument(
         "VL logical projection resident build contract is invalid");
   }
@@ -136,6 +148,38 @@ NativeVlLogicalProjectionLoadMetrics NativeVlLogicalProjectionState::build(
     }
     check_hip(hipMemset(impl_->output, 0, output_bytes),
               "hipMemset VL logical A/B output");
+    std::vector<std::size_t> plan_token_bins;
+    plan_token_bins.reserve(kResidentPlanTokenBins.size());
+    for (const std::size_t plan_tokens : kResidentPlanTokenBins) {
+      if (plan_tokens > maximum_tokens) break;
+      plan_token_bins.push_back(plan_tokens);
+    }
+    if (plan_token_bins.empty() || plan_token_bins.back() != maximum_tokens) {
+      plan_token_bins.push_back(maximum_tokens);
+    }
+    std::vector<std::future<Impl::PlanEntry>> plan_builds;
+    plan_builds.reserve(plan_token_bins.size());
+    for (const std::size_t plan_tokens : plan_token_bins) {
+      plan_builds.push_back(std::async(
+          std::launch::async, [device, plan_tokens] {
+            check_hip(hipSetDevice(device),
+                      "hipSetDevice VL logical plan build");
+            Impl::PlanEntry entry;
+            entry.tokens = plan_tokens;
+            entry.gemm_plans =
+                std::make_unique<NativeQ8192PrefillGemmPlans>(entry.tokens);
+            entry.gemm_plans->prepare_logical_linear_and_moe();
+            entry.ab_plan = std::make_unique<Bf16GemmPlan>(
+                entry.tokens, kMergedColumns, kHidden, kWorkspaceLimit, true);
+            return entry;
+          }));
+    }
+    impl_->resident_plans.reserve(plan_builds.size());
+    for (auto& plan_build : plan_builds) {
+      Impl::PlanEntry entry;
+      entry = plan_build.get();
+      impl_->resident_plans.push_back(std::move(entry));
+    }
     check_hip(hipDeviceSynchronize(),
               "hipDeviceSynchronize VL logical projection build");
   } catch (...) {
@@ -159,34 +203,24 @@ NativeVlLogicalProjectionState::prepare(std::size_t tokens) {
   }
   NativeVlLogicalProjectionPrepareMetrics metrics;
   metrics.tokens = tokens;
-  if (impl_->prepared_tokens == tokens && impl_->ab_plan != nullptr &&
-      impl_->router_gemm_plans != nullptr) {
-    metrics.plan_count =
-        impl_->router_gemm_plans->built_plan_count() + 1;
-    metrics.workspace_bytes =
-        impl_->ab_plan->workspace_bytes() +
-        impl_->router_gemm_plans->workspace_bytes();
-    metrics.reused = true;
-    metrics.prepared = true;
-    return metrics;
+  const auto selected = std::find_if(
+      impl_->resident_plans.begin(), impl_->resident_plans.end(),
+      [tokens](const Impl::PlanEntry& entry) {
+        return entry.tokens >= tokens && entry.gemm_plans != nullptr &&
+               entry.ab_plan != nullptr;
+      });
+  if (selected == impl_->resident_plans.end()) {
+    throw std::runtime_error(
+        "VL logical projection resident plan bin is unavailable");
   }
-
-  const auto started = std::chrono::steady_clock::now();
-  impl_->ab_plan.reset();
-  impl_->router_gemm_plans.reset();
-  impl_->prepared_tokens = 0;
-  impl_->router_gemm_plans =
-      std::make_unique<NativeQ8192PrefillGemmPlans>(tokens);
-  impl_->router_gemm_plans->prepare_logical_linear_and_moe();
-  impl_->ab_plan = std::make_unique<Bf16GemmPlan>(
-      tokens, kMergedColumns, kHidden, kWorkspaceLimit, true);
+  impl_->active_plan = &*selected;
   impl_->prepared_tokens = tokens;
   metrics.plan_count =
-      impl_->router_gemm_plans->built_plan_count() + 1;
+      impl_->active_plan->gemm_plans->built_plan_count() + 1;
   metrics.workspace_bytes =
-      impl_->ab_plan->workspace_bytes() +
-      impl_->router_gemm_plans->workspace_bytes();
-  metrics.build_wall_ms = elapsed_ms(started);
+      impl_->active_plan->ab_plan->workspace_bytes() +
+      impl_->active_plan->gemm_plans->workspace_bytes();
+  metrics.reused = true;
   metrics.prepared = true;
   return metrics;
 }
@@ -199,8 +233,10 @@ bool NativeVlLogicalProjectionState::loaded() const {
 }
 
 bool NativeVlLogicalProjectionState::prepared() const {
-  return loaded() && impl_->prepared_tokens != 0 && impl_->ab_plan != nullptr &&
-         impl_->router_gemm_plans != nullptr;
+  return loaded() && impl_->prepared_tokens != 0 &&
+         impl_->active_plan != nullptr &&
+         impl_->active_plan->ab_plan != nullptr &&
+         impl_->active_plan->gemm_plans != nullptr;
 }
 
 std::size_t NativeVlLogicalProjectionState::prepared_tokens() const {
@@ -227,7 +263,7 @@ Bf16GemmPlan& NativeVlLogicalProjectionState::ab_plan() const {
   if (!prepared()) {
     throw std::runtime_error("VL logical A/B plan is not prepared");
   }
-  return *impl_->ab_plan;
+  return *impl_->active_plan->ab_plan;
 }
 
 NativeQ8192PrefillGemmPlans&
@@ -235,7 +271,7 @@ NativeVlLogicalProjectionState::router_gemm_plans() const {
   if (!prepared()) {
     throw std::runtime_error("VL logical router plan is not prepared");
   }
-  return *impl_->router_gemm_plans;
+  return *impl_->active_plan->gemm_plans;
 }
 
 const NativeVlLogicalProjectionLoadMetrics&

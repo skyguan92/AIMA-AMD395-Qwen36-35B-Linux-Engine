@@ -13,6 +13,8 @@ class Bf16GemmPlan;
 class NativeQ8192PrefillGemmPlans;
 class NativeWeightStore;
 
+inline constexpr std::size_t kNativeVlLogicalProjectionMaximumTokens = 1280;
+
 struct NativeVlLogicalProjectionLoadMetrics {
   std::uint64_t weight_bytes = 0;
   std::uint64_t output_scratch_bytes = 0;
@@ -31,10 +33,11 @@ struct NativeVlLogicalProjectionPrepareMetrics {
   bool prepared = false;
 };
 
-// Resident owner for the logical-M projection surfaces of a padded q1024 VL
-// request. A/B weights and compact output scratch are ready-time residents;
-// only the hipBLASLt shape descriptors change when a multimodal prompt has a
-// new logical token count. The fixed AOT storage/grid capacity remains q1024.
+// Resident owner for the logical-M projection surfaces of a padded q1024 or
+// q2048 VL request. A/B weights, compact output scratch, and a bounded set of
+// graduated hipBLASLt plan bins are READY-time residents. The request retains
+// its exact logical token count while the fixed AOT storage capacity remains
+// at the admitted prompt bucket.
 class NativeVlLogicalProjectionState {
  public:
   NativeVlLogicalProjectionState();
@@ -45,7 +48,9 @@ class NativeVlLogicalProjectionState {
       const NativeVlLogicalProjectionState&) = delete;
 
   NativeVlLogicalProjectionLoadMetrics build(
-      const NativeWeightStore& weights, std::size_t maximum_tokens = 1024,
+      const NativeWeightStore& weights,
+      std::size_t maximum_tokens =
+          kNativeVlLogicalProjectionMaximumTokens,
       int device = 0);
   NativeVlLogicalProjectionPrepareMetrics prepare(std::size_t tokens);
   void reset() noexcept;

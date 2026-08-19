@@ -309,6 +309,12 @@ NativeFullPrefillOracleResult probe_native_q8192_full_prefill_oracle(
   const bool use_vl_unified_attention =
       use_mrope && active_tokens != tokens &&
       options.cache_position_start == 0;
+  const bool logical_gemm =
+      options.gemm_plans != nullptr && active_tokens != tokens &&
+      options.gemm_plans->token_count() >= active_tokens &&
+      options.gemm_plans->token_count() <= tokens;
+  const std::size_t execution_tokens =
+      logical_gemm ? active_tokens : tokens;
   if (tokens == 0 || tokens > 262144 ||
       active_tokens == 0 || active_tokens > tokens ||
       comparison_tokens == 0 || comparison_tokens > active_tokens ||
@@ -595,7 +601,10 @@ NativeFullPrefillOracleResult probe_native_q8192_full_prefill_oracle(
         std::make_unique<NativeQ8192PrefillGemmPlans>(tokens);
     gemm_plans = local_gemm_plans.get();
   }
-  if (gemm_plans->token_count() != tokens) {
+  if ((!logical_gemm && gemm_plans->token_count() != tokens) ||
+      (logical_gemm &&
+       (gemm_plans->token_count() < execution_tokens ||
+        gemm_plans->token_count() > tokens))) {
     throw std::invalid_argument("native full prefill GEMM context mismatch");
   }
   diagnostic_stage("before_q_plan");
@@ -623,7 +632,7 @@ NativeFullPrefillOracleResult probe_native_q8192_full_prefill_oracle(
     // on accumulated multimodal residuals and flip a routed-expert set.
     launch_prefill_rmsnorm_2048(
         layer_input, input_norm_weight.device_pointer, normalized_input,
-        tokens);
+        execution_tokens);
     ++result.layer.native_pointwise_launches;
   } else {
     // Scalar-position requests retain the frozen v1.5.1 text semantics.
@@ -675,11 +684,11 @@ NativeFullPrefillOracleResult probe_native_q8192_full_prefill_oracle(
   if (options.prepare_rotary_table) {
     if (use_mrope) {
       launch_prefill_mrope_rotary_table(
-          cosine, sine, options.mrope_positions_i64, tokens,
+          cosine, sine, options.mrope_positions_i64, execution_tokens,
           mrope_position_row_stride);
     } else {
       launch_prefill_rotary_table(
-          cosine, sine, tokens, options.cache_position_start);
+          cosine, sine, execution_tokens, options.cache_position_start);
     }
     ++result.layer.native_pointwise_launches;
   }
@@ -688,7 +697,8 @@ NativeFullPrefillOracleResult probe_native_q8192_full_prefill_oracle(
         q_gate, raw_k, split_projections ? nullptr : raw_v,
         q_norm_weight.device_pointer, k_norm_weight.device_pointer,
         cosine, sine, q,
-        normalized_k, split_projections ? nullptr : normalized_v, tokens,
+        normalized_k, split_projections ? nullptr : normalized_v,
+        execution_tokens,
         split_projections ? 8192 : 9216,
         split_projections ? 512 : 9216,
         split_projections ? 0 : 9216);
@@ -697,7 +707,8 @@ NativeFullPrefillOracleResult probe_native_q8192_full_prefill_oracle(
         q_gate, raw_k, split_projections ? nullptr : raw_v,
         q_norm_weight.device_pointer, k_norm_weight.device_pointer,
         cosine, sine, q,
-        normalized_k, split_projections ? nullptr : normalized_v, tokens,
+        normalized_k, split_projections ? nullptr : normalized_v,
+        execution_tokens,
         split_projections ? 8192 : 9216,
         split_projections ? 512 : 9216,
         split_projections ? 0 : 9216);
@@ -808,7 +819,7 @@ NativeFullPrefillOracleResult probe_native_q8192_full_prefill_oracle(
     launch_full_attention_sigmoid_gate_bf16_prefill(
         attention_bf16, q_gate, gated, active_tokens,
         split_projections ? 8192 : 9216);
-    if (active_tokens != tokens) {
+    if (active_tokens != tokens && !logical_gemm) {
       const std::size_t active_gated_bytes =
           active_tokens * kQueryDimension * sizeof(std::uint16_t);
       check_hip(
@@ -900,7 +911,7 @@ NativeFullPrefillOracleResult probe_native_q8192_full_prefill_oracle(
     launch_prefill_add_rmsnorm_2048(
         projected_attention, layer_input,
         post_attention_norm_weight.device_pointer, after_attention,
-        post_attention_norm, tokens);
+        post_attention_norm, execution_tokens);
     ++result.layer.native_pointwise_launches;
   } else {
     executor.launch(launches[base + 1]);

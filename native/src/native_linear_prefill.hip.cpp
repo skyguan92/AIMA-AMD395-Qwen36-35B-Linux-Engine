@@ -234,7 +234,8 @@ probe_native_q8192_linear_prefill_layer0_oracle(
       (logical_ab_enabled != (logical_ab_weight != nullptr)) ||
       (logical_ab_enabled != (logical_ab_output != nullptr)) ||
       (logical_ab_enabled &&
-       (logical_ab_gemm_plan->m() != comparison_tokens ||
+       (logical_ab_gemm_plan->m() < comparison_tokens ||
+        logical_ab_gemm_plan->m() > bucket_tokens ||
         logical_ab_gemm_plan->n() != 2 * kLinearHeads ||
         logical_ab_gemm_plan->k() != kHidden)) ||
       (tokens != bucket_tokens && options.collect_oracle_comparisons) ||
@@ -249,17 +250,21 @@ probe_native_q8192_linear_prefill_layer0_oracle(
       launches[5].launch != nullptr &&
       std::string(launches[5].launch->symbol) ==
           "merge_16x16_to_64x64_inverse_kernel";
-  const bool use_vl_rmsnorm =
-      q1024_official_fla && options.use_vl_rmsnorm_semantics;
   const bool split_projection_tail =
       !q8192_schedule && launches.size() > 1 &&
       launches[1].launch != nullptr &&
       std::string(launches[1].launch->symbol) ==
           "_causal_conv1d_fwd_kernel";
   const bool split_projections = q8192_schedule || split_projection_tail;
+  const bool logical_direct_aot =
+      logical_ab_enabled && tokens < bucket_tokens && !split_projections &&
+      (bucket_tokens == 1024 || bucket_tokens == 2048);
+  const bool use_vl_rmsnorm =
+      options.use_vl_rmsnorm_semantics &&
+      (q1024_official_fla || logical_direct_aot);
   if (logical_ab_enabled && split_projections) {
     throw std::invalid_argument(
-        "native logical A/B GEMM requires the direct q1024 projection");
+        "native logical A/B GEMM requires a direct short-bucket projection");
   }
   const std::size_t linear_launches = q8192_schedule ? 13 : 12;
   const std::size_t attention_launches = q8192_schedule ? 11 : 10;
@@ -610,7 +615,13 @@ probe_native_q8192_linear_prefill_layer0_oracle(
         std::make_unique<NativeQ8192PrefillGemmPlans>(tokens);
     gemm_plans = local_gemm_plans.get();
   }
-  if (gemm_plans->token_count() != tokens) {
+  const std::size_t gemm_tokens = gemm_plans->token_count();
+  const bool logical_gemm =
+      logical_direct_aot && gemm_tokens >= tokens &&
+      gemm_tokens <= bucket_tokens &&
+      logical_ab_gemm_plan->m() == gemm_tokens;
+  if ((!logical_direct_aot && gemm_tokens != tokens) ||
+      (logical_direct_aot && !logical_gemm)) {
     throw std::invalid_argument(
         "native linear prefill GEMM context mismatch");
   }
@@ -631,6 +642,115 @@ probe_native_q8192_linear_prefill_layer0_oracle(
            ? qkv_plan->workspace_bytes() + z_plan->workspace_bytes() +
                  ab_plan->workspace_bytes()
            : fused_plan->workspace_bytes());
+
+  const auto launch_attention_aot = [&](std::size_t offset) {
+    if (!logical_direct_aot) {
+      executor.launch(launches[base + offset]);
+      return;
+    }
+    if (offset == 0 || offset > 8) {
+      throw std::invalid_argument(
+          "native logical direct FLA launch offset is invalid");
+    }
+    const PreparedDecodeInvocation& invocation = launches[base + offset];
+    const DecodeLaunchConfig& captured = invocation.launch->config;
+    std::uint32_t expected_grid_x = 0;
+    std::uint32_t expected_grid_y = 0;
+    std::uint32_t expected_grid_z = 1;
+    std::uint32_t logical_grid_x = captured.grid_x;
+    std::uint32_t logical_grid_y = captured.grid_y;
+    const char* logical_token_argument = nullptr;
+    switch (offset) {
+      case 1:
+        expected_grid_x =
+            static_cast<std::uint32_t>(bucket_tokens / 16);
+        expected_grid_y = 256;
+        logical_grid_x =
+            static_cast<std::uint32_t>((tokens + 15) / 16);
+        break;
+      case 2: {
+        const std::size_t rows_per_program =
+            bucket_tokens == 1024 ? 256 : 16;
+        expected_grid_x = static_cast<std::uint32_t>(
+            bucket_tokens / rows_per_program);
+        expected_grid_y = 48;
+        logical_grid_x = static_cast<std::uint32_t>(
+            (tokens + rows_per_program - 1) / rows_per_program);
+        logical_token_argument = "L";
+        break;
+      }
+      case 3:
+      case 4:
+      case 5:
+      case 6: {
+        const std::size_t chunk_tokens =
+            bucket_tokens == 1024 ? 64 : 32;
+        expected_grid_x = static_cast<std::uint32_t>(
+            bucket_tokens / chunk_tokens);
+        expected_grid_y = 32;
+        logical_grid_x = static_cast<std::uint32_t>(
+            (tokens + chunk_tokens - 1) / chunk_tokens);
+        logical_token_argument = "T";
+        break;
+      }
+      case 7:
+        expected_grid_x = 4;
+        expected_grid_y = 32;
+        logical_token_argument = "T";
+        break;
+      case 8: {
+        const std::size_t chunk_tokens =
+            bucket_tokens == 1024 ? 64 : 32;
+        expected_grid_x = bucket_tokens == 1024 ? 2 : 4;
+        expected_grid_y = static_cast<std::uint32_t>(
+            bucket_tokens / chunk_tokens);
+        expected_grid_z = 32;
+        logical_grid_y = static_cast<std::uint32_t>(
+            (tokens + chunk_tokens - 1) / chunk_tokens);
+        logical_token_argument = "T";
+        break;
+      }
+      default:
+        throw std::invalid_argument(
+            "native logical direct FLA launch offset is unsupported");
+    }
+    if (captured.grid_x != expected_grid_x ||
+        captured.grid_y != expected_grid_y ||
+        captured.grid_z != expected_grid_z || captured.warp_size != 32) {
+      throw std::runtime_error(
+          "native logical direct FLA captured geometry mismatch");
+    }
+    AotLaunchConfig qualified{
+        logical_grid_x, logical_grid_y, captured.grid_z,
+        captured.num_warps, captured.warp_size,
+        captured.shared_memory_bytes};
+    const char* kernel_hash = invocation.launch->kernel_hash;
+    if (bucket_tokens == 1024 && offset == 6) {
+      kernel_hash = kShortPrefillRecomputeWuKernelHash;
+      qualified.num_warps = 4;
+    }
+    if (logical_token_argument != nullptr) {
+      invocations.set_int32_argument(
+          base + offset, logical_token_argument,
+          static_cast<std::int32_t>(tokens));
+    }
+    try {
+      executor.launch_embedded(
+          kernel_hash, qualified, invocation.kernel_params);
+    } catch (...) {
+      if (logical_token_argument != nullptr) {
+        invocations.set_int32_argument(
+            base + offset, logical_token_argument,
+            static_cast<std::int32_t>(bucket_tokens));
+      }
+      throw;
+    }
+    if (logical_token_argument != nullptr) {
+      invocations.set_int32_argument(
+          base + offset, logical_token_argument,
+          static_cast<std::int32_t>(bucket_tokens));
+    }
+  };
 
   const auto started = std::chrono::steady_clock::now();
   if (use_vl_rmsnorm) {
@@ -672,10 +792,10 @@ probe_native_q8192_linear_prefill_layer0_oracle(
     result.layer.dense_gemm_launches += 4;
   } else {
     fused_plan->launch(h1, fused_weight->device_pointer, qkv);
-    if (tokens != bucket_tokens) {
-      // The captured q1024 FLA kernels still traverse their frozen storage
-      // geometry. Re-establish the exact zero-input projection tail after the
-      // logical-M GEMM so those kernels see the same padded rows as before.
+    if (tokens != bucket_tokens && !logical_direct_aot) {
+      // A captured short-bucket FLA schedule still traverses its frozen
+      // storage geometry. Re-establish the exact zero-input projection tail
+      // so non-logical padded requests retain their qualified behavior.
       const std::size_t tail_tokens = bucket_tokens - tokens;
       check_hip(
           hipMemsetAsync(
@@ -766,7 +886,7 @@ probe_native_q8192_linear_prefill_layer0_oracle(
           tokens * kLinearValue * sizeof(std::uint16_t),
           oracle_file("launch-009-z"));
   }
-  executor.launch(launches[base + 1]);
+  launch_attention_aot(1);
   // Both the canonical q8192 schedule and split-projection tails expose the
   // convolution result as o_ptr. Direct fused projections expose it as out.
   compare_optional_sequence(
@@ -789,7 +909,7 @@ probe_native_q8192_linear_prefill_layer0_oracle(
         tokens * kLinearQkv * sizeof(std::uint16_t),
         boundary_file("launch-001-o_ptr")));
   }
-  executor.launch(launches[base + 2]);
+  launch_attention_aot(2);
   compare_optional_sequence(
       "fla_q_full_sequence", invocations.tensor_pointer(base + 2, "q_ptr"),
       kLinearKey, "diagnostic-q");
@@ -852,7 +972,7 @@ probe_native_q8192_linear_prefill_layer0_oracle(
         tokens * kLinearHeads * sizeof(float),
         boundary_file("launch-002-beta_ptr")));
   }
-  executor.launch(launches[base + 3]);
+  launch_attention_aot(3);
   compare_optional_sequence_storage(
       "fla_g_cumsum_storage", "float32",
       invocations.tensor_pointer(base + 3, "o"), "diagnostic-g-cumsum");
@@ -869,7 +989,7 @@ probe_native_q8192_linear_prefill_layer0_oracle(
         tokens * kLinearHeads * sizeof(float),
         boundary_file("launch-003-o")));
   }
-  executor.launch(launches[base + 4]);
+  launch_attention_aot(4);
   compare_optional_sequence_storage(
       "fla_chunk_matrix_storage", "float32",
       invocations.tensor_pointer(base + 4, "A"), "diagnostic-chunk-matrix");
@@ -898,7 +1018,7 @@ probe_native_q8192_linear_prefill_layer0_oracle(
   result.layer.state_scratch_zero_operations = 1;
   result.layer.state_scratch_zero_bytes =
       inverse_scratch_bytes;
-  executor.launch(launches[base + 5]);
+  launch_attention_aot(5);
   compare_optional_sequence_storage(
       "fla_chunk_matrix_inverse_storage", "bfloat16",
       invocations.tensor_pointer(base + 5, "Ai"),
@@ -917,7 +1037,9 @@ probe_native_q8192_linear_prefill_layer0_oracle(
   }
   const bool use_short_prefill_recompute_w_u =
       q1024_official_fla && comparison_tokens < bucket_tokens;
-  if (use_short_prefill_recompute_w_u) {
+  if (logical_direct_aot) {
+    launch_attention_aot(6);
+  } else if (use_short_prefill_recompute_w_u) {
     // The fixed q1024 schedule carries non-zero convolution tail rows beyond
     // the logical request. vLLM autotunes and launches recompute-W/U at the
     // logical T, where block-pointer boundary checks exclude those rows.
@@ -990,7 +1112,7 @@ probe_native_q8192_linear_prefill_layer0_oracle(
                         kStateElements * sizeof(float)),
               "hipMemset prefill initial SSM state");
   }
-  executor.launch(launches[base + 7]);
+  launch_attention_aot(7);
   compare_optional_sequence_storage(
       "fla_chunk_state_storage", "bfloat16",
       invocations.tensor_pointer(base + 7, "h"), "diagnostic-chunk-state");
@@ -1046,7 +1168,7 @@ probe_native_q8192_linear_prefill_layer0_oracle(
         kStateElements * sizeof(float),
         boundary_file("launch-007-ht")));
   }
-  executor.launch(launches[base + 8]);
+  launch_attention_aot(8);
   compare_optional_sequence(
       "fla_core_full_sequence", core, kLinearValue, "launch-008-o");
   if (tokens != 8192) {

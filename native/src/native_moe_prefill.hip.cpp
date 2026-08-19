@@ -1038,13 +1038,16 @@ NativeMoePrefillOracleResult probe_native_q8192_moe_prefill_layer0_oracle(
         std::make_unique<NativeQ8192PrefillGemmPlans>(tokens);
     gemm_plans = local_gemm_plans.get();
   }
-  if (gemm_plans->token_count() != tokens) {
+  const std::size_t gemm_tokens = gemm_plans->token_count();
+  if (gemm_tokens < tokens || gemm_tokens > bucket_tokens) {
     throw std::invalid_argument("native MoE prefill GEMM context mismatch");
   }
   NativeQ8192PrefillGemmPlans* logical_router_gemm_plans =
       options.logical_router_gemm_plans;
   if (logical_router_gemm_plans != nullptr &&
-      logical_router_gemm_plans->token_count() != comparison_tokens) {
+      (logical_router_gemm_plans->token_count() < comparison_tokens ||
+       logical_router_gemm_plans->token_count() > bucket_tokens ||
+       logical_router_gemm_plans->token_count() != gemm_tokens)) {
     throw std::invalid_argument(
         "native MoE logical router GEMM context mismatch");
   }

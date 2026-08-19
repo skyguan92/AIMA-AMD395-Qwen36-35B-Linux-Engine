@@ -57,8 +57,21 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         self.assertIn('prefix + "b.weight"', source)
         self.assertIn("tokens, kMergedColumns, kHidden", source)
         self.assertIn(
-            "router_gemm_plans->prepare_logical_linear_and_moe()", source
+            "entry.gemm_plans->prepare_logical_linear_and_moe()", source
         )
+        self.assertIn(
+            "kNativeVlLogicalProjectionMaximumTokens = 1280", header
+        )
+        self.assertIn("128, 384, 768", source)
+        self.assertIn("std::launch::async", source)
+        self.assertIn("metrics.reused = true", source)
+        prepare_body = source.split(
+            "NativeVlLogicalProjectionState::prepare(std::size_t tokens)", 1
+        )[1].split(
+            "void NativeVlLogicalProjectionState::reset()", 1
+        )[0]
+        self.assertIn("std::find_if", prepare_body)
+        self.assertNotIn("std::make_unique", prepare_body)
         self.assertIn("void prepare_logical_linear_and_moe();", (
             ROOT / "native/include/aima/native_prefill_gemm_plans.h"
         ).read_text(encoding="utf-8"))
@@ -69,8 +82,10 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         self.assertIn("hipMemsetAsync native MoE padded router logits", moe)
 
         self.assertIn("if (mrope_plan != nullptr)", resident)
-        self.assertIn("segment.bucket_tokens != 1024 || !segment.padded()", resident)
-        self.assertIn("segment.bucket_tokens == 1024 && segment.padded()", resident)
+        self.assertIn("segment.bucket_tokens > 2048", resident)
+        self.assertIn(
+            "kNativeVlLogicalProjectionMaximumTokens", resident
+        )
         self.assertIn("vl_logical_projections.prepare", resident)
         self.assertIn("attention_options.logical_ab_gemm_plan", resident)
         self.assertIn("moe_options.logical_router_gemm_plans", resident)
@@ -182,11 +197,17 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         self.assertIn("build-native-vl-language-layer0-probe", makefile)
 
         self.assertIn("const bool q1024_official_fla", linear_source)
+        self.assertIn("const bool logical_direct_aot", linear_source)
         self.assertIn("bool use_vl_rmsnorm_semantics = false", linear_header)
         self.assertIn(
-            "q1024_official_fla && options.use_vl_rmsnorm_semantics",
+            "(q1024_official_fla || logical_direct_aot)",
             linear_source,
         )
+        self.assertIn("const auto launch_attention_aot", linear_source)
+        self.assertIn("logical_grid_x", linear_source)
+        self.assertIn("logical_grid_y", linear_source)
+        self.assertIn("executor.launch_embedded", linear_source)
+        self.assertIn("logical_ab_gemm_plan->m() == gemm_tokens", linear_source)
         self.assertIn("tokens != bucket_tokens", linear_source)
         self.assertIn(
             "attention_options.active_tokens = segment.input_tokens",
