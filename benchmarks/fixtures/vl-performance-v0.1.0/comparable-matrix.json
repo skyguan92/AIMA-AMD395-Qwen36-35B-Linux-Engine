@@ -8,12 +8,12 @@
     "full_matrix": {
       "bytes": 49338,
       "path": "benchmarks/fixtures/vl-performance-v0.1.0/matrix.json",
-      "sha256": "0afe31410590826191110432165eb13f8d3924f950524986af6c6e54e3ae0def"
+      "sha256": "32c849aaad5e110d107ff1a3497bf2c5a5bbfb54eea2521bf6790f5bbd29b37c"
     },
     "reference_availability": {
       "bytes": 20324,
       "path": "benchmarks/results/native-vl-performance-reference-availability-v0.1.0.json",
-      "sha256": "02c1b1ddd99b728d5665d2958f947d68c928c21c7c6ebe3c1db89763d4016623"
+      "sha256": "2edfb3dab822d3ede38821c634c0182e527b1e03805d5d79ecb2a6ba58f48f4d"
     }
   },
   "cells": [
@@ -597,7 +597,7 @@
       "source_execution_cells": [
         "video_sampling_maximum"
       ],
-      "text_padding_tokens": 22979
+      "text_padding_tokens": 19404
     },
     {
       "aggregate_visual_tokens": 9600,
@@ -644,7 +644,7 @@
       "source_execution_cells": [
         "video_sampling_maximum"
       ],
-      "text_padding_tokens": 22975
+      "text_padding_tokens": 19348
     },
     {
       "aggregate_visual_tokens": 256,
@@ -1454,7 +1454,7 @@
   "generated_at": "2026-08-19T10:45:05+00:00",
   "integrity": {
     "algorithm": "sha256",
-    "canonical_payload_sha256": "f075189ce44f4e34f8b18fa4db5cc7d71cda0ba8d37aec32be5108d932119bdd"
+    "canonical_payload_sha256": "51b201fe6f876966518421ce83183c1f17ce6aebabb0afc0dcbe3e797f1e2d6e"
   },
   "observed_coverage": {
     "cache": [

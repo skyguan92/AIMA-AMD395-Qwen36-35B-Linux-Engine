@@ -135,8 +135,8 @@ class VlPerformanceMatrixTest(unittest.TestCase):
             567,
         )
         for cell_id, padding in (
-            ("video_sampling_max_q32k_output1", 22_979),
-            ("video_sampling_clamp_q32k_output1", 22_975),
+            ("video_sampling_max_q32k_output1", 19_404),
+            ("video_sampling_clamp_q32k_output1", 19_348),
         ):
             cell = by_id[cell_id]
             self.assertEqual(cell["aggregate_visual_tokens"], 9_600)

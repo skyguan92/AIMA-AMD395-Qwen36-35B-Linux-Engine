@@ -18,7 +18,7 @@
     "generator": {
       "bytes": 22967,
       "path": "scripts/generate-vl-performance-matrix.py",
-      "sha256": "034299809fa7d7746fa288e5beb8f1f4de00bfae60d3ba1cb472eca8997e3dca"
+      "sha256": "1f13ad51d092ce87b54d7729ae9621346be6fc39824bae4b8274a2566f685726"
     }
   },
   "cells": [
@@ -858,7 +858,7 @@
       "source_execution_cells": [
         "video_sampling_maximum"
       ],
-      "text_padding_tokens": 22979
+      "text_padding_tokens": 19404
     },
     {
       "aggregate_visual_tokens": 9600,
@@ -905,7 +905,7 @@
       "source_execution_cells": [
         "video_sampling_maximum"
       ],
-      "text_padding_tokens": 22975
+      "text_padding_tokens": 19348
     },
     {
       "aggregate_visual_tokens": 256,
@@ -1540,7 +1540,7 @@
   "generated_at": "2026-08-19T08:00:00+00:00",
   "integrity": {
     "algorithm": "sha256",
-    "canonical_payload_sha256": "115f0e669e47d4124c6c11b8bcadc01b8516122bfcd399c7f4b805299b86ed31"
+    "canonical_payload_sha256": "6631bfb5def07021ff71abc5998bc8b8539261a25dbbb0f9a8e16a72f784ddb5"
   },
   "observed_coverage": {
     "cache": [
