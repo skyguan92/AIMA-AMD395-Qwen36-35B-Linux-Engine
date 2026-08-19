@@ -10,6 +10,8 @@
 
 namespace aima {
 
+class NativeVisionAotBlockGemmPlans;
+class NativeVisionAotAttentionPlan;
 class NativeWeightStore;
 
 // Sequential 27-block vision stack using one shared, hash-locked AOT attention
@@ -21,6 +23,13 @@ class NativeVisionAotBlockStackPlan {
       const std::filesystem::path& attention_image_path,
       std::size_t patch_count,
       const std::vector<std::uint32_t>& cu_seqlens);
+  NativeVisionAotBlockStackPlan(
+      const NativeWeightStore& weights,
+      const std::filesystem::path& attention_image_path,
+      std::size_t patch_count,
+      const std::vector<std::uint32_t>& cu_seqlens,
+      std::shared_ptr<const NativeVisionAotAttentionPlan> attention,
+      std::shared_ptr<NativeVisionAotBlockGemmPlans> gemm_plans);
   ~NativeVisionAotBlockStackPlan();
   NativeVisionAotBlockStackPlan(const NativeVisionAotBlockStackPlan&) = delete;
   NativeVisionAotBlockStackPlan& operator=(
@@ -42,6 +51,8 @@ class NativeVisionAotBlockStackPlan {
   std::size_t block_count() const;
   std::size_t temporary_bytes() const;
   std::size_t library_workspace_bytes() const;
+  std::shared_ptr<const NativeVisionAotAttentionPlan> attention_plan() const;
+  std::shared_ptr<NativeVisionAotBlockGemmPlans> gemm_plans() const;
   const std::string& attention_image_sha256() const;
 
  private:

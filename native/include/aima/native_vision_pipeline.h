@@ -12,6 +12,10 @@
 
 namespace aima {
 
+class NativeVisionAotBlockGemmPlans;
+class NativeVisionAotAttentionPlan;
+class NativeVisionMergerPlan;
+class NativeVisionPatchEmbedPlan;
 class NativeWeightStore;
 
 // Resident request-shape metadata shared by all 27 visual blocks. The
@@ -53,6 +57,14 @@ class NativeVisionPipelinePlan {
       const NativeWeightStore& weights,
       const std::filesystem::path& attention_image_path,
       const std::vector<NativeVlGrid>& grids);
+  NativeVisionPipelinePlan(
+      const NativeWeightStore& weights,
+      const std::filesystem::path& attention_image_path,
+      const std::vector<NativeVlGrid>& grids,
+      std::shared_ptr<NativeVisionPatchEmbedPlan> patch_plan,
+      std::shared_ptr<const NativeVisionAotAttentionPlan> attention_plan,
+      std::shared_ptr<NativeVisionAotBlockGemmPlans> block_gemm_plans,
+      std::shared_ptr<NativeVisionMergerPlan> merger_plan);
   ~NativeVisionPipelinePlan();
   NativeVisionPipelinePlan(const NativeVisionPipelinePlan&) = delete;
   NativeVisionPipelinePlan& operator=(const NativeVisionPipelinePlan&) = delete;
@@ -77,6 +89,10 @@ class NativeVisionPipelinePlan {
   std::size_t temporary_bytes() const;
   std::size_t metadata_resident_bytes() const;
   std::size_t library_workspace_bytes() const;
+  std::shared_ptr<NativeVisionPatchEmbedPlan> patch_plan() const;
+  std::shared_ptr<const NativeVisionAotAttentionPlan> attention_plan() const;
+  std::shared_ptr<NativeVisionAotBlockGemmPlans> block_gemm_plans() const;
+  std::shared_ptr<NativeVisionMergerPlan> merger_plan() const;
   const std::vector<std::uint32_t>& cu_seqlens() const;
   const std::string& rotary_cos_sha256() const;
   const std::string& rotary_sin_sha256() const;

@@ -36,12 +36,36 @@ void check_hip(hipError_t status, const char* operation) {
   }
 }
 
+struct VerifiedAttentionExecutable {
+  std::shared_ptr<AotKernel> kernel;
+  std::string image_sha256;
+};
+
+VerifiedAttentionExecutable load_verified_attention_executable(
+    const std::filesystem::path& image_path) {
+  VerifiedAttentionExecutable result;
+  result.image_sha256 = sha256_file(image_path);
+  if (result.image_sha256 != kVisionAttentionImageSha256) {
+    throw std::runtime_error("native vision attention AOT image hash mismatch");
+  }
+  result.kernel = std::make_shared<AotKernel>(
+      AotKernel::from_file(image_path, kVisionAttentionKernelSymbol));
+  return result;
+}
+
 }  // namespace
 
 struct NativeVisionAotAttentionPlan::Impl {
   Impl(const std::filesystem::path& image_path, std::size_t patches,
        const std::vector<std::uint32_t>& cu_seqlens)
-      : patch_count_value(patches) {
+      : Impl(load_verified_attention_executable(image_path), patches,
+             cu_seqlens) {}
+
+  Impl(VerifiedAttentionExecutable executable, std::size_t patches,
+       const std::vector<std::uint32_t>& cu_seqlens)
+      : patch_count_value(patches),
+        image_sha256_value(std::move(executable.image_sha256)),
+        kernel(std::move(executable.kernel)) {
     if (patches == 0 || patches > kNativeVlVisionBatchPatchLimit) {
       throw std::invalid_argument(
           "native AOT vision attention patch count is outside the budget");
@@ -68,13 +92,10 @@ struct NativeVisionAotAttentionPlan::Impl {
     }
     workspace_bytes_value =
         2 * segment_count_value * sizeof(std::int32_t);
-    image_sha256_value = sha256_file(image_path);
-    if (image_sha256_value != kVisionAttentionImageSha256) {
+    if (!kernel || image_sha256_value != kVisionAttentionImageSha256) {
       throw std::runtime_error("native vision attention AOT image hash mismatch");
     }
     try {
-      kernel = std::make_unique<AotKernel>(
-          AotKernel::from_file(image_path, kVisionAttentionKernelSymbol));
       check_hip(hipMalloc(&metadata_device, workspace_bytes_value),
                 "hipMalloc AOT vision attention metadata");
       starts_device = static_cast<std::int32_t*>(metadata_device);
@@ -114,13 +135,22 @@ struct NativeVisionAotAttentionPlan::Impl {
   void* metadata_device = nullptr;
   std::int32_t* starts_device = nullptr;
   std::int32_t* lengths_device = nullptr;
-  std::unique_ptr<AotKernel> kernel;
+  std::shared_ptr<AotKernel> kernel;
 };
 
 NativeVisionAotAttentionPlan::NativeVisionAotAttentionPlan(
     const std::filesystem::path& image_path, std::size_t patch_count,
     const std::vector<std::uint32_t>& cu_seqlens)
     : impl_(std::make_unique<Impl>(image_path, patch_count, cu_seqlens)) {}
+NativeVisionAotAttentionPlan::NativeVisionAotAttentionPlan(
+    std::shared_ptr<AotKernel> kernel, std::string image_sha256,
+    std::size_t patch_count,
+    const std::vector<std::uint32_t>& cu_seqlens)
+    : impl_(std::make_unique<Impl>(
+          VerifiedAttentionExecutable{std::move(kernel),
+                                      std::move(image_sha256)},
+          patch_count,
+          cu_seqlens)) {}
 NativeVisionAotAttentionPlan::~NativeVisionAotAttentionPlan() = default;
 NativeVisionAotAttentionPlan::NativeVisionAotAttentionPlan(
     NativeVisionAotAttentionPlan&&) noexcept = default;
@@ -173,6 +203,20 @@ std::size_t NativeVisionAotAttentionPlan::segment_count() const {
 
 std::size_t NativeVisionAotAttentionPlan::workspace_bytes() const {
   return impl_->workspace_bytes_value;
+}
+
+std::shared_ptr<const NativeVisionAotAttentionPlan>
+NativeVisionAotAttentionPlan::rebind(
+    std::size_t patch_count,
+    const std::vector<std::uint32_t>& cu_seqlens) const {
+  if (!impl_ || !impl_->kernel) {
+    throw std::runtime_error(
+        "native vision attention executable is unavailable");
+  }
+  return std::shared_ptr<const NativeVisionAotAttentionPlan>(
+      new NativeVisionAotAttentionPlan(
+          impl_->kernel, impl_->image_sha256_value, patch_count,
+          cu_seqlens));
 }
 
 const std::string& NativeVisionAotAttentionPlan::image_sha256() const {

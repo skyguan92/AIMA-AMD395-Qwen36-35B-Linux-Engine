@@ -24,6 +24,7 @@
 #include "aima/native_vl_unified_attention.h"
 #include "aima/native_vl_logical_projections.h"
 #include "aima/sha256.h"
+#include "aima/native_vision_aot_attention.h"
 #include "aima/native_vision_pipeline.h"
 #include "aima/native_vl_embedding.h"
 
@@ -54,6 +55,7 @@ constexpr std::size_t kVocabulary = 248320;
 constexpr std::size_t kLongContextChunkTokens = 8192;
 constexpr std::size_t kPrefixCacheEntries = 4;
 constexpr std::size_t kVisionPlanCacheEntries = 4;
+constexpr std::size_t kVisionExecutionPlanCacheEntries = 8;
 constexpr std::size_t kVisionEmbeddingCacheEntries = 64;
 constexpr std::uint64_t kVisionEmbeddingCacheBytes =
     512ULL * 1024ULL * 1024ULL;
@@ -61,6 +63,8 @@ constexpr std::size_t kVisionPlanCachePatchBudget =
     kNativeVlVisionBatchPatchLimit;
 constexpr std::size_t kVisionPlanCacheSharedPatchLimit =
     kVisionPlanCachePatchBudget / kVisionPlanCacheEntries;
+constexpr std::size_t kVisionRequestPlanPreparationMinPatches = 256;
+constexpr std::size_t kVisionRequestPlanPreparationPatchLimit = 4096;
 constexpr std::size_t kVisionPixelColumns = 1536;
 constexpr std::uint64_t kFrozenTextQ1024WorkspaceBytes = 669879552ULL;
 constexpr std::uint64_t kCurrentQ1024WorkspaceBytes = 674090240ULL;
@@ -434,6 +438,16 @@ struct NativeResidentVisionPlanEntry {
   std::uint64_t use = 0;
 };
 
+struct NativeResidentVisionExecutionPlanEntry {
+  std::size_t patch_count = 0;
+  std::vector<std::uint32_t> cu_seqlens;
+  std::shared_ptr<NativeVisionPatchEmbedPlan> patch;
+  std::shared_ptr<const NativeVisionAotAttentionPlan> attention;
+  std::shared_ptr<NativeVisionAotBlockGemmPlans> block_gemms;
+  std::shared_ptr<NativeVisionMergerPlan> merger;
+  std::uint64_t use = 0;
+};
+
 struct NativeResidentVisionEmbeddingEntry {
   std::string namespace_sha256;
   void* embeddings = nullptr;
@@ -461,6 +475,24 @@ bool same_vision_grids(const std::vector<NativeVlGrid>& left,
     }
   }
   return true;
+}
+
+std::vector<std::uint32_t> vision_attention_cu_seqlens(
+    const std::vector<NativeVlGrid>& grids) {
+  std::vector<std::uint32_t> result{0};
+  for (const NativeVlGrid& grid : grids) {
+    const std::size_t frame_patches = grid.patch_count() / grid.temporal;
+    for (std::size_t frame = 0; frame < grid.temporal; ++frame) {
+      if (frame_patches >
+          std::numeric_limits<std::uint32_t>::max() - result.back()) {
+        throw std::invalid_argument(
+            "native vision attention boundary overflows");
+      }
+      result.push_back(result.back() +
+                       static_cast<std::uint32_t>(frame_patches));
+    }
+  }
+  return result;
 }
 
 struct NativeResidentEngine::Impl {
@@ -518,9 +550,14 @@ struct NativeResidentEngine::Impl {
   std::uint64_t vision_pixel_capacity_bytes = 0;
   void* vision_embeddings = nullptr;
   std::uint64_t vision_embedding_capacity_bytes = 0;
+  void* vision_preparation_embeddings = nullptr;
+  std::uint64_t vision_preparation_embedding_capacity_bytes = 0;
   void* vision_temporary = nullptr;
   std::uint64_t vision_temporary_capacity_bytes = 0;
   std::vector<NativeResidentVisionPlanEntry> vision_plans;
+  std::vector<NativeResidentVisionExecutionPlanEntry>
+      vision_warmed_execution_plans;
+  std::uint64_t vision_execution_plan_clock = 0;
   std::uint64_t vision_plan_clock = 0;
   std::vector<NativeResidentVisionEmbeddingEntry> vision_embedding_cache;
   std::uint64_t vision_embedding_cache_resident_bytes = 0;
@@ -596,6 +633,31 @@ struct NativeResidentEngine::Impl {
     *capacity = required;
   }
 
+  double prepare_vision_pipeline_once(
+      NativeVisionPipelinePlan& pipeline, const char* description) {
+    const std::uint64_t pixel_bytes =
+        pipeline.patch_count() * kVisionPixelColumns *
+        sizeof(std::uint16_t);
+    const std::uint64_t embedding_bytes =
+        pipeline.merged_token_count() * kHidden * sizeof(std::uint16_t);
+    ensure_vision_allocation(
+        &vision_pixel_values, &vision_pixel_capacity_bytes, pixel_bytes,
+        description);
+    ensure_vision_allocation(
+        &vision_preparation_embeddings,
+        &vision_preparation_embedding_capacity_bytes,
+        embedding_bytes, description);
+    ensure_vision_allocation(
+        &vision_temporary, &vision_temporary_capacity_bytes,
+        pipeline.temporary_bytes(), description);
+    check_hip(hipMemset(vision_pixel_values, 0, pixel_bytes), description);
+    const auto started = std::chrono::steady_clock::now();
+    pipeline.launch(vision_pixel_values, vision_preparation_embeddings,
+                    vision_temporary, vision_temporary_capacity_bytes);
+    check_hip(hipDeviceSynchronize(), description);
+    return elapsed_ms(started);
+  }
+
   bool restore_vision_embedding_cache(std::string_view namespace_sha256,
                                       std::uint64_t bytes) {
     if (namespace_sha256.empty() || bytes == 0 ||
@@ -663,9 +725,49 @@ struct NativeResidentEngine::Impl {
     vision_embedding_cache_resident_bytes += bytes;
   }
 
+  void retain_warmed_vision_execution_plans(
+      const NativeVisionPipelinePlan& pipeline) {
+    const std::size_t patch_count = pipeline.patch_count();
+    const auto existing = std::find_if(
+        vision_warmed_execution_plans.begin(),
+        vision_warmed_execution_plans.end(),
+        [patch_count](const NativeResidentVisionExecutionPlanEntry& entry) {
+          return entry.patch_count == patch_count;
+        });
+    if (existing != vision_warmed_execution_plans.end()) {
+      existing->use = ++vision_execution_plan_clock;
+      return;
+    }
+    if (vision_warmed_execution_plans.size() >=
+        kVisionExecutionPlanCacheEntries) {
+      const auto oldest = std::min_element(
+          vision_warmed_execution_plans.begin(),
+          vision_warmed_execution_plans.end(),
+          [](const NativeResidentVisionExecutionPlanEntry& left,
+             const NativeResidentVisionExecutionPlanEntry& right) {
+            return left.use < right.use;
+          });
+      vision_warmed_execution_plans.erase(oldest);
+    }
+    NativeResidentVisionExecutionPlanEntry entry;
+    entry.patch_count = patch_count;
+    entry.cu_seqlens = pipeline.cu_seqlens();
+    entry.patch = pipeline.patch_plan();
+    entry.attention = pipeline.attention_plan();
+    entry.block_gemms = pipeline.block_gemm_plans();
+    entry.merger = pipeline.merger_plan();
+    if (entry.cu_seqlens.empty() || !entry.patch || !entry.attention ||
+        !entry.block_gemms || !entry.merger) {
+      throw std::runtime_error(
+          "native warmed vision execution plans are incomplete");
+    }
+    entry.use = ++vision_execution_plan_clock;
+    vision_warmed_execution_plans.push_back(std::move(entry));
+  }
+
   NativeVisionPipelinePlan& vision_plan(
       const std::vector<NativeVlGrid>& grids, bool* cache_hit,
-      double* build_wall_ms) {
+      double* build_wall_ms, bool prepare_on_miss = true) {
     if (cache_hit == nullptr || build_wall_ms == nullptr || grids.empty()) {
       throw std::invalid_argument(
           "native resident vision plan lookup is invalid");
@@ -717,8 +819,48 @@ struct NativeResidentEngine::Impl {
       vision_plans.erase(oldest);
     }
     const auto started = std::chrono::steady_clock::now();
-    auto pipeline = std::make_unique<NativeVisionPipelinePlan>(
-        visual_weights, vision_attention_image, grids);
+    const std::vector<std::uint32_t> cu_seqlens =
+        vision_attention_cu_seqlens(grids);
+    const auto warmed = std::find_if(
+        vision_warmed_execution_plans.begin(),
+        vision_warmed_execution_plans.end(),
+        [incoming_patches](
+            const NativeResidentVisionExecutionPlanEntry& entry) {
+          return entry.patch_count == incoming_patches;
+        });
+    if (warmed != vision_warmed_execution_plans.end()) {
+      warmed->use = ++vision_execution_plan_clock;
+    }
+    std::unique_ptr<NativeVisionPipelinePlan> pipeline;
+    bool attention_reused = false;
+    std::shared_ptr<const NativeVisionAotAttentionPlan> attention;
+    if (warmed != vision_warmed_execution_plans.end() &&
+        warmed->cu_seqlens == cu_seqlens) {
+      attention = warmed->attention;
+      attention_reused = true;
+    } else if (!vision_warmed_execution_plans.empty()) {
+      attention =
+          vision_warmed_execution_plans.front().attention->rebind(
+              incoming_patches, cu_seqlens);
+    }
+    if (warmed == vision_warmed_execution_plans.end()) {
+      pipeline = std::make_unique<NativeVisionPipelinePlan>(
+          visual_weights, vision_attention_image, grids, nullptr,
+          std::move(attention), nullptr, nullptr);
+    } else {
+      pipeline = std::make_unique<NativeVisionPipelinePlan>(
+          visual_weights, vision_attention_image, grids, warmed->patch,
+          std::move(attention), warmed->block_gemms, warmed->merger);
+    }
+    if (prepare_on_miss &&
+        incoming_patches > kVisionRequestPlanPreparationMinPatches &&
+        incoming_patches <= kVisionRequestPlanPreparationPatchLimit &&
+        (warmed == vision_warmed_execution_plans.end() ||
+         !attention_reused)) {
+      prepare_vision_pipeline_once(
+          *pipeline, "native request vision plan preparation");
+      retain_warmed_vision_execution_plans(*pipeline);
+    }
     *build_wall_ms = elapsed_ms(started);
     *cache_hit = false;
     NativeResidentVisionPlanEntry candidate{
@@ -729,47 +871,28 @@ struct NativeResidentEngine::Impl {
 
   NativeResidentVisionWarmupMetrics warm_up_standard_vision() {
     // vLLM profiles the visual tower before publishing READY. Match that
-    // boundary with the frozen standard portrait geometry, so the first user
-    // request does not own plan construction or first-dispatch setup.
+    // boundary with the frozen standard portrait geometry. Other small
+    // shapes are prepared only on their first request, inside its measured
+    // plan-build and total-latency window.
     const std::vector<NativeVlGrid> grids{{1, 64, 16}};
     bool cache_hit = false;
     double plan_build_wall_ms = 0.0;
     NativeVisionPipelinePlan& pipeline =
-        vision_plan(grids, &cache_hit, &plan_build_wall_ms);
+        vision_plan(grids, &cache_hit, &plan_build_wall_ms, false);
     if (cache_hit || pipeline.patch_count() != 1024 ||
         pipeline.merged_token_count() != 256) {
       throw std::runtime_error(
           "native standard vision warmup geometry is inconsistent");
     }
-    const std::uint64_t pixel_bytes =
-        pipeline.patch_count() * kVisionPixelColumns *
-        sizeof(std::uint16_t);
-    const std::uint64_t embedding_bytes =
-        pipeline.merged_token_count() * kHidden *
-        sizeof(std::uint16_t);
-    ensure_vision_allocation(
-        &vision_pixel_values, &vision_pixel_capacity_bytes, pixel_bytes,
-        "hipMalloc standard vision warmup pixels");
-    ensure_vision_allocation(
-        &vision_embeddings, &vision_embedding_capacity_bytes,
-        embedding_bytes, "hipMalloc standard vision warmup embeddings");
-    ensure_vision_allocation(
-        &vision_temporary, &vision_temporary_capacity_bytes,
-        pipeline.temporary_bytes(),
-        "hipMalloc standard vision warmup temporary arena");
-    check_hip(hipMemset(vision_pixel_values, 0, pixel_bytes),
-              "hipMemset standard vision warmup pixels");
-    const auto encode_started = std::chrono::steady_clock::now();
-    pipeline.launch(vision_pixel_values, vision_embeddings,
-                    vision_temporary, vision_temporary_capacity_bytes);
-    check_hip(hipDeviceSynchronize(),
-              "hipDeviceSynchronize standard vision warmup");
+    const double encode_wall_ms = prepare_vision_pipeline_once(
+        pipeline, "native standard vision warmup");
+    retain_warmed_vision_execution_plans(pipeline);
     NativeResidentVisionWarmupMetrics metrics;
     metrics.patches = pipeline.patch_count();
     metrics.visual_tokens = pipeline.merged_token_count();
     metrics.plan_cache_entries = vision_plans.size();
     metrics.plan_build_wall_ms = plan_build_wall_ms;
-    metrics.encode_wall_ms = elapsed_ms(encode_started);
+    metrics.encode_wall_ms = encode_wall_ms;
     metrics.completed = true;
     return metrics;
   }
@@ -809,6 +932,10 @@ struct NativeResidentEngine::Impl {
     if (vision_embeddings != nullptr) {
       (void)hipSetDevice(device);
       (void)hipFree(vision_embeddings);
+    }
+    if (vision_preparation_embeddings != nullptr) {
+      (void)hipSetDevice(device);
+      (void)hipFree(vision_preparation_embeddings);
     }
     if (vision_temporary != nullptr) {
       (void)hipSetDevice(device);

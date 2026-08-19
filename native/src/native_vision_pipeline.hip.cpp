@@ -297,42 +297,56 @@ std::size_t NativeVisionEncoderMetadataPlan::resident_bytes() const {
 struct NativeVisionPipelinePlan::Impl {
   Impl(const NativeWeightStore& weights,
        const std::filesystem::path& attention_image_path,
-       const std::vector<NativeVlGrid>& grids)
+       const std::vector<NativeVlGrid>& grids,
+       std::shared_ptr<NativeVisionPatchEmbedPlan> requested_patch,
+       std::shared_ptr<const NativeVisionAotAttentionPlan>
+           requested_attention,
+       std::shared_ptr<NativeVisionAotBlockGemmPlans> block_gemm_plans,
+       std::shared_ptr<NativeVisionMergerPlan> requested_merger)
       : metadata(grids),
-        patch(weights, metadata.patch_count()),
+        patch(requested_patch
+                  ? std::move(requested_patch)
+                  : std::make_shared<NativeVisionPatchEmbedPlan>(
+                        weights, metadata.patch_count())),
         position(weights, grids),
         blocks(weights, attention_image_path, metadata.patch_count(),
-               metadata.cu_seqlens()),
-        merger(weights, metadata.patch_count()),
+               metadata.cu_seqlens(), std::move(requested_attention),
+               std::move(block_gemm_plans)),
+        merger(requested_merger
+                   ? std::move(requested_merger)
+                   : std::make_shared<NativeVisionMergerPlan>(
+                         weights, metadata.patch_count())),
         hidden_bytes(checked_multiply(
             checked_multiply(metadata.patch_count(), kVisionHidden,
                              "vision hidden rows"),
             sizeof(std::uint16_t), "vision hidden bytes")),
         shared_temporary_bytes(
-            std::max(blocks.temporary_bytes(), merger.temporary_bytes())),
+            std::max(blocks.temporary_bytes(), merger->temporary_bytes())),
         temporary_bytes_value(checked_add(
             checked_multiply(2, hidden_bytes, "vision hidden arenas"),
             shared_temporary_bytes, "vision pipeline workspace")),
         library_workspace_bytes_value(checked_add(
-            checked_add(patch.workspace_bytes(),
+            checked_add(patch->workspace_bytes(),
                         blocks.library_workspace_bytes(),
                         "vision library workspace"),
-            merger.library_workspace_bytes(), "vision library workspace")) {
+            merger->library_workspace_bytes(), "vision library workspace")) {
     if (metadata.patch_count() % kSpatialMergeArea != 0 ||
-        merger.merged_token_count() !=
+        !patch || !merger ||
+        patch->patch_count() != metadata.patch_count() ||
+        merger->merged_token_count() !=
             metadata.patch_count() / kSpatialMergeArea ||
         position.patch_count() != metadata.patch_count() ||
         blocks.patch_count() != metadata.patch_count() ||
-        merger.patch_count() != metadata.patch_count()) {
+        merger->patch_count() != metadata.patch_count()) {
       throw std::runtime_error("native vision pipeline subplans disagree");
     }
   }
 
   NativeVisionEncoderMetadataPlan metadata;
-  NativeVisionPatchEmbedPlan patch;
+  std::shared_ptr<NativeVisionPatchEmbedPlan> patch;
   NativeVisionPositionPlan position;
   NativeVisionAotBlockStackPlan blocks;
-  NativeVisionMergerPlan merger;
+  std::shared_ptr<NativeVisionMergerPlan> merger;
   std::size_t hidden_bytes = 0;
   std::size_t shared_temporary_bytes = 0;
   std::size_t temporary_bytes_value = 0;
@@ -343,8 +357,22 @@ NativeVisionPipelinePlan::NativeVisionPipelinePlan(
     const NativeWeightStore& weights,
     const std::filesystem::path& attention_image_path,
     const std::vector<NativeVlGrid>& grids)
-    : impl_(
-          std::make_unique<Impl>(weights, attention_image_path, grids)) {}
+    : NativeVisionPipelinePlan(
+          weights, attention_image_path, grids, nullptr, nullptr, nullptr,
+          nullptr) {}
+
+NativeVisionPipelinePlan::NativeVisionPipelinePlan(
+    const NativeWeightStore& weights,
+    const std::filesystem::path& attention_image_path,
+    const std::vector<NativeVlGrid>& grids,
+    std::shared_ptr<NativeVisionPatchEmbedPlan> patch_plan,
+    std::shared_ptr<const NativeVisionAotAttentionPlan> attention_plan,
+    std::shared_ptr<NativeVisionAotBlockGemmPlans> block_gemm_plans,
+    std::shared_ptr<NativeVisionMergerPlan> merger_plan)
+    : impl_(std::make_unique<Impl>(
+          weights, attention_image_path, grids, std::move(patch_plan),
+          std::move(attention_plan), std::move(block_gemm_plans),
+          std::move(merger_plan))) {}
 NativeVisionPipelinePlan::~NativeVisionPipelinePlan() = default;
 NativeVisionPipelinePlan::NativeVisionPipelinePlan(
     NativeVisionPipelinePlan&&) noexcept = default;
@@ -365,14 +393,14 @@ void NativeVisionPipelinePlan::launch(
   auto* hidden_a = static_cast<unsigned char*>(temporary_device);
   auto* hidden_b = hidden_a + impl_->hidden_bytes;
   auto* shared_temporary = hidden_b + impl_->hidden_bytes;
-  impl_->patch.launch(pixel_values_device, hidden_a, stream);
+  impl_->patch->launch(pixel_values_device, hidden_a, stream);
   impl_->position.launch_add(hidden_a, hidden_b, stream);
   impl_->blocks.launch(
       hidden_b, impl_->metadata.rotary_cos_device(),
       impl_->metadata.rotary_sin_device(), hidden_a, shared_temporary,
       impl_->shared_temporary_bytes, stream);
-  impl_->merger.launch(hidden_a, output_device, shared_temporary,
-                       impl_->shared_temporary_bytes, stream);
+  impl_->merger->launch(hidden_a, output_device, shared_temporary,
+                        impl_->shared_temporary_bytes, stream);
 }
 
 void NativeVisionPipelinePlan::launch_encoder_through(
@@ -390,7 +418,7 @@ void NativeVisionPipelinePlan::launch_encoder_through(
   auto* hidden_a = static_cast<unsigned char*>(temporary_device);
   auto* hidden_b = hidden_a + impl_->hidden_bytes;
   auto* shared_temporary = hidden_b + impl_->hidden_bytes;
-  impl_->patch.launch(pixel_values_device, hidden_a, stream);
+  impl_->patch->launch(pixel_values_device, hidden_a, stream);
   impl_->position.launch_add(hidden_a, hidden_b, stream);
   impl_->blocks.launch_through(
       last_block_index, hidden_b, impl_->metadata.rotary_cos_device(),
@@ -403,7 +431,7 @@ std::size_t NativeVisionPipelinePlan::patch_count() const {
 }
 
 std::size_t NativeVisionPipelinePlan::merged_token_count() const {
-  return impl_->merger.merged_token_count();
+  return impl_->merger->merged_token_count();
 }
 
 std::size_t NativeVisionPipelinePlan::temporary_bytes() const {
@@ -416,6 +444,26 @@ std::size_t NativeVisionPipelinePlan::metadata_resident_bytes() const {
 
 std::size_t NativeVisionPipelinePlan::library_workspace_bytes() const {
   return impl_->library_workspace_bytes_value;
+}
+
+std::shared_ptr<NativeVisionPatchEmbedPlan>
+NativeVisionPipelinePlan::patch_plan() const {
+  return impl_->patch;
+}
+
+std::shared_ptr<const NativeVisionAotAttentionPlan>
+NativeVisionPipelinePlan::attention_plan() const {
+  return impl_->blocks.attention_plan();
+}
+
+std::shared_ptr<NativeVisionAotBlockGemmPlans>
+NativeVisionPipelinePlan::block_gemm_plans() const {
+  return impl_->blocks.gemm_plans();
+}
+
+std::shared_ptr<NativeVisionMergerPlan>
+NativeVisionPipelinePlan::merger_plan() const {
+  return impl_->merger;
 }
 
 const std::vector<std::uint32_t>& NativeVisionPipelinePlan::cu_seqlens() const {

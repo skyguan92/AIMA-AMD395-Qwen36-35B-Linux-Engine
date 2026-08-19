@@ -114,7 +114,17 @@ class VlCapabilityEnvelopeTest(unittest.TestCase):
         self.assertIn("batch.patch_offset * kVisionPixelColumns", resident)
         self.assertIn("kVisionPlanCachePatchBudget", resident)
         self.assertIn("kVisionPlanCacheSharedPatchLimit", resident)
+        self.assertIn("kVisionExecutionPlanCacheEntries = 8", resident)
         self.assertIn("kNativeVlVisionBatchPatchLimit", resident)
+        self.assertIn(
+            "kVisionRequestPlanPreparationMinPatches = 256", resident
+        )
+        self.assertIn(
+            "kVisionRequestPlanPreparationPatchLimit = 4096", resident
+        )
+        self.assertIn("vision_preparation_embeddings", resident)
+        self.assertIn("prepare_on_miss", resident)
+        self.assertIn("retain_warmed_vision_execution_plans", resident)
         self.assertIn("warm_up_standard_vision", resident)
         self.assertIn(
             "const std::vector<NativeVlGrid> grids{{1, 64, 16}};",

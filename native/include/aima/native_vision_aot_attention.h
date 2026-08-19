@@ -10,6 +10,8 @@
 
 namespace aima {
 
+class AotKernel;
+
 // Native launcher for the exact frozen vLLM Triton vision-attention code
 // object. The AOT image is loaded and checked during plan construction; launch
 // performs no filesystem or Python/Torch/Triton runtime work.
@@ -33,9 +35,17 @@ class NativeVisionAotAttentionPlan {
   std::size_t patch_count() const;
   std::size_t segment_count() const;
   std::size_t workspace_bytes() const;
+  std::shared_ptr<const NativeVisionAotAttentionPlan> rebind(
+      std::size_t patch_count,
+      const std::vector<std::uint32_t>& cu_seqlens) const;
   const std::string& image_sha256() const;
 
  private:
+  NativeVisionAotAttentionPlan(
+      std::shared_ptr<AotKernel> kernel, std::string image_sha256,
+      std::size_t patch_count,
+      const std::vector<std::uint32_t>& cu_seqlens);
+
   struct Impl;
   std::unique_ptr<Impl> impl_;
 };

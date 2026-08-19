@@ -42,17 +42,28 @@ struct NativeVisionAotBlockStackPlan::Impl {
   Impl(const NativeWeightStore& weights,
        const std::filesystem::path& attention_image_path,
        std::size_t patches,
-       const std::vector<std::uint32_t>& cu_seqlens)
+       const std::vector<std::uint32_t>& cu_seqlens,
+       std::shared_ptr<const NativeVisionAotAttentionPlan>
+           requested_attention,
+       std::shared_ptr<NativeVisionAotBlockGemmPlans> requested_gemm_plans)
       : patch_count_value(patches),
         intermediate_bytes(checked_multiply(
             checked_multiply(patches, kVisionHidden),
             sizeof(std::uint16_t))),
-        attention(std::make_shared<NativeVisionAotAttentionPlan>(
-            attention_image_path, patches, cu_seqlens)),
-        gemm_plans(
-            std::make_shared<NativeVisionAotBlockGemmPlans>(patches)) {
-    if (patches == 0) {
-      throw std::invalid_argument("native AOT vision block stack is empty");
+        attention(requested_attention
+                      ? std::move(requested_attention)
+                      : std::make_shared<NativeVisionAotAttentionPlan>(
+                            attention_image_path, patches, cu_seqlens)),
+        gemm_plans(requested_gemm_plans
+                       ? std::move(requested_gemm_plans)
+                       : std::make_shared<NativeVisionAotBlockGemmPlans>(
+                             patches)) {
+    if (patches == 0 || !attention || !gemm_plans ||
+        attention->patch_count() != patches ||
+        attention->segment_count() + 1 != cu_seqlens.size() ||
+        gemm_plans->patch_count() != patches) {
+      throw std::invalid_argument(
+          "native AOT vision block stack plans disagree");
     }
     library_workspace_bytes_value =
         checked_add(attention->workspace_bytes(),
@@ -89,8 +100,20 @@ NativeVisionAotBlockStackPlan::NativeVisionAotBlockStackPlan(
     const std::filesystem::path& attention_image_path,
     std::size_t patch_count,
     const std::vector<std::uint32_t>& cu_seqlens)
+    : NativeVisionAotBlockStackPlan(
+          weights, attention_image_path, patch_count, cu_seqlens, nullptr,
+          nullptr) {}
+
+NativeVisionAotBlockStackPlan::NativeVisionAotBlockStackPlan(
+    const NativeWeightStore& weights,
+    const std::filesystem::path& attention_image_path,
+    std::size_t patch_count,
+    const std::vector<std::uint32_t>& cu_seqlens,
+    std::shared_ptr<const NativeVisionAotAttentionPlan> attention,
+    std::shared_ptr<NativeVisionAotBlockGemmPlans> gemm_plans)
     : impl_(std::make_unique<Impl>(weights, attention_image_path, patch_count,
-                                  cu_seqlens)) {}
+                                  cu_seqlens, std::move(attention),
+                                  std::move(gemm_plans))) {}
 NativeVisionAotBlockStackPlan::~NativeVisionAotBlockStackPlan() = default;
 NativeVisionAotBlockStackPlan::NativeVisionAotBlockStackPlan(
     NativeVisionAotBlockStackPlan&&) noexcept = default;
@@ -150,6 +173,16 @@ std::size_t NativeVisionAotBlockStackPlan::temporary_bytes() const {
 
 std::size_t NativeVisionAotBlockStackPlan::library_workspace_bytes() const {
   return impl_->library_workspace_bytes_value;
+}
+
+std::shared_ptr<const NativeVisionAotAttentionPlan>
+NativeVisionAotBlockStackPlan::attention_plan() const {
+  return impl_->attention;
+}
+
+std::shared_ptr<NativeVisionAotBlockGemmPlans>
+NativeVisionAotBlockStackPlan::gemm_plans() const {
+  return impl_->gemm_plans;
 }
 
 const std::string&
