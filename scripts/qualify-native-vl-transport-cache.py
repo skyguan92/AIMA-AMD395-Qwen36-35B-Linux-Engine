@@ -53,7 +53,7 @@ from aima_engine.vl_transport_cache import (  # noqa: E402
 MODEL_ID = "aima-amd395-qwen36-35b"
 REFERENCE_SCHEMA = "aima-amd395-qwen36/vl-transport-cache-reference/v1"
 VISION_ATTENTION_SHA256 = (
-    "b709a058a77d61e14db73c1ff7d7f4c20859d997bec811cad7339d3e59223d00"
+    "e8757f4464fdb39f5505241a1ffd0f40b74f18704318280e070015bd4302d71c"
 )
 PROBE_SCRIPT = ROOT / "scripts/probe-vllm-vl-api-capabilities.py"
 CAPABILITY_QUALIFIER = ROOT / "scripts/qualify-native-vl-capabilities.py"

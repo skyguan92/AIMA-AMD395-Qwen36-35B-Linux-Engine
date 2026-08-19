@@ -48,7 +48,7 @@ from aima_engine.vl_reference import (  # noqa: E402
 
 MODEL_ID = "aima-amd395-qwen36-35b"
 VISION_ATTENTION_SHA256 = (
-    "b709a058a77d61e14db73c1ff7d7f4c20859d997bec811cad7339d3e59223d00"
+    "e8757f4464fdb39f5505241a1ffd0f40b74f18704318280e070015bd4302d71c"
 )
 REFERENCE_MANIFEST = ROOT / "benchmarks/results/vl-capability-manifest.json"
 API_RENDER_MANIFEST = (

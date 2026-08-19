@@ -54,7 +54,7 @@ ENVELOPE = ROOT / "benchmarks/results/vl-capability-envelope-v0.1.0.json"
 FIXTURE_ROOT = ROOT / "benchmarks/fixtures/vl-envelope-v0.1.0"
 API_PROBE_SCRIPT = ROOT / "scripts/probe-vllm-vl-api-capabilities.py"
 VISION_ATTENTION_SHA256 = (
-    "b709a058a77d61e14db73c1ff7d7f4c20859d997bec811cad7339d3e59223d00"
+    "e8757f4464fdb39f5505241a1ffd0f40b74f18704318280e070015bd4302d71c"
 )
 
 

@@ -60,7 +60,7 @@ CASE_ORDER = (
     "mixed_image_video",
 )
 VISION_ATTENTION_SHA256 = (
-    "b709a058a77d61e14db73c1ff7d7f4c20859d997bec811cad7339d3e59223d00"
+    "e8757f4464fdb39f5505241a1ffd0f40b74f18704318280e070015bd4302d71c"
 )
 SERVING_RENDER_MANIFEST = (
     ROOT / "benchmarks/results/vl-serving-render-manifest-v0.1.0.json"

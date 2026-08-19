@@ -21,7 +21,7 @@ namespace aima {
 namespace {
 
 constexpr char kVisionAttentionImageSha256[] =
-    "b709a058a77d61e14db73c1ff7d7f4c20859d997bec811cad7339d3e59223d00";
+    "e8757f4464fdb39f5505241a1ffd0f40b74f18704318280e070015bd4302d71c";
 constexpr char kVisionAttentionKernelSymbol[] = "_fwd_kernel";
 constexpr std::uint32_t kVisionHeads = 16;
 constexpr std::uint32_t kVisionHeadDimension = 72;

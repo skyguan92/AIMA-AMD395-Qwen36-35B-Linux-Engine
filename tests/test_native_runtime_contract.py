@@ -521,7 +521,7 @@ class NativeRuntimeContractTest(unittest.TestCase):
         self.assertIn("native_vision_pipeline.hip.cpp", script)
         self.assertIn("aima-vision-attention.hsaco", script)
         self.assertIn(
-            "b709a058a77d61e14db73c1ff7d7f4c20859d997bec811cad7339d3e59223d00",
+            "e8757f4464fdb39f5505241a1ffd0f40b74f18704318280e070015bd4302d71c",
             script,
         )
         self.assertIn("native_doctor.cpp", script)
