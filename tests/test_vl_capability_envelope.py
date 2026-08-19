@@ -120,7 +120,7 @@ class VlCapabilityEnvelopeTest(unittest.TestCase):
             "kVisionRequestPlanPreparationMinPatches = 256", resident
         )
         self.assertIn(
-            "kVisionRequestPlanPreparationPatchLimit = 4096", resident
+            "kVisionRequestPlanPreparationPatchLimit = 2048", resident
         )
         self.assertIn("vision_preparation_embeddings", resident)
         self.assertIn("prepare_on_miss", resident)

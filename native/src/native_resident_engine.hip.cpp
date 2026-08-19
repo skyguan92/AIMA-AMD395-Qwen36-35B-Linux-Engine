@@ -64,7 +64,11 @@ constexpr std::size_t kVisionPlanCachePatchBudget =
 constexpr std::size_t kVisionPlanCacheSharedPatchLimit =
     kVisionPlanCachePatchBudget / kVisionPlanCacheEntries;
 constexpr std::size_t kVisionRequestPlanPreparationMinPatches = 256;
-constexpr std::size_t kVisionRequestPlanPreparationPatchLimit = 4096;
+// A full preparation launch stabilizes the small-shape first dispatch, but at
+// 4096 patches it immediately repeats a complete encoder pass and depresses
+// the measured user encode through sustained-load throttling. Keep preparation
+// on the small/video geometries that benefit and let larger shapes execute once.
+constexpr std::size_t kVisionRequestPlanPreparationPatchLimit = 2048;
 constexpr std::size_t kVisionPixelColumns = 1536;
 constexpr std::uint64_t kFrozenTextQ1024WorkspaceBytes = 669879552ULL;
 constexpr std::uint64_t kCurrentQ1024WorkspaceBytes = 674090240ULL;
