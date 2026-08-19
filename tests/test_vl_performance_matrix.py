@@ -97,6 +97,8 @@ class VlPerformanceMatrixTest(unittest.TestCase):
                 set(cell["source_capability_cases"]).issubset(capability_ids)
             )
             self.assertEqual(cell["prefix_cache_expectation"], "disabled")
+            self.assertIsInstance(cell["prompt_nonce"], str)
+            self.assertTrue(cell["prompt_nonce"])
             low, high = cell["expected_prompt_tokens_range"]
             self.assertLessEqual(low, high)
             self.assertLessEqual(cell["aggregate_visual_tokens"], high)
@@ -121,6 +123,44 @@ class VlPerformanceMatrixTest(unittest.TestCase):
                 generated_at=self.matrix["generated_at"],
             )
         self.assertEqual(generated, self.matrix)
+
+    def test_discrete_count_and_sampling_cells_keep_the_intended_boundary(self) -> None:
+        by_id = {cell["cell_id"]: cell for cell in self.matrix["cells"]}
+        self.assertEqual(
+            by_id["image_count_max_q8k_output1"]["text_padding_tokens"],
+            6_976,
+        )
+        self.assertEqual(
+            by_id["video_count_max_q1k_output1"]["text_padding_tokens"],
+            567,
+        )
+        for cell_id, padding in (
+            ("video_sampling_max_q32k_output1", 22_979),
+            ("video_sampling_clamp_q32k_output1", 22_975),
+        ):
+            cell = by_id[cell_id]
+            self.assertEqual(cell["aggregate_visual_tokens"], 9_600)
+            self.assertEqual(cell["text_padding_tokens"], padding)
+            payload = load(ROOT / cell["request"]["path"])
+            self.assertEqual(
+                payload["media_io_kwargs"],
+                {"video": {"num_frames": 768, "video_backend": "opencv"}},
+            )
+
+        self.assertEqual(
+            {
+                by_id[cell_id]["prompt_nonce"]
+                for cell_id in (
+                    "cache_a_cold_output1",
+                    "cache_a_exact_output1",
+                    "cache_a_restored_output1",
+                )
+            },
+            {"cache-a"},
+        )
+        self.assertEqual(
+            by_id["cache_b_cold_output1"]["prompt_nonce"], "cache-b"
+        )
 
 
 if __name__ == "__main__":

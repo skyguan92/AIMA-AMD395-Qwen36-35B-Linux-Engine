@@ -390,6 +390,9 @@ NativeVlPreparedRequest prepare_native_vl_request(
   NativeMultimodalCacheIdentityInput cache_identity;
   cache_identity.processor_config_sha256 = processor_identity;
   cache_identity.media.reserve(processed.size());
+  NativeMultimodalCacheIdentityInput vision_cache_identity;
+  vision_cache_identity.processor_config_sha256 = processor_identity;
+  vision_cache_identity.media.reserve(processed.size());
   std::size_t search = 0;
   std::size_t visual_offset = 0;
   for (const std::shared_ptr<const ProcessedMedia>& item_pointer : processed) {
@@ -410,6 +413,9 @@ NativeVlPreparedRequest prepare_native_vl_request(
     cache_identity.media.push_back(NativeMultimodalCacheItem{
         item.kind, item.content_sha256, placeholder, span.offset,
         span.length});
+    vision_cache_identity.media.push_back(NativeMultimodalCacheItem{
+        item.kind, item.content_sha256, placeholder, visual_offset,
+        visual_count});
     visual_offset = checked_add(visual_offset, visual_count,
                                 "native VL visual embedding offset");
     search = checked_add(span.offset, span.length,
@@ -422,6 +428,12 @@ NativeVlPreparedRequest prepare_native_vl_request(
       build_native_mrope_plan(result.prompt_token_ids, mrope_media);
   result.multimodal_cache_namespace =
       build_native_multimodal_cache_namespace(cache_identity);
+  if (media_cache != nullptr && media_cache->capacity_bytes() != 0 &&
+      media_cache->capacity_entries() != 0) {
+    result.vision_embedding_cache_namespace =
+        build_native_vision_embedding_cache_namespace(
+            vision_cache_identity);
+  }
   return result;
 }
 

@@ -127,6 +127,48 @@ class VlPerformanceMatrixSummaryTest(unittest.TestCase):
         self.assertFalse(result["qualified"])
         self.assertFalse(result["gates"]["every_cell_paired_median_qualified"])
 
+    def test_exact_media_hit_uses_explicit_encoder_skip_gate(self) -> None:
+        cell = cell_spec("cache-exact", 1)
+        cell["cache_process"] = "enabled"
+        cell["media_cache_expectation"] = "exact"
+        records = []
+        for index in range(1, 6):
+            record = measured_cell("cache-exact", index, 1)
+            record["process_group"] = "enabled"
+            record["comparisons"].pop(
+                "vision_tps_candidate_over_reference"
+            )
+            record["comparisons"].pop(
+                "cold_vision_path_tps_candidate_over_reference"
+            )
+            record["comparisons"][
+                "vision_cache_hit_candidate_seconds"
+            ] = 0.0
+            records.append(record)
+
+        pairs = [
+            {"pair_index": index, "cells": [record]}
+            for index, record in enumerate(records, start=1)
+        ]
+        skipped = summary.aggregate_cell(cell, pairs)
+        self.assertTrue(skipped["complete"])
+        self.assertTrue(skipped["qualified"])
+        self.assertTrue(
+            skipped["gates"][
+                "vision_cache_hit_candidate_median_not_executed"
+            ]
+        )
+        self.assertNotIn(
+            "vision_paired_median_gte_reference", skipped["gates"]
+        )
+
+        for record in records[2:]:
+            record["comparisons"][
+                "vision_cache_hit_candidate_seconds"
+            ] = 0.01
+        executed = summary.aggregate_cell(cell, pairs)
+        self.assertFalse(executed["qualified"])
+
     def test_reference_unavailable_cell_is_explicit_and_never_a_pass(self) -> None:
         comparable = dict(self.matrix)
         comparable["schema"] = summary.COMPARABLE_MATRIX_SCHEMA

@@ -23,10 +23,9 @@ bool canonical_sha256(std::string_view value) {
          });
 }
 
-}  // namespace
-
-std::string build_native_multimodal_cache_namespace(
-    const NativeMultimodalCacheIdentityInput& input) {
+std::string build_cache_namespace(
+    const NativeMultimodalCacheIdentityInput& input,
+    std::string_view schema) {
   if (!canonical_sha256(input.processor_config_sha256)) {
     throw std::invalid_argument(
         "multimodal cache processor identity must be lowercase SHA-256");
@@ -36,7 +35,7 @@ std::string build_native_multimodal_cache_namespace(
         "multimodal cache identity requires at least one media item");
   }
   std::ostringstream canonical;
-  canonical << "aima-amd395-qwen36/native-multimodal-cache/v1\n"
+  canonical << schema << '\n'
             << "processor=" << input.processor_config_sha256 << '\n'
             << "media_count=" << input.media.size() << '\n';
   for (std::size_t index = 0; index < input.media.size(); ++index) {
@@ -64,6 +63,20 @@ std::string build_native_multimodal_cache_namespace(
   }
   const std::string payload = canonical.str();
   return sha256_bytes(payload.data(), payload.size());
+}
+
+}  // namespace
+
+std::string build_native_multimodal_cache_namespace(
+    const NativeMultimodalCacheIdentityInput& input) {
+  return build_cache_namespace(
+      input, "aima-amd395-qwen36/native-multimodal-cache/v1");
+}
+
+std::string build_native_vision_embedding_cache_namespace(
+    const NativeMultimodalCacheIdentityInput& input) {
+  return build_cache_namespace(
+      input, "aima-amd395-qwen36/native-vision-embedding-cache/v1");
 }
 
 bool valid_native_multimodal_cache_namespace(std::string_view value) {

@@ -164,6 +164,7 @@ def aggregate_cell(
         )
         for name in ratio_names
     }
+    exact_media_cache = cell.get("media_cache_expectation") == "exact"
     invariant_names = ("contract", "process_group")
     checks = {
         "all_pairs_complete": all(record.get("complete") is True for record in records),
@@ -190,11 +191,16 @@ def aggregate_cell(
             medians.get("prefill_tps_candidate_over_reference", -math.inf)
             >= 1.0
         ),
-        "vision_paired_median_gte_reference": (
+    }
+    if exact_media_cache:
+        gates["vision_cache_hit_candidate_median_not_executed"] = (
+            medians.get("vision_cache_hit_candidate_seconds", math.inf) == 0.0
+        )
+    else:
+        gates["vision_paired_median_gte_reference"] = (
             medians.get("vision_tps_candidate_over_reference", -math.inf)
             >= 1.0
-        ),
-    }
+        )
     if int(cell.get("output_tokens", 0)) > 1:
         gates["decode_paired_median_gte_reference"] = (
             medians.get("decode_tps_candidate_over_reference", -math.inf)
@@ -210,6 +216,10 @@ def aggregate_cell(
         "output_tokens": cell.get("output_tokens"),
         "cache_process": cell.get("cache_process"),
         "media_cache_expectation": cell.get("media_cache_expectation"),
+        "metric_applicability": {
+            "vision_throughput": not exact_media_cache,
+            "vision_cache_hit_execution": exact_media_cache,
+        },
         "complete": complete,
         "qualified": complete and all(gates.values()),
         "checks": checks,

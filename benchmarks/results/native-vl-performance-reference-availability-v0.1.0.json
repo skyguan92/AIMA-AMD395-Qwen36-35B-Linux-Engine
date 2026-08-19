@@ -79,9 +79,9 @@
       "sha256": "a99eb0745d953651c0743f891628f65908aa3c576ced4ec4429340fd84d9cc67"
     },
     "matrix": {
-      "bytes": 48164,
+      "bytes": 49338,
       "path": "benchmarks/fixtures/vl-performance-v0.1.0/matrix.json",
-      "sha256": "65ea13db0bfb49f3da2a8121768ab2d8e88088a3e8190190710ee96f7aee8a1a"
+      "sha256": "0afe31410590826191110432165eb13f8d3924f950524986af6c6e54e3ae0def"
     },
     "qualifier": {
       "bytes": 28916,
@@ -501,7 +501,7 @@
   "generated_at": "2026-08-19T10:45:05+00:00",
   "integrity": {
     "algorithm": "sha256",
-    "canonical_payload_sha256": "376deff50e09366d6add0add877b4b08ff0c7a014aa069dc049804d5860e65c9"
+    "canonical_payload_sha256": "4e5d20c9bfc94f03ef282211c457677d7a0d390985d93897ebc78006a9bfd77d"
   },
   "schema": "aima-amd395-qwen36/vl-performance-reference-availability/v1",
   "scope": "exact frozen G4 cells which the fixed vLLM reference cannot complete; candidate capability is preserved without awarding a performance pass"

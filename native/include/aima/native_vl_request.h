@@ -75,6 +75,9 @@ struct NativeVlPreparedRequest {
   std::vector<NativeVlEmbeddingSpan> embedding_spans;
   std::optional<NativeMropePlan> mrope_plan;
   std::string multimodal_cache_namespace;
+  // Prompt-independent identity for ordered vision outputs. Empty when the
+  // media cache is disabled, preventing any cross-request encoder reuse.
+  std::string vision_embedding_cache_namespace;
   NativeVlPreparationMetrics metrics;
 };
 

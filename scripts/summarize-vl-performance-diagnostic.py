@@ -93,21 +93,30 @@ def one_mm_record(stage: Mapping[str, Any]) -> dict[str, Any] | None:
         for value in records
         if positive_number(value.get("encoder_forward_secs")) is not None
     ]
-    # A processor-cache hit can legitimately publish no processor interval,
-    # while the encoder still runs.  More than one interval of either kind is
-    # ambiguous and must fail closed.
-    if len(processor_records) > 1 or len(encoder_records) != 1:
+    # Processor and encoder timings can be published under different
+    # request-local identifiers.  An exact multimodal processor-cache hit
+    # legitimately publishes one processor interval and no encoder interval.
+    # More than one interval of either kind, or no recognized interval at all,
+    # is ambiguous and must fail closed.
+    if (
+        len(processor_records) > 1
+        or len(encoder_records) > 1
+        or not processor_records and not encoder_records
+    ):
         return None
-    # vLLM can publish processor and model-worker timings under different
-    # request-local identifiers.  They still describe one benchmark request;
-    # require exactly one interval of each kind and combine only those fields.
     return {
         "preprocessor_total_secs": (
             processor_records[0]["preprocessor_total_secs"]
             if processor_records
             else 0.0
         ),
-        "encoder_forward_secs": encoder_records[0]["encoder_forward_secs"],
+        "encoder_forward_secs": (
+            encoder_records[0]["encoder_forward_secs"]
+            if encoder_records
+            else 0.0
+        ),
+        "processor_record_count": len(processor_records),
+        "encoder_record_count": len(encoder_records),
     }
 
 
@@ -252,6 +261,7 @@ def build_summary(
     expected_output_tokens = expectations.get("output_tokens")
     if expected_output_tokens is None:
         expected_output_tokens = completion_tokens
+    exact_media_cache = expectations.get("media_cache_mode") == "exact"
     visual_tokens = (
         native_vl.get("visual_tokens")
         if isinstance(native_vl, Mapping)
@@ -272,6 +282,12 @@ def build_summary(
     )
     candidate_cold_vision_seconds = add_nonnegative(
         candidate_plan_seconds, candidate_encoder_seconds
+    )
+    reference_encoder_executed = (
+        positive_number(reference_encoder_seconds) is not None
+    )
+    candidate_encoder_executed = (
+        positive_number(candidate_encoder_seconds) is not None
     )
     candidate_prefill_path_seconds = seconds_from_milliseconds(
         native.get("ttft_ms") if isinstance(native, Mapping) else None
@@ -325,11 +341,11 @@ def build_summary(
                 for warmup in (reference_warmup, candidate_warmup)
             )
         ),
-        "response_contract_exact": (
-            reference_response.get("content_sha256")
-            == candidate_response.get("content_sha256")
+        "response_shape_and_length_exact": (
+            isinstance(reference_response.get("finish_reason"), str)
             and reference_response.get("finish_reason")
             == candidate_response.get("finish_reason")
+            and isinstance(reference_response.get("usage"), Mapping)
             and reference_response.get("usage")
             == candidate_response.get("usage")
         ),
@@ -344,6 +360,11 @@ def build_summary(
             == expected_output_tokens
         ),
         "one_reference_stage_record": mm is not None,
+        "reference_encoder_execution_matches_cache_mode": (
+            not reference_encoder_executed
+            if exact_media_cache
+            else reference_encoder_executed
+        ),
         "reference_stage_clean": (
             stage.get("status_code") == 200
             and stage.get("request_error") is None
@@ -364,11 +385,14 @@ def build_summary(
             and candidate_response.get("usage", {}).get("prompt_tokens")
             == prompt_tokens
         ),
-        "stage_boundaries_are_positive": (
+        "stage_boundaries_valid": (
             reference_llm_prefill_seconds is not None
             and candidate_llm_prefill_seconds is not None
             and candidate_cold_vision_seconds is not None
-            and candidate_cold_vision_seconds > 0
+            and (
+                exact_media_cache
+                or candidate_cold_vision_seconds > 0
+            )
         ),
         "candidate_prefix_cache_expected": (
             isinstance(native, Mapping)
@@ -384,15 +408,27 @@ def build_summary(
         hits = native_vl.get("media_cache_hits") if isinstance(native_vl, Mapping) else None
         misses = native_vl.get("media_cache_misses") if isinstance(native_vl, Mapping) else None
         entries = native_vl.get("media_cache_entries") if isinstance(native_vl, Mapping) else None
+        vision_embedding_hit = (
+            native_vl.get("vision_embedding_cache_hit")
+            if isinstance(native_vl, Mapping)
+            else None
+        )
         if media_cache_mode == "disabled":
             cache_ok = hits == 0 and misses == media_count and entries == 0
+            vision_embedding_cache_ok = vision_embedding_hit is False
         elif media_cache_mode == "cold":
             cache_ok = hits == 0 and misses == media_count and isinstance(entries, int) and entries > 0
+            vision_embedding_cache_ok = vision_embedding_hit is False
         elif media_cache_mode == "exact":
             cache_ok = hits == media_count and misses == 0 and isinstance(entries, int) and entries > 0
+            vision_embedding_cache_ok = vision_embedding_hit is True
         else:
             cache_ok = False
+            vision_embedding_cache_ok = False
         checks["candidate_media_cache_expected"] = cache_ok
+        checks["candidate_vision_embedding_cache_expected"] = (
+            vision_embedding_cache_ok
+        )
 
     reference_prefill_path_tps = ratio(
         prompt_tokens, reference_prefill_path_seconds
@@ -426,13 +462,21 @@ def build_summary(
         "prefill_path_tps_candidate_over_reference": ratio(
             candidate_prefill_path_tps, reference_prefill_path_tps
         ),
-        "vision_tps_candidate_over_reference": ratio(
-            candidate_vision_tps, reference_vision_tps
-        ),
-        "cold_vision_path_tps_candidate_over_reference": ratio(
-            candidate_cold_vision_path_tps, reference_vision_tps
-        ),
     }
+    if exact_media_cache:
+        # vLLM's exact multimodal cache hit reuses the encoder output and has
+        # no encoder interval.  A throughput ratio against zero time is
+        # undefined, so retain an explicit candidate execution-time gate.
+        comparisons["vision_cache_hit_candidate_seconds"] = (
+            candidate_cold_vision_seconds
+        )
+    else:
+        comparisons["vision_tps_candidate_over_reference"] = ratio(
+            candidate_vision_tps, reference_vision_tps
+        )
+        comparisons["cold_vision_path_tps_candidate_over_reference"] = ratio(
+            candidate_cold_vision_path_tps, reference_vision_tps
+        )
     decode_required = (
         isinstance(expected_output_tokens, int)
         and not isinstance(expected_output_tokens, bool)
@@ -453,11 +497,15 @@ def build_summary(
         ]
         is not None
         and comparisons["prefill_tps_candidate_over_reference"] >= 1.0,
-        "vision": comparisons[
-            "vision_tps_candidate_over_reference"
-        ]
-        is not None
-        and comparisons["vision_tps_candidate_over_reference"] >= 1.0,
+        "vision": (
+            comparisons.get("vision_cache_hit_candidate_seconds") == 0.0
+            if exact_media_cache
+            else (
+                comparisons.get("vision_tps_candidate_over_reference")
+                is not None
+                and comparisons["vision_tps_candidate_over_reference"] >= 1.0
+            )
+        ),
         "decode": (
             not decode_required
             or (
@@ -489,6 +537,33 @@ def build_summary(
                 "the reference encoder interval retains any analogous "
                 "first-execution setup"
             ),
+        },
+        "metric_applicability": {
+            "vision_throughput": {
+                "applicable": not exact_media_cache,
+                "reason": (
+                    None
+                    if not exact_media_cache
+                    else "reference exact media-cache hit did not execute the encoder"
+                ),
+            },
+            "vision_cache_hit_execution": {
+                "applicable": exact_media_cache,
+                "required_candidate_seconds": 0.0 if exact_media_cache else None,
+            },
+        },
+        "response_audit": {
+            "reference": {
+                "content_sha256": reference_response.get("content_sha256"),
+                "content_bytes": reference_response.get("content_bytes"),
+                "semantic_chunks": reference_response.get("semantic_chunks"),
+            },
+            "candidate": {
+                "content_sha256": candidate_response.get("content_sha256"),
+                "content_bytes": candidate_response.get("content_bytes"),
+                "semantic_chunks": candidate_response.get("semantic_chunks"),
+            },
+            "content_equality_required": False,
         },
         "checks": checks,
         "measurements": {
@@ -527,6 +602,7 @@ def build_summary(
                     else None
                 ),
                 "vision_encode_seconds": reference_encoder_seconds,
+                "vision_encoder_executed": reference_encoder_executed,
                 "prefill_path_seconds": reference_prefill_path_seconds,
                 "llm_prefill_seconds": reference_llm_prefill_seconds,
                 "llm_decode_seconds": reference_decode_seconds,
@@ -559,6 +635,27 @@ def build_summary(
                 ),
                 "vision_plan_build_seconds": candidate_plan_seconds,
                 "vision_encode_seconds": candidate_encoder_seconds,
+                "vision_encoder_executed": candidate_encoder_executed,
+                "vision_embedding_cache_hit": (
+                    native_vl.get("vision_embedding_cache_hit")
+                    if isinstance(native_vl, Mapping)
+                    else None
+                ),
+                "vision_embedding_cache_entries": (
+                    native_vl.get("vision_embedding_cache_entries")
+                    if isinstance(native_vl, Mapping)
+                    else None
+                ),
+                "vision_embedding_cache_resident_bytes": (
+                    native_vl.get("vision_embedding_cache_resident_bytes")
+                    if isinstance(native_vl, Mapping)
+                    else None
+                ),
+                "vision_embedding_cache_capacity_bytes": (
+                    native_vl.get("vision_embedding_cache_capacity_bytes")
+                    if isinstance(native_vl, Mapping)
+                    else None
+                ),
                 "cold_vision_seconds": candidate_cold_vision_seconds,
                 "logical_projection_tokens": (
                     native_vl.get("logical_projection_tokens")

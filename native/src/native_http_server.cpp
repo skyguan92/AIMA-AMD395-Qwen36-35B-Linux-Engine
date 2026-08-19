@@ -652,6 +652,14 @@ Json request_metrics_json(const NativeResidentRequestMetrics& metrics) {
                    metrics.vl_vision_plan_cache_hit},
                   {"vision_plan_cache_entries",
                    metrics.vl_vision_plan_cache_entries},
+                  {"vision_embedding_cache_hit",
+                   metrics.vl_vision_embedding_cache_hit},
+                  {"vision_embedding_cache_entries",
+                   metrics.vl_vision_embedding_cache_entries},
+                  {"vision_embedding_cache_resident_bytes",
+                   metrics.vl_vision_embedding_cache_resident_bytes},
+                  {"vision_embedding_cache_capacity_bytes",
+                   metrics.vl_vision_embedding_cache_capacity_bytes},
                   {"logical_projection_tokens",
                    metrics.vl_logical_projection_tokens},
                   {"logical_projection_plan_count",
@@ -942,6 +950,8 @@ ParsedCompletionRequest parse_completion_request(
     resident.grids = std::move(vl.grids);
     resident.pixel_values_bf16 = std::move(vl.pixel_values_bf16);
     resident.embedding_spans = std::move(vl.embedding_spans);
+    resident.vision_embedding_cache_namespace =
+        std::move(vl.vision_embedding_cache_namespace);
     resident.media_count = vl.metrics.media_count;
     resident.image_count = vl.metrics.image_count;
     resident.video_count = vl.metrics.video_count;

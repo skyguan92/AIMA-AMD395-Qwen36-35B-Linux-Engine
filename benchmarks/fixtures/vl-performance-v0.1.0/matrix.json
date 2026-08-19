@@ -16,9 +16,9 @@
       "sha256": "5833acac02f6eb68d057c431e73f57434b4fc6c20c000e0ed3eec5dc00236161"
     },
     "generator": {
-      "bytes": 21987,
+      "bytes": 22967,
       "path": "scripts/generate-vl-performance-matrix.py",
-      "sha256": "d63710a2baba8c500ac9d91610fe4814df57add80563eca760abcb9efda9a011"
+      "sha256": "034299809fa7d7746fa288e5beb8f1f4de00bfae60d3ba1cb472eca8997e3dca"
     }
   },
   "cells": [
@@ -58,6 +58,7 @@
       "media_cache_expectation": "disabled",
       "output_tokens": 1,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "image_min_short_output1",
       "request": {
         "bytes": 463,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/image_min_short_output1.json",
@@ -105,6 +106,7 @@
       "media_cache_expectation": "disabled",
       "output_tokens": 512,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "image_portrait_q1k_output512",
       "request": {
         "bytes": 612,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/image_portrait_q1k_output512.json",
@@ -152,6 +154,7 @@
       "media_cache_expectation": "disabled",
       "output_tokens": 1,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "image_landscape_q8k_output1",
       "request": {
         "bytes": 470,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/image_landscape_q8k_output1.json",
@@ -199,6 +202,7 @@
       "media_cache_expectation": "disabled",
       "output_tokens": 1,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "image_max_q32k_output1",
       "request": {
         "bytes": 469,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/image_max_q32k_output1.json",
@@ -254,6 +258,7 @@
       "media_cache_expectation": "disabled",
       "output_tokens": 1,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "image_multi_typical_q128k_output1",
       "request": {
         "bytes": 745,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/image_multi_typical_q128k_output1.json",
@@ -409,6 +414,7 @@
       "media_cache_expectation": "disabled",
       "output_tokens": 1,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "image_count_max_q8k_output1",
       "request": {
         "bytes": 4505,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/image_count_max_q8k_output1.json",
@@ -420,7 +426,7 @@
       "source_execution_cells": [
         "image_count_maximum_small"
       ],
-      "text_padding_tokens": 7088
+      "text_padding_tokens": 6976
     },
     {
       "aggregate_visual_tokens": 245760,
@@ -557,6 +563,7 @@
       "media_cache_expectation": "disabled",
       "output_tokens": 1,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "image_multi_max_near_window_output1",
       "request": {
         "bytes": 4331,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/image_multi_max_near_window_output1.json",
@@ -606,6 +613,7 @@
       "media_cache_expectation": "disabled",
       "output_tokens": 1,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "video_min_short_output1",
       "request": {
         "bytes": 473,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/video_min_short_output1.json",
@@ -652,6 +660,7 @@
       "media_cache_expectation": "disabled",
       "output_tokens": 1024,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "video_typical_q1k_output1024",
       "request": {
         "bytes": 619,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/video_typical_q1k_output1024.json",
@@ -698,6 +707,7 @@
       "media_cache_expectation": "disabled",
       "output_tokens": 1,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "video_max_shape_q32k_output1",
       "request": {
         "bytes": 477,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/video_max_shape_q32k_output1.json",
@@ -744,6 +754,7 @@
       "media_cache_expectation": "disabled",
       "output_tokens": 1,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "video_sampling_min_q32k_output1",
       "request": {
         "bytes": 486,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/video_sampling_min_q32k_output1.json",
@@ -790,6 +801,7 @@
       "media_cache_expectation": "disabled",
       "output_tokens": 1,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "video_sampling_typical_q128k_output1",
       "request": {
         "bytes": 487,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/video_sampling_typical_q128k_output1.json",
@@ -836,16 +848,17 @@
       "media_cache_expectation": "disabled",
       "output_tokens": 1,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "video_sampling_max_q32k_output1",
       "request": {
-        "bytes": 488,
+        "bytes": 594,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/video_sampling_max_q32k_output1.json",
-        "sha256": "dffe73ca276c11b3a54508c26d8293ec19b7cbea290ee7f1a74311e591c30140"
+        "sha256": "81914e884e4f4b51effd55f518b8325e9730437fbd7bb66d99eac8f8e3771edb"
       },
       "source_capability_cases": [],
       "source_execution_cells": [
         "video_sampling_maximum"
       ],
-      "text_padding_tokens": 23104
+      "text_padding_tokens": 22979
     },
     {
       "aggregate_visual_tokens": 9600,
@@ -882,16 +895,17 @@
       "media_cache_expectation": "disabled",
       "output_tokens": 1,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "video_sampling_clamp_q32k_output1",
       "request": {
-        "bytes": 495,
+        "bytes": 601,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/video_sampling_clamp_q32k_output1.json",
-        "sha256": "af24d86be47d903a34ef163e2cdc17107bb71cc52f160127278dd53e1b91dd23"
+        "sha256": "d47ed1402737ddba6f61b458465993eb1f6c281c880f3fb3dae3e7115c4162ab"
       },
       "source_capability_cases": [],
       "source_execution_cells": [
         "video_sampling_maximum"
       ],
-      "text_padding_tokens": 23104
+      "text_padding_tokens": 22975
     },
     {
       "aggregate_visual_tokens": 256,
@@ -935,6 +949,7 @@
       "media_cache_expectation": "disabled",
       "output_tokens": 1,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "video_multi_typical_q32k_output1",
       "request": {
         "bytes": 756,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/video_multi_typical_q32k_output1.json",
@@ -1124,6 +1139,7 @@
       "media_cache_expectation": "disabled",
       "output_tokens": 1,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "video_count_max_q1k_output1",
       "request": {
         "bytes": 6065,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/video_count_max_q1k_output1.json",
@@ -1135,7 +1151,7 @@
       "source_execution_cells": [
         "video_count_maximum_small"
       ],
-      "text_padding_tokens": 832
+      "text_padding_tokens": 567
     },
     {
       "aggregate_visual_tokens": 16388,
@@ -1180,6 +1196,7 @@
       "media_cache_expectation": "disabled",
       "output_tokens": 1,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "mixed_cross_batch_q32k_output1",
       "request": {
         "bytes": 748,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/mixed_cross_batch_q32k_output1.json",
@@ -1236,6 +1253,7 @@
       "media_cache_expectation": "disabled",
       "output_tokens": 512,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "mixed_multi_turn_q8k_output512",
       "request": {
         "bytes": 1109,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/mixed_multi_turn_q8k_output512.json",
@@ -1287,6 +1305,7 @@
       "media_cache_expectation": "disabled",
       "output_tokens": 1,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "cache_a_disabled_output1",
       "request": {
         "bytes": 469,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/cache_a_disabled_output1.json",
@@ -1332,6 +1351,7 @@
       "media_cache_expectation": "cold",
       "output_tokens": 1,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "cache-a",
       "request": {
         "bytes": 469,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/cache_a_cold_output1.json",
@@ -1378,6 +1398,7 @@
       "media_cache_expectation": "exact",
       "output_tokens": 1,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "cache-a",
       "request": {
         "bytes": 469,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/cache_a_exact_output1.json",
@@ -1423,6 +1444,7 @@
       "media_cache_expectation": "cold",
       "output_tokens": 1,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "cache-b",
       "request": {
         "bytes": 470,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/cache_b_cold_output1.json",
@@ -1469,6 +1491,7 @@
       "media_cache_expectation": "exact",
       "output_tokens": 1,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "cache-a",
       "request": {
         "bytes": 469,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/cache_a_restored_output1.json",
@@ -1517,7 +1540,7 @@
   "generated_at": "2026-08-19T08:00:00+00:00",
   "integrity": {
     "algorithm": "sha256",
-    "canonical_payload_sha256": "06ac598ecf78cdc3cdb3ee987e73e157886fff29dcfb20446898587881420d62"
+    "canonical_payload_sha256": "115f0e669e47d4124c6c11b8bcadc01b8516122bfcd399c7f4b805299b86ed31"
   },
   "observed_coverage": {
     "cache": [

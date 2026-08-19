@@ -52,26 +52,49 @@ int main() {
           "canonical namespace contract changed");
   require(identity == aima::build_native_multimodal_cache_namespace(input),
           "identical media identity is unstable");
+  const std::string vision_identity =
+      aima::build_native_vision_embedding_cache_namespace(input);
+  require(
+      vision_identity ==
+              "607b470d44616e991ba30f34c484ad350e3fcb8668d03b3c7193726a96ce8c5c" &&
+          vision_identity != identity &&
+          aima::valid_native_multimodal_cache_namespace(vision_identity),
+      "vision embedding namespace contract changed");
+  require(vision_identity ==
+              aima::build_native_vision_embedding_cache_namespace(input),
+          "identical vision media identity is unstable");
 
   auto content_b = input;
   content_b.media[0].content_sha256 = std::string(64, 'c');
   require(aima::build_native_multimodal_cache_namespace(content_b) != identity,
           "different media bytes reused a namespace");
+  require(aima::build_native_vision_embedding_cache_namespace(content_b) !=
+              vision_identity,
+          "different media bytes reused a vision embedding namespace");
 
   auto reordered = input;
   std::swap(reordered.media[0], reordered.media[1]);
   require(aima::build_native_multimodal_cache_namespace(reordered) != identity,
           "media ordering was omitted from the namespace");
+  require(aima::build_native_vision_embedding_cache_namespace(reordered) !=
+              vision_identity,
+          "media ordering was omitted from the vision embedding namespace");
 
   auto processor_b = input;
   processor_b.processor_config_sha256 = std::string(64, '2');
   require(aima::build_native_multimodal_cache_namespace(processor_b) != identity,
           "processor configuration was omitted from the namespace");
+  require(aima::build_native_vision_embedding_cache_namespace(processor_b) !=
+              vision_identity,
+          "processor configuration was omitted from the vision namespace");
 
   auto span_b = input;
   ++span_b.media[0].token_length;
   require(aima::build_native_multimodal_cache_namespace(span_b) != identity,
           "media token span was omitted from the namespace");
+  require(aima::build_native_vision_embedding_cache_namespace(span_b) !=
+              vision_identity,
+          "visual embedding span was omitted from the vision namespace");
 
   // Transport and filename are intentionally not part of the descriptor:
   // local-file and data-URI payloads with the same decoded SHA are equivalent.

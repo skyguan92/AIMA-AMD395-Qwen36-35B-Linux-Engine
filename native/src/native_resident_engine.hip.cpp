@@ -39,9 +39,10 @@
 #include <iomanip>
 #include <iostream>
 #include <limits>
+#include <sstream>
 #include <stdexcept>
 #include <string>
-#include <sstream>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -53,6 +54,9 @@ constexpr std::size_t kVocabulary = 248320;
 constexpr std::size_t kLongContextChunkTokens = 8192;
 constexpr std::size_t kPrefixCacheEntries = 4;
 constexpr std::size_t kVisionPlanCacheEntries = 4;
+constexpr std::size_t kVisionEmbeddingCacheEntries = 64;
+constexpr std::uint64_t kVisionEmbeddingCacheBytes =
+    512ULL * 1024ULL * 1024ULL;
 constexpr std::size_t kVisionPlanCachePatchBudget =
     kNativeVlVisionBatchPatchLimit;
 constexpr std::size_t kVisionPlanCacheSharedPatchLimit =
@@ -430,6 +434,13 @@ struct NativeResidentVisionPlanEntry {
   std::uint64_t use = 0;
 };
 
+struct NativeResidentVisionEmbeddingEntry {
+  std::string namespace_sha256;
+  void* embeddings = nullptr;
+  std::uint64_t bytes = 0;
+  std::uint64_t use = 0;
+};
+
 struct NativeResidentVisionWarmupMetrics {
   std::size_t patches = 0;
   std::size_t visual_tokens = 0;
@@ -511,6 +522,9 @@ struct NativeResidentEngine::Impl {
   std::uint64_t vision_temporary_capacity_bytes = 0;
   std::vector<NativeResidentVisionPlanEntry> vision_plans;
   std::uint64_t vision_plan_clock = 0;
+  std::vector<NativeResidentVisionEmbeddingEntry> vision_embedding_cache;
+  std::uint64_t vision_embedding_cache_resident_bytes = 0;
+  std::uint64_t vision_embedding_cache_clock = 0;
   std::filesystem::path vision_attention_image;
   std::size_t prefill_start_sequence = 0;
   std::size_t frozen_text_q1024_start_sequence = 0;
@@ -580,6 +594,73 @@ struct NativeResidentEngine::Impl {
     }
     *pointer = replacement;
     *capacity = required;
+  }
+
+  bool restore_vision_embedding_cache(std::string_view namespace_sha256,
+                                      std::uint64_t bytes) {
+    if (namespace_sha256.empty() || bytes == 0 ||
+        vision_embeddings == nullptr ||
+        vision_embedding_capacity_bytes < bytes) {
+      return false;
+    }
+    for (NativeResidentVisionEmbeddingEntry& entry :
+         vision_embedding_cache) {
+      if (entry.namespace_sha256 != namespace_sha256 ||
+          entry.bytes != bytes || entry.embeddings == nullptr) {
+        continue;
+      }
+      check_hip(hipMemcpyAsync(vision_embeddings, entry.embeddings, bytes,
+                               hipMemcpyDeviceToDevice, nullptr),
+                "hipMemcpyAsync cached vision embeddings");
+      entry.use = ++vision_embedding_cache_clock;
+      return true;
+    }
+    return false;
+  }
+
+  void insert_vision_embedding_cache(std::string_view namespace_sha256,
+                                     std::uint64_t bytes) {
+    if (namespace_sha256.empty() || bytes == 0 ||
+        bytes > kVisionEmbeddingCacheBytes || vision_embeddings == nullptr) {
+      return;
+    }
+    for (NativeResidentVisionEmbeddingEntry& entry :
+         vision_embedding_cache) {
+      if (entry.namespace_sha256 == namespace_sha256 &&
+          entry.bytes == bytes && entry.embeddings != nullptr) {
+        entry.use = ++vision_embedding_cache_clock;
+        return;
+      }
+    }
+    while (!vision_embedding_cache.empty() &&
+           (vision_embedding_cache.size() >= kVisionEmbeddingCacheEntries ||
+            vision_embedding_cache_resident_bytes >
+                kVisionEmbeddingCacheBytes - bytes)) {
+      const auto oldest = std::min_element(
+          vision_embedding_cache.begin(), vision_embedding_cache.end(),
+          [](const NativeResidentVisionEmbeddingEntry& left,
+             const NativeResidentVisionEmbeddingEntry& right) {
+            return left.use < right.use;
+          });
+      check_hip(hipFree(oldest->embeddings),
+                "hipFree evicted vision embedding cache");
+      vision_embedding_cache_resident_bytes -= oldest->bytes;
+      vision_embedding_cache.erase(oldest);
+    }
+    void* cached = nullptr;
+    if (hipMalloc(&cached, bytes) != hipSuccess || cached == nullptr) {
+      return;
+    }
+    const hipError_t copied = hipMemcpyAsync(
+        cached, vision_embeddings, bytes, hipMemcpyDeviceToDevice, nullptr);
+    if (copied != hipSuccess) {
+      (void)hipFree(cached);
+      check_hip(copied, "hipMemcpyAsync insert vision embedding cache");
+    }
+    vision_embedding_cache.push_back(NativeResidentVisionEmbeddingEntry{
+        std::string(namespace_sha256), cached, bytes,
+        ++vision_embedding_cache_clock});
+    vision_embedding_cache_resident_bytes += bytes;
   }
 
   NativeVisionPipelinePlan& vision_plan(
@@ -694,6 +775,13 @@ struct NativeResidentEngine::Impl {
   }
 
   ~Impl() {
+    for (NativeResidentVisionEmbeddingEntry& entry :
+         vision_embedding_cache) {
+      if (entry.embeddings != nullptr) {
+        (void)hipSetDevice(device);
+        (void)hipFree(entry.embeddings);
+      }
+    }
     if (chunked_hidden != nullptr) {
       (void)hipSetDevice(device);
       (void)hipFree(chunked_hidden);
@@ -1393,6 +1481,12 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
       throw std::invalid_argument(
           "native resident VL request contract is incomplete");
     }
+    if (!vl_input->vision_embedding_cache_namespace.empty() &&
+        !valid_native_multimodal_cache_namespace(
+            vl_input->vision_embedding_cache_namespace)) {
+      throw std::invalid_argument(
+          "native resident vision embedding cache identity is invalid");
+    }
     vl_vision_batches = native_qwen36_vision_batches(vl_input->grids);
     const NativeVlVisionBatch& final_batch = vl_vision_batches.back();
     vl_vision_patches = final_batch.patch_offset + final_batch.patch_count;
@@ -1596,6 +1690,12 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
         vl_input->media_load_decode_wall_ms;
     metrics.vl_processor_wall_ms = vl_input->processor_wall_ms;
     metrics.vl_vision_plan_cache_entries = impl_->vision_plans.size();
+    metrics.vl_vision_embedding_cache_entries =
+        impl_->vision_embedding_cache.size();
+    metrics.vl_vision_embedding_cache_resident_bytes =
+        impl_->vision_embedding_cache_resident_bytes;
+    metrics.vl_vision_embedding_cache_capacity_bytes =
+        kVisionEmbeddingCacheBytes;
   }
   if (mrope_plan != nullptr) {
     metrics.mrope_position_delta = mrope_plan->position_delta();
@@ -1758,63 +1858,82 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
           &impl_->vision_embeddings,
           &impl_->vision_embedding_capacity_bytes, embedding_bytes,
           "hipMalloc resident vision embeddings");
-      bool all_vision_plan_cache_hits = true;
-      for (const NativeVlVisionBatch& batch : vl_vision_batches) {
-        const auto grid_begin =
-            vl_input->grids.begin() +
-            static_cast<std::ptrdiff_t>(batch.media_offset);
-        const std::vector<NativeVlGrid> batch_grids(
-            grid_begin,
-            grid_begin + static_cast<std::ptrdiff_t>(batch.media_count));
-        bool batch_cache_hit = false;
-        double batch_plan_build_wall_ms = 0.0;
-        NativeVisionPipelinePlan& pipeline = impl_->vision_plan(
-            batch_grids, &batch_cache_hit, &batch_plan_build_wall_ms);
-        if (pipeline.patch_count() != batch.patch_count ||
-            pipeline.merged_token_count() !=
-                batch.visual_token_count) {
-          throw std::runtime_error(
-              "native resident vision batch shape is inconsistent");
+      const bool vision_embedding_cache_hit =
+          impl_->restore_vision_embedding_cache(
+              vl_input->vision_embedding_cache_namespace,
+              embedding_bytes);
+      metrics.vl_vision_embedding_cache_hit =
+          vision_embedding_cache_hit;
+      if (vision_embedding_cache_hit) {
+        // The cached output was produced by a resident plan in this engine.
+        // No plan or encoder execution is needed on the exact media hit.
+        metrics.vl_vision_plan_cache_hit = true;
+      } else {
+        bool all_vision_plan_cache_hits = true;
+        for (const NativeVlVisionBatch& batch : vl_vision_batches) {
+          const auto grid_begin =
+              vl_input->grids.begin() +
+              static_cast<std::ptrdiff_t>(batch.media_offset);
+          const std::vector<NativeVlGrid> batch_grids(
+              grid_begin,
+              grid_begin + static_cast<std::ptrdiff_t>(batch.media_count));
+          bool batch_cache_hit = false;
+          double batch_plan_build_wall_ms = 0.0;
+          NativeVisionPipelinePlan& pipeline = impl_->vision_plan(
+              batch_grids, &batch_cache_hit, &batch_plan_build_wall_ms);
+          if (pipeline.patch_count() != batch.patch_count ||
+              pipeline.merged_token_count() !=
+                  batch.visual_token_count) {
+            throw std::runtime_error(
+                "native resident vision batch shape is inconsistent");
+          }
+          const std::uint64_t batch_pixel_bytes =
+              batch.patch_count * kVisionPixelColumns *
+              sizeof(std::uint16_t);
+          impl_->ensure_vision_allocation(
+              &impl_->vision_pixel_values,
+              &impl_->vision_pixel_capacity_bytes, batch_pixel_bytes,
+              "hipMalloc resident vision pixel input");
+          impl_->ensure_vision_allocation(
+              &impl_->vision_temporary,
+              &impl_->vision_temporary_capacity_bytes,
+              pipeline.temporary_bytes(),
+              "hipMalloc resident vision temporary arena");
+          const auto* batch_pixels =
+              vl_input->pixel_values_bf16.data() +
+              batch.patch_offset * kVisionPixelColumns;
+          auto* batch_embeddings =
+              static_cast<unsigned char*>(impl_->vision_embeddings) +
+              batch.visual_token_offset * kHidden *
+                  sizeof(std::uint16_t);
+          check_hip(
+              hipMemcpyAsync(impl_->vision_pixel_values, batch_pixels,
+                             batch_pixel_bytes, hipMemcpyHostToDevice,
+                             nullptr),
+              "hipMemcpyAsync resident vision batch pixels");
+          const auto vision_started = std::chrono::steady_clock::now();
+          pipeline.launch(impl_->vision_pixel_values, batch_embeddings,
+                          impl_->vision_temporary,
+                          impl_->vision_temporary_capacity_bytes);
+          check_hip(hipDeviceSynchronize(),
+                    "hipDeviceSynchronize resident vision batch");
+          metrics.vl_vision_encode_wall_ms +=
+              elapsed_ms(vision_started);
+          metrics.vl_vision_plan_build_wall_ms +=
+              batch_plan_build_wall_ms;
+          all_vision_plan_cache_hits =
+              all_vision_plan_cache_hits && batch_cache_hit;
         }
-        const std::uint64_t batch_pixel_bytes =
-            batch.patch_count * kVisionPixelColumns *
-            sizeof(std::uint16_t);
-        impl_->ensure_vision_allocation(
-            &impl_->vision_pixel_values,
-            &impl_->vision_pixel_capacity_bytes, batch_pixel_bytes,
-            "hipMalloc resident vision pixel input");
-        impl_->ensure_vision_allocation(
-            &impl_->vision_temporary,
-            &impl_->vision_temporary_capacity_bytes,
-            pipeline.temporary_bytes(),
-            "hipMalloc resident vision temporary arena");
-        const auto* batch_pixels =
-            vl_input->pixel_values_bf16.data() +
-            batch.patch_offset * kVisionPixelColumns;
-        auto* batch_embeddings =
-            static_cast<unsigned char*>(impl_->vision_embeddings) +
-            batch.visual_token_offset * kHidden *
-                sizeof(std::uint16_t);
-        check_hip(
-            hipMemcpyAsync(impl_->vision_pixel_values, batch_pixels,
-                           batch_pixel_bytes, hipMemcpyHostToDevice,
-                           nullptr),
-            "hipMemcpyAsync resident vision batch pixels");
-        const auto vision_started = std::chrono::steady_clock::now();
-        pipeline.launch(impl_->vision_pixel_values, batch_embeddings,
-                        impl_->vision_temporary,
-                        impl_->vision_temporary_capacity_bytes);
-        check_hip(hipDeviceSynchronize(),
-                  "hipDeviceSynchronize resident vision batch");
-        metrics.vl_vision_encode_wall_ms +=
-            elapsed_ms(vision_started);
-        metrics.vl_vision_plan_build_wall_ms +=
-            batch_plan_build_wall_ms;
-        all_vision_plan_cache_hits =
-            all_vision_plan_cache_hits && batch_cache_hit;
+        metrics.vl_vision_plan_cache_hit = all_vision_plan_cache_hits;
+        impl_->insert_vision_embedding_cache(
+            vl_input->vision_embedding_cache_namespace,
+            embedding_bytes);
       }
-      metrics.vl_vision_plan_cache_hit = all_vision_plan_cache_hits;
       metrics.vl_vision_plan_cache_entries = impl_->vision_plans.size();
+      metrics.vl_vision_embedding_cache_entries =
+          impl_->vision_embedding_cache.size();
+      metrics.vl_vision_embedding_cache_resident_bytes =
+          impl_->vision_embedding_cache_resident_bytes;
 
       const NativePromptAotSegment& first_segment =
           prompt_plan.aot_segments.front();
@@ -1836,7 +1955,7 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
       metrics.vl_embedding_injection_wall_ms =
           elapsed_ms(injection_started);
       metrics.vl_host_to_device_bytes =
-          pixel_bytes +
+          (vision_embedding_cache_hit ? 0 : pixel_bytes) +
           request.input_token_ids.size() * sizeof(std::uint32_t) +
           vl_embedding_plan->device_index_bytes();
       metrics.prefill_native_pointwise_launches += 2;

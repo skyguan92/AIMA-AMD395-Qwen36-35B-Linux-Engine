@@ -37,6 +37,12 @@ struct NativeMultimodalCacheIdentityInput {
 std::string build_native_multimodal_cache_namespace(
     const NativeMultimodalCacheIdentityInput& input);
 
+// Returns a distinct prompt-independent namespace for resident vision output
+// reuse. Callers describe token_offset/token_length in ordered visual-output
+// coordinates rather than final language-prompt coordinates.
+std::string build_native_vision_embedding_cache_namespace(
+    const NativeMultimodalCacheIdentityInput& input);
+
 // Empty namespaces retain the v1.5.1 text-only behavior. A non-empty
 // namespace must be one canonical lowercase SHA-256 digest.
 bool valid_native_multimodal_cache_namespace(std::string_view value);

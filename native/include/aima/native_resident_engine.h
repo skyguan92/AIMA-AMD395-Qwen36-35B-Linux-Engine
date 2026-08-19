@@ -116,6 +116,7 @@ struct NativeResidentVlInput {
   // Contiguous processor BF16 bits in [sum(patches),1536] order.
   std::vector<std::uint16_t> pixel_values_bf16;
   std::vector<NativeVlEmbeddingSpan> embedding_spans;
+  std::string vision_embedding_cache_namespace;
   std::size_t media_count = 0;
   std::size_t image_count = 0;
   std::size_t video_count = 0;
@@ -241,6 +242,10 @@ struct NativeResidentRequestMetrics {
   std::size_t vl_vision_max_batch_tokens = 0;
   bool vl_vision_plan_cache_hit = false;
   std::size_t vl_vision_plan_cache_entries = 0;
+  bool vl_vision_embedding_cache_hit = false;
+  std::size_t vl_vision_embedding_cache_entries = 0;
+  std::uint64_t vl_vision_embedding_cache_resident_bytes = 0;
+  std::uint64_t vl_vision_embedding_cache_capacity_bytes = 0;
   std::uint64_t vl_host_to_device_bytes = 0;
   double vl_media_load_wall_ms = 0.0;
   double vl_media_decode_wall_ms = 0.0;

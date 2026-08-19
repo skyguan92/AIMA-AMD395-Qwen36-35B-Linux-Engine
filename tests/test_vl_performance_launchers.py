@@ -117,6 +117,8 @@ class VlPerformanceLauncherTest(unittest.TestCase):
         self.assertIn("PAIR_INDEX % 2", source)
         self.assertIn("balanced_orders", source)
         self.assertIn("AIMA_VL_PREFIX_CACHE_MODE=disabled", source)
+        self.assertIn(".prompt_nonce", source)
+        self.assertIn('--prompt-nonce "${prompt_nonce}"', source)
         self.assertIn("--expected-completion-tokens", source)
         self.assertIn("summarize-vl-performance-matrix-pair.py", source)
 

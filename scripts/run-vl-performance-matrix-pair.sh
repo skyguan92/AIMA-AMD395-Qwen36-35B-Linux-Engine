@@ -162,10 +162,12 @@ capture_cells() {
     local logical_request
     local request_path
     local padding
+    local prompt_nonce
     local output_tokens
     logical_request="$(matrix_cell_field "${cell_id}" '.request.path')"
     request_path="${ROOT}/${logical_request}"
     padding="$(matrix_cell_field "${cell_id}" '.text_padding_tokens')"
+    prompt_nonce="$(matrix_cell_field "${cell_id}" '.prompt_nonce')"
     output_tokens="$(matrix_cell_field "${cell_id}" '.output_tokens')"
     if [[ ! -f "${request_path}" ]]; then
       echo "matrix request is missing: ${request_path}" >&2
@@ -178,7 +180,7 @@ capture_cells() {
       --output "${run_dir}/requests/${cell_id}.json"
       --model "${model}"
       --benchmark-id "${cell_id}.pair-${PAIR_INDEX}"
-      --prompt-nonce "${cell_id}"
+      --prompt-nonce "${prompt_nonce}"
       --text-padding-tokens "${padding}"
       --expected-completion-tokens "${output_tokens}"
       --engine-role "${role}"

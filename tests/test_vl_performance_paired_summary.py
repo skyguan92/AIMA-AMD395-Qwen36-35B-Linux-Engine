@@ -30,7 +30,14 @@ def record(index: int, vision_ratio: float = 1.01) -> dict:
         "template_sha256": "a" * 64,
         "request_summary": {"max_tokens": 1},
         "media": [{"sha256": "b" * 64}],
-        "response_contract": {"content_sha256": "c" * 64},
+        "response_contract": {
+            "finish_reason": "length",
+            "usage": {
+                "prompt_tokens": 100,
+                "completion_tokens": 1,
+                "total_tokens": 101,
+            },
+        },
         "hostname": "amd395",
         "candidate_runtime": "native-resident-q272",
         "candidate_startup_ms": 43_000 + index,

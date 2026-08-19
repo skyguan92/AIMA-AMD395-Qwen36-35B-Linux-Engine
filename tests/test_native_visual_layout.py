@@ -441,6 +441,35 @@ class NativeVisualLayoutTest(unittest.TestCase):
                 )
             )
 
+    def test_exact_media_hit_reuses_bound_resident_vision_embeddings(self) -> None:
+        request_source = (
+            ROOT / "native/src/native_vl_request.cpp"
+        ).read_text(encoding="utf-8")
+        resident_source = (
+            ROOT / "native/src/native_resident_engine.hip.cpp"
+        ).read_text(encoding="utf-8")
+        http_source = (
+            ROOT / "native/src/native_http_server.cpp"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            "build_native_vision_embedding_cache_namespace",
+            request_source,
+        )
+        self.assertIn(
+            "item.kind, item.content_sha256, placeholder, visual_offset,",
+            request_source,
+        )
+        self.assertIn("kVisionEmbeddingCacheBytes", resident_source)
+        self.assertIn("restore_vision_embedding_cache", resident_source)
+        self.assertIn("insert_vision_embedding_cache", resident_source)
+        self.assertIn("if (vision_embedding_cache_hit)", resident_source)
+        self.assertIn(
+            "vision_embedding_cache_namespace.empty()",
+            resident_source,
+        )
+        self.assertIn("vision_embedding_cache_hit", http_source)
+        self.assertIn("vision_embedding_cache_resident_bytes", http_source)
+
     def test_vision_depth_capture_hooks_all_representative_blocks(self) -> None:
         capture = (
             ROOT / "scripts/capture-vllm-vision-depth-oracles.py"

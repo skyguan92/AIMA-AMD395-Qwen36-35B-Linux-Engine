@@ -108,14 +108,12 @@ def collect_pair(pair_dir: Path, diagnostic: Any) -> dict[str, Any]:
         "request_summary": reference.get("request", {}).get("summary"),
         "media": reference.get("request", {}).get("media"),
         "response_contract": {
-            "content_sha256": reference.get("response", {}).get(
-                "content_sha256"
-            ),
             "finish_reason": reference.get("response", {}).get(
                 "finish_reason"
             ),
             "usage": reference.get("response", {}).get("usage"),
         },
+        "response_audit": summary.get("response_audit"),
         "hostname": reference.get("host", {}).get("hostname"),
         "candidate_runtime": native.get("runtime"),
         "candidate_startup_ms": finite_float(
@@ -162,6 +160,7 @@ def aggregate_records(
     startup_median = (
         float(statistics.median(startup_values)) if startup_values else None
     )
+    exact_media_cache = "vision_cache_hit_candidate_seconds" in medians
     expected_indices = list(range(1, len(ordered) + 1))
     invariants = (
         "benchmark_base",
@@ -232,15 +231,20 @@ def aggregate_records(
             medians.get("prefill_tps_candidate_over_reference", -math.inf)
             >= 1.0
         ),
-        "vision_paired_median_gte_reference": (
-            medians.get("vision_tps_candidate_over_reference", -math.inf)
-            >= 1.0
-        ),
         "candidate_startup_median_lte_44_9_seconds": (
             startup_median is not None
             and startup_median <= STARTUP_LIMIT_MS
         ),
     }
+    if exact_media_cache:
+        gates["vision_cache_hit_candidate_median_not_executed"] = (
+            medians["vision_cache_hit_candidate_seconds"] == 0.0
+        )
+    else:
+        gates["vision_paired_median_gte_reference"] = (
+            medians.get("vision_tps_candidate_over_reference", -math.inf)
+            >= 1.0
+        )
     if "decode_tps_candidate_over_reference" in medians:
         gates["decode_paired_median_gte_reference"] = (
             medians["decode_tps_candidate_over_reference"] >= 1.0

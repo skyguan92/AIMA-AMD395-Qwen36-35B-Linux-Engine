@@ -6,14 +6,14 @@
       "sha256": "aecbc2df3e4154351af2d7f4b20fee97596297de4cca20340d5e117863475f4e"
     },
     "full_matrix": {
-      "bytes": 48164,
+      "bytes": 49338,
       "path": "benchmarks/fixtures/vl-performance-v0.1.0/matrix.json",
-      "sha256": "65ea13db0bfb49f3da2a8121768ab2d8e88088a3e8190190710ee96f7aee8a1a"
+      "sha256": "0afe31410590826191110432165eb13f8d3924f950524986af6c6e54e3ae0def"
     },
     "reference_availability": {
       "bytes": 20324,
       "path": "benchmarks/results/native-vl-performance-reference-availability-v0.1.0.json",
-      "sha256": "854e3390cb0869ecffdd4b68db5d6d3ea1d92f76593b540d37b930ea386ea9ba"
+      "sha256": "02c1b1ddd99b728d5665d2958f947d68c928c21c7c6ebe3c1db89763d4016623"
     }
   },
   "cells": [
@@ -53,6 +53,7 @@
       "media_cache_expectation": "disabled",
       "output_tokens": 1,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "image_min_short_output1",
       "request": {
         "bytes": 463,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/image_min_short_output1.json",
@@ -100,6 +101,7 @@
       "media_cache_expectation": "disabled",
       "output_tokens": 512,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "image_portrait_q1k_output512",
       "request": {
         "bytes": 612,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/image_portrait_q1k_output512.json",
@@ -147,6 +149,7 @@
       "media_cache_expectation": "disabled",
       "output_tokens": 1,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "image_landscape_q8k_output1",
       "request": {
         "bytes": 470,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/image_landscape_q8k_output1.json",
@@ -194,6 +197,7 @@
       "media_cache_expectation": "disabled",
       "output_tokens": 1,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "image_max_q32k_output1",
       "request": {
         "bytes": 469,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/image_max_q32k_output1.json",
@@ -346,6 +350,7 @@
       "media_cache_expectation": "disabled",
       "output_tokens": 1,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "image_count_max_q8k_output1",
       "request": {
         "bytes": 4505,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/image_count_max_q8k_output1.json",
@@ -357,7 +362,7 @@
       "source_execution_cells": [
         "image_count_maximum_small"
       ],
-      "text_padding_tokens": 7088
+      "text_padding_tokens": 6976
     },
     {
       "aggregate_visual_tokens": 4,
@@ -394,6 +399,7 @@
       "media_cache_expectation": "disabled",
       "output_tokens": 1,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "video_min_short_output1",
       "request": {
         "bytes": 473,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/video_min_short_output1.json",
@@ -440,6 +446,7 @@
       "media_cache_expectation": "disabled",
       "output_tokens": 1024,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "video_typical_q1k_output1024",
       "request": {
         "bytes": 619,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/video_typical_q1k_output1024.json",
@@ -486,6 +493,7 @@
       "media_cache_expectation": "disabled",
       "output_tokens": 1,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "video_max_shape_q32k_output1",
       "request": {
         "bytes": 477,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/video_max_shape_q32k_output1.json",
@@ -532,6 +540,7 @@
       "media_cache_expectation": "disabled",
       "output_tokens": 1,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "video_sampling_min_q32k_output1",
       "request": {
         "bytes": 486,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/video_sampling_min_q32k_output1.json",
@@ -578,16 +587,17 @@
       "media_cache_expectation": "disabled",
       "output_tokens": 1,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "video_sampling_max_q32k_output1",
       "request": {
-        "bytes": 488,
+        "bytes": 594,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/video_sampling_max_q32k_output1.json",
-        "sha256": "dffe73ca276c11b3a54508c26d8293ec19b7cbea290ee7f1a74311e591c30140"
+        "sha256": "81914e884e4f4b51effd55f518b8325e9730437fbd7bb66d99eac8f8e3771edb"
       },
       "source_capability_cases": [],
       "source_execution_cells": [
         "video_sampling_maximum"
       ],
-      "text_padding_tokens": 23104
+      "text_padding_tokens": 22979
     },
     {
       "aggregate_visual_tokens": 9600,
@@ -624,16 +634,17 @@
       "media_cache_expectation": "disabled",
       "output_tokens": 1,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "video_sampling_clamp_q32k_output1",
       "request": {
-        "bytes": 495,
+        "bytes": 601,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/video_sampling_clamp_q32k_output1.json",
-        "sha256": "af24d86be47d903a34ef163e2cdc17107bb71cc52f160127278dd53e1b91dd23"
+        "sha256": "d47ed1402737ddba6f61b458465993eb1f6c281c880f3fb3dae3e7115c4162ab"
       },
       "source_capability_cases": [],
       "source_execution_cells": [
         "video_sampling_maximum"
       ],
-      "text_padding_tokens": 23104
+      "text_padding_tokens": 22975
     },
     {
       "aggregate_visual_tokens": 256,
@@ -677,6 +688,7 @@
       "media_cache_expectation": "disabled",
       "output_tokens": 1,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "video_multi_typical_q32k_output1",
       "request": {
         "bytes": 756,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/video_multi_typical_q32k_output1.json",
@@ -866,6 +878,7 @@
       "media_cache_expectation": "disabled",
       "output_tokens": 1,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "video_count_max_q1k_output1",
       "request": {
         "bytes": 6065,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/video_count_max_q1k_output1.json",
@@ -877,7 +890,7 @@
       "source_execution_cells": [
         "video_count_maximum_small"
       ],
-      "text_padding_tokens": 832
+      "text_padding_tokens": 567
     },
     {
       "aggregate_visual_tokens": 16388,
@@ -922,6 +935,7 @@
       "media_cache_expectation": "disabled",
       "output_tokens": 1,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "mixed_cross_batch_q32k_output1",
       "request": {
         "bytes": 748,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/mixed_cross_batch_q32k_output1.json",
@@ -978,6 +992,7 @@
       "media_cache_expectation": "disabled",
       "output_tokens": 512,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "mixed_multi_turn_q8k_output512",
       "request": {
         "bytes": 1109,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/mixed_multi_turn_q8k_output512.json",
@@ -1029,6 +1044,7 @@
       "media_cache_expectation": "disabled",
       "output_tokens": 1,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "cache_a_disabled_output1",
       "request": {
         "bytes": 469,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/cache_a_disabled_output1.json",
@@ -1074,6 +1090,7 @@
       "media_cache_expectation": "cold",
       "output_tokens": 1,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "cache-a",
       "request": {
         "bytes": 469,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/cache_a_cold_output1.json",
@@ -1120,6 +1137,7 @@
       "media_cache_expectation": "exact",
       "output_tokens": 1,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "cache-a",
       "request": {
         "bytes": 469,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/cache_a_exact_output1.json",
@@ -1165,6 +1183,7 @@
       "media_cache_expectation": "cold",
       "output_tokens": 1,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "cache-b",
       "request": {
         "bytes": 470,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/cache_b_cold_output1.json",
@@ -1211,6 +1230,7 @@
       "media_cache_expectation": "exact",
       "output_tokens": 1,
       "prefix_cache_expectation": "disabled",
+      "prompt_nonce": "cache-a",
       "request": {
         "bytes": 469,
         "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/cache_a_restored_output1.json",
@@ -1434,7 +1454,7 @@
   "generated_at": "2026-08-19T10:45:05+00:00",
   "integrity": {
     "algorithm": "sha256",
-    "canonical_payload_sha256": "3f55d74f2aaedd99bdd5ff8c2d8c609e737e1559590aaa5530dfb9a0a5eda6f7"
+    "canonical_payload_sha256": "f075189ce44f4e34f8b18fa4db5cc7d71cda0ba8d37aec32be5108d932119bdd"
   },
   "observed_coverage": {
     "cache": [

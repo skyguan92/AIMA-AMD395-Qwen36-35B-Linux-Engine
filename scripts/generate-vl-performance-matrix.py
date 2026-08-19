@@ -112,23 +112,42 @@ def instruction(output_tokens: int) -> str:
     )
 
 
-def request(messages: list[dict[str, Any]], output_tokens: int) -> dict[str, Any]:
-    return {
+def request(
+    messages: list[dict[str, Any]],
+    output_tokens: int,
+    *,
+    media_io_kwargs: Mapping[str, Mapping[str, Any]] | None = None,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
         "max_tokens": output_tokens,
         "messages": messages,
         "temperature": 0,
     }
+    if media_io_kwargs is not None:
+        payload["media_io_kwargs"] = {
+            str(modality): dict(options)
+            for modality, options in media_io_kwargs.items()
+        }
+    return payload
 
 
 def one_turn(
-    fixtures: Sequence[tuple[str, str]], output_tokens: int, *, interleave: bool = False
+    fixtures: Sequence[tuple[str, str]],
+    output_tokens: int,
+    *,
+    interleave: bool = False,
+    media_io_kwargs: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
     content: list[dict[str, Any]] = [text_part(instruction(output_tokens))]
     for index, (modality, fixture_path) in enumerate(fixtures):
         if interleave and index:
             content.append(text_part(f"Media item {index + 1} follows."))
         content.append(media_part(modality, fixture_path))
-    return request([{"role": "user", "content": content}], output_tokens)
+    return request(
+        [{"role": "user", "content": content}],
+        output_tokens,
+        media_io_kwargs=media_io_kwargs,
+    )
 
 
 def mixed_multi_turn(
@@ -262,6 +281,8 @@ def build_matrix(
         payload: Mapping[str, Any] | None = None,
         interleave: bool = False,
         sequence: str | None = None,
+        media_io_kwargs: Mapping[str, Mapping[str, Any]] | None = None,
+        prompt_nonce: str | None = None,
     ) -> dict[str, Any]:
         for source in source_cells:
             if source not in execution_cells:
@@ -271,7 +292,12 @@ def build_matrix(
                 raise ReferenceManifestError(f"unknown capability case: {source}")
         selected = [fixture(name) for name in fixture_names]
         if payload is None:
-            payload = one_turn(selected, output, interleave=interleave)
+            payload = one_turn(
+                selected,
+                output,
+                interleave=interleave,
+                media_io_kwargs=media_io_kwargs,
+            )
         request_name = f"{cell_id}.json"
         request_path = requests_dir / request_name
         dump_request(request_path, payload)
@@ -317,6 +343,7 @@ def build_matrix(
             "context_bucket": context,
             "expected_prompt_tokens_range": CONTEXT_BUCKETS[context],
             "text_padding_tokens": padding,
+            "prompt_nonce": prompt_nonce or cell_id,
             "output_tokens": output,
             "cache_process": cache_process,
             "media_cache_expectation": cache_expectation,
@@ -333,24 +360,24 @@ def build_matrix(
         cell("image_landscape_q8k_output1", ["image_typical_landscape"], [], ["image_landscape"], "8k", 7_872, 1, {"image": ["single_typical", "landscape"], "context": ["8k"], "output": ["1"], "cache": ["disabled"]}),
         cell("image_max_q32k_output1", ["image_maximum_pixels"], [], ["image_max"], "32k", 16_320, 1, {"image": ["single_maximum", "square"], "context": ["32k"], "output": ["1"], "cache": ["disabled"]}),
         cell("image_multi_typical_q128k_output1", ["image_typical_portrait", "image_typical_landscape"], ["multi_image_interleaved"], ["image_portrait", "image_landscape"], "128k", 130_496, 1, {"image": ["multi_typical", "portrait", "landscape"], "context": ["128k"], "output": ["1"], "cache": ["disabled"]}, interleave=True),
-        cell("image_count_max_q8k_output1", ["image_count_maximum_small"], ["multi_image_interleaved"], ["image_min"] * 16, "8k", 7_088, 1, {"image": ["multi_maximum_count", "square"], "context": ["8k"], "output": ["1"], "cache": ["disabled"]}, interleave=True),
+        cell("image_count_max_q8k_output1", ["image_count_maximum_small"], ["multi_image_interleaved"], ["image_min"] * 16, "8k", 6_976, 1, {"image": ["multi_maximum_count", "square"], "context": ["8k"], "output": ["1"], "cache": ["disabled"]}, interleave=True),
         cell("image_multi_max_near_window_output1", ["image_near_window_maximum", "image_above_maximum_clamp"], ["multi_image_interleaved"], ["image_max"] * 14 + ["image_above_max"], "near_262144", 15_700, 1, {"image": ["multi_near_window_maximum", "single_maximum", "square"], "context": ["near_262144"], "output": ["1"], "cache": ["disabled"]}, interleave=True),
         cell("video_min_short_output1", ["video_minimum"], [], ["video_min"], "short", 0, 1, {"video": ["single_minimum"], "context": ["short"], "output": ["1"], "cache": ["disabled"]}),
         cell("video_typical_q1k_output1024", ["video_typical"], [], ["video_typical"], "1k", 832, 1024, {"video": ["single_typical"], "context": ["1k"], "output": ["1024"], "cache": ["disabled"]}),
         cell("video_max_shape_q32k_output1", ["video_maximum_feature_shape"], [], ["video_max"], "32k", 20_416, 1, {"video": ["single_maximum_shape"], "context": ["32k"], "output": ["1"], "cache": ["disabled"]}),
         cell("video_sampling_min_q32k_output1", ["video_sampling_minimum"], [], ["video_sampling_min"], "32k", 32_576, 1, {"video": ["sampling_minimum"], "context": ["32k"], "output": ["1"], "cache": ["disabled"]}),
         cell("video_sampling_typical_q128k_output1", ["video_sampling_typical"], [], ["video_sampling_typical"], "128k", 130_368, 1, {"video": ["sampling_typical"], "context": ["128k"], "output": ["1"], "cache": ["disabled"]}),
-        cell("video_sampling_max_q32k_output1", ["video_sampling_maximum"], [], ["video_sampling_max"], "32k", 23_104, 1, {"video": ["sampling_maximum"], "context": ["32k"], "output": ["1"], "cache": ["disabled"]}),
-        cell("video_sampling_clamp_q32k_output1", ["video_sampling_maximum"], [], ["video_sampling_above"], "32k", 23_104, 1, {"video": ["sampling_above_maximum_clamp"], "context": ["32k"], "output": ["1"], "cache": ["disabled"]}),
+        cell("video_sampling_max_q32k_output1", ["video_sampling_maximum"], [], ["video_sampling_max"], "32k", 22_979, 1, {"video": ["sampling_maximum"], "context": ["32k"], "output": ["1"], "cache": ["disabled"]}, media_io_kwargs={"video": {"num_frames": 768, "video_backend": "opencv"}}),
+        cell("video_sampling_clamp_q32k_output1", ["video_sampling_maximum"], [], ["video_sampling_above"], "32k", 22_975, 1, {"video": ["sampling_above_maximum_clamp"], "context": ["32k"], "output": ["1"], "cache": ["disabled"]}, media_io_kwargs={"video": {"num_frames": 768, "video_backend": "opencv"}}),
         cell("video_multi_typical_q32k_output1", ["video_typical", "video_typical"], ["multi_video"], ["video_typical", "video_typical"], "32k", 32_448, 1, {"video": ["multi_typical"], "context": ["32k"], "output": ["1"], "cache": ["disabled"]}, interleave=True),
-        cell("video_count_max_q1k_output1", ["video_count_maximum_small"], ["multi_video"], ["video_min"] * 21, "1k", 832, 1, {"video": ["multi_maximum_count"], "context": ["1k"], "output": ["1"], "cache": ["disabled"]}, interleave=True),
+        cell("video_count_max_q1k_output1", ["video_count_maximum_small"], ["multi_video"], ["video_min"] * 21, "1k", 567, 1, {"video": ["multi_maximum_count"], "context": ["1k"], "output": ["1"], "cache": ["disabled"]}, interleave=True),
         cell("mixed_cross_batch_q32k_output1", ["mixed_cross_batch_boundary"], ["mixed_image_then_video"], ["image_max", "video_min"], "32k", 16_304, 1, {"mixed": ["image_video", "text_media_interleave"], "context": ["32k"], "output": ["1"], "cache": ["disabled"]}, interleave=True),
         cell("mixed_multi_turn_q8k_output512", ["image_typical_portrait", "video_typical"], ["mixed_image_then_video", "conversation_prior_image"], ["image_portrait", "video_typical"], "8k", 7_744, 512, {"mixed": ["image_video", "multi_turn"], "context": ["8k"], "output": ["512"], "cache": ["disabled"]}, payload=mixed_multi_turn(fixture("image_portrait")[1], fixture("video_typical")[1], 512)),
         cell("cache_a_disabled_output1", ["image_typical_portrait"], [], ["image_portrait"], "short", 0, 1, {"image": ["single_typical", "portrait"], "context": ["short"], "output": ["1"], "cache": ["disabled"]}),
-        cell("cache_a_cold_output1", ["image_typical_portrait"], [], ["image_portrait"], "short", 0, 1, {"cache": ["cold_media", "a_b_a"], "context": ["short"], "output": ["1"]}, cache_process="enabled", cache_expectation="cold", sequence="A1"),
-        cell("cache_a_exact_output1", ["image_typical_portrait"], [], ["image_portrait"], "short", 0, 1, {"cache": ["warm_media", "media_exact_hit", "a_b_a"], "context": ["short"], "output": ["1"]}, cache_process="enabled", cache_expectation="exact", sequence="A2"),
-        cell("cache_b_cold_output1", ["image_typical_landscape"], [], ["image_landscape"], "short", 0, 1, {"cache": ["cold_media", "a_b_a"], "context": ["short"], "output": ["1"]}, cache_process="enabled", cache_expectation="cold", sequence="B"),
-        cell("cache_a_restored_output1", ["image_typical_portrait"], [], ["image_portrait"], "short", 0, 1, {"cache": ["warm_media", "media_exact_hit", "a_b_a"], "context": ["short"], "output": ["1"]}, cache_process="enabled", cache_expectation="exact", sequence="A3"),
+        cell("cache_a_cold_output1", ["image_typical_portrait"], [], ["image_portrait"], "short", 0, 1, {"cache": ["cold_media", "a_b_a"], "context": ["short"], "output": ["1"]}, cache_process="enabled", cache_expectation="cold", sequence="A1", prompt_nonce="cache-a"),
+        cell("cache_a_exact_output1", ["image_typical_portrait"], [], ["image_portrait"], "short", 0, 1, {"cache": ["warm_media", "media_exact_hit", "a_b_a"], "context": ["short"], "output": ["1"]}, cache_process="enabled", cache_expectation="exact", sequence="A2", prompt_nonce="cache-a"),
+        cell("cache_b_cold_output1", ["image_typical_landscape"], [], ["image_landscape"], "short", 0, 1, {"cache": ["cold_media", "a_b_a"], "context": ["short"], "output": ["1"]}, cache_process="enabled", cache_expectation="cold", sequence="B", prompt_nonce="cache-b"),
+        cell("cache_a_restored_output1", ["image_typical_portrait"], [], ["image_portrait"], "short", 0, 1, {"cache": ["warm_media", "media_exact_hit", "a_b_a"], "context": ["short"], "output": ["1"]}, cache_process="enabled", cache_expectation="exact", sequence="A3", prompt_nonce="cache-a"),
     ]
 
     observed: dict[str, set[str]] = {key: set() for key in REQUIRED_COVERAGE}

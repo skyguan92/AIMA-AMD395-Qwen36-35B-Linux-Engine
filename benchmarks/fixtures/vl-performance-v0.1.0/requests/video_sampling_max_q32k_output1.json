@@ -1,5 +1,11 @@
 {
   "max_tokens": 1,
+  "media_io_kwargs": {
+    "video": {
+      "num_frames": 768,
+      "video_backend": "opencv"
+    }
+  },
   "messages": [
     {
       "content": [

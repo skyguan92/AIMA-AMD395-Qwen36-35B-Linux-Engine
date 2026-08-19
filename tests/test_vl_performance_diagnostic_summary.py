@@ -63,6 +63,8 @@ class VlPerformanceDiagnosticSummaryLogicTest(unittest.TestCase):
             {
                 "preprocessor_total_secs": 0.1,
                 "encoder_forward_secs": 0.2,
+                "processor_record_count": 1,
+                "encoder_record_count": 1,
             },
         )
         self.assertEqual(
@@ -79,6 +81,25 @@ class VlPerformanceDiagnosticSummaryLogicTest(unittest.TestCase):
             {
                 "preprocessor_total_secs": 0.1,
                 "encoder_forward_secs": 0.2,
+                "processor_record_count": 1,
+                "encoder_record_count": 1,
+            },
+        )
+        self.assertEqual(
+            summary.one_mm_record(
+                {
+                    "multimodal": {
+                        "merged": {
+                            "processor": {"preprocessor_total_secs": 0.001},
+                        }
+                    }
+                }
+            ),
+            {
+                "preprocessor_total_secs": 0.001,
+                "encoder_forward_secs": 0.0,
+                "processor_record_count": 1,
+                "encoder_record_count": 0,
             },
         )
         self.assertIsNone(
@@ -188,6 +209,10 @@ class VlPerformanceDiagnosticSummaryLogicTest(unittest.TestCase):
                         }
                     }
                 else:
+                    payload["response"] = {
+                        **request["response"],
+                        "content_sha256": "e" * 64,
+                    }
                     payload["native_metrics"] = {
                         "prompt_tokens": 100,
                         "ttft_ms": 600,
@@ -229,6 +254,11 @@ class VlPerformanceDiagnosticSummaryLogicTest(unittest.TestCase):
             result = summary.build_summary(root)
 
         self.assertTrue(result["complete"])
+        self.assertTrue(result["checks"]["response_shape_and_length_exact"])
+        self.assertNotEqual(
+            result["response_audit"]["reference"]["content_sha256"],
+            result["response_audit"]["candidate"]["content_sha256"],
+        )
         reference = result["measurements"]["reference"]
         candidate = result["measurements"]["candidate"]
         self.assertAlmostEqual(reference["llm_prefill_seconds"], 0.5)
@@ -251,6 +281,155 @@ class VlPerformanceDiagnosticSummaryLogicTest(unittest.TestCase):
                 "cold_vision_path_tps_candidate_over_reference"
             ],
             2 / 3,
+        )
+
+    def test_exact_media_cache_hit_requires_candidate_encoder_skip(self) -> None:
+        benchmark_id = "cache-hit.pair-1"
+        usage = {
+            "prompt_tokens": 100,
+            "completion_tokens": 1,
+            "total_tokens": 101,
+        }
+        media = [
+            {
+                "index": 0,
+                "modality": "image",
+                "path": "${AIMA_VL_MEDIA_ROOT}/image.png",
+                "bytes": 1,
+                "sha256": "c" * 64,
+            }
+        ]
+        warmup = {
+            "usage": {
+                "prompt_tokens": 10,
+                "completion_tokens": 1,
+                "total_tokens": 11,
+            },
+            "choices": [
+                {"finish_reason": "length", "message": {"content": "One"}}
+            ],
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for role in ("reference", "candidate"):
+                role_dir = root / role
+                role_dir.mkdir()
+                payload = {
+                    "complete": True,
+                    "benchmark_id": benchmark_id,
+                    "engine_role": role,
+                    "request": {
+                        "template_sha256": "a" * 64,
+                        "summary": {},
+                        "media": media,
+                        "text_padding": {
+                            "tokens": 0,
+                            "unit_sha256": "d" * 64,
+                            "frozen_single_token_id": 830,
+                        },
+                    },
+                    "response": {
+                        "content_sha256": ("b" if role == "reference" else "e")
+                        * 64,
+                        "finish_reason": "length",
+                        "usage": usage,
+                    },
+                    "timings": {"ttft_seconds": 0.5, "total_seconds": 0.6},
+                }
+                if role == "reference":
+                    payload["prometheus"] = {
+                        "delta": {
+                            "vllm:request_prefill_time_seconds_count": 1,
+                            "vllm:request_prefill_time_seconds_sum": 0.5,
+                            "vllm:time_to_first_token_seconds_count": 1,
+                            "vllm:request_decode_time_seconds_sum": 0,
+                        }
+                    }
+                else:
+                    payload["native_metrics"] = {
+                        "prompt_tokens": 100,
+                        "ttft_ms": 500,
+                        "prefix_cache": {"lookup": "disabled"},
+                        "vl": {
+                            "visual_tokens": 50,
+                            "vision_plan_build_wall_ms": 0,
+                            "vision_encode_wall_ms": 20,
+                            "media_load_decode_wall_ms": 1,
+                            "processor_wall_ms": 0,
+                            "media_cache_hits": 1,
+                            "media_cache_misses": 0,
+                            "media_cache_entries": 1,
+                            "vision_embedding_cache_hit": True,
+                            "vision_embedding_cache_entries": 1,
+                            "vision_embedding_cache_resident_bytes": 256000,
+                            "vision_embedding_cache_capacity_bytes": 536870912,
+                        },
+                    }
+                (role_dir / "request.json").write_text(json.dumps(payload))
+                (role_dir / "text-warmup.json").write_text(json.dumps(warmup))
+
+            stage = {
+                "benchmark_id": benchmark_id,
+                "status_code": 200,
+                "request_error": None,
+                "stats_error": None,
+                "media": {"media_load_decode_secs": 0.001},
+                "multimodal": {
+                    "merged": {
+                        "processor": {"preprocessor_total_secs": 0.001}
+                    }
+                },
+            }
+            (root / "reference/vllm-vl-stages.jsonl").write_text(
+                json.dumps(stage) + "\n"
+            )
+            expectations = {
+                "output_tokens": 1,
+                "prefix_cache_lookup": "disabled",
+                "media_cache_mode": "exact",
+            }
+            executed = summary.build_summary(root, expectations=expectations)
+            self.assertTrue(executed["complete"])
+            self.assertFalse(executed["qualified"])
+            self.assertEqual(
+                executed["comparisons"][
+                    "vision_cache_hit_candidate_seconds"
+                ],
+                0.02,
+            )
+
+            candidate_path = root / "candidate/request.json"
+            candidate = json.loads(candidate_path.read_text())
+            candidate["native_metrics"]["vl"]["vision_encode_wall_ms"] = 0
+            candidate_path.write_text(json.dumps(candidate))
+            skipped = summary.build_summary(root, expectations=expectations)
+
+            candidate["native_metrics"]["vl"][
+                "vision_embedding_cache_hit"
+            ] = False
+            candidate_path.write_text(json.dumps(candidate))
+            unbound = summary.build_summary(root, expectations=expectations)
+
+        self.assertTrue(skipped["complete"])
+        self.assertTrue(skipped["qualified"])
+        self.assertFalse(
+            skipped["metric_applicability"]["vision_throughput"]["applicable"]
+        )
+        self.assertEqual(
+            skipped["comparisons"]["vision_cache_hit_candidate_seconds"],
+            0.0,
+        )
+        self.assertTrue(
+            skipped["checks"]["candidate_vision_embedding_cache_expected"]
+        )
+        self.assertTrue(
+            skipped["measurements"]["candidate"][
+                "vision_embedding_cache_hit"
+            ]
+        )
+        self.assertFalse(unbound["complete"])
+        self.assertFalse(
+            unbound["checks"]["candidate_vision_embedding_cache_expected"]
         )
 
 

@@ -141,6 +141,45 @@ def group_record(
     }
 
 
+def cache_a_b_a_contract_exact(
+    cells: list[Mapping[str, Any]], role: str
+) -> bool:
+    if role not in {"reference", "candidate"}:
+        return False
+    by_sequence: dict[str, Mapping[str, Any]] = {}
+    for cell in cells:
+        sequence = cell.get("cache_sequence")
+        if isinstance(sequence, str):
+            if sequence in by_sequence:
+                return False
+            by_sequence[sequence] = cell
+    if set(by_sequence) != {"A1", "A2", "B", "A3"}:
+        return False
+    a_records = [by_sequence[name] for name in ("A1", "A2", "A3")]
+    contracts = [record.get("contract") for record in a_records]
+    audits = [record.get("response_audit") for record in a_records]
+    if not all(isinstance(value, Mapping) for value in contracts + audits):
+        return False
+    templates = [value.get("template_sha256") for value in contracts]
+    nonces = [value.get("prompt_nonce_sha256") for value in contracts]
+    responses = [value.get(role) for value in audits]
+    if not all(isinstance(value, Mapping) for value in responses):
+        return False
+    digest = responses[0].get("content_sha256")
+    canonical_sha256 = re.compile(r"^[0-9a-f]{64}$")
+    return (
+        isinstance(templates[0], str)
+        and canonical_sha256.fullmatch(templates[0]) is not None
+        and templates.count(templates[0]) == len(templates)
+        and isinstance(nonces[0], str)
+        and canonical_sha256.fullmatch(nonces[0]) is not None
+        and nonces.count(nonces[0]) == len(nonces)
+        and isinstance(digest, str)
+        and canonical_sha256.fullmatch(digest) is not None
+        and all(response == responses[0] for response in responses)
+    )
+
+
 def cell_record(
     root: Path,
     cell: Mapping[str, Any],
@@ -186,6 +225,15 @@ def cell_record(
         and candidate.get("request", {}).get("template_sha256")
         == captured_template
     )
+    prompt_nonce = cell.get("prompt_nonce")
+    expected_prompt_nonce_sha256 = None
+    if isinstance(prompt_nonce, str) and prompt_nonce:
+        try:
+            expected_prompt_nonce_sha256 = hashlib.sha256(
+                prompt_nonce.encode("ascii")
+            ).hexdigest()
+        except UnicodeEncodeError:
+            pass
     visual_tokens = (
         native_vl.get("visual_tokens") if isinstance(native_vl, Mapping) else None
     )
@@ -214,14 +262,15 @@ def cell_record(
         "prompt_nonce_exact": (
             reference.get("request", {}).get("prompt_nonce_sha256")
             == candidate.get("request", {}).get("prompt_nonce_sha256")
-            and reference.get("request", {}).get("prompt_nonce_sha256")
-            is not None
+            == expected_prompt_nonce_sha256
+            and expected_prompt_nonce_sha256 is not None
         ),
     }
     return {
         "cell_id": cell_id,
         "pair_index": pair_index,
         "process_group": process_group,
+        "cache_sequence": cell.get("cache_sequence"),
         "complete": all(checks.values()),
         "pair_qualified": summary.get("qualified") is True,
         "checks": checks,
@@ -238,9 +287,6 @@ def cell_record(
                 "prompt_nonce_sha256"
             ),
             "response": {
-                "content_sha256": reference.get("response", {}).get(
-                    "content_sha256"
-                ),
                 "finish_reason": reference.get("response", {}).get(
                     "finish_reason"
                 ),
@@ -251,6 +297,7 @@ def cell_record(
                 native.get("runtime") if isinstance(native, Mapping) else None
             ),
         },
+        "response_audit": summary.get("response_audit"),
         "candidate_cache": {
             "prefix_lookup": (
                 native.get("prefix_cache", {}).get("lookup")
@@ -279,6 +326,26 @@ def cell_record(
             ),
             "vision_plan_build_wall_ms": (
                 native_vl.get("vision_plan_build_wall_ms")
+                if isinstance(native_vl, Mapping)
+                else None
+            ),
+            "vision_embedding_cache_hit": (
+                native_vl.get("vision_embedding_cache_hit")
+                if isinstance(native_vl, Mapping)
+                else None
+            ),
+            "vision_embedding_cache_entries": (
+                native_vl.get("vision_embedding_cache_entries")
+                if isinstance(native_vl, Mapping)
+                else None
+            ),
+            "vision_embedding_cache_resident_bytes": (
+                native_vl.get("vision_embedding_cache_resident_bytes")
+                if isinstance(native_vl, Mapping)
+                else None
+            ),
+            "vision_embedding_cache_capacity_bytes": (
+                native_vl.get("vision_embedding_cache_capacity_bytes")
                 if isinstance(native_vl, Mapping)
                 else None
             ),
@@ -353,6 +420,12 @@ def build_summary(root: Path, matrix_path: Path) -> dict[str, Any]:
             )
             is not None
             for group in groups
+        ),
+        "reference_cache_a_b_a_contract_exact": (
+            cache_a_b_a_contract_exact(cells, "reference")
+        ),
+        "candidate_cache_a_b_a_contract_exact": (
+            cache_a_b_a_contract_exact(cells, "candidate")
         ),
     }
     return {
