@@ -241,10 +241,20 @@ class VlPerformanceMatrixSummaryTest(unittest.TestCase):
                     }
                 }
             }
+            current_candidate = {
+                "source_commit": "c" * 40,
+                "files": [{"path": "aima-engine-native"}],
+            }
             identity = summary.identity_from_availability(
-                availability_path, bound_matrix
+                availability_path, bound_matrix, current_candidate
             )
-            self.assertEqual(identity["candidate"]["source_commit"], "a" * 40)
+            self.assertEqual(identity["candidate"], current_candidate)
+            self.assertEqual(
+                identity["reference_availability_probe_candidate"][
+                    "source_commit"
+                ],
+                "a" * 40,
+            )
             self.assertEqual(
                 identity["reference_availability"]["sha256"],
                 summary.sha256_file(availability_path),

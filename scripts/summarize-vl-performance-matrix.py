@@ -103,7 +103,9 @@ def pair_record(pair_dir: Path) -> dict[str, Any]:
 
 
 def identity_from_availability(
-    path: Path, matrix: Mapping[str, Any]
+    path: Path,
+    matrix: Mapping[str, Any],
+    candidate: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     availability = load_object(path)
     if (
@@ -125,8 +127,19 @@ def identity_from_availability(
     binding = matrix.get("bindings", {}).get("reference_availability", {})
     if not isinstance(binding, Mapping) or binding.get("sha256") != sha256_file(path):
         raise ValueError("comparable matrix does not bind reference availability")
+    result = dict(identity)
+    if candidate is not None:
+        probe_candidate = result.get("candidate")
+        if not isinstance(probe_candidate, Mapping):
+            raise ValueError(
+                "reference availability probe candidate identity is missing"
+            )
+        result["reference_availability_probe_candidate"] = dict(
+            probe_candidate
+        )
+        result["candidate"] = dict(candidate)
     return {
-        **dict(identity),
+        **result,
         "reference_availability": file_component(path, logical_path(path)),
     }
 
@@ -414,20 +427,35 @@ def main() -> int:
     matrix = load_object(matrix_path)
     if matrix.get("complete") is not True or verify_manifest_integrity(matrix):
         raise SystemExit("performance matrix is incomplete or corrupt")
-    legacy_args = (
-        args.candidate_binary,
-        args.candidate_source_commit,
-        args.reference_python,
-        args.model_dir,
-    )
     if args.reference_availability is not None:
-        if any(value is not None for value in legacy_args):
+        if args.reference_python is not None or args.model_dir is not None:
             parser.error(
-                "--reference-availability cannot be combined with runtime identity arguments"
+                "--reference-availability cannot be combined with "
+                "--reference-python or --model-dir"
+            )
+        if (
+            args.candidate_binary is None
+            or args.candidate_source_commit is None
+        ):
+            parser.error(
+                "--reference-availability requires --candidate-binary and "
+                "--candidate-source-commit"
             )
         availability_path = args.reference_availability.resolve()
-        identity = identity_from_availability(availability_path, matrix)
+        helper = paired_identity_module()
+        current_candidate = helper.candidate_identity(
+            args.candidate_binary, args.candidate_source_commit
+        )
+        identity = identity_from_availability(
+            availability_path, matrix, current_candidate
+        )
     else:
+        legacy_args = (
+            args.candidate_binary,
+            args.candidate_source_commit,
+            args.reference_python,
+            args.model_dir,
+        )
         if any(value is None for value in legacy_args):
             parser.error(
                 "provide --reference-availability or every runtime identity argument"
@@ -496,7 +524,10 @@ def main() -> int:
             "python3 scripts/summarize-vl-performance-matrix.py "
             "--pair-dir <pair-1> ... --pair-dir <pair-5> "
             "--matrix <bound-comparable-matrix> "
-            "--reference-availability <bound-availability> --output <result>"
+            "--reference-availability <bound-availability> "
+            "--candidate-binary <exact-native-binary> "
+            "--candidate-source-commit <embedded-source-commit> "
+            "--output <result>"
         ),
     }
     result = seal_manifest(result)
