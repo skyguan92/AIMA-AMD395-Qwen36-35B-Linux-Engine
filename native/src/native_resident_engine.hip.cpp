@@ -462,9 +462,13 @@ struct NativeResidentVisionEmbeddingEntry {
 struct NativeResidentVisionWarmupMetrics {
   std::size_t patches = 0;
   std::size_t visual_tokens = 0;
+  std::size_t image_count_patches = 0;
+  std::size_t image_count_visual_tokens = 0;
   std::size_t plan_cache_entries = 0;
   double plan_build_wall_ms = 0.0;
   double encode_wall_ms = 0.0;
+  double image_count_plan_build_wall_ms = 0.0;
+  double image_count_encode_wall_ms = 0.0;
   bool completed = false;
 };
 
@@ -875,9 +879,11 @@ struct NativeResidentEngine::Impl {
 
   NativeResidentVisionWarmupMetrics warm_up_standard_vision() {
     // vLLM profiles the visual tower before publishing READY. Match that
-    // boundary with the frozen standard portrait geometry. Other small
-    // shapes are prepared only on their first request, inside its measured
-    // plan-build and total-latency window.
+    // boundary with the frozen standard portrait geometry. Retain one exact
+    // maximum-image-count execution shape as well: its shared hipBLASLt plans
+    // otherwise pay their first-launch cost immediately after the sustained
+    // maximum-image workload. Preparing it here avoids both that measured
+    // cold launch and a duplicate encoder pass inside the user request.
     const std::vector<NativeVlGrid> grids{{1, 64, 16}};
     bool cache_hit = false;
     double plan_build_wall_ms = 0.0;
@@ -891,12 +897,34 @@ struct NativeResidentEngine::Impl {
     const double encode_wall_ms = prepare_vision_pipeline_once(
         pipeline, "native standard vision warmup");
     retain_warmed_vision_execution_plans(pipeline);
+
+    const std::vector<NativeVlGrid> image_count_grids(
+        16, NativeVlGrid{1, 16, 16});
+    bool image_count_cache_hit = false;
+    double image_count_plan_build_wall_ms = 0.0;
+    NativeVisionPipelinePlan& image_count_pipeline = vision_plan(
+        image_count_grids, &image_count_cache_hit,
+        &image_count_plan_build_wall_ms, false);
+    if (image_count_cache_hit || image_count_pipeline.patch_count() != 4096 ||
+        image_count_pipeline.merged_token_count() != 1024) {
+      throw std::runtime_error(
+          "native image-count vision warmup geometry is inconsistent");
+    }
+    const double image_count_encode_wall_ms = prepare_vision_pipeline_once(
+        image_count_pipeline, "native image-count vision warmup");
+    retain_warmed_vision_execution_plans(image_count_pipeline);
+
     NativeResidentVisionWarmupMetrics metrics;
     metrics.patches = pipeline.patch_count();
     metrics.visual_tokens = pipeline.merged_token_count();
+    metrics.image_count_patches = image_count_pipeline.patch_count();
+    metrics.image_count_visual_tokens =
+        image_count_pipeline.merged_token_count();
     metrics.plan_cache_entries = vision_plans.size();
     metrics.plan_build_wall_ms = plan_build_wall_ms;
     metrics.encode_wall_ms = encode_wall_ms;
+    metrics.image_count_plan_build_wall_ms = image_count_plan_build_wall_ms;
+    metrics.image_count_encode_wall_ms = image_count_encode_wall_ms;
     metrics.completed = true;
     return metrics;
   }
@@ -1476,12 +1504,20 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
   impl_->metrics.vision_warmup_patches = vision_warmup_metrics.patches;
   impl_->metrics.vision_warmup_visual_tokens =
       vision_warmup_metrics.visual_tokens;
+  impl_->metrics.vision_image_count_warmup_patches =
+      vision_warmup_metrics.image_count_patches;
+  impl_->metrics.vision_image_count_warmup_visual_tokens =
+      vision_warmup_metrics.image_count_visual_tokens;
   impl_->metrics.vision_plan_cache_entries_at_ready =
       vision_warmup_metrics.plan_cache_entries;
   impl_->metrics.vision_warmup_plan_build_wall_ms =
       vision_warmup_metrics.plan_build_wall_ms;
   impl_->metrics.vision_warmup_encode_wall_ms =
       vision_warmup_metrics.encode_wall_ms;
+  impl_->metrics.vision_image_count_warmup_plan_build_wall_ms =
+      vision_warmup_metrics.image_count_plan_build_wall_ms;
+  impl_->metrics.vision_image_count_warmup_encode_wall_ms =
+      vision_warmup_metrics.image_count_encode_wall_ms;
   impl_->metrics.vision_warmup_completed =
       vision_warmup_metrics.completed;
   impl_->metrics.decode_workspace_bytes =

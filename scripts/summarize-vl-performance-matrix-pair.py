@@ -128,6 +128,12 @@ def group_record(
             "vision_warmup_visual_tokens": health.get(
                 "vision_warmup_visual_tokens"
             ),
+            "vision_image_count_warmup_patches": health.get(
+                "vision_image_count_warmup_patches"
+            ),
+            "vision_image_count_warmup_visual_tokens": health.get(
+                "vision_image_count_warmup_visual_tokens"
+            ),
             "vision_plan_cache_entries_at_ready": health.get(
                 "vision_plan_cache_entries_at_ready"
             ),
@@ -136,6 +142,12 @@ def group_record(
             ),
             "vision_warmup_encode_wall_ms": health.get(
                 "vision_warmup_encode_wall_ms"
+            ),
+            "vision_image_count_warmup_plan_build_wall_ms": health.get(
+                "vision_image_count_warmup_plan_build_wall_ms"
+            ),
+            "vision_image_count_warmup_encode_wall_ms": health.get(
+                "vision_image_count_warmup_encode_wall_ms"
             ),
         },
     }
@@ -409,9 +421,35 @@ def build_summary(root: Path, matrix_path: Path) -> dict[str, Any]:
             and group["candidate_health"]["vision_warmup_patches"] == 1024
             and group["candidate_health"]["vision_warmup_visual_tokens"] == 256
             and group["candidate_health"][
+                "vision_image_count_warmup_patches"
+            ]
+            == 4096
+            and group["candidate_health"][
+                "vision_image_count_warmup_visual_tokens"
+            ]
+            == 1024
+            and finite_number(
+                group["candidate_health"][
+                    "vision_image_count_warmup_plan_build_wall_ms"
+                ]
+            )
+            and group["candidate_health"][
+                "vision_image_count_warmup_plan_build_wall_ms"
+            ]
+            > 0.0
+            and finite_number(
+                group["candidate_health"][
+                    "vision_image_count_warmup_encode_wall_ms"
+                ]
+            )
+            and group["candidate_health"][
+                "vision_image_count_warmup_encode_wall_ms"
+            ]
+            > 0.0
+            and group["candidate_health"][
                 "vision_plan_cache_entries_at_ready"
             ]
-            == 1
+            == 2
             for group in groups
         ),
         "candidate_startup_observed": all(

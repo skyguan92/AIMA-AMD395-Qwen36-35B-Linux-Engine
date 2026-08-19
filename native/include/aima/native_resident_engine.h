@@ -81,9 +81,13 @@ struct NativeResidentLoadMetrics {
   std::size_t vision_plan_cache_capacity = 0;
   std::size_t vision_warmup_patches = 0;
   std::size_t vision_warmup_visual_tokens = 0;
+  std::size_t vision_image_count_warmup_patches = 0;
+  std::size_t vision_image_count_warmup_visual_tokens = 0;
   std::size_t vision_plan_cache_entries_at_ready = 0;
   double vision_warmup_plan_build_wall_ms = 0.0;
   double vision_warmup_encode_wall_ms = 0.0;
+  double vision_image_count_warmup_plan_build_wall_ms = 0.0;
+  double vision_image_count_warmup_encode_wall_ms = 0.0;
   bool vision_warmup_completed = false;
   std::uint64_t decode_workspace_bytes = 0;
   std::uint64_t attention_state_bytes = 0;

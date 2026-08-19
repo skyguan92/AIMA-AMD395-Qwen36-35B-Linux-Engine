@@ -130,7 +130,13 @@ class VlCapabilityEnvelopeTest(unittest.TestCase):
             "const std::vector<NativeVlGrid> grids{{1, 64, 16}};",
             resident,
         )
+        self.assertIn(
+            "16, NativeVlGrid{1, 16, 16}",
+            resident,
+        )
         self.assertIn("vision_warmup_completed", http)
+        self.assertIn("vision_image_count_warmup_patches", http)
+        self.assertIn("vision_image_count_warmup_encode_wall_ms", http)
         release_all = resident.index("vision_plans.clear();")
         eviction = resident.index("vision_plans.erase(oldest);")
         construction = resident.index(
