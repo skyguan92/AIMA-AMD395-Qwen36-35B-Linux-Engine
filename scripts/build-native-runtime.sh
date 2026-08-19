@@ -77,8 +77,8 @@ case ":${AOT_MANIFESTS}:" in
   *":${ROUTED_MOE_DECODE_MANIFEST}:"*) ;;
   *) AOT_MANIFESTS="${AOT_MANIFESTS}:${ROUTED_MOE_DECODE_MANIFEST}" ;;
 esac
-VISION_ATTENTION_IMAGE="${ROOT}/native/aot/gfx1151/vision-attention-v0.2.0/kernels/2bb5125141eea1b8-_fwd_kernel.hsaco"
-VISION_ATTENTION_IMAGE_SHA256="e8757f4464fdb39f5505241a1ffd0f40b74f18704318280e070015bd4302d71c"
+VISION_ATTENTION_IMAGE="${ROOT}/native/aot/gfx1151/vision-attention-v0.3.0/kernels/d09fefdcb1ddb6cb-_fwd_kernel.hsaco"
+VISION_ATTENTION_IMAGE_SHA256="8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e"
 AOT_REGISTRY_CPP="${OUT_DIR}/aot_registry.cpp"
 AOT_OBJECT_PLAN="${OUT_DIR}/aot_objects.tsv"
 DECODE_SCHEDULE="${DECODE_SCHEDULE:-${ROOT}/native/aot/gfx1151/q8192-output2/decode-schedule.json}"

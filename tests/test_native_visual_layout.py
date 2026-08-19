@@ -943,21 +943,21 @@ class NativeVisualLayoutTest(unittest.TestCase):
         self.assertIn('actual != expected', trace)
 
         manifest_path = (
-            ROOT / "native/aot/gfx1151/vision-attention-v0.2.0/manifest.json"
+            ROOT / "native/aot/gfx1151/vision-attention-v0.3.0/manifest.json"
         )
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         self.assertEqual(manifest["kernel_count"], 1)
         kernel = manifest["kernels"][0]
         self.assertEqual(
             kernel["kernel_hash"],
-            "2bb5125141eea1b811395f9833de3077de68893bfebbbf1950ca26832db6bb52",
+            "d09fefdcb1ddb6cb56b064545e87cd8537409f82ac64bc40c76a294059c1a79d",
         )
         self.assertEqual(kernel["symbol"], "_fwd_kernel")
         self.assertEqual(kernel["compile_constants"]["BLOCK_M"], 128)
         self.assertEqual(kernel["compile_constants"]["BLOCK_N"], 128)
         self.assertEqual(kernel["compile_constants"]["Lk"], 72)
         self.assertFalse(kernel["compile_constants"]["IS_CAUSAL"])
-        self.assertEqual(kernel["metadata"]["waves_per_eu"], 6)
+        self.assertEqual(kernel["metadata"]["waves_per_eu"], 3)
         image = kernel["image"]
         self.assertEqual(
             hashlib.sha256(

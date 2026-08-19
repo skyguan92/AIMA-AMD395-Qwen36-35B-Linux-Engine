@@ -51,7 +51,7 @@ REFERENCE_SCHEMA = (
     "aima-amd395-qwen36/vl-g1-mixed-conversation-reference/v1"
 )
 VISION_ATTENTION_SHA256 = (
-    "e8757f4464fdb39f5505241a1ffd0f40b74f18704318280e070015bd4302d71c"
+    "8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e"
 )
 PROBE_SCRIPT = ROOT / "scripts/probe-vllm-vl-api-capabilities.py"
 CAPABILITY_QUALIFIER = ROOT / "scripts/qualify-native-vl-capabilities.py"

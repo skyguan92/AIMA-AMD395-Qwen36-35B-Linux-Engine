@@ -78,7 +78,7 @@ constexpr std::uint64_t kCurrentQ1024TailBytes =
 constexpr char kVisionAttentionImageFilename[] =
     "aima-vision-attention.hsaco";
 constexpr char kVisionAttentionImageSha256[] =
-    "e8757f4464fdb39f5505241a1ffd0f40b74f18704318280e070015bd4302d71c";
+    "8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e";
 constexpr char kResidentLayoutManifestSha256[] =
     "b8a9f4f909b66104f1815d9ed49791c8692077455a517f2d4e8f0defe6893dd7";
 

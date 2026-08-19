@@ -195,7 +195,7 @@ class VlTaskQualityEvidenceTest(unittest.TestCase):
                     "0f3a6a2f9dee6620443ee2145ee1f8257bde65a378589952840d99bf3d485c10"
                 ),
                 "vision_attention_image": (
-                    "e8757f4464fdb39f5505241a1ffd0f40b74f18704318280e070015bd4302d71c"
+                    "8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e"
                 ),
             },
         )
