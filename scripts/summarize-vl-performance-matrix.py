@@ -13,7 +13,19 @@ import json
 import math
 from pathlib import Path
 import statistics
+import sys
 from typing import Any, Mapping, Sequence
+
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from aima_engine.vl_reference import (  # noqa: E402
+    atomic_json,
+    file_component,
+    seal_manifest,
+    verify_manifest_integrity,
+)
 
 
 SCHEMA = "aima-amd395-qwen36/vl-performance/v1"
@@ -29,6 +41,7 @@ THROUGHPUT_RATIOS = (
     "prefill_tps_candidate_over_reference",
     "vision_tps_candidate_over_reference",
 )
+AVAILABILITY_SCHEMA = "aima-amd395-qwen36/vl-performance-reference-availability/v1"
 
 
 def load_object(path: Path) -> dict[str, Any]:
@@ -44,6 +57,14 @@ def sha256_file(path: Path) -> str:
         for block in iter(lambda: stream.read(1024 * 1024), b""):
             digest.update(block)
     return digest.hexdigest()
+
+
+def logical_path(path: Path) -> str:
+    resolved = path.resolve()
+    try:
+        return resolved.relative_to(ROOT).as_posix()
+    except ValueError:
+        return str(resolved)
 
 
 def finite_float(value: object, label: str) -> float:
@@ -69,7 +90,7 @@ def pair_record(pair_dir: Path) -> dict[str, Any]:
     summary_path = pair_dir / "summary.json"
     summary = load_object(summary_path)
     return {
-        "pair_dir": str(pair_dir),
+        "pair_dir": logical_path(pair_dir),
         "summary_sha256": sha256_file(summary_path),
         "pair_index": summary.get("pair_index"),
         "execution_order": summary.get("execution_order"),
@@ -78,6 +99,35 @@ def pair_record(pair_dir: Path) -> dict[str, Any]:
         "checks": summary.get("checks"),
         "process_groups": summary.get("process_groups"),
         "cells": summary.get("cells"),
+    }
+
+
+def identity_from_availability(
+    path: Path, matrix: Mapping[str, Any]
+) -> dict[str, Any]:
+    availability = load_object(path)
+    if (
+        availability.get("schema") != AVAILABILITY_SCHEMA
+        or availability.get("complete") is not True
+        or verify_manifest_integrity(availability)
+    ):
+        raise ValueError("reference availability manifest is incomplete or corrupt")
+    identity = availability.get("artifact_identity")
+    if not isinstance(identity, Mapping):
+        raise ValueError("reference availability artifact identity is missing")
+    identity_checks = identity.get("checks")
+    if (
+        not isinstance(identity_checks, Mapping)
+        or not identity_checks
+        or not all(value is True for value in identity_checks.values())
+    ):
+        raise ValueError("reference availability artifact identity is incomplete")
+    binding = matrix.get("bindings", {}).get("reference_availability", {})
+    if not isinstance(binding, Mapping) or binding.get("sha256") != sha256_file(path):
+        raise ValueError("comparable matrix does not bind reference availability")
+    return {
+        **dict(identity),
+        "reference_availability": file_component(path, logical_path(path)),
     }
 
 
@@ -338,43 +388,109 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--pair-dir", action="append", type=Path, required=True)
     parser.add_argument("--matrix", type=Path, required=True)
-    parser.add_argument("--candidate-binary", type=Path, required=True)
-    parser.add_argument("--candidate-source-commit", required=True)
-    parser.add_argument("--reference-python", type=Path, required=True)
-    parser.add_argument("--model-dir", type=Path, required=True)
+    parser.add_argument("--reference-availability", type=Path)
+    parser.add_argument("--candidate-binary", type=Path)
+    parser.add_argument("--candidate-source-commit")
+    parser.add_argument("--reference-python", type=Path)
+    parser.add_argument("--model-dir", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    if args.output.exists():
-        raise SystemExit(f"refusing to overwrite G4 matrix summary: {args.output}")
+    sidecar = args.output.with_name(args.output.name + ".sha256")
+    if args.output.exists() or sidecar.exists():
+        raise SystemExit(
+            f"refusing to overwrite G4 matrix summary or sidecar: {args.output}"
+        )
     matrix_path = args.matrix.resolve()
     matrix = load_object(matrix_path)
-    helper = paired_identity_module()
-    model_index = args.model_dir.resolve() / "model.safetensors.index.json"
-    if not model_index.is_file():
-        raise SystemExit("model checkpoint index is missing")
-    identity = {
-        "candidate": helper.candidate_identity(
-            args.candidate_binary, args.candidate_source_commit
-        ),
-        "reference": helper.reference_identity(args.reference_python),
-        "model": {
-            "checkpoint_index_path": str(model_index),
-            "checkpoint_index_sha256": sha256_file(model_index),
-        },
-        "matrix": {
-            "path": str(matrix_path),
-            "bytes": matrix_path.stat().st_size,
-            "sha256": sha256_file(matrix_path),
-            "integrity": matrix.get("integrity"),
-        },
+    if matrix.get("complete") is not True or verify_manifest_integrity(matrix):
+        raise SystemExit("performance matrix is incomplete or corrupt")
+    legacy_args = (
+        args.candidate_binary,
+        args.candidate_source_commit,
+        args.reference_python,
+        args.model_dir,
+    )
+    if args.reference_availability is not None:
+        if any(value is not None for value in legacy_args):
+            parser.error(
+                "--reference-availability cannot be combined with runtime identity arguments"
+            )
+        availability_path = args.reference_availability.resolve()
+        identity = identity_from_availability(availability_path, matrix)
+    else:
+        if any(value is None for value in legacy_args):
+            parser.error(
+                "provide --reference-availability or every runtime identity argument"
+            )
+        assert args.candidate_binary is not None
+        assert args.candidate_source_commit is not None
+        assert args.reference_python is not None
+        assert args.model_dir is not None
+        helper = paired_identity_module()
+        model_index = args.model_dir.resolve() / "model.safetensors.index.json"
+        if not model_index.is_file():
+            raise SystemExit("model checkpoint index is missing")
+        identity = {
+            "candidate": helper.candidate_identity(
+                args.candidate_binary, args.candidate_source_commit
+            ),
+            "reference": helper.reference_identity(args.reference_python),
+            "model": {
+                "checkpoint_index_path": str(model_index),
+                "checkpoint_index_sha256": sha256_file(model_index),
+            },
+        }
+    identity["matrix"] = {
+        "path": logical_path(matrix_path),
+        "bytes": matrix_path.stat().st_size,
+        "sha256": sha256_file(matrix_path),
+        "integrity": matrix.get("integrity"),
     }
     records = [pair_record(path.resolve()) for path in args.pair_dir]
     result = aggregate(records, matrix, identity)
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(
-        json.dumps(result, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
+    binding_paths = {
+        "matrix": matrix_path,
+        "pair_runner": ROOT / "scripts/run-vl-performance-matrix-pair.sh",
+        "candidate_launcher": (
+            ROOT / "scripts/run-native-vl-performance-candidate.sh"
+        ),
+        "reference_launcher": (
+            ROOT / "scripts/run-vllm-vl-performance-reference.sh"
+        ),
+        "request_capture": ROOT / "scripts/capture-vl-performance-request.py",
+        "raw_log_sanitizer": (
+            ROOT / "scripts/sanitize-vl-performance-reference-log.py"
+        ),
+        "reference_entrypoint": (
+            ROOT / "scripts/aima_vllm_vl_performance_server.py"
+        ),
+        "reference_middleware": (
+            ROOT / "scripts/vllm_vl_benchmark_middleware.py"
+        ),
+        "pair_summarizer": (
+            ROOT / "scripts/summarize-vl-performance-matrix-pair.py"
+        ),
+        "aggregator": Path(__file__).resolve(),
+    }
+    result["bindings"] = {
+        name: file_component(path, logical_path(path))
+        for name, path in binding_paths.items()
+    }
+    result["command_templates"] = {
+        "pair": (
+            "AIMA_VL_PAIR_INDEX=<1..5> AIMA_VL_MATRIX_DIR=<fresh-pair-dir> "
+            "AIMA_VL_MATRIX_PATH=<bound-comparable-matrix> "
+            "scripts/run-vl-performance-matrix-pair.sh"
+        ),
+        "aggregate": (
+            "python3 scripts/summarize-vl-performance-matrix.py "
+            "--pair-dir <pair-1> ... --pair-dir <pair-5> "
+            "--matrix <bound-comparable-matrix> "
+            "--reference-availability <bound-availability> --output <result>"
+        ),
+    }
+    result = seal_manifest(result)
+    atomic_json(args.output.resolve(), result)
     print(
         json.dumps(
             {

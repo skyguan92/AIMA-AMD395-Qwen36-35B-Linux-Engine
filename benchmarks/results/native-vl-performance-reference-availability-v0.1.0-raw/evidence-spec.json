@@ -1,0 +1,52 @@
+{
+  "schema": "aima-amd395-qwen36/vl-performance-reference-availability-spec/v1",
+  "artifact_identity": "raw/artifact-identity.json",
+  "cells": [
+    {
+      "cell_id": "image_multi_typical_q128k_output1",
+      "candidate": {
+        "request": "raw/image-q128/pair-2/candidate-request.json",
+        "health": "raw/image-q128/pair-2/candidate-health.json"
+      },
+      "reference_attempts": [
+        {
+          "request": "raw/image-q128/pair-1/reference-request.json",
+          "stage_log": "raw/image-q128/pair-1/reference-stages.jsonl",
+          "server_log": "raw/image-q128/pair-1/reference-server.txt"
+        },
+        {
+          "request": "raw/image-q128/pair-2/reference-request.json",
+          "stage_log": "raw/image-q128/pair-2/reference-stages.jsonl",
+          "server_log": "raw/image-q128/pair-2/reference-server.txt"
+        }
+      ]
+    },
+    {
+      "cell_id": "video_sampling_typical_q128k_output1",
+      "candidate": {
+        "request": "raw/video-q128/pair-2/candidate-request.json",
+        "health": "raw/video-q128/pair-2/candidate-health.json"
+      },
+      "reference_attempts": [
+        {
+          "stage_log": "raw/video-q128/pair-2/reference-stages.jsonl",
+          "server_log": "raw/video-q128/pair-2/reference-server.txt"
+        }
+      ]
+    },
+    {
+      "cell_id": "image_multi_max_near_window_output1",
+      "candidate": {
+        "request": "raw/near-window/candidate-request.json",
+        "health": "raw/near-window/candidate-health.json"
+      },
+      "reference_attempts": [
+        {
+          "request": "raw/near-window/pair-1/reference-request.json",
+          "stage_log": "raw/near-window/pair-1/reference-stages.jsonl",
+          "server_log": "raw/near-window/pair-1/reference-server.txt"
+        }
+      ]
+    }
+  ]
+}

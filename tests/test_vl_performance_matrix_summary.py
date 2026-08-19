@@ -6,8 +6,12 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 from pathlib import Path
+import tempfile
 import unittest
+
+from aima_engine.vl_reference import seal_manifest
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -166,6 +170,43 @@ class VlPerformanceMatrixSummaryTest(unittest.TestCase):
                 "every_comparable_cell_paired_median_qualified"
             ]
         )
+
+    def test_identity_can_be_reused_from_bound_availability(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            availability_path = root / "availability.json"
+            availability = seal_manifest(
+                {
+                    "schema": summary.AVAILABILITY_SCHEMA,
+                    "complete": True,
+                    "artifact_identity": {
+                        "checks": {"complete": True},
+                        "candidate": {"source_commit": "a" * 40},
+                        "reference": {"vllm_version": "test"},
+                        "model": {"checkpoint_index_sha256": "b" * 64},
+                        "host": {"hostname": "test-host"},
+                    },
+                }
+            )
+            availability_path.write_text(
+                json.dumps(availability) + "\n",
+                encoding="utf-8",
+            )
+            bound_matrix = {
+                "bindings": {
+                    "reference_availability": {
+                        "sha256": summary.sha256_file(availability_path)
+                    }
+                }
+            }
+            identity = summary.identity_from_availability(
+                availability_path, bound_matrix
+            )
+            self.assertEqual(identity["candidate"]["source_commit"], "a" * 40)
+            self.assertEqual(
+                identity["reference_availability"]["sha256"],
+                summary.sha256_file(availability_path),
+            )
 
 
 if __name__ == "__main__":

@@ -1,0 +1,123 @@
+{
+  "schema": "aima-amd395-qwen36/vl-performance-request-sample/v1",
+  "captured_at": "2026-08-19T09:13:16+00:00",
+  "complete": false,
+  "benchmark_id": "image_multi_typical_q128k_output1.pair-2",
+  "engine_role": "reference",
+  "endpoint": "${AIMA_LOOPBACK_ENDPOINT}",
+  "server_pid": 2735190,
+  "host": {
+    "hostname": "quings"
+  },
+  "request": {
+    "path": "/tmp/aima-native-vl-final-39bf608/src-g4-matrix-v63-linear-added-tokens/benchmarks/fixtures/vl-performance-v0.1.0/requests/image_multi_typical_q128k_output1.json",
+    "template_sha256": "c329fa7e527bbbb8ed234bbbd0c7fb51195baf9cb41b2d3212e52d3ce4b96591",
+    "sha256": "324a265eb8a482ae9ad84065c0db9598608f48540d702bf426d261aa5c8e6c06",
+    "bytes": 261703,
+    "summary": {
+      "message_count": 1,
+      "image_count": 2,
+      "video_count": 0,
+      "text_characters": 261115,
+      "max_tokens": 1,
+      "stream": true,
+      "temperature": 0
+    },
+    "media": [
+      {
+        "index": 0,
+        "modality": "image",
+        "path": "${AIMA_VL_MEDIA_ROOT}/vl-envelope-v0.1.0/image-portrait-256x1024.png",
+        "bytes": 2192,
+        "sha256": "419ba57fd5d1ec9b53285b8dc8d7eaad0270403484228a1eff6d84440d0652a6"
+      },
+      {
+        "index": 1,
+        "modality": "image",
+        "path": "${AIMA_VL_MEDIA_ROOT}/vl-envelope-v0.1.0/image-landscape-1024x256.png",
+        "bytes": 1408,
+        "sha256": "31e6ea8c7e2fbfa42211efa72c707f047a070b006287ae6c7ac924bca9f11491"
+      }
+    ],
+    "prompt_nonce_sha256": "488809467f7f4ae2afa0e41d48963a571b0771aed05c6c448fcff811283181b5",
+    "text_padding": {
+      "tokens": 130496,
+      "unit_sha256": "830a815db067f9501633539c2505e8c8a82ecc045b2adea256a55365ef516c4b",
+      "frozen_single_token_id": 830
+    },
+    "expected_completion_tokens": 1
+  },
+  "response": {
+    "status_code": 200,
+    "sse_done": true,
+    "event_count": 1,
+    "event_stream_sha256": "6afbf9fceecfd2c8ada531e61e40504290a72a49f7054061e4f6b5090b4e4257",
+    "semantic_chunks": 0,
+    "content_bytes": 0,
+    "content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "finish_reason": null,
+    "usage": null,
+    "error": {
+      "message": "EngineCore encountered an issue. See stack trace (above) for the root cause.",
+      "type": "InternalServerError",
+      "code": 500,
+      "param": null
+    }
+  },
+  "timings": {
+    "ttft_seconds": null,
+    "total_seconds": 558.680295612,
+    "decode_tokens_per_second": null
+  },
+  "memory": {
+    "process_tree_root_pid": 2735190,
+    "sample_interval_seconds": 0.1,
+    "samples": 5551,
+    "peak_host_rss_bytes": 3957936128,
+    "peak_gtt_used_bytes": 96791142400,
+    "peak_vram_used_bytes": 375193600,
+    "drm_card": "card0"
+  },
+  "native_metrics": null,
+  "prometheus": {
+    "before": {
+      "vllm:prompt_tokens": 0.0,
+      "vllm:prompt_tokens_cached": 0.0,
+      "vllm:generation_tokens": 0.0,
+      "vllm:time_to_first_token_seconds_count": 1.0,
+      "vllm:time_to_first_token_seconds_sum": 0.31121206283569336,
+      "vllm:e2e_request_latency_seconds_count": 1.0,
+      "vllm:e2e_request_latency_seconds_sum": 0.31121206283569336,
+      "vllm:request_prefill_time_seconds_count": 1.0,
+      "vllm:request_prefill_time_seconds_sum": 0.2500934302806854,
+      "vllm:request_decode_time_seconds_count": 1.0,
+      "vllm:request_decode_time_seconds_sum": 0.0
+    },
+    "after": {
+      "vllm:prompt_tokens": 0.0,
+      "vllm:prompt_tokens_cached": 0.0,
+      "vllm:generation_tokens": 0.0,
+      "vllm:time_to_first_token_seconds_count": 1.0,
+      "vllm:time_to_first_token_seconds_sum": 0.31121206283569336,
+      "vllm:e2e_request_latency_seconds_count": 1.0,
+      "vllm:e2e_request_latency_seconds_sum": 0.31121206283569336,
+      "vllm:request_prefill_time_seconds_count": 1.0,
+      "vllm:request_prefill_time_seconds_sum": 0.2500934302806854,
+      "vllm:request_decode_time_seconds_count": 1.0,
+      "vllm:request_decode_time_seconds_sum": 0.0
+    },
+    "delta": {
+      "vllm:prompt_tokens": 0.0,
+      "vllm:prompt_tokens_cached": 0.0,
+      "vllm:generation_tokens": 0.0,
+      "vllm:time_to_first_token_seconds_count": 0.0,
+      "vllm:time_to_first_token_seconds_sum": 0.0,
+      "vllm:e2e_request_latency_seconds_count": 0.0,
+      "vllm:e2e_request_latency_seconds_sum": 0.0,
+      "vllm:request_prefill_time_seconds_count": 0.0,
+      "vllm:request_prefill_time_seconds_sum": 0.0,
+      "vllm:request_decode_time_seconds_count": 0.0,
+      "vllm:request_decode_time_seconds_sum": 0.0
+    }
+  }
+}

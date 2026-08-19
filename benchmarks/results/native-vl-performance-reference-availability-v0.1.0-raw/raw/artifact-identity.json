@@ -1,0 +1,58 @@
+{
+  "candidate": {
+    "files": [
+      {
+        "bytes": 39573096,
+        "path": "aima-engine-native",
+        "sha256": "e342889dd6ea026ee450f13feae920a33dafb63dc75726c0615e6cfb46dc5cf3"
+      },
+      {
+        "bytes": 22968,
+        "path": "libaima-fmha-aotriton.so",
+        "sha256": "98e6c47c017837ab796e3ca2e8256740d1e9cb6ec2f460af45ee586cd5fb7bd1"
+      },
+      {
+        "bytes": 93680,
+        "path": "libaima-fmha-ck.so",
+        "sha256": "f4666f47f7dd185c8d8017b13d7af823f10cc1d47175a737f867d0ba3dea4a29"
+      },
+      {
+        "bytes": 162792,
+        "path": "libaima-fmha-q16384-hybrid.so",
+        "sha256": "983b986eb7e8ce93624565d1611a528f64216772bcae9114727574b073c5d3ef"
+      },
+      {
+        "bytes": 18174192,
+        "path": "libaotriton_v2.so.0.11.1",
+        "sha256": "e0638806efa5d35cef04fd7fb02c62cd038b3a38727ecb5d87a49045aa1b9aa5"
+      },
+      {
+        "bytes": 51568,
+        "path": "aima-vision-attention.hsaco",
+        "sha256": "b709a058a77d61e14db73c1ff7d7f4c20859d997bec811cad7339d3e59223d00"
+      },
+      {
+        "bytes": 219800,
+        "path": "aotriton.images/amd-gfx11xx/flash/attn_fwd/FONLY__\uff0abf16@16_256_F_F_3_0___gfx11xx.aks2",
+        "sha256": "0f3a6a2f9dee6620443ee2145ee1f8257bde65a378589952840d99bf3d485c10"
+      }
+    ],
+    "source_commit": "d9788179e7716b92ecc115907c50b19483b147fc"
+  },
+  "host": {
+    "hostname": "quings",
+    "platform": "Linux-6.14.0-1020-oem-x86_64-with-glibc2.39"
+  },
+  "model": {
+    "checkpoint_index_path": "/data/models/.cache_tmp/aima-hidden-20260622-161330/Qwen3.6-35B-A3B/model.safetensors.index.json",
+    "checkpoint_index_sha256": "41b9356101ebf8e7519e150dc811f80c4226e727301fbb032b890f006ed0be83"
+  },
+  "reference": {
+    "python_path": "${AIMA_VLLM_PYTHON}",
+    "python_resolved_path": "/usr/bin/python3.12",
+    "python_sha256": "1643dacd9feaedc58f3cc581e4d22577dfe25c09b10282936186ccf0f2e61118",
+    "vllm_metadata_sha256": "e51c275bb1a6cf8e3495d3d9f12a528b139c7fd15b38b81f8893b3e78d63d2b0",
+    "vllm_version": "0.19.1rc1.dev300+g29e5d1020.rocm721"
+  },
+  "schema": "aima-amd395-qwen36/vl-performance-artifact-identity/v1"
+}

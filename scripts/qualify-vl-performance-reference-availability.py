@@ -49,6 +49,29 @@ FROZEN_MODEL_INDEX_SHA256 = (
     "41b9356101ebf8e7519e150dc811f80c4226e727301fbb032b890f006ed0be83"
 )
 FROZEN_VLLM_VERSION = "0.19.1rc1.dev300+g29e5d1020"
+CLEAN_SOURCE_COMMIT = re.compile(r"^[0-9a-f]{40}$")
+SHA256 = re.compile(r"^[0-9a-f]{64}$")
+CANDIDATE_CLOSURE_PATHS = frozenset(
+    {
+        "aima-engine-native",
+        "aima-vision-attention.hsaco",
+        "libaima-fmha-aotriton.so",
+        "libaima-fmha-ck.so",
+        "libaima-fmha-q16384-hybrid.so",
+        "libaotriton_v2.so.0.11.1",
+        (
+            "aotriton.images/amd-gfx11xx/flash/attn_fwd/"
+            "FONLY__＊bf16@16_256_F_F_3_0___gfx11xx.aks2"
+        ),
+    }
+)
+REDACTED_LOG_PREFIX = "AIMA_REDACTED_LOG_METADATA "
+REDACTED_LOG_SCHEMA = "aima-amd395-qwen36/vl-performance-redacted-log/v1"
+PRIVATE_IPV4 = re.compile(
+    r"\b(?:10\.(?:[0-9]{1,3}\.){2}[0-9]{1,3}"
+    r"|192\.168\.[0-9]{1,3}\.[0-9]{1,3}"
+    r"|172\.(?:1[6-9]|2[0-9]|3[01])\.[0-9]{1,3}\.[0-9]{1,3})\b"
+)
 
 
 def finite_positive(value: object) -> bool:
@@ -67,6 +90,54 @@ def mapping(value: object) -> Mapping[str, Any]:
 def benchmark_base(value: object) -> str | None:
     match = BENCHMARK_ID.fullmatch(value) if isinstance(value, str) else None
     return match.group(1) if match is not None else None
+
+
+def clean_source_commit(value: object) -> bool:
+    return (
+        isinstance(value, str)
+        and CLEAN_SOURCE_COMMIT.fullmatch(value) is not None
+    )
+
+
+def exact_candidate_closure(value: object) -> bool:
+    if not isinstance(value, list) or len(value) != len(CANDIDATE_CLOSURE_PATHS):
+        return False
+    paths: list[str] = []
+    for item in value:
+        if not isinstance(item, Mapping):
+            return False
+        path = item.get("path")
+        size = item.get("bytes")
+        digest = item.get("sha256")
+        if (
+            not isinstance(path, str)
+            or not isinstance(size, int)
+            or isinstance(size, bool)
+            or size <= 0
+            or not isinstance(digest, str)
+            or SHA256.fullmatch(digest) is None
+        ):
+            return False
+        paths.append(path)
+    return len(set(paths)) == len(paths) and set(paths) == CANDIDATE_CLOSURE_PATHS
+
+
+def redacted_log_metadata(value: str) -> Mapping[str, Any]:
+    first_line = value.splitlines()[0] if value else ""
+    if not first_line.startswith(REDACTED_LOG_PREFIX):
+        return {}
+    try:
+        metadata = json.loads(first_line[len(REDACTED_LOG_PREFIX) :])
+    except json.JSONDecodeError:
+        return {}
+    return metadata if isinstance(metadata, Mapping) else {}
+
+
+def public_log_safe(value: str) -> bool:
+    forbidden = ("/home/", "/data/home/", "/data/models/", "/tmp/aima-native")
+    return not any(marker in value for marker in forbidden) and not PRIVATE_IPV4.search(
+        value
+    )
 
 
 def resolve_evidence_path(root: Path, value: object, label: str) -> Path:
@@ -224,6 +295,8 @@ def reference_attempt_record(
     )
     stage = stage_record(stage_path, cell_id)
     server_log = server_log_path.read_text(encoding="utf-8", errors="replace")
+    redaction = redacted_log_metadata(server_log)
+    replacement_counts = mapping(redaction.get("replacement_counts"))
     computed = [int(item) for item in COMPUTED_TOKENS.findall(server_log)]
     scheduled = [int(item) for item in SCHEDULED_TOKENS.findall(server_log)]
     request_path: Path | None = None
@@ -248,6 +321,28 @@ def reference_attempt_record(
         "hip_launch_failure_logged": (
             "HIP error: unspecified launch failure" in server_log
             and "Error code 719" in server_log
+        ),
+        "published_log_redaction_bound": (
+            redaction.get("schema") == REDACTED_LOG_SCHEMA
+            and isinstance(redaction.get("source_bytes"), int)
+            and not isinstance(redaction.get("source_bytes"), bool)
+            and redaction["source_bytes"] > 0
+            and isinstance(redaction.get("source_sha256"), str)
+            and SHA256.fullmatch(redaction["source_sha256"]) is not None
+            and all(
+                isinstance(replacement_counts.get(name), int)
+                and not isinstance(replacement_counts.get(name), bool)
+                and replacement_counts[name] > 0
+                for name in (
+                    "private_home",
+                    "private_ipv4",
+                    "benchmark_root",
+                    "model_root",
+                )
+            )
+        ),
+        "published_log_contains_no_private_deployment_path": public_log_safe(
+            server_log
         ),
         "request_absent_or_incomplete": not request
         or request.get("complete") is False,
@@ -280,6 +375,11 @@ def reference_attempt_record(
         "request_total_seconds": mapping(request.get("timings")).get(
             "total_seconds"
         ),
+        "original_server_log": {
+            "bytes": redaction.get("source_bytes"),
+            "sha256": redaction.get("source_sha256"),
+            "redaction_counts": dict(replacement_counts),
+        },
         "peak_host_rss_bytes": mapping(request.get("memory")).get(
             "peak_host_rss_bytes"
         ),
@@ -331,15 +431,13 @@ def qualify(
     identity_checks = {
         "identity_schema_exact": identity.get("schema")
         == "aima-amd395-qwen36/vl-performance-artifact-identity/v1",
-        "candidate_source_identity_present": isinstance(
-            candidate_identity.get("source_commit"), str
-        )
-        and bool(candidate_identity.get("source_commit")),
+        "candidate_source_identity_clean": clean_source_commit(
+            candidate_identity.get("source_commit")
+        ),
         "candidate_binary_sha256_present": isinstance(candidate_binary, Mapping)
         and isinstance(candidate_binary.get("sha256"), str)
-        and len(candidate_binary["sha256"]) == 64,
-        "candidate_closure_complete": isinstance(candidate_files, list)
-        and len(candidate_files) == 7,
+        and SHA256.fullmatch(candidate_binary["sha256"]) is not None,
+        "candidate_closure_exact": exact_candidate_closure(candidate_files),
         "reference_vllm_exact": str(
             reference_identity.get("vllm_version", "")
         ).startswith(FROZEN_VLLM_VERSION),
@@ -431,6 +529,11 @@ def qualify(
             "evidence_spec": bound_file(spec_path),
             "artifact_identity": bound_file(identity_path),
             "qualifier": bound_file(Path(__file__)),
+            "log_sanitizer": bound_file(
+                Path(__file__).with_name(
+                    "sanitize-vl-performance-reference-log.py"
+                )
+            ),
         },
         "artifact_identity": {
             "checks": identity_checks,

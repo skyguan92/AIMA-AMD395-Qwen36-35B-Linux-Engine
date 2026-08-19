@@ -1,0 +1,508 @@
+{
+  "artifact_identity": {
+    "candidate": {
+      "files": [
+        {
+          "bytes": 39573096,
+          "path": "aima-engine-native",
+          "sha256": "e342889dd6ea026ee450f13feae920a33dafb63dc75726c0615e6cfb46dc5cf3"
+        },
+        {
+          "bytes": 22968,
+          "path": "libaima-fmha-aotriton.so",
+          "sha256": "98e6c47c017837ab796e3ca2e8256740d1e9cb6ec2f460af45ee586cd5fb7bd1"
+        },
+        {
+          "bytes": 93680,
+          "path": "libaima-fmha-ck.so",
+          "sha256": "f4666f47f7dd185c8d8017b13d7af823f10cc1d47175a737f867d0ba3dea4a29"
+        },
+        {
+          "bytes": 162792,
+          "path": "libaima-fmha-q16384-hybrid.so",
+          "sha256": "983b986eb7e8ce93624565d1611a528f64216772bcae9114727574b073c5d3ef"
+        },
+        {
+          "bytes": 18174192,
+          "path": "libaotriton_v2.so.0.11.1",
+          "sha256": "e0638806efa5d35cef04fd7fb02c62cd038b3a38727ecb5d87a49045aa1b9aa5"
+        },
+        {
+          "bytes": 51568,
+          "path": "aima-vision-attention.hsaco",
+          "sha256": "b709a058a77d61e14db73c1ff7d7f4c20859d997bec811cad7339d3e59223d00"
+        },
+        {
+          "bytes": 219800,
+          "path": "aotriton.images/amd-gfx11xx/flash/attn_fwd/FONLY__\uff0abf16@16_256_F_F_3_0___gfx11xx.aks2",
+          "sha256": "0f3a6a2f9dee6620443ee2145ee1f8257bde65a378589952840d99bf3d485c10"
+        }
+      ],
+      "source_commit": "d9788179e7716b92ecc115907c50b19483b147fc"
+    },
+    "checks": {
+      "candidate_binary_sha256_present": true,
+      "candidate_closure_exact": true,
+      "candidate_source_identity_clean": true,
+      "host_identity_present": true,
+      "identity_schema_exact": true,
+      "model_checkpoint_index_exact": true,
+      "reference_vllm_exact": true
+    },
+    "host": {
+      "hostname": "quings",
+      "platform": "Linux-6.14.0-1020-oem-x86_64-with-glibc2.39"
+    },
+    "model": {
+      "checkpoint_index_sha256": "41b9356101ebf8e7519e150dc811f80c4226e727301fbb032b890f006ed0be83"
+    },
+    "reference": {
+      "python_sha256": "1643dacd9feaedc58f3cc581e4d22577dfe25c09b10282936186ccf0f2e61118",
+      "vllm_metadata_sha256": "e51c275bb1a6cf8e3495d3d9f12a528b139c7fd15b38b81f8893b3e78d63d2b0",
+      "vllm_version": "0.19.1rc1.dev300+g29e5d1020.rocm721"
+    }
+  },
+  "bindings": {
+    "artifact_identity": {
+      "bytes": 2148,
+      "path": "benchmarks/results/native-vl-performance-reference-availability-v0.1.0-raw/raw/artifact-identity.json",
+      "sha256": "4e3de7d475e8e09c34bc467e549c7c75563c8cfb6a14c0e835d8e43ee88575f5"
+    },
+    "evidence_spec": {
+      "bytes": 1795,
+      "path": "benchmarks/results/native-vl-performance-reference-availability-v0.1.0-raw/evidence-spec.json",
+      "sha256": "497b3955df89773e58712a3dd59644ac59c2b92173abb1ec9ed4f76240ef44fe"
+    },
+    "log_sanitizer": {
+      "bytes": 3240,
+      "path": "scripts/sanitize-vl-performance-reference-log.py",
+      "sha256": "a99eb0745d953651c0743f891628f65908aa3c576ced4ec4429340fd84d9cc67"
+    },
+    "matrix": {
+      "bytes": 48164,
+      "path": "benchmarks/fixtures/vl-performance-v0.1.0/matrix.json",
+      "sha256": "65ea13db0bfb49f3da2a8121768ab2d8e88088a3e8190190710ee96f7aee8a1a"
+    },
+    "qualifier": {
+      "bytes": 28916,
+      "path": "scripts/qualify-vl-performance-reference-availability.py",
+      "sha256": "aecbc2df3e4154351af2d7f4b20fee97596297de4cca20340d5e117863475f4e"
+    }
+  },
+  "cell_count": 3,
+  "cells": [
+    {
+      "candidate_capability": {
+        "benchmark_id": "image_multi_typical_q128k_output1.isolated-1",
+        "checks": {
+          "benchmark_cell_exact": true,
+          "candidate_complete": true,
+          "expected_completion_exact": true,
+          "media_order_and_content_exact": true,
+          "native_media_cache_disabled": true,
+          "native_prefix_cache_disabled": true,
+          "native_runtime_exact": true,
+          "native_visual_tokens_exact": true,
+          "prompt_context_exact": true,
+          "ready_includes_vision": true,
+          "request_template_exact": true,
+          "response_completion_exact": true,
+          "text_padding_exact": true
+        },
+        "complete": true,
+        "completion_tokens": 1,
+        "health": {
+          "bytes": 999,
+          "path": "benchmarks/results/native-vl-performance-reference-availability-v0.1.0-raw/raw/image-q128/pair-2/candidate-health.json",
+          "sha256": "774e6b5ad0ae5a6d0eb0e796dcbdddff67e635e80f6761f3959df14c0909fdd9"
+        },
+        "hostname": "quings",
+        "peak_gtt_used_bytes": 87667687424,
+        "peak_host_rss_bytes": 536440832,
+        "prompt_tokens": 131056,
+        "request": {
+          "bytes": 5645,
+          "path": "benchmarks/results/native-vl-performance-reference-availability-v0.1.0-raw/raw/image-q128/pair-2/candidate-request.json",
+          "sha256": "136e040a084965d6ddf909be658d6a9a7429aa910bcabf2899d9caeb3f44130c"
+        },
+        "total_seconds": 134.887675261,
+        "ttft_seconds": 134.887186519
+      },
+      "cell_id": "image_multi_typical_q128k_output1",
+      "checks": {
+        "candidate_exact_capability_complete": true,
+        "every_reference_attempt_fatal": true,
+        "reference_attempts_present": true
+      },
+      "complete": true,
+      "coverage": {
+        "cache": [
+          "disabled"
+        ],
+        "context": [
+          "128k"
+        ],
+        "image": [
+          "multi_typical",
+          "portrait",
+          "landscape"
+        ],
+        "output": [
+          "1"
+        ]
+      },
+      "performance_decision": "not_comparable_not_candidate_pass",
+      "reason": "fixed vLLM reference fatally exits with HIP launch failure 719 before producing a token",
+      "reference_attempts": [
+        {
+          "asgi_total_seconds": 446.013589762,
+          "benchmark_id": "image_multi_typical_q128k_output1.pair-1",
+          "checks": {
+            "engine_core_fatal_logged": true,
+            "hip_launch_failure_logged": true,
+            "one_matching_stage_record": true,
+            "published_log_contains_no_private_deployment_path": true,
+            "published_log_redaction_bound": true,
+            "request_absent_or_incomplete": true,
+            "request_absent_or_same_cell": true,
+            "request_absent_or_template_exact": true,
+            "request_absent_or_zero_output": true,
+            "stage_has_no_request_error": true,
+            "stage_reports_engine_dead": true,
+            "stage_total_observed": true
+          },
+          "complete": true,
+          "computed_tokens_before_failure": 65536,
+          "evidence": {
+            "request": {
+              "bytes": 4511,
+              "path": "benchmarks/results/native-vl-performance-reference-availability-v0.1.0-raw/raw/image-q128/pair-1/reference-request.json",
+              "sha256": "86897389f599bfba03e83e225c3b9d3adcfdd65e2c5d9792d0e1f0a72fd25793"
+            },
+            "server_log": {
+              "bytes": 44256,
+              "path": "benchmarks/results/native-vl-performance-reference-availability-v0.1.0-raw/raw/image-q128/pair-1/reference-server.txt",
+              "sha256": "3c645cb878055ba405b18ce55c6d8c5b4b363d3ebe076b9e8dfa9f23d2a37446"
+            },
+            "stage_log": {
+              "bytes": 683,
+              "path": "benchmarks/results/native-vl-performance-reference-availability-v0.1.0-raw/raw/image-q128/pair-1/reference-stages.jsonl",
+              "sha256": "a3e81aa06493a8ac8a827be08db71f0790685c8f0993042df15dfd217a75d210"
+            }
+          },
+          "original_server_log": {
+            "bytes": 44075,
+            "redaction_counts": {
+              "benchmark_root": 1,
+              "model_root": 7,
+              "private_home": 38,
+              "private_ipv4": 1
+            },
+            "sha256": "82c708e80b40f1e518cdc489794a8c14f50d0ea6d6dbd22a99c13e6d74dcff44"
+          },
+          "peak_gtt_used_bytes": 96783802368,
+          "peak_host_rss_bytes": 4850552832,
+          "request_total_seconds": 446.015054289,
+          "scheduled_tokens_at_failure": 16384
+        },
+        {
+          "asgi_total_seconds": 558.678476449,
+          "benchmark_id": "image_multi_typical_q128k_output1.pair-2",
+          "checks": {
+            "engine_core_fatal_logged": true,
+            "hip_launch_failure_logged": true,
+            "one_matching_stage_record": true,
+            "published_log_contains_no_private_deployment_path": true,
+            "published_log_redaction_bound": true,
+            "request_absent_or_incomplete": true,
+            "request_absent_or_same_cell": true,
+            "request_absent_or_template_exact": true,
+            "request_absent_or_zero_output": true,
+            "stage_has_no_request_error": true,
+            "stage_reports_engine_dead": true,
+            "stage_total_observed": true
+          },
+          "complete": true,
+          "computed_tokens_before_failure": 81920,
+          "evidence": {
+            "request": {
+              "bytes": 4513,
+              "path": "benchmarks/results/native-vl-performance-reference-availability-v0.1.0-raw/raw/image-q128/pair-2/reference-request.json",
+              "sha256": "d0a9f885fa4f6927a1c6f026b6eef0313d66bb1d242bf07b10d5f770cf66e967"
+            },
+            "server_log": {
+              "bytes": 44268,
+              "path": "benchmarks/results/native-vl-performance-reference-availability-v0.1.0-raw/raw/image-q128/pair-2/reference-server.txt",
+              "sha256": "4a18ffe1b168ecc37b6c851236d37bfb83a5d496f333f53bacc5323cccfe4a7d"
+            },
+            "stage_log": {
+              "bytes": 693,
+              "path": "benchmarks/results/native-vl-performance-reference-availability-v0.1.0-raw/raw/image-q128/pair-2/reference-stages.jsonl",
+              "sha256": "6287828ebc61cf4811531970b386df3492f1e15f03d1c70a408c63902d7509b0"
+            }
+          },
+          "original_server_log": {
+            "bytes": 44087,
+            "redaction_counts": {
+              "benchmark_root": 1,
+              "model_root": 7,
+              "private_home": 38,
+              "private_ipv4": 1
+            },
+            "sha256": "fd80711a762b38851959e71e88f13aa25e84ae668d48b05c2ca9e1c488ce61f1"
+          },
+          "peak_gtt_used_bytes": 96791142400,
+          "peak_host_rss_bytes": 3957936128,
+          "request_total_seconds": 558.680295612,
+          "scheduled_tokens_at_failure": 16384
+        }
+      ],
+      "status": "reference_unavailable"
+    },
+    {
+      "candidate_capability": {
+        "benchmark_id": "video_sampling_typical_q128k_output1.isolated-1",
+        "checks": {
+          "benchmark_cell_exact": true,
+          "candidate_complete": true,
+          "expected_completion_exact": true,
+          "media_order_and_content_exact": true,
+          "native_media_cache_disabled": true,
+          "native_prefix_cache_disabled": true,
+          "native_runtime_exact": true,
+          "native_visual_tokens_exact": true,
+          "prompt_context_exact": true,
+          "ready_includes_vision": true,
+          "request_template_exact": true,
+          "response_completion_exact": true,
+          "text_padding_exact": true
+        },
+        "complete": true,
+        "completion_tokens": 1,
+        "health": {
+          "bytes": 998,
+          "path": "benchmarks/results/native-vl-performance-reference-availability-v0.1.0-raw/raw/video-q128/pair-2/candidate-health.json",
+          "sha256": "a65fdfbc3f79e141f845ae14ebd7070faaa9fd84e90008addd2c485a22209972"
+        },
+        "hostname": "quings",
+        "peak_gtt_used_bytes": 87877402624,
+        "peak_host_rss_bytes": 480747520,
+        "prompt_tokens": 131124,
+        "request": {
+          "bytes": 5407,
+          "path": "benchmarks/results/native-vl-performance-reference-availability-v0.1.0-raw/raw/video-q128/pair-2/candidate-request.json",
+          "sha256": "e05054e31b3dfe92a22fbe493bbadc231f981684035cfe77448fb2f1cc23fea3"
+        },
+        "total_seconds": 135.339614481,
+        "ttft_seconds": 135.339139251
+      },
+      "cell_id": "video_sampling_typical_q128k_output1",
+      "checks": {
+        "candidate_exact_capability_complete": true,
+        "every_reference_attempt_fatal": true,
+        "reference_attempts_present": true
+      },
+      "complete": true,
+      "coverage": {
+        "cache": [
+          "disabled"
+        ],
+        "context": [
+          "128k"
+        ],
+        "output": [
+          "1"
+        ],
+        "video": [
+          "sampling_typical"
+        ]
+      },
+      "performance_decision": "not_comparable_not_candidate_pass",
+      "reason": "fixed vLLM reference fatally exits with HIP launch failure 719 before producing a token",
+      "reference_attempts": [
+        {
+          "asgi_total_seconds": 437.069838228,
+          "benchmark_id": "video_sampling_typical_q128k_output1.pair-2",
+          "checks": {
+            "engine_core_fatal_logged": true,
+            "hip_launch_failure_logged": true,
+            "one_matching_stage_record": true,
+            "published_log_contains_no_private_deployment_path": true,
+            "published_log_redaction_bound": true,
+            "request_absent_or_incomplete": true,
+            "request_absent_or_same_cell": true,
+            "request_absent_or_template_exact": true,
+            "request_absent_or_zero_output": true,
+            "stage_has_no_request_error": true,
+            "stage_reports_engine_dead": true,
+            "stage_total_observed": true
+          },
+          "complete": true,
+          "computed_tokens_before_failure": 65536,
+          "evidence": {
+            "server_log": {
+              "bytes": 43480,
+              "path": "benchmarks/results/native-vl-performance-reference-availability-v0.1.0-raw/raw/video-q128/pair-2/reference-server.txt",
+              "sha256": "d82767e3259ef05d8e68de103a03dcaf6248cd515c9a21278ae970b284f779f8"
+            },
+            "stage_log": {
+              "bytes": 622,
+              "path": "benchmarks/results/native-vl-performance-reference-availability-v0.1.0-raw/raw/video-q128/pair-2/reference-stages.jsonl",
+              "sha256": "07762a3b51feeb9d5cc45b3533ce4ce0ca31f8b72bd9900751e3fa0e930103eb"
+            }
+          },
+          "original_server_log": {
+            "bytes": 43299,
+            "redaction_counts": {
+              "benchmark_root": 1,
+              "model_root": 7,
+              "private_home": 38,
+              "private_ipv4": 1
+            },
+            "sha256": "026f8f61ecb989c7a2d473cd55bb2db6a5fdb6e976bea286daae00647fa07206"
+          },
+          "peak_gtt_used_bytes": null,
+          "peak_host_rss_bytes": null,
+          "request_total_seconds": null,
+          "scheduled_tokens_at_failure": 16384
+        }
+      ],
+      "status": "reference_unavailable"
+    },
+    {
+      "candidate_capability": {
+        "benchmark_id": "image_multi_max_near_window_output1.isolated-1",
+        "checks": {
+          "benchmark_cell_exact": true,
+          "candidate_complete": true,
+          "expected_completion_exact": true,
+          "media_order_and_content_exact": true,
+          "native_media_cache_disabled": true,
+          "native_prefix_cache_disabled": true,
+          "native_runtime_exact": true,
+          "native_visual_tokens_exact": true,
+          "prompt_context_exact": true,
+          "ready_includes_vision": true,
+          "request_template_exact": true,
+          "response_completion_exact": true,
+          "text_padding_exact": true
+        },
+        "complete": true,
+        "completion_tokens": 1,
+        "health": {
+          "bytes": 1000,
+          "path": "benchmarks/results/native-vl-performance-reference-availability-v0.1.0-raw/raw/near-window/candidate-health.json",
+          "sha256": "73d19fa410f1194ae64368901df51240c3e2dacf07703f2090b79e67366b4a05"
+        },
+        "hostname": "quings",
+        "peak_gtt_used_bytes": 90343591936,
+        "peak_host_rss_bytes": 6889697280,
+        "prompt_tokens": 261640,
+        "request": {
+          "bytes": 9126,
+          "path": "benchmarks/results/native-vl-performance-reference-availability-v0.1.0-raw/raw/near-window/candidate-request.json",
+          "sha256": "bd32af0895fb4fa08458e45a20a9549e6c958a5fda77a588c57a8e6db893a563"
+        },
+        "total_seconds": 1712.627620789,
+        "ttft_seconds": 1712.627182439
+      },
+      "cell_id": "image_multi_max_near_window_output1",
+      "checks": {
+        "candidate_exact_capability_complete": true,
+        "every_reference_attempt_fatal": true,
+        "reference_attempts_present": true
+      },
+      "complete": true,
+      "coverage": {
+        "cache": [
+          "disabled"
+        ],
+        "context": [
+          "near_262144"
+        ],
+        "image": [
+          "multi_near_window_maximum",
+          "single_maximum",
+          "square"
+        ],
+        "output": [
+          "1"
+        ]
+      },
+      "performance_decision": "not_comparable_not_candidate_pass",
+      "reason": "fixed vLLM reference fatally exits with HIP launch failure 719 before producing a token",
+      "reference_attempts": [
+        {
+          "asgi_total_seconds": 1327.157064628,
+          "benchmark_id": "image_multi_max_near_window_output1.pair-1",
+          "checks": {
+            "engine_core_fatal_logged": true,
+            "hip_launch_failure_logged": true,
+            "one_matching_stage_record": true,
+            "published_log_contains_no_private_deployment_path": true,
+            "published_log_redaction_bound": true,
+            "request_absent_or_incomplete": true,
+            "request_absent_or_same_cell": true,
+            "request_absent_or_template_exact": true,
+            "request_absent_or_zero_output": true,
+            "stage_has_no_request_error": true,
+            "stage_reports_engine_dead": true,
+            "stage_total_observed": true
+          },
+          "complete": true,
+          "computed_tokens_before_failure": 98323,
+          "evidence": {
+            "request": {
+              "bytes": 7946,
+              "path": "benchmarks/results/native-vl-performance-reference-availability-v0.1.0-raw/raw/near-window/pair-1/reference-request.json",
+              "sha256": "d2b1cc266d702d7576cc3e9d24dfe3851ef8d460fec29fe34fe64dd8fa598c7e"
+            },
+            "server_log": {
+              "bytes": 44403,
+              "path": "benchmarks/results/native-vl-performance-reference-availability-v0.1.0-raw/raw/near-window/pair-1/reference-server.txt",
+              "sha256": "3934f985da677a9a6aff9550ae2c8ef918f32ad7af47359dc2f9b0f68f8cfeb4"
+            },
+            "stage_log": {
+              "bytes": 1532,
+              "path": "benchmarks/results/native-vl-performance-reference-availability-v0.1.0-raw/raw/near-window/pair-1/reference-stages.jsonl",
+              "sha256": "6b55f7812c0768a4be0a6057b678df088d3f4dd096feac4f4cc2c7426247c7f0"
+            }
+          },
+          "original_server_log": {
+            "bytes": 44222,
+            "redaction_counts": {
+              "benchmark_root": 1,
+              "model_root": 7,
+              "private_home": 38,
+              "private_ipv4": 1
+            },
+            "sha256": "76b104c6d1e604f05c02cbd9e7fe7b30c2470a7703f0ef29d4cd731abd3f367f"
+          },
+          "peak_gtt_used_bytes": 97388830720,
+          "peak_host_rss_bytes": 27024736256,
+          "request_total_seconds": 1327.158825202,
+          "scheduled_tokens_at_failure": 16384
+        }
+      ],
+      "status": "reference_unavailable"
+    }
+  ],
+  "checks": {
+    "artifact_identity_complete": true,
+    "candidate_host_exact": true,
+    "every_candidate_capability_complete": true,
+    "every_reference_attempt_fatal": true,
+    "frozen_matrix_complete": true,
+    "frozen_matrix_integrity_exact": true,
+    "unavailable_cells_not_counted_as_candidate_pass": true,
+    "unavailable_cells_unique": true
+  },
+  "complete": true,
+  "generated_at": "2026-08-19T10:45:05+00:00",
+  "integrity": {
+    "algorithm": "sha256",
+    "canonical_payload_sha256": "376deff50e09366d6add0add877b4b08ff0c7a014aa069dc049804d5860e65c9"
+  },
+  "schema": "aima-amd395-qwen36/vl-performance-reference-availability/v1",
+  "scope": "exact frozen G4 cells which the fixed vLLM reference cannot complete; candidate capability is preserved without awarding a performance pass"
+}
