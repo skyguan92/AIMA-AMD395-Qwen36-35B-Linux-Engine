@@ -80,6 +80,7 @@ constexpr char kVisionAttentionImageFilename[] =
     "aima-vision-attention.hsaco";
 constexpr char kVisionAttentionImageSha256[] =
     "8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e";
+constexpr std::size_t kImageOptimizedVisionAttentionMinimumPatches = 1024;
 constexpr std::size_t kImageOptimizedVisionAttentionMaximumPatches = 4096;
 constexpr char kDenseImageVisionAttentionKernelHash[] =
     "2bb5125141eea1b811395f9833de3077de68893bfebbbf1950ca26832db6bb52";
@@ -506,7 +507,7 @@ bool use_image_optimized_vision_attention(
     }
     patch_count += grid_patches;
   }
-  return patch_count != 0;
+  return patch_count >= kImageOptimizedVisionAttentionMinimumPatches;
 }
 
 const char* vision_attention_image_sha256_for_grids(

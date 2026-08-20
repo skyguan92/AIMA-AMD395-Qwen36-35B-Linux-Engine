@@ -24,6 +24,7 @@ VISION_ATTENTION_IMAGE_SHA256 = (
 DENSE_IMAGE_VISION_ATTENTION_IMAGE_SHA256 = (
     "e8757f4464fdb39f5505241a1ffd0f40b74f18704318280e070015bd4302d71c"
 )
+IMAGE_OPTIMIZED_VISION_ATTENTION_MIN_VISUAL_TOKENS = 256
 IMAGE_OPTIMIZED_VISION_ATTENTION_MAX_VISUAL_TOKENS = 1024
 
 
@@ -68,7 +69,8 @@ def expected_vision_attention_image_sha256s(
     image_optimized_batch = (
         not isinstance(visual_tokens, bool)
         and isinstance(visual_tokens, int)
-        and 0 < visual_tokens
+        and IMAGE_OPTIMIZED_VISION_ATTENTION_MIN_VISUAL_TOKENS
+        <= visual_tokens
         <= IMAGE_OPTIMIZED_VISION_ATTENTION_MAX_VISUAL_TOKENS
         and isinstance(media, list)
         and bool(media)

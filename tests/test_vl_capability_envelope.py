@@ -127,6 +127,9 @@ class VlCapabilityEnvelopeTest(unittest.TestCase):
         self.assertIn("retain_warmed_vision_execution_plans", resident)
         self.assertIn("use_image_optimized_vision_attention", resident)
         self.assertIn(
+            "kImageOptimizedVisionAttentionMinimumPatches = 1024", resident
+        )
+        self.assertIn(
             "kImageOptimizedVisionAttentionMaximumPatches = 4096", resident
         )
         self.assertIn("grid.patch_count()", resident)

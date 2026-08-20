@@ -1094,11 +1094,11 @@ reruns vision/language normally.
 The runtime keeps two bit-exact vision-attention occupancy variants. The
 external WPE3 image remains the general and video-safe package artifact. A WPE6
 image is verified from the embedded AOT registry and selected for image-only
-requests whose batch has at most 4096 patches across single-frame grids. Larger
-image batches, video and mixed requests remain on WPE3 even when sampling
-produces temporal-depth-1 grids. Warmed execution entries bind the attention
-image SHA-256 in addition to patch count and sequence boundaries, so
-patch/GEMM/merger resources may be shared without allowing an attention
+requests whose batch has 1024 through 4096 patches across single-frame grids.
+Smaller and larger image batches, video and mixed requests remain on WPE3 even
+when sampling produces temporal-depth-1 grids. Warmed execution entries bind
+the attention image SHA-256 in addition to patch count and sequence boundaries,
+so patch/GEMM/merger resources may be shared without allowing an attention
 executable to cross the image/video policy boundary. The portable bundle
 identity covers the external image
 directly and the embedded variant through the native binary and registry

@@ -54,6 +54,16 @@ class VlPerformanceMatrixPairSummaryTest(unittest.TestCase):
         self.assertEqual(
             summary.expected_vision_attention_image_sha256s(
                 {
+                    "aggregate_visual_tokens": 64,
+                    "media": [{"modality": "image"}],
+                },
+                cold,
+            ),
+            [summary.VISION_ATTENTION_IMAGE_SHA256] * 2,
+        )
+        self.assertEqual(
+            summary.expected_vision_attention_image_sha256s(
+                {
                     "aggregate_visual_tokens": 256,
                     "media": [{"modality": "image"}],
                 },
