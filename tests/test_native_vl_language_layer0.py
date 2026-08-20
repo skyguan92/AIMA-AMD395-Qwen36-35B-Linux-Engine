@@ -259,6 +259,13 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         ).read_text(encoding="utf-8")
         self.assertIn("--prefill-registry frozen-text", layer3_build)
         self.assertIn("FROZEN_TEXT_PREFILL_REGISTRY_CPP", layer3_build)
+        full_language_build = (
+            ROOT / "scripts/build-native-vl-http-language-diagnostic-probe.sh"
+        ).read_text(encoding="utf-8")
+        self.assertIn("--prefill-registry frozen-text", full_language_build)
+        self.assertIn(
+            "FROZEN_TEXT_PREFILL_REGISTRY_CPP", full_language_build
+        )
         self.assertIn("build-native-vl-language-layer0-probe", makefile)
 
         self.assertIn("const bool q1024_official_fla", linear_source)
