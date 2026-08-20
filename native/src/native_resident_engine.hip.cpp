@@ -494,8 +494,9 @@ bool same_vision_grids(const std::vector<NativeVlGrid>& left,
 }
 
 bool use_dense_image_vision_attention(
-    const std::vector<NativeVlGrid>& grids) {
-  return grids.size() >= kDenseImageVisionAttentionMinimumGridCount &&
+    const std::vector<NativeVlGrid>& grids, bool image_only_request) {
+  return image_only_request &&
+         grids.size() >= kDenseImageVisionAttentionMinimumGridCount &&
          std::all_of(grids.begin(), grids.end(),
                      [](const NativeVlGrid& grid) {
                        return grid.temporal == 1;
@@ -503,8 +504,8 @@ bool use_dense_image_vision_attention(
 }
 
 const char* vision_attention_image_sha256_for_grids(
-    const std::vector<NativeVlGrid>& grids) {
-  return use_dense_image_vision_attention(grids)
+    const std::vector<NativeVlGrid>& grids, bool image_only_request) {
+  return use_dense_image_vision_attention(grids, image_only_request)
              ? kDenseImageVisionAttentionImageSha256
              : kVisionAttentionImageSha256;
 }
@@ -842,14 +843,21 @@ struct NativeResidentEngine::Impl {
   }
 
   NativeVisionPipelinePlan& vision_plan(
-      const std::vector<NativeVlGrid>& grids, bool* cache_hit,
-      double* build_wall_ms, bool prepare_on_miss = true) {
+      const std::vector<NativeVlGrid>& grids, bool image_only_request,
+      bool* cache_hit, double* build_wall_ms,
+      bool prepare_on_miss = true) {
     if (cache_hit == nullptr || build_wall_ms == nullptr || grids.empty()) {
       throw std::invalid_argument(
           "native resident vision plan lookup is invalid");
     }
+    const std::string desired_attention_image_sha256 =
+        vision_attention_image_sha256_for_grids(grids, image_only_request);
     for (NativeResidentVisionPlanEntry& entry : vision_plans) {
-      if (!same_vision_grids(entry.grids, grids)) continue;
+      if (!same_vision_grids(entry.grids, grids) ||
+          entry.pipeline->attention_image_sha256() !=
+              desired_attention_image_sha256) {
+        continue;
+      }
       entry.use = ++vision_plan_clock;
       *cache_hit = true;
       *build_wall_ms = 0.0;
@@ -897,8 +905,6 @@ struct NativeResidentEngine::Impl {
     const auto started = std::chrono::steady_clock::now();
     const std::vector<std::uint32_t> cu_seqlens =
         vision_attention_cu_seqlens(grids);
-    const std::string desired_attention_image_sha256 =
-        vision_attention_image_sha256_for_grids(grids);
     const auto warmed_resources = std::find_if(
         vision_warmed_execution_plans.begin(),
         vision_warmed_execution_plans.end(),
@@ -986,7 +992,7 @@ struct NativeResidentEngine::Impl {
     bool cache_hit = false;
     double plan_build_wall_ms = 0.0;
     NativeVisionPipelinePlan& pipeline =
-        vision_plan(grids, &cache_hit, &plan_build_wall_ms, false);
+        vision_plan(grids, false, &cache_hit, &plan_build_wall_ms, false);
     if (cache_hit || pipeline.patch_count() != 1024 ||
         pipeline.merged_token_count() != 256) {
       throw std::runtime_error(
@@ -1001,7 +1007,7 @@ struct NativeResidentEngine::Impl {
     bool image_count_cache_hit = false;
     double image_count_plan_build_wall_ms = 0.0;
     NativeVisionPipelinePlan& image_count_pipeline = vision_plan(
-        image_count_grids, &image_count_cache_hit,
+        image_count_grids, true, &image_count_cache_hit,
         &image_count_plan_build_wall_ms, false);
     if (image_count_cache_hit || image_count_pipeline.patch_count() != 4096 ||
         image_count_pipeline.merged_token_count() != 1024) {
@@ -2145,6 +2151,9 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
         metrics.vl_vision_plan_cache_hit = true;
       } else {
         bool all_vision_plan_cache_hits = true;
+        const bool image_only_request =
+            vl_input->video_count == 0 &&
+            vl_input->image_count == vl_input->media_count;
         for (const NativeVlVisionBatch& batch : vl_vision_batches) {
           const auto grid_begin =
               vl_input->grids.begin() +
@@ -2155,7 +2164,8 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
           bool batch_cache_hit = false;
           double batch_plan_build_wall_ms = 0.0;
           NativeVisionPipelinePlan& pipeline = impl_->vision_plan(
-              batch_grids, &batch_cache_hit, &batch_plan_build_wall_ms);
+              batch_grids, image_only_request, &batch_cache_hit,
+              &batch_plan_build_wall_ms);
           if (pipeline.patch_count() != batch.patch_count ||
               pipeline.merged_token_count() !=
                   batch.visual_token_count) {

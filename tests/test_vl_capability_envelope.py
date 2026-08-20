@@ -129,6 +129,14 @@ class VlCapabilityEnvelopeTest(unittest.TestCase):
         self.assertIn(
             "kDenseImageVisionAttentionMinimumGridCount = 8", resident
         )
+        self.assertIn("bool image_only_request", resident)
+        self.assertIn("vl_input->video_count == 0", resident)
+        self.assertIn(
+            "vl_input->image_count == vl_input->media_count", resident
+        )
+        self.assertIn(
+            "entry.pipeline->attention_image_sha256() !=", resident
+        )
         self.assertIn("entry.attention_image_sha256", resident)
         self.assertIn("desired_attention_image_sha256", resident)
         self.assertIn("from_embedded_dense_image", resident)
