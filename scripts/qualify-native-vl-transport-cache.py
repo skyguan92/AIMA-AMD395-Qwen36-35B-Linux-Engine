@@ -109,7 +109,37 @@ def validate_reference(reference: dict[str, Any]) -> list[str]:
                     "transport/cache reference source changed: "
                     + str(component.get("path"))
                 )
+    test_ca = reference.get("runtime", {}).get("test_ca")
+    if (
+        not isinstance(test_ca, dict)
+        or not isinstance(test_ca.get("bytes"), int)
+        or test_ca["bytes"] <= 0
+        or not isinstance(test_ca.get("sha256"), str)
+        or len(test_ca["sha256"]) != 64
+        or test_ca.get("private_key_recorded") is not False
+    ):
+        errors.append("transport/cache reference test CA provenance is malformed")
     return errors
+
+
+def tls_ca_provenance(
+    reference: dict[str, Any], replay_sha256: str
+) -> dict[str, Any]:
+    """Bind the replay CA without requiring an expired capture credential.
+
+    The loopback CA is deliberately ephemeral and its private key is not part of
+    the frozen reference.  Its capture hash is provenance, not model behavior.
+    A replay therefore records both hashes and proves trust through the live
+    HTTPS observation instead of requiring reuse of the capture credential.
+    """
+
+    capture_sha256 = reference["runtime"]["test_ca"]["sha256"]
+    return {
+        "sha256": replay_sha256,
+        "reference_capture_sha256": capture_sha256,
+        "rotated_from_reference_capture": replay_sha256 != capture_sha256,
+        "private_key_recorded": False,
+    }
 
 
 def successful_case_checks(
@@ -601,15 +631,14 @@ def main() -> int:
 
     reference = load_json_object(args.reference)
     errors = validate_reference(reference)
-    if reference.get("runtime", {}).get("test_ca", {}).get(
-        "sha256"
-    ) != sha256_file(args.tls_certificate):
-        errors.append("test CA differs from transport/cache reference")
     if errors:
         raise SystemExit(
             "invalid transport/cache reference:\n- " + "\n- ".join(errors)
         )
     references = {case["case_id"]: case for case in reference["cases"]}
+    test_ca = tls_ca_provenance(
+        reference, sha256_file(args.tls_certificate)
+    )
     probe = load_module(PROBE_SCRIPT, "native_vl_transport_cache_probe")
     capability = load_module(
         CAPABILITY_QUALIFIER, "native_vl_transport_cache_helpers"
@@ -731,8 +760,7 @@ def main() -> int:
                 ),
                 "test_ca": {
                     "bytes": args.tls_certificate.stat().st_size,
-                    "sha256": sha256_file(args.tls_certificate),
-                    "private_key_recorded": False,
+                    **test_ca,
                 },
             },
             "media_server_request_counts": media_request_counts,
@@ -746,6 +774,9 @@ def main() -> int:
                     "all_observations_reference_exact"
                 ],
                 "verified_https_qualified": server_checks[
+                    "verified_https_origin_used"
+                ],
+                "ephemeral_test_ca_rotation_qualified": server_checks[
                     "verified_https_origin_used"
                 ],
                 "video_sampling_cache_identity_qualified": all(

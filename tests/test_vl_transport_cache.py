@@ -132,6 +132,25 @@ class VlTransportCacheTest(unittest.TestCase):
                     servers.request_counts, {"http": 1, "https": 1}
                 )
 
+    def test_native_replay_rotates_ephemeral_capture_ca(self) -> None:
+        reference = {
+            "runtime": {
+                "test_ca": {
+                    "bytes": 1024,
+                    "sha256": "a" * 64,
+                    "private_key_recorded": False,
+                }
+            }
+        }
+        provenance = self.qualifier.tls_ca_provenance(reference, "b" * 64)
+        self.assertEqual(provenance["sha256"], "b" * 64)
+        self.assertEqual(provenance["reference_capture_sha256"], "a" * 64)
+        self.assertTrue(provenance["rotated_from_reference_capture"])
+        self.assertFalse(provenance["private_key_recorded"])
+
+        same = self.qualifier.tls_ca_provenance(reference, "a" * 64)
+        self.assertFalse(same["rotated_from_reference_capture"])
+
     def test_native_success_comparison_fails_closed(self) -> None:
         request = normalize_contract_request(self.specs[1]["payload"])
         response = {

@@ -1007,6 +1007,13 @@ hashes and distinct A/B and mixed-order identities. The sealed reference is
 `benchmarks/results/vl-transport-cache-reference-v0.1.0.json`, SHA-256
 `d98433b1be1cd8264947c116073c88287d8181a0ad8a7e60cce868238b48607a`.
 
+The loopback CA used for that capture is an ephemeral test credential, and its
+private key is intentionally absent from the reference. Native replay may use
+a freshly generated loopback CA: the result records both the capture and replay
+certificate hashes, while a successful HTTPS fetch proves that the replay CA
+was actually trusted. This keeps the reference behavior hash-bound without
+making qualification depend on an expired or retained private credential.
+
 The exact-commit native binary SHA-256
 `246f2f9126e4bc905d3a49617f51311206ee9285f90311501a120ecdfbfbcf7c`
 replayed 17 cache-enabled and 11 cache-disabled observations in two resident
