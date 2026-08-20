@@ -24,6 +24,7 @@ VISION_ATTENTION_IMAGE_SHA256 = (
 DENSE_IMAGE_VISION_ATTENTION_IMAGE_SHA256 = (
     "e8757f4464fdb39f5505241a1ffd0f40b74f18704318280e070015bd4302d71c"
 )
+IMAGE_OPTIMIZED_VISION_ATTENTION_MAX_VISUAL_TOKENS = 1024
 
 
 def load_object(path: Path) -> dict[str, Any]:
@@ -62,13 +63,23 @@ def expected_vision_attention_image_sha256s(
         or batch_count <= 0
     ):
         return None
-    # The frozen comparable matrix has one dense image-only batch. Other
-    # high-count product cases are reference-unavailable and are qualified by
-    # the candidate execution envelope rather than this paired summarizer.
-    dense_image_batch = cell.get("cell_id") == "image_count_max_q8k_output1"
+    visual_tokens = cell.get("aggregate_visual_tokens")
+    media = cell.get("media")
+    image_optimized_batch = (
+        not isinstance(visual_tokens, bool)
+        and isinstance(visual_tokens, int)
+        and 0 < visual_tokens
+        <= IMAGE_OPTIMIZED_VISION_ATTENTION_MAX_VISUAL_TOKENS
+        and isinstance(media, list)
+        and bool(media)
+        and all(
+            isinstance(item, Mapping) and item.get("modality") == "image"
+            for item in media
+        )
+    )
     image_sha256 = (
         DENSE_IMAGE_VISION_ATTENTION_IMAGE_SHA256
-        if dense_image_batch
+        if image_optimized_batch
         else VISION_ATTENTION_IMAGE_SHA256
     )
     return [image_sha256] * batch_count

@@ -99,12 +99,13 @@ but are not substituted for the end-to-end gate.
 
 The visual tower uses two hash-locked, bit-exact gfx1151 attention images. The
 external WPE3 image is the general path and remains selected for video, mixed
-media and ordinary image batches. The WPE6 image is embedded in the executable's
-verified AOT registry and is selected only for dense batches containing at
-least eight single-frame grids when the complete request contains images only.
-Video and mixed requests stay on WPE3 even when their sampled grids have a
-temporal depth of one. Startup executes a standard portrait on WPE3 and the
-maximum image-count warmup on WPE6 before publishing readiness.
+media and image-only batches above 4096 patches. The WPE6 image is embedded in
+the executable's verified AOT registry and is selected for image-only batches
+containing at most 4096 patches across one or more single-frame grids. Video
+and mixed requests stay on WPE3 even when their sampled grids have a temporal
+depth of one. Startup retains a standard-shape WPE3 warmup for shared resources
+and executes the maximum image-count warmup on WPE6 before publishing
+readiness.
 
 Vision plan reuse separates shape resources from executable identity. Patch
 embedding, GEMM and merger plans can be shared by patch count; attention reuse

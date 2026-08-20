@@ -34,7 +34,7 @@ def cache_cell(sequence: str, digest: str = "c" * 64) -> dict:
 
 
 class VlPerformanceMatrixPairSummaryTest(unittest.TestCase):
-    def test_attention_dispatch_contract_uses_dense_variant_only_for_count_cell(
+    def test_attention_dispatch_contract_uses_image_variant_by_workload(
         self,
     ) -> None:
         cold = {
@@ -43,14 +43,42 @@ class VlPerformanceMatrixPairSummaryTest(unittest.TestCase):
         }
         self.assertEqual(
             summary.expected_vision_attention_image_sha256s(
-                {"cell_id": "image_count_max_q8k_output1"}, cold
+                {
+                    "aggregate_visual_tokens": 1024,
+                    "media": [{"modality": "image"}] * 16,
+                },
+                cold,
             ),
             [summary.DENSE_IMAGE_VISION_ATTENTION_IMAGE_SHA256] * 2,
         )
         self.assertEqual(
             summary.expected_vision_attention_image_sha256s(
                 {
-                    "cell_id": "mixed_cross_batch_q32k_output1",
+                    "aggregate_visual_tokens": 256,
+                    "media": [{"modality": "image"}],
+                },
+                cold,
+            ),
+            [summary.DENSE_IMAGE_VISION_ATTENTION_IMAGE_SHA256] * 2,
+        )
+        self.assertEqual(
+            summary.expected_vision_attention_image_sha256s(
+                {
+                    "aggregate_visual_tokens": 16384,
+                    "media": [{"modality": "image"}],
+                },
+                cold,
+            ),
+            [summary.VISION_ATTENTION_IMAGE_SHA256] * 2,
+        )
+        self.assertEqual(
+            summary.expected_vision_attention_image_sha256s(
+                {
+                    "aggregate_visual_tokens": 256,
+                    "media": [
+                        {"modality": "image"},
+                        {"modality": "video"},
+                    ],
                 },
                 cold,
             ),

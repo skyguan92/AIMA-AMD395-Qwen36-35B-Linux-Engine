@@ -80,7 +80,7 @@ constexpr char kVisionAttentionImageFilename[] =
     "aima-vision-attention.hsaco";
 constexpr char kVisionAttentionImageSha256[] =
     "8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e";
-constexpr std::size_t kDenseImageVisionAttentionMinimumGridCount = 8;
+constexpr std::size_t kImageOptimizedVisionAttentionMaximumPatches = 4096;
 constexpr char kDenseImageVisionAttentionKernelHash[] =
     "2bb5125141eea1b811395f9833de3077de68893bfebbbf1950ca26832db6bb52";
 constexpr char kDenseImageVisionAttentionImageSha256[] =
@@ -493,19 +493,25 @@ bool same_vision_grids(const std::vector<NativeVlGrid>& left,
   return true;
 }
 
-bool use_dense_image_vision_attention(
+bool use_image_optimized_vision_attention(
     const std::vector<NativeVlGrid>& grids, bool image_only_request) {
-  return image_only_request &&
-         grids.size() >= kDenseImageVisionAttentionMinimumGridCount &&
-         std::all_of(grids.begin(), grids.end(),
-                     [](const NativeVlGrid& grid) {
-                       return grid.temporal == 1;
-                     });
+  if (!image_only_request || grids.empty()) return false;
+  std::size_t patch_count = 0;
+  for (const NativeVlGrid& grid : grids) {
+    if (grid.temporal != 1) return false;
+    const std::size_t grid_patches = grid.patch_count();
+    if (grid_patches >
+        kImageOptimizedVisionAttentionMaximumPatches - patch_count) {
+      return false;
+    }
+    patch_count += grid_patches;
+  }
+  return patch_count != 0;
 }
 
 const char* vision_attention_image_sha256_for_grids(
     const std::vector<NativeVlGrid>& grids, bool image_only_request) {
-  return use_dense_image_vision_attention(grids, image_only_request)
+  return use_image_optimized_vision_attention(grids, image_only_request)
              ? kDenseImageVisionAttentionImageSha256
              : kVisionAttentionImageSha256;
 }

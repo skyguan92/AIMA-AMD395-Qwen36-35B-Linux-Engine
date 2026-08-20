@@ -125,10 +125,11 @@ class VlCapabilityEnvelopeTest(unittest.TestCase):
         self.assertIn("vision_preparation_embeddings", resident)
         self.assertIn("prepare_on_miss", resident)
         self.assertIn("retain_warmed_vision_execution_plans", resident)
-        self.assertIn("use_dense_image_vision_attention", resident)
+        self.assertIn("use_image_optimized_vision_attention", resident)
         self.assertIn(
-            "kDenseImageVisionAttentionMinimumGridCount = 8", resident
+            "kImageOptimizedVisionAttentionMaximumPatches = 4096", resident
         )
+        self.assertIn("grid.patch_count()", resident)
         self.assertIn("bool image_only_request", resident)
         self.assertIn("vl_input->video_count == 0", resident)
         self.assertIn(
