@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import argparse
+from datetime import date
 import hashlib
 import json
 from pathlib import Path
@@ -87,6 +88,20 @@ EXPECTED_BASELINE_SOURCE_COMMIT = "65c198415709dad6d046c247acab3dc9df2a95a0"
 EXPECTED_EXACT_OUTPUT_SHA256 = (
     "aa910692fd03ed4a8e89c04497751e3a28eee36c6148237f7e97c74a6dd68201"
 )
+
+
+def configure_candidate_identity(source_commit: str, binary_sha256: str) -> None:
+    if len(source_commit) != 40 or any(
+        character not in "0123456789abcdef" for character in source_commit
+    ):
+        raise ValueError("candidate source commit must be a lowercase SHA-1")
+    if len(binary_sha256) != 64 or any(
+        character not in "0123456789abcdef" for character in binary_sha256
+    ):
+        raise ValueError("candidate binary hash must be a lowercase SHA-256")
+    global EXPECTED_SOURCE_COMMIT, EXPECTED_BINARY_SHA256
+    EXPECTED_SOURCE_COMMIT = source_commit
+    EXPECTED_BINARY_SHA256 = binary_sha256
 
 
 def require_mapping(value: Any, label: str) -> dict[str, Any]:
@@ -493,10 +508,14 @@ def check_doctor(payload: dict[str, Any]) -> tuple[dict[str, bool], dict[str, An
     return checks, summary
 
 
-def build_payload() -> dict[str, Any]:
+def build_payload(
+    artifact_paths: dict[str, Path] | None = None,
+    recorded_on: str = "2026-08-19",
+) -> dict[str, Any]:
+    paths = ARTIFACT_PATHS if artifact_paths is None else artifact_paths
     payloads = {
         name: load_json_object(path)
-        for name, path in ARTIFACT_PATHS.items()
+        for name, path in paths.items()
         if name not in {"goal", "generator"}
     }
     validators = {
@@ -558,7 +577,7 @@ def build_payload() -> dict[str, Any]:
     )
     return {
         "schema": "aima-amd395-qwen36/text-v151-nonregression/v1",
-        "recorded_on": "2026-08-19",
+        "recorded_on": recorded_on,
         "complete": complete,
         "qualified": qualified,
         "scope": "NATIVE_VL_GOAL.md G3 exact-binary text product no-regression",
@@ -573,7 +592,7 @@ def build_payload() -> dict[str, Any]:
         },
         "inputs": {
             name: file_component(path, str(path.relative_to(ROOT)))
-            for name, path in ARTIFACT_PATHS.items()
+            for name, path in paths.items()
         },
         "checks": checks,
         "cross_evidence_checks": cross_checks,
@@ -609,10 +628,60 @@ def verify_exact(path: Path, expected: dict[str, Any]) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=OUTPUT)
+    parser.add_argument(
+        "--candidate-source-commit", default=EXPECTED_SOURCE_COMMIT
+    )
+    parser.add_argument(
+        "--candidate-binary-sha256", default=EXPECTED_BINARY_SHA256
+    )
+    parser.add_argument("--recorded-on", default="2026-08-19")
+    for name in (
+        "correctness",
+        "doctor",
+        "openai_features",
+        "mmlu256",
+        "product_surfaces",
+        "paired_text_matrix",
+    ):
+        parser.add_argument(
+            "--" + name.replace("_", "-"),
+            dest=name,
+            type=Path,
+            default=ARTIFACT_PATHS[name],
+        )
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
+    try:
+        configure_candidate_identity(
+            args.candidate_source_commit, args.candidate_binary_sha256
+        )
+    except ValueError as exc:
+        parser.error(str(exc))
+    try:
+        date.fromisoformat(args.recorded_on)
+    except ValueError:
+        parser.error("recorded-on must be an ISO calendar date")
+    artifact_paths = {
+        **ARTIFACT_PATHS,
+        **{
+            name: getattr(args, name).resolve()
+            for name in (
+                "correctness",
+                "doctor",
+                "openai_features",
+                "mmlu256",
+                "product_surfaces",
+                "paired_text_matrix",
+            )
+        },
+    }
+    try:
+        for path in artifact_paths.values():
+            path.relative_to(ROOT)
+    except ValueError:
+        parser.error("G3 evidence inputs must be inside the repository")
     output = args.output.resolve()
-    sealed = seal_manifest(build_payload())
+    sealed = seal_manifest(build_payload(artifact_paths, args.recorded_on))
     if args.check:
         verify_exact(output, sealed)
         print(f"native VL G3 qualification: PASS ({output})")

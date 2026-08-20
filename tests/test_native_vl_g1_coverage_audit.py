@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
 import subprocess
@@ -11,6 +12,31 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts/generate-native-vl-g1-coverage-audit.py"
 RESULT = ROOT / "benchmarks/results/native-vl-g1-coverage-audit-v0.1.0.json"
 RESULT_SIDECAR = RESULT.with_name(RESULT.name + ".sha256")
+
+
+def load_generator_module():
+    spec = importlib.util.spec_from_file_location(
+        "aima_native_vl_g1_coverage_audit", SCRIPT
+    )
+    if spec is None or spec.loader is None:
+        raise RuntimeError("could not load the G1 coverage generator")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+class NativeVlG1CoverageAuditLogicTest(unittest.TestCase):
+    def test_historical_reference_commit_is_not_checkout_identity(self) -> None:
+        generator = load_generator_module()
+        reference = json.loads(
+            (
+                ROOT
+                / "benchmarks/results/vl-transport-cache-reference-v0.1.0.json"
+            ).read_text(encoding="utf-8")
+        )
+        generator.validate_historical_reference(
+            "transport/cache reference", reference
+        )
 
 
 class NativeVlG1CoverageAuditTest(unittest.TestCase):

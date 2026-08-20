@@ -36,6 +36,16 @@ def load_generator_module():
 
 
 class NativeVlG3QualificationLogicTest(unittest.TestCase):
+    def test_candidate_identity_is_runtime_configurable_and_validated(self) -> None:
+        generator = load_generator_module()
+        generator.configure_candidate_identity("c" * 40, "d" * 64)
+        self.assertEqual(generator.EXPECTED_SOURCE_COMMIT, "c" * 40)
+        self.assertEqual(generator.EXPECTED_BINARY_SHA256, "d" * 64)
+        with self.assertRaises(ValueError):
+            generator.configure_candidate_identity("not-a-commit", "d" * 64)
+        with self.assertRaises(ValueError):
+            generator.configure_candidate_identity("c" * 40, "not-a-hash")
+
     def test_empty_matrix_cannot_claim_all_cells_strict(self) -> None:
         generator = load_generator_module()
         checks, summary = generator.check_paired_matrix(

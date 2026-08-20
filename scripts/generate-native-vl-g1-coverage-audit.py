@@ -662,6 +662,18 @@ def validate_current_components(
             )
 
 
+def validate_historical_reference(
+    label: str, payload: dict[str, Any]
+) -> None:
+    source = payload.get("source")
+    if not isinstance(source, dict) or source.get("dirty") is not False:
+        raise SystemExit(f"{label} capture identity is not clean")
+    components = source.get("files")
+    if not isinstance(components, list):
+        raise SystemExit(f"{label} source components are missing")
+    validate_current_components(label, components)
+
+
 def validate_inputs(payloads: dict[str, dict[str, Any]]) -> None:
     native = payloads["native_capability"]
     execution = payloads["execution_envelope"]
@@ -850,10 +862,9 @@ def validate_inputs(payloads: dict[str, dict[str, Any]]) -> None:
             raise SystemExit(
                 f"resident cache evidence is missing decision: {decision}"
             )
-    if extension_reference["source"].get("commit") != extension_native[
-        "source"
-    ].get("commit"):
-        raise SystemExit("mixed/conversation reference and native commits differ")
+    validate_historical_reference(
+        "mixed/conversation reference", extension_reference
+    )
     reference_binding = extension_native["dependencies"].get("reference", {})
     expected_reference = file_component(
         ARTIFACT_PATHS["mixed_conversation_reference"],
@@ -870,10 +881,7 @@ def validate_inputs(payloads: dict[str, dict[str, Any]]) -> None:
             raise SystemExit(
                 f"mixed/conversation native evidence is missing: {decision}"
             )
-    if transport_reference["source"].get("commit") != transport_native[
-        "source"
-    ].get("commit"):
-        raise SystemExit("transport/cache reference and native commits differ")
+    validate_historical_reference("transport/cache reference", transport_reference)
     transport_binding = transport_native["dependencies"].get("reference", {})
     expected_transport_reference = file_component(
         ARTIFACT_PATHS["transport_cache_reference"],
