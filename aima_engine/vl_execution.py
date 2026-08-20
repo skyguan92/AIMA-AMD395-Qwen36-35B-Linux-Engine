@@ -253,6 +253,20 @@ NON_HTTP_CELL_MODES = {
 }
 
 
+# The frozen processor maximum is an explicit sampling boundary, not the
+# serving default.  The default VideoMediaIO contract caps videos at 32 frames;
+# request 768 frames here so the HTTP replay actually exercises the maximum
+# and above-maximum clamp cells derived from the processor capability probe.
+HTTP_PROBE_MEDIA_IO_KWARGS = {
+    "video_sampling_maximum": {
+        "video": {"num_frames": 768, "video_backend": "opencv"}
+    },
+    "video_sampling_above_maximum": {
+        "video": {"num_frames": 768, "video_backend": "opencv"}
+    },
+}
+
+
 def fixture_records(payload: Mapping[str, Any]) -> dict[str, Mapping[str, Any]]:
     records = payload.get("fixtures")
     if not isinstance(records, list):
@@ -400,6 +414,15 @@ def build_http_probe_specs(
             set(modality_counts)
             | ({"error"} if not expected_accept else {"generation"})
         )
+        payload = {
+            "model": MODEL_ID,
+            "messages": [{"role": "user", "content": content}],
+            "temperature": 0,
+            "max_tokens": 1,
+            "stream": False,
+        }
+        if probe_id in HTTP_PROBE_MEDIA_IO_KWARGS:
+            payload["media_io_kwargs"] = HTTP_PROBE_MEDIA_IO_KWARGS[probe_id]
         probes.append(
             {
                 "probe_id": probe_id,
@@ -407,13 +430,7 @@ def build_http_probe_specs(
                 "surfaces": surfaces,
                 "expected_accept": expected_accept,
                 "expected": expected,
-                "payload": {
-                    "model": MODEL_ID,
-                    "messages": [{"role": "user", "content": content}],
-                    "temperature": 0,
-                    "max_tokens": 1,
-                    "stream": False,
-                },
+                "payload": payload,
                 "replacements": replacements,
             }
         )

@@ -385,6 +385,7 @@ def cache_correctness_checks(
         and changed["vl"]["media_cache_hits"] == 0,
         "same_path_b_prefix_miss": changed["prefix_lookup"] == "miss"
         and changed["vl"]["vision_plan_cache_hit"] is True
+        and changed["vl"].get("vision_embedding_cache_hit") is False
         and changed["vl"]["vision_encode_wall_ms"] > 0.0,
         "restored_a_media_hit": restored["vl"]["media_cache_hits"] == 1,
         "restored_a_exact_prefix_hit": restored["prefix_lookup"] == "exact",
@@ -399,9 +400,13 @@ def cache_correctness_checks(
         == 1
         and variant["vl"]["media_decode_wall_ms"] == 0.0
         and variant["vl"]["processor_wall_ms"] == 0.0,
-        "variant_reuses_shape_plan_only": variant["prefix_lookup"] == "miss"
+        "variant_reuses_content_addressed_vision_embedding": variant[
+            "prefix_lookup"
+        ]
+        == "miss"
         and variant["vl"]["vision_plan_cache_hit"] is True
-        and variant["vl"]["vision_encode_wall_ms"] > 0.0,
+        and variant["vl"].get("vision_embedding_cache_hit") is True
+        and variant["vl"]["vision_encode_wall_ms"] == 0.0,
         "same_http_url_a_processor_miss": http_first["vl"][
             "media_cache_misses"
         ]
@@ -415,6 +420,7 @@ def cache_correctness_checks(
         and http_changed["vl"]["media_cache_hits"] == 0,
         "same_http_url_b_prefix_miss": http_changed["prefix_lookup"] == "miss"
         and http_changed["vl"]["vision_plan_cache_hit"] is True
+        and http_changed["vl"].get("vision_embedding_cache_hit") is False
         and http_changed["vl"]["vision_encode_wall_ms"] > 0.0,
         "same_http_url_restored_a_hit": http_restored["vl"][
             "media_cache_hits"

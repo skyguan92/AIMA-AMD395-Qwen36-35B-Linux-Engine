@@ -82,6 +82,7 @@ def cache_inputs() -> list[dict]:
         output: str = "e" * 64,
         vision_ms: float = 1.0,
         plan_hit: bool = False,
+        vision_embedding_hit: bool = False,
     ) -> dict:
         return {
             "case_id": case_id,
@@ -94,6 +95,7 @@ def cache_inputs() -> list[dict]:
                 "media_decode_wall_ms": 0.0,
                 "processor_wall_ms": 0.0,
                 "vision_plan_cache_hit": plan_hit,
+                "vision_embedding_cache_hit": vision_embedding_hit,
                 "vision_encode_wall_ms": vision_ms,
             },
         }
@@ -126,7 +128,9 @@ def cache_inputs() -> list[dict]:
             hits=1,
             misses=0,
             prefix="miss",
+            vision_ms=0.0,
             plan_hit=True,
+            vision_embedding_hit=True,
         ),
         observation("image_http_a", hits=0, misses=1, prefix="miss"),
         observation(
@@ -200,6 +204,26 @@ class NativeVlServingQualifierLogicTest(unittest.TestCase):
         self.assertFalse(checks["same_http_url_b_prefix_miss"])
         self.assertFalse(checks["video_data_local_output_exact"])
         self.assertFalse(checks["mixed_exact_two_media_hits"])
+
+    def test_prompt_variant_requires_safe_vision_embedding_reuse(self) -> None:
+        observations = cache_inputs()
+        by_id = {item["case_id"]: item for item in observations}
+        variant = by_id["image_data_a_prompt_variant"]["vl"]
+        variant["vision_embedding_cache_hit"] = False
+        variant["vision_encode_wall_ms"] = 1.0
+        checks = self.module.cache_correctness_checks(observations)
+        self.assertFalse(
+            checks["variant_reuses_content_addressed_vision_embedding"]
+        )
+
+    def test_changed_content_cannot_reuse_vision_embedding(self) -> None:
+        observations = cache_inputs()
+        by_id = {item["case_id"]: item for item in observations}
+        changed = by_id["image_local_b"]["vl"]
+        changed["vision_embedding_cache_hit"] = True
+        changed["vision_encode_wall_ms"] = 0.0
+        checks = self.module.cache_correctness_checks(observations)
+        self.assertFalse(checks["same_path_b_prefix_miss"])
 
     def test_cache_case_ids_must_be_unique(self) -> None:
         observations = cache_inputs()

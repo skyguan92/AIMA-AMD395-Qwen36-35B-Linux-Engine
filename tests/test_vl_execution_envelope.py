@@ -120,6 +120,22 @@ class VlExecutionEnvelopeTest(unittest.TestCase):
             by_id["video_sampling_maximum"]["expected"]["visual_tokens"],
             9_600,
         )
+        maximum_sampling = {
+            "video": {"num_frames": 768, "video_backend": "opencv"}
+        }
+        self.assertEqual(
+            by_id["video_sampling_maximum"]["payload"]["media_io_kwargs"],
+            maximum_sampling,
+        )
+        self.assertEqual(
+            by_id["video_sampling_above_maximum"]["payload"][
+                "media_io_kwargs"
+            ],
+            maximum_sampling,
+        )
+        self.assertNotIn(
+            "media_io_kwargs", by_id["video_sampling_typical"]["payload"]
+        )
         self.assertEqual(
             by_id["image_near_window_maximum"]["expected"][
                 "vision_batch_count"
