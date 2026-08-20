@@ -15,7 +15,11 @@ class Bf16GemmPlan;
 // derived fused input weights to avoid four independent projection launches.
 class NativeQ8192PrefillGemmPlans {
  public:
-  explicit NativeQ8192PrefillGemmPlans(std::size_t token_count = 8192);
+  // algorithm_source supplies the admitted bucket's qualified algorithms and
+  // must outlive this logical-M plan set.
+  explicit NativeQ8192PrefillGemmPlans(
+      std::size_t token_count = 8192,
+      NativeQ8192PrefillGemmPlans* algorithm_source = nullptr);
   ~NativeQ8192PrefillGemmPlans();
   NativeQ8192PrefillGemmPlans(const NativeQ8192PrefillGemmPlans&) = delete;
   NativeQ8192PrefillGemmPlans& operator=(

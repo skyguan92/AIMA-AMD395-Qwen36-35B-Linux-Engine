@@ -99,6 +99,8 @@ struct Bf16GemmPlan::Impl {
   bool right_operand_is_transposed = false;
   bool torch_n1_layout = false;
   bool bias_epilogue = false;
+  bool owns_handle = false;
+  bool owns_operation = false;
 
   ~Impl() { release(); }
 
@@ -113,8 +115,8 @@ struct Bf16GemmPlan::Impl {
     if (c_layout) hipblasLtMatrixLayoutDestroy(c_layout);
     if (b_layout) hipblasLtMatrixLayoutDestroy(b_layout);
     if (a_layout) hipblasLtMatrixLayoutDestroy(a_layout);
-    if (operation) hipblasLtMatmulDescDestroy(operation);
-    if (handle) hipblasLtDestroy(handle);
+    if (owns_operation && operation) hipblasLtMatmulDescDestroy(operation);
+    if (owns_handle && handle) hipblasLtDestroy(handle);
     preference = nullptr;
     d_layout = c_layout = b_layout = a_layout = nullptr;
     operation = nullptr;
@@ -125,10 +127,25 @@ struct Bf16GemmPlan::Impl {
 Bf16GemmPlan::Bf16GemmPlan(std::size_t m, std::size_t n, std::size_t k,
                            std::size_t workspace_limit_bytes,
                            bool right_operand_is_transposed,
-                           bool bias_epilogue)
+                           bool bias_epilogue,
+                           const Bf16GemmPlan* algorithm_source)
     : impl_(std::make_unique<Impl>()) {
   if (m == 0 || n == 0 || k == 0 || workspace_limit_bytes == 0) {
     throw std::invalid_argument("BF16 GEMM dimensions and workspace must be non-zero");
+  }
+  if (algorithm_source != nullptr && bias_epilogue) {
+    throw std::invalid_argument(
+        "biased BF16 GEMM plans cannot borrow an algorithm source");
+  }
+  if (algorithm_source != nullptr &&
+      (!algorithm_source->impl_ || algorithm_source->impl_->m < m ||
+       algorithm_source->impl_->n != n ||
+       algorithm_source->impl_->k != k ||
+       algorithm_source->impl_->right_operand_is_transposed !=
+           right_operand_is_transposed ||
+       algorithm_source->impl_->bias_epilogue != bias_epilogue)) {
+    throw std::invalid_argument(
+        "BF16 GEMM algorithm source geometry is incompatible");
   }
   impl_->m = m;
   impl_->n = n;
@@ -137,24 +154,36 @@ Bf16GemmPlan::Bf16GemmPlan(std::size_t m, std::size_t n, std::size_t k,
   impl_->torch_n1_layout = right_operand_is_transposed && n == 1;
   impl_->bias_epilogue = bias_epilogue;
   try {
-    check_blas(hipblasLtCreate(&impl_->handle), "hipblasLtCreate");
-    check_blas(hipblasLtGetVersion(impl_->handle, &impl_->library_version),
-               "hipblasLtGetVersion");
-    check_blas(hipblasLtMatmulDescCreate(&impl_->operation,
-                                         HIPBLAS_COMPUTE_32F, HIP_R_32F),
-               "hipblasLtMatmulDescCreate");
-    if (impl_->bias_epilogue) {
-      const hipblasLtEpilogue_t epilogue = HIPBLASLT_EPILOGUE_BIAS;
-      const hipDataType bias_type = HIP_R_16BF;
-      check_blas(hipblasLtMatmulDescSetAttribute(
-                     impl_->operation, HIPBLASLT_MATMUL_DESC_EPILOGUE,
-                     &epilogue, sizeof(epilogue)),
-                 "hipblasLtMatmulDescSetAttribute bias epilogue");
-      check_blas(hipblasLtMatmulDescSetAttribute(
-                     impl_->operation,
-                     HIPBLASLT_MATMUL_DESC_BIAS_DATA_TYPE,
-                     &bias_type, sizeof(bias_type)),
-                 "hipblasLtMatmulDescSetAttribute bias type");
+    if (algorithm_source != nullptr) {
+      // A derived logical-M plan has the same operation geometry as its
+      // resident bucket source. Reuse the source's immutable handle and
+      // operation instead of repeatedly initializing hipBLASLt on the request
+      // path; only the exact-M matrix layouts below are plan-local.
+      impl_->handle = algorithm_source->impl_->handle;
+      impl_->operation = algorithm_source->impl_->operation;
+      impl_->library_version = algorithm_source->impl_->library_version;
+    } else {
+      check_blas(hipblasLtCreate(&impl_->handle), "hipblasLtCreate");
+      impl_->owns_handle = true;
+      check_blas(hipblasLtGetVersion(impl_->handle, &impl_->library_version),
+                 "hipblasLtGetVersion");
+      check_blas(hipblasLtMatmulDescCreate(&impl_->operation,
+                                           HIPBLAS_COMPUTE_32F, HIP_R_32F),
+                 "hipblasLtMatmulDescCreate");
+      impl_->owns_operation = true;
+      if (impl_->bias_epilogue) {
+        const hipblasLtEpilogue_t epilogue = HIPBLASLT_EPILOGUE_BIAS;
+        const hipDataType bias_type = HIP_R_16BF;
+        check_blas(hipblasLtMatmulDescSetAttribute(
+                       impl_->operation, HIPBLASLT_MATMUL_DESC_EPILOGUE,
+                       &epilogue, sizeof(epilogue)),
+                   "hipblasLtMatmulDescSetAttribute bias epilogue");
+        check_blas(hipblasLtMatmulDescSetAttribute(
+                       impl_->operation,
+                       HIPBLASLT_MATMUL_DESC_BIAS_DATA_TYPE,
+                       &bias_type, sizeof(bias_type)),
+                   "hipblasLtMatmulDescSetAttribute bias type");
+      }
     }
     // hipBLASLt's gfx1151 row-major heuristic surface contains algorithms that
     // can pass selection and still access outside the output for this large
@@ -175,11 +204,13 @@ Bf16GemmPlan::Bf16GemmPlan(std::size_t m, std::size_t n, std::size_t k,
                      &impl_->a_layout, HIP_R_16BF, k, n,
                      static_cast<std::int64_t>(k)),
                  "hipblasLtMatrixLayoutCreate W-row-view");
-      const hipblasOperation_t transpose = HIPBLAS_OP_T;
-      check_blas(hipblasLtMatmulDescSetAttribute(
-                     impl_->operation, HIPBLASLT_MATMUL_DESC_TRANSA,
-                     &transpose, sizeof(transpose)),
-                 "hipblasLtMatmulDescSetAttribute transpose W");
+      if (algorithm_source == nullptr) {
+        const hipblasOperation_t transpose = HIPBLAS_OP_T;
+        check_blas(hipblasLtMatmulDescSetAttribute(
+                       impl_->operation, HIPBLASLT_MATMUL_DESC_TRANSA,
+                       &transpose, sizeof(transpose)),
+                   "hipblasLtMatmulDescSetAttribute transpose W");
+      }
     } else {
       check_blas(hipblasLtMatrixLayoutCreate(
                      &impl_->a_layout, HIP_R_16BF, n, k,
@@ -195,30 +226,44 @@ Bf16GemmPlan::Bf16GemmPlan(std::size_t m, std::size_t n, std::size_t k,
     check_blas(hipblasLtMatrixLayoutCreate(&impl_->d_layout, HIP_R_16BF,
                                             n, m, static_cast<std::int64_t>(n)),
                "hipblasLtMatrixLayoutCreate D-transpose-view");
-    check_blas(hipblasLtMatmulPreferenceCreate(&impl_->preference),
-               "hipblasLtMatmulPreferenceCreate");
-    check_blas(hipblasLtMatmulPreferenceSetAttribute(
-                   impl_->preference, HIPBLASLT_MATMUL_PREF_MAX_WORKSPACE_BYTES,
-                   &workspace_limit_bytes, sizeof(workspace_limit_bytes)),
-               "hipblasLtMatmulPreferenceSetAttribute workspace");
-    std::array<hipblasLtMatmulHeuristicResult_t, 32> heuristics{};
-    check_blas(hipblasLtMatmulAlgoGetHeuristic(
-                   impl_->handle, impl_->operation, impl_->a_layout,
-                   impl_->b_layout, impl_->c_layout, impl_->d_layout,
-                   impl_->preference, static_cast<int>(heuristics.size()),
-                   heuristics.data(), &impl_->heuristic_count),
-               "hipblasLtMatmulAlgoGetHeuristic");
-    const auto selected = std::find_if(
-        heuristics.begin(), heuristics.begin() + impl_->heuristic_count,
-        [workspace_limit_bytes](const auto& result) {
-          return result.state == HIPBLAS_STATUS_SUCCESS &&
-                 result.workspaceSize <= workspace_limit_bytes;
-        });
-    if (selected == heuristics.begin() + impl_->heuristic_count) {
-      throw std::runtime_error("hipBLASLt returned no supported BF16 GEMM algorithm");
+    if (algorithm_source != nullptr) {
+      if (algorithm_source->impl_->workspace_bytes > workspace_limit_bytes) {
+        throw std::invalid_argument(
+            "BF16 GEMM algorithm source runtime is incompatible");
+      }
+      impl_->algorithm = algorithm_source->impl_->algorithm;
+      impl_->workspace_bytes =
+          algorithm_source->impl_->workspace_bytes;
+      impl_->heuristic_count = 1;
+    } else {
+      check_blas(hipblasLtMatmulPreferenceCreate(&impl_->preference),
+                 "hipblasLtMatmulPreferenceCreate");
+      check_blas(hipblasLtMatmulPreferenceSetAttribute(
+                     impl_->preference,
+                     HIPBLASLT_MATMUL_PREF_MAX_WORKSPACE_BYTES,
+                     &workspace_limit_bytes, sizeof(workspace_limit_bytes)),
+                 "hipblasLtMatmulPreferenceSetAttribute workspace");
+      std::array<hipblasLtMatmulHeuristicResult_t, 32> heuristics{};
+      check_blas(hipblasLtMatmulAlgoGetHeuristic(
+                     impl_->handle, impl_->operation, impl_->a_layout,
+                     impl_->b_layout, impl_->c_layout, impl_->d_layout,
+                     impl_->preference,
+                     static_cast<int>(heuristics.size()), heuristics.data(),
+                     &impl_->heuristic_count),
+                 "hipblasLtMatmulAlgoGetHeuristic");
+      const auto selected = std::find_if(
+          heuristics.begin(), heuristics.begin() + impl_->heuristic_count,
+          [workspace_limit_bytes](const auto& result) {
+            return result.state == HIPBLAS_STATUS_SUCCESS &&
+                   result.workspaceSize <= workspace_limit_bytes;
+          });
+      if (selected == heuristics.begin() + impl_->heuristic_count) {
+        throw std::runtime_error(
+            "hipBLASLt returned no supported BF16 GEMM algorithm");
+      }
+      impl_->algorithm = selected->algo;
+      impl_->workspace_bytes = selected->workspaceSize;
     }
-    impl_->algorithm = selected->algo;
-    impl_->workspace_bytes = selected->workspaceSize;
     if (impl_->workspace_bytes != 0) {
       check_hip(hipMalloc(&impl_->workspace, impl_->workspace_bytes),
                 "hipMalloc hipBLASLt workspace");

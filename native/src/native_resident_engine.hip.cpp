@@ -1041,6 +1041,10 @@ struct NativeResidentEngine::Impl {
   }
 
   ~Impl() {
+    // Logical-M plans borrow immutable hipBLASLt handles and operations from
+    // their admitted prefill bucket. Release the derived cache while every
+    // bucket owner is still alive; member destruction follows this body.
+    vl_logical_projections.reset();
     for (NativeResidentVisionEmbeddingEntry& entry :
          vision_embedding_cache) {
       if (entry.embeddings != nullptr) {
@@ -1868,6 +1872,7 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
         "native composed prefill does not admit layer-oracle diagnostics");
   }
   std::size_t vl_logical_projection_tokens = 0;
+  std::size_t vl_logical_projection_bucket_tokens = 0;
   if (mrope_plan != nullptr) {
     for (const NativePromptAotSegment& segment : prompt_plan.aot_segments) {
       if (segment.bucket_tokens > 2048 ||
@@ -1877,11 +1882,14 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
         continue;
       }
       if (vl_logical_projection_tokens != 0 &&
-          vl_logical_projection_tokens != segment.input_tokens) {
+          (vl_logical_projection_tokens != segment.input_tokens ||
+           vl_logical_projection_bucket_tokens !=
+               segment.bucket_tokens)) {
         throw std::runtime_error(
-            "native VL request has multiple logical q1024 shapes");
+            "native VL request has multiple logical prefill shapes");
       }
       vl_logical_projection_tokens = segment.input_tokens;
+      vl_logical_projection_bucket_tokens = segment.bucket_tokens;
     }
   }
 
@@ -2051,8 +2059,15 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
   }
   const auto request_started = std::chrono::steady_clock::now();
   if (vl_logical_projection_tokens != 0) {
+    NativeResidentPrefillOwner logical_owner = impl_->prefill_owner(
+        vl_logical_projection_bucket_tokens, false);
+    if (logical_owner.gemm_plans == nullptr) {
+      throw std::runtime_error(
+          "native VL logical prefill GEMM source is unavailable");
+    }
     const NativeVlLogicalProjectionPrepareMetrics logical_metrics =
-        impl_->vl_logical_projections.prepare(vl_logical_projection_tokens);
+        impl_->vl_logical_projections.prepare(
+            vl_logical_projection_tokens, *logical_owner.gemm_plans);
     metrics.vl_logical_projections_enabled = logical_metrics.prepared;
     metrics.vl_logical_projection_tokens = logical_metrics.tokens;
     metrics.vl_logical_projection_plan_count = logical_metrics.plan_count;

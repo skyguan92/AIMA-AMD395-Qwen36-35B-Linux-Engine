@@ -55,8 +55,10 @@ Bf16GemmPlan& get_or_build(std::unique_ptr<Bf16GemmPlan>& value,
 }  // namespace
 
 struct NativeQ8192PrefillGemmPlans::Impl {
-  explicit Impl(std::size_t value) : tokens(value) {}
+  Impl(std::size_t value, NativeQ8192PrefillGemmPlans* source)
+      : tokens(value), algorithm_source(source) {}
   std::size_t tokens = 0;
+  NativeQ8192PrefillGemmPlans* algorithm_source = nullptr;
   std::unique_ptr<Bf16GemmPlan> linear_qkv;
   std::unique_ptr<Bf16GemmPlan> linear_z;
   std::unique_ptr<Bf16GemmPlan> linear_ab;
@@ -73,10 +75,16 @@ struct NativeQ8192PrefillGemmPlans::Impl {
 };
 
 NativeQ8192PrefillGemmPlans::NativeQ8192PrefillGemmPlans(
-    std::size_t token_count)
-    : impl_(std::make_unique<Impl>(token_count)) {
+    std::size_t token_count,
+    NativeQ8192PrefillGemmPlans* algorithm_source)
+    : impl_(std::make_unique<Impl>(token_count, algorithm_source)) {
   if (token_count == 0 || token_count > 262144) {
     throw std::invalid_argument("unsupported native prefill GEMM context");
+  }
+  if (algorithm_source != nullptr &&
+      algorithm_source->token_count() < token_count) {
+    throw std::invalid_argument(
+        "native prefill GEMM algorithm source is too short");
   }
 }
 NativeQ8192PrefillGemmPlans::~NativeQ8192PrefillGemmPlans() = default;
@@ -104,16 +112,24 @@ Bf16GemmPlan& NativeQ8192PrefillGemmPlans::linear_ab() {
 }
 Bf16GemmPlan& NativeQ8192PrefillGemmPlans::linear_fused_input() {
   const std::size_t tokens = impl_->tokens;
-  return get_or_build(impl_->linear_fused_input, [tokens] {
+  NativeQ8192PrefillGemmPlans* source = impl_->algorithm_source;
+  return get_or_build(impl_->linear_fused_input, [tokens, source] {
+    const Bf16GemmPlan* algorithm =
+        source == nullptr ? nullptr : &source->linear_fused_input();
     return std::make_unique<Bf16GemmPlan>(
-        tokens, 12352, kHidden, kWorkspaceLimit, false);
+        tokens, 12352, kHidden, kWorkspaceLimit, false, false,
+        algorithm);
   });
 }
 Bf16GemmPlan& NativeQ8192PrefillGemmPlans::linear_output() {
   const std::size_t tokens = impl_->tokens;
-  return get_or_build(impl_->linear_output, [tokens] {
+  NativeQ8192PrefillGemmPlans* source = impl_->algorithm_source;
+  return get_or_build(impl_->linear_output, [tokens, source] {
+    const Bf16GemmPlan* algorithm =
+        source == nullptr ? nullptr : &source->linear_output();
     return std::make_unique<Bf16GemmPlan>(
-        tokens, kHidden, 4096, kWorkspaceLimit, true);
+        tokens, kHidden, 4096, kWorkspaceLimit, true, false,
+        algorithm);
   });
 }
 
@@ -133,38 +149,58 @@ Bf16GemmPlan& NativeQ8192PrefillGemmPlans::full_kv() {
 }
 Bf16GemmPlan& NativeQ8192PrefillGemmPlans::full_qkv() {
   const std::size_t tokens = impl_->tokens;
-  return get_or_build(impl_->full_qkv, [tokens] {
+  NativeQ8192PrefillGemmPlans* source = impl_->algorithm_source;
+  return get_or_build(impl_->full_qkv, [tokens, source] {
+    const Bf16GemmPlan* algorithm =
+        source == nullptr ? nullptr : &source->full_qkv();
     return std::make_unique<Bf16GemmPlan>(
-        tokens, 9216, kHidden, kWorkspaceLimit, false);
+        tokens, 9216, kHidden, kWorkspaceLimit, false, false,
+        algorithm);
   });
 }
 Bf16GemmPlan& NativeQ8192PrefillGemmPlans::full_output() {
   const std::size_t tokens = impl_->tokens;
-  return get_or_build(impl_->full_output, [tokens] {
+  NativeQ8192PrefillGemmPlans* source = impl_->algorithm_source;
+  return get_or_build(impl_->full_output, [tokens, source] {
+    const Bf16GemmPlan* algorithm =
+        source == nullptr ? nullptr : &source->full_output();
     return std::make_unique<Bf16GemmPlan>(
-        tokens, kHidden, 4096, kWorkspaceLimit, true);
+        tokens, kHidden, 4096, kWorkspaceLimit, true, false,
+        algorithm);
   });
 }
 
 Bf16GemmPlan& NativeQ8192PrefillGemmPlans::moe_shared_gate() {
   const std::size_t tokens = impl_->tokens;
-  return get_or_build(impl_->moe_shared_gate, [tokens] {
+  NativeQ8192PrefillGemmPlans* source = impl_->algorithm_source;
+  return get_or_build(impl_->moe_shared_gate, [tokens, source] {
+    const Bf16GemmPlan* algorithm =
+        source == nullptr ? nullptr : &source->moe_shared_gate();
     return std::make_unique<Bf16GemmPlan>(
-        tokens, 1, kHidden, 76ULL * 1024ULL * 1024ULL, true);
+        tokens, 1, kHidden, 76ULL * 1024ULL * 1024ULL, true, false,
+        algorithm);
   });
 }
 Bf16GemmPlan& NativeQ8192PrefillGemmPlans::moe_shared_projection() {
   const std::size_t tokens = impl_->tokens;
-  return get_or_build(impl_->moe_shared_projection, [tokens] {
+  NativeQ8192PrefillGemmPlans* source = impl_->algorithm_source;
+  return get_or_build(impl_->moe_shared_projection, [tokens, source] {
+    const Bf16GemmPlan* algorithm =
+        source == nullptr ? nullptr : &source->moe_shared_projection();
     return std::make_unique<Bf16GemmPlan>(
-        tokens, 512, kHidden, kWorkspaceLimit, true);
+        tokens, 512, kHidden, kWorkspaceLimit, true, false,
+        algorithm);
   });
 }
 Bf16GemmPlan& NativeQ8192PrefillGemmPlans::moe_shared_down() {
   const std::size_t tokens = impl_->tokens;
-  return get_or_build(impl_->moe_shared_down, [tokens] {
+  NativeQ8192PrefillGemmPlans* source = impl_->algorithm_source;
+  return get_or_build(impl_->moe_shared_down, [tokens, source] {
+    const Bf16GemmPlan* algorithm =
+        source == nullptr ? nullptr : &source->moe_shared_down();
     return std::make_unique<Bf16GemmPlan>(
-        tokens, kHidden, 512, kWorkspaceLimit, true);
+        tokens, kHidden, 512, kWorkspaceLimit, true, false,
+        algorithm);
   });
 }
 Bf16GemmPlan& NativeQ8192PrefillGemmPlans::moe_router() {

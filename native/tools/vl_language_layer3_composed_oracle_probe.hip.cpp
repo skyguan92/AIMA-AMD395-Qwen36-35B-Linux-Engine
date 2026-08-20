@@ -858,8 +858,8 @@ json qualify_case(
   const std::vector<unsigned char> positions =
       read_tensor(layer3_root, positions_record);
   const aima::NativeVlLogicalProjectionPrepareMetrics logical_metrics =
-      logical_projections.prepare(prompt_tokens);
-  if (!logical_metrics.prepared || logical_metrics.plan_count != 2) {
+      logical_projections.prepare(prompt_tokens, gemm_plans);
+  if (!logical_metrics.prepared || logical_metrics.plan_count != 9) {
     throw std::runtime_error("logical VL projection plans are incomplete");
   }
   const std::filesystem::path case_oracle_dir = layer3_root / case_id;
@@ -1245,8 +1245,8 @@ json qualify_full_language_case(
   const std::vector<unsigned char> expected_logits =
       read_tensor(vl_root, logits_record);
   const aima::NativeVlLogicalProjectionPrepareMetrics logical_metrics =
-      logical_projections.prepare(prompt_tokens);
-  if (!logical_metrics.prepared || logical_metrics.plan_count != 2) {
+      logical_projections.prepare(prompt_tokens, gemm_plans);
+  if (!logical_metrics.prepared || logical_metrics.plan_count != 9) {
     throw std::runtime_error("full-language logical plans are incomplete");
   }
 

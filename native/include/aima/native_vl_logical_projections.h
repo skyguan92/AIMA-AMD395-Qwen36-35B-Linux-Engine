@@ -34,10 +34,10 @@ struct NativeVlLogicalProjectionPrepareMetrics {
 };
 
 // Resident owner for the logical-M projection surfaces of a padded q1024 or
-// q2048 VL request. A/B weights, compact output scratch, and a bounded set of
-// graduated hipBLASLt plan bins are READY-time residents. The request retains
-// its exact logical token count while the fixed AOT storage capacity remains
-// at the admitted prompt bucket.
+// q2048 VL request. A/B weights and compact output scratch are READY-time
+// residents. A bounded exact-shape plan cache preserves the bucket plan's
+// qualified hipBLASLt algorithms for the large projections while retaining
+// the exact logical-M reductions required by A/B and the MoE router.
 class NativeVlLogicalProjectionState {
  public:
   NativeVlLogicalProjectionState();
@@ -52,7 +52,9 @@ class NativeVlLogicalProjectionState {
       std::size_t maximum_tokens =
           kNativeVlLogicalProjectionMaximumTokens,
       int device = 0);
-  NativeVlLogicalProjectionPrepareMetrics prepare(std::size_t tokens);
+  NativeVlLogicalProjectionPrepareMetrics prepare(
+      std::size_t tokens,
+      NativeQ8192PrefillGemmPlans& algorithm_source);
   void reset() noexcept;
 
   bool loaded() const;

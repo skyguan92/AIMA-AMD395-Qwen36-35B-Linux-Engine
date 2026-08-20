@@ -62,16 +62,17 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         self.assertIn(
             "kNativeVlLogicalProjectionMaximumTokens = 1280", header
         )
-        self.assertIn("128, 384, 768", source)
-        self.assertIn("std::launch::async", source)
+        self.assertIn("kExactPlanCacheEntries = 16", source)
+        self.assertIn("algorithm_source_tokens", source)
         self.assertIn("metrics.reused = true", source)
         prepare_body = source.split(
-            "NativeVlLogicalProjectionState::prepare(std::size_t tokens)", 1
+            "NativeVlLogicalProjectionState::prepare(", 1
         )[1].split(
             "void NativeVlLogicalProjectionState::reset()", 1
         )[0]
         self.assertIn("std::find_if", prepare_body)
-        self.assertNotIn("std::make_unique", prepare_body)
+        self.assertIn("std::make_unique", prepare_body)
+        self.assertIn("&algorithm_source", prepare_body)
         self.assertIn("void prepare_logical_linear_and_moe();", (
             ROOT / "native/include/aima/native_prefill_gemm_plans.h"
         ).read_text(encoding="utf-8"))
@@ -87,6 +88,7 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
             "kNativeVlLogicalProjectionMaximumTokens", resident
         )
         self.assertIn("vl_logical_projections.prepare", resident)
+        self.assertIn("vl_logical_projections.reset();", resident)
         self.assertIn("attention_options.logical_ab_gemm_plan", resident)
         self.assertIn("moe_options.logical_router_gemm_plans", resident)
         self.assertIn("vl_logical_projections_enabled", main)
@@ -101,6 +103,62 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
             self.assertIn(f'{{"{metric}"', http)
         self.assertIn("native_vl_logical_projections.hip.cpp", runtime_build)
         self.assertIn("native_vl_logical_projections.hip.cpp", layer0_build)
+
+    def test_logical_projection_plans_preserve_bucket_algorithms(self) -> None:
+        gemm_header = (
+            ROOT / "native/include/aima/bf16_gemm.h"
+        ).read_text(encoding="utf-8")
+        gemm_source = (
+            ROOT / "native/src/bf16_gemm.hip.cpp"
+        ).read_text(encoding="utf-8")
+        prefill_source = (
+            ROOT / "native/src/native_prefill_gemm_plans.hip.cpp"
+        ).read_text(encoding="utf-8")
+        logical_source = (
+            ROOT / "native/src/native_vl_logical_projections.hip.cpp"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("const Bf16GemmPlan* algorithm_source", gemm_header)
+        self.assertIn("The source\n  // must outlive", gemm_header)
+        self.assertIn("algorithm_source->impl_->m < m", gemm_source)
+        self.assertIn(
+            "impl_->handle = algorithm_source->impl_->handle", gemm_source
+        )
+        self.assertIn(
+            "impl_->operation = algorithm_source->impl_->operation",
+            gemm_source,
+        )
+        self.assertIn(
+            "impl_->algorithm = algorithm_source->impl_->algorithm",
+            gemm_source,
+        )
+        self.assertIn("owns_handle && handle", gemm_source)
+        self.assertIn("owns_operation && operation", gemm_source)
+
+        for method in (
+            "linear_fused_input",
+            "linear_output",
+            "full_qkv",
+            "full_output",
+            "moe_shared_gate",
+            "moe_shared_projection",
+            "moe_shared_down",
+        ):
+            body = prefill_source.split(
+                f"NativeQ8192PrefillGemmPlans::{method}()", 1
+            )[1].split("\n}", 1)[0]
+            self.assertIn("algorithm", body)
+        router_body = prefill_source.split(
+            "NativeQ8192PrefillGemmPlans::moe_router()", 1
+        )[1].split("\n}", 1)[0]
+        self.assertNotIn("algorithm_source", router_body)
+
+        self.assertNotIn("std::async", logical_source)
+        self.assertIn("entry.tokens == tokens", logical_source)
+        self.assertIn("entry.tokens = tokens", logical_source)
+        self.assertIn(
+            "entry.algorithm_source_tokens = source_tokens", logical_source
+        )
 
     def test_probe_executes_the_product_q1024_layer_without_oracle_seeds(self) -> None:
         probe = (
@@ -194,6 +252,13 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         self.assertIn("q1024-output1", build)
         self.assertIn('Q8192_DIR="${ROOT}/native/aot/gfx1151/q8192-output2"', build)
         self.assertIn('--schedule "${Q8192_DIR}/decode-schedule.json"', build)
+        self.assertIn("--prefill-registry frozen-text", build)
+        self.assertIn("FROZEN_TEXT_PREFILL_REGISTRY_CPP", build)
+        layer3_build = (
+            ROOT / "scripts/build-native-vl-language-layer3-composed-probe.sh"
+        ).read_text(encoding="utf-8")
+        self.assertIn("--prefill-registry frozen-text", layer3_build)
+        self.assertIn("FROZEN_TEXT_PREFILL_REGISTRY_CPP", layer3_build)
         self.assertIn("build-native-vl-language-layer0-probe", makefile)
 
         self.assertIn("const bool q1024_official_fla", linear_source)

@@ -437,8 +437,8 @@ json qualify_case(
   (void)active_gemm_plans.moe_shared_down();
   (void)active_gemm_plans.moe_router();
   const aima::NativeVlLogicalProjectionPrepareMetrics logical_metrics =
-      logical_projections.prepare(prompt_tokens);
-  if (!logical_metrics.prepared || logical_metrics.plan_count != 2) {
+      logical_projections.prepare(prompt_tokens, active_gemm_plans);
+  if (!logical_metrics.prepared || logical_metrics.plan_count != 9) {
     throw std::runtime_error("logical VL projection plans are incomplete");
   }
 

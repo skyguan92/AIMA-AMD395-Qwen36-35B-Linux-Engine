@@ -16,7 +16,8 @@ class Bf16GemmPlan {
   Bf16GemmPlan(std::size_t m, std::size_t n, std::size_t k,
                std::size_t workspace_limit_bytes = 128ULL * 1024 * 1024,
                bool right_operand_is_transposed = false,
-               bool bias_epilogue = false);
+               bool bias_epilogue = false,
+               const Bf16GemmPlan* algorithm_source = nullptr);
   ~Bf16GemmPlan();
 
   Bf16GemmPlan(const Bf16GemmPlan&) = delete;
@@ -28,6 +29,11 @@ class Bf16GemmPlan {
   // right_operand_is_transposed is true, the supplied right-hand storage is
   // W[N,K] and the mathematical B is W^T. All matrices are BF16 and
   // accumulation is FP32, matching the qualified projection surface.
+  // algorithm_source reuses the qualified hipBLASLt solution of a larger-M
+  // plan with otherwise identical geometry. This preserves its reduction
+  // order while allowing a logical prefix to avoid padded rows. The source
+  // must outlive the derived plan; biased plans are not derivable because the
+  // bias pointer is mutable operation state.
   void launch(const void* a, const void* b, void* d,
               void* stream = nullptr) const;
   void launch_with_bias(const void* a, const void* b, const void* bias,
