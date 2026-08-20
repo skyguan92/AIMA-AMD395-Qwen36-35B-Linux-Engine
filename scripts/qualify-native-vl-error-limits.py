@@ -74,9 +74,7 @@ def load_module(path: Path, name: str) -> ModuleType:
     return module
 
 
-def validate_reference(
-    reference: dict[str, Any], source_commit: str
-) -> list[str]:
+def validate_reference(reference: dict[str, Any]) -> list[str]:
     errors = verify_manifest_integrity(reference)
     if reference.get("schema") != REFERENCE_SCHEMA:
         errors.append("error/limit reference schema changed")
@@ -92,8 +90,8 @@ def validate_reference(
     ):
         errors.append("error/limit reference contains a failed case")
     source = reference.get("source")
-    if not isinstance(source, dict) or source.get("commit") != source_commit:
-        errors.append("error/limit reference source commit changed")
+    if not isinstance(source, dict) or source.get("dirty") is not False:
+        errors.append("error/limit reference source identity is not clean")
     components = source.get("files") if isinstance(source, dict) else None
     if not isinstance(components, list):
         errors.append("error/limit reference source files are missing")
@@ -486,7 +484,7 @@ def main() -> int:
         raise SystemExit("vision-attention image differs from frozen artifact")
 
     reference = load_json_object(args.reference)
-    errors = validate_reference(reference, source["commit"])
+    errors = validate_reference(reference)
     oracle_binding = reference.get("bindings", {}).get("media_io_oracle")
     if (
         not isinstance(oracle_binding, dict)

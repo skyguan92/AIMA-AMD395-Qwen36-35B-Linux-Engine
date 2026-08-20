@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 from pathlib import Path
 import urllib.error
 import urllib.request
@@ -24,6 +25,7 @@ PROBE = ROOT / "scripts/probe-vllm-vl-api-capabilities.py"
 QUALIFIER = ROOT / "scripts/qualify-native-vl-error-limits.py"
 FIXTURES = ROOT / "benchmarks/fixtures/vl-capability-v0.1.0"
 ERROR_FIXTURES = ROOT / "benchmarks/fixtures/vl-error-v0.1.0"
+REFERENCE = ROOT / "benchmarks/results/vl-error-limits-reference-v0.1.0.json"
 
 
 def load_script(path: Path, name: str):
@@ -65,6 +67,14 @@ class VlErrorLimitsTest(unittest.TestCase):
         self.assertTrue(
             all(reference_id in REFERENCE_CASE_ORDER for _, reference_id in NATIVE_REPLAY)
         )
+
+    def test_reference_validation_is_component_bound_not_checkout_bound(self) -> None:
+        reference = json.loads(REFERENCE.read_text(encoding="utf-8"))
+        self.assertNotEqual(
+            reference["source"]["commit"],
+            self.qualifier.git_identity(ROOT)["commit"],
+        )
+        self.assertEqual(self.qualifier.validate_reference(reference), [])
 
     def test_request_level_merge_and_rgba_surfaces_are_exact(self) -> None:
         cases = {item["case_id"]: item for item in self.specs}

@@ -1053,6 +1053,12 @@ mapping and the long sparse video) plus empty image/video, unreachable,
 empty/oversize are HTTP 400 `BadRequestError`; unreachable/timeout are HTTP
 500 `InternalServerError`.
 
+These artifacts remain historical reference identities: later native replays
+validate each clean capture identity, integrity seal, and bound source-file
+hash, but do not require the current implementation commit to equal the
+capture commit. The native result separately binds its own exact source commit
+and binary hash.
+
 The exact-commit native binary SHA-256
 `f650ef2061e7a69348c512e55bd0f881a64aa19f8fd390d02418f477b2b95fd5`
 then replayed 13 observations in one resident model load. All eight accepted
