@@ -18,6 +18,12 @@ from typing import Any, Mapping
 
 SCHEMA = "aima-amd395-qwen36/vl-performance-matrix-pair/v1"
 PAIR_ID = re.compile(r"^(.+)\.pair-([1-9][0-9]*)$")
+VISION_ATTENTION_IMAGE_SHA256 = (
+    "8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e"
+)
+DENSE_IMAGE_VISION_ATTENTION_IMAGE_SHA256 = (
+    "e8757f4464fdb39f5505241a1ffd0f40b74f18704318280e070015bd4302d71c"
+)
 
 
 def load_object(path: Path) -> dict[str, Any]:
@@ -40,6 +46,32 @@ def finite_number(value: object) -> float | None:
         return None
     result = float(value)
     return result if math.isfinite(result) and result >= 0 else None
+
+
+def expected_vision_attention_image_sha256s(
+    cell: Mapping[str, Any], native_vl: Mapping[str, Any]
+) -> list[str] | None:
+    cache_hit = native_vl.get("vision_embedding_cache_hit")
+    batch_count = native_vl.get("vision_batch_count")
+    if cache_hit is True:
+        return []
+    if (
+        cache_hit is not False
+        or isinstance(batch_count, bool)
+        or not isinstance(batch_count, int)
+        or batch_count <= 0
+    ):
+        return None
+    # The frozen comparable matrix has one dense image-only batch. Other
+    # high-count product cases are reference-unavailable and are qualified by
+    # the candidate execution envelope rather than this paired summarizer.
+    dense_image_batch = cell.get("cell_id") == "image_count_max_q8k_output1"
+    image_sha256 = (
+        DENSE_IMAGE_VISION_ATTENTION_IMAGE_SHA256
+        if dense_image_batch
+        else VISION_ATTENTION_IMAGE_SHA256
+    )
+    return [image_sha256] * batch_count
 
 
 def diagnostic_module():
@@ -136,6 +168,12 @@ def group_record(
             ),
             "vision_plan_cache_entries_at_ready": health.get(
                 "vision_plan_cache_entries_at_ready"
+            ),
+            "vision_attention_image_sha256": health.get(
+                "vision_attention_image_sha256"
+            ),
+            "vision_dense_image_attention_image_sha256": health.get(
+                "vision_dense_image_attention_image_sha256"
             ),
             "vision_warmup_plan_build_wall_ms": health.get(
                 "vision_warmup_plan_build_wall_ms"
@@ -249,6 +287,16 @@ def cell_record(
     visual_tokens = (
         native_vl.get("visual_tokens") if isinstance(native_vl, Mapping) else None
     )
+    candidate_attention_images = (
+        native_vl.get("vision_attention_image_sha256s")
+        if isinstance(native_vl, Mapping)
+        else None
+    )
+    expected_attention_images = (
+        expected_vision_attention_image_sha256s(cell, native_vl)
+        if isinstance(native_vl, Mapping)
+        else None
+    )
     checks = {
         "diagnostic_complete": summary.get("complete") is True,
         "benchmark_cell_and_pair_exact": (
@@ -261,6 +309,10 @@ def cell_record(
         "prompt_context_bucket_exact": prompt_in_range,
         "visual_token_count_exact": visual_tokens
         == cell.get("aggregate_visual_tokens"),
+        "candidate_vision_attention_dispatch_exact": (
+            candidate_attention_images == expected_attention_images
+            and expected_attention_images is not None
+        ),
         "expected_output_completed": (
             reference.get("response", {})
             .get("usage", {})
@@ -336,6 +388,7 @@ def cell_record(
                 if isinstance(native_vl, Mapping)
                 else None
             ),
+            "vision_attention_image_sha256s": candidate_attention_images,
             "vision_plan_build_wall_ms": (
                 native_vl.get("vision_plan_build_wall_ms")
                 if isinstance(native_vl, Mapping)
@@ -450,6 +503,17 @@ def build_summary(root: Path, matrix_path: Path) -> dict[str, Any]:
                 "vision_plan_cache_entries_at_ready"
             ]
             == 2
+            for group in groups
+        ),
+        "candidate_vision_attention_variants_bound": all(
+            group["candidate_health"]["vision_attention_image_sha256"]
+            == VISION_ATTENTION_IMAGE_SHA256
+            and (
+                group["candidate_health"][
+                    "vision_dense_image_attention_image_sha256"
+                ]
+                == DENSE_IMAGE_VISION_ATTENTION_IMAGE_SHA256
+            )
             for group in groups
         ),
         "candidate_startup_observed": all(

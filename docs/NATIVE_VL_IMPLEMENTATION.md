@@ -18,7 +18,7 @@ blocking condition in the governing goal can move a gate to `passed`.
 | G2 VL correctness parity | the five private and five independently rendered real-HTTP language prompts pass final norm and 84/84 selected full-vocabulary rows bit-exact; current-HEAD tool generation binds exact prompt prefixes, 120/120 prefill states, 82/82 whole-layer rows, 26/26 linear, 30/30 tail and 12/12 full-attention boundaries, with exact top-1 and selected tokens; image task quality is `1.000000` and video task quality is `0.947368`, equal to the fixed vLLM reference, with long generated token vectors exact for 10/12 | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | resolve the two remaining long deterministic-generation divergences, then run the final G2/G3 correctness gates |
 | G3 text product no regression | the exact portable `v1.5.1` executable is retained as an immutable paired baseline; current-head nine-context logits, q8192 exact128, OpenAI features and MMLU-256 are qualified; the allocation-order v33 candidate passes q1024/q32768 diagnostics and cross-request text/VL switching but fails the formal q16384 prefill cell; a numerically equivalent parallel text router in v34 clears q16384 in five adjacent pairs and both q1024 formal cells, but that diagnostic build used a snapshot label rather than a real commit | paired 19-cell, maximum-window, correctness, MMLU, API, cache, startup and memory requalification | rebuild from the exact implementation commit and run its single authoritative 19-cell matrix, then rerun exact-prefix, cache, full correctness and memory gates |
 | G4 native VL performance | the 23-cell native execution envelope now records per-request stage timings, but it is a single candidate qualification rather than paired performance evidence | paired per-cell stage timings and memory records against the fixed VL-enabled vLLM | run the same frozen cells with the alternating paired vLLM/candidate timing protocol |
-| G5 native release product | the full runtime includes all qualified vision sources, loads the 333 visual tensors in one resident native process and survives the complete execution envelope; the external vision-attention code object is hash-checked and wired into the portable package contract, but final package qualification has not run | native-only package, security, isolated bundle, second-host, soak and rollback evidence | generate a clean product qualification containing the vision code object, then run isolated bundle, second-host, soak and rollback gates |
+| G5 native release product | the full runtime includes all qualified vision sources, loads the 333 visual tensors in one resident native process and survives the complete execution envelope; the general vision-attention code object remains an external hash-checked package artifact and the dense-image variant is hash-checked inside the embedded AOT registry, but final package qualification has not run | native-only package, security, isolated bundle, second-host, soak and rollback evidence | generate a clean product qualification containing both bound vision variants, then run isolated bundle, second-host, soak and rollback gates |
 
 ## G1 coverage audit (2026-08-16)
 
@@ -1064,7 +1064,7 @@ gate.
 Formal binaries must retain the complete default AOT closure. A q1024-only
 diagnostic build embedded 14 kernels from two manifests and correctly failed
 when a longer tool decode referenced a q8192 image; the accepted builds embed
-68 kernels from sixteen manifests. The serving context may be q1024, but its
+70 kernels from eighteen manifests. The serving context may be q1024, but its
 decode schedule still depends on the q8192 closure.
 
 An FMHA provider path alone is not a qualification input. Every native VL
@@ -1091,9 +1091,16 @@ digest can reuse decoded grids and BF16 pixels. Exact prefix hits skip vision
 execution and pixel upload; changed text reuses only safe media/shape plans and
 reruns vision/language normally.
 
-The runtime build still installs and verifies the fixed vision-attention code
-object, and the portable package contract includes it in the deterministic
-bundle identity. These records now close the frozen API/render,
+The runtime keeps two bit-exact vision-attention occupancy variants. The
+external WPE3 image remains the general and video-safe package artifact. A WPE6
+image is verified from the embedded AOT registry and selected only for batches
+with at least eight grids where every grid is a single temporal frame. Warmed
+execution entries bind the attention image SHA-256 in addition to patch count
+and sequence boundaries, so patch/GEMM/merger resources may be shared without
+allowing an attention executable to cross the image/video policy boundary. The
+portable bundle identity covers the external image directly and the embedded
+variant through the native binary and registry manifest. These records now
+close the frozen API/render,
 deterministic-resident-serving and min/typical/max execution-envelope slices.
 The task-quality slice is closed by the 12-case result below; deterministic
 generation exactness, complete text no-regression, paired performance,

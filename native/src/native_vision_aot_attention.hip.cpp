@@ -22,6 +22,8 @@ namespace {
 
 constexpr char kVisionAttentionImageSha256[] =
     "8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e";
+constexpr char kDenseImageVisionAttentionImageSha256[] =
+    "e8757f4464fdb39f5505241a1ffd0f40b74f18704318280e070015bd4302d71c";
 constexpr char kVisionAttentionKernelSymbol[] = "_fwd_kernel";
 constexpr std::uint32_t kVisionHeads = 16;
 constexpr std::uint32_t kVisionHeadDimension = 72;
@@ -51,6 +53,28 @@ VerifiedAttentionExecutable load_verified_attention_executable(
   result.kernel = std::make_shared<AotKernel>(
       AotKernel::from_file(image_path, kVisionAttentionKernelSymbol));
   return result;
+}
+
+VerifiedAttentionExecutable load_verified_dense_attention_executable(
+    std::vector<unsigned char> image) {
+  if (image.empty()) {
+    throw std::runtime_error(
+        "native dense-image vision attention AOT image is empty");
+  }
+  VerifiedAttentionExecutable result;
+  result.image_sha256 = sha256_bytes(image.data(), image.size());
+  if (result.image_sha256 != kDenseImageVisionAttentionImageSha256) {
+    throw std::runtime_error(
+        "native dense-image vision attention AOT image hash mismatch");
+  }
+  result.kernel = std::make_shared<AotKernel>(
+      std::move(image), kVisionAttentionKernelSymbol);
+  return result;
+}
+
+bool supported_attention_image_sha256(const std::string& image_sha256) {
+  return image_sha256 == kVisionAttentionImageSha256 ||
+         image_sha256 == kDenseImageVisionAttentionImageSha256;
 }
 
 }  // namespace
@@ -92,7 +116,7 @@ struct NativeVisionAotAttentionPlan::Impl {
     }
     workspace_bytes_value =
         2 * segment_count_value * sizeof(std::int32_t);
-    if (!kernel || image_sha256_value != kVisionAttentionImageSha256) {
+    if (!kernel || !supported_attention_image_sha256(image_sha256_value)) {
       throw std::runtime_error("native vision attention AOT image hash mismatch");
     }
     try {
@@ -143,6 +167,12 @@ NativeVisionAotAttentionPlan::NativeVisionAotAttentionPlan(
     const std::vector<std::uint32_t>& cu_seqlens)
     : impl_(std::make_unique<Impl>(image_path, patch_count, cu_seqlens)) {}
 NativeVisionAotAttentionPlan::NativeVisionAotAttentionPlan(
+    std::vector<unsigned char> image, std::size_t patch_count,
+    const std::vector<std::uint32_t>& cu_seqlens)
+    : impl_(std::make_unique<Impl>(
+          load_verified_dense_attention_executable(std::move(image)),
+          patch_count, cu_seqlens)) {}
+NativeVisionAotAttentionPlan::NativeVisionAotAttentionPlan(
     std::shared_ptr<AotKernel> kernel, std::string image_sha256,
     std::size_t patch_count,
     const std::vector<std::uint32_t>& cu_seqlens)
@@ -156,6 +186,21 @@ NativeVisionAotAttentionPlan::NativeVisionAotAttentionPlan(
     NativeVisionAotAttentionPlan&&) noexcept = default;
 NativeVisionAotAttentionPlan& NativeVisionAotAttentionPlan::operator=(
     NativeVisionAotAttentionPlan&&) noexcept = default;
+
+std::shared_ptr<const NativeVisionAotAttentionPlan>
+NativeVisionAotAttentionPlan::from_embedded_dense_image(
+    const unsigned char* image, std::size_t image_bytes,
+    std::size_t patch_count,
+    const std::vector<std::uint32_t>& cu_seqlens) {
+  if (image == nullptr || image_bytes == 0) {
+    throw std::invalid_argument(
+        "native embedded dense-image vision attention is empty");
+  }
+  return std::shared_ptr<const NativeVisionAotAttentionPlan>(
+      new NativeVisionAotAttentionPlan(
+          std::vector<unsigned char>(image, image + image_bytes),
+          patch_count, cu_seqlens));
+}
 
 void NativeVisionAotAttentionPlan::launch(
     const void* query_device, const void* key_device, const void* value_device,

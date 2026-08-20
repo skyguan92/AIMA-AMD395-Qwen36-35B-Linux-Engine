@@ -3,6 +3,7 @@
 
 #include "aima/native_resident_engine.h"
 
+#include "aima/aot_registry.h"
 #include "aima/bf16_gemm.h"
 #include "aima/native_decode_bindings.h"
 #include "aima/native_decode_executor.h"
@@ -79,6 +80,12 @@ constexpr char kVisionAttentionImageFilename[] =
     "aima-vision-attention.hsaco";
 constexpr char kVisionAttentionImageSha256[] =
     "8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e";
+constexpr std::size_t kDenseImageVisionAttentionMinimumGridCount = 8;
+constexpr char kDenseImageVisionAttentionKernelHash[] =
+    "2bb5125141eea1b811395f9833de3077de68893bfebbbf1950ca26832db6bb52";
+constexpr char kDenseImageVisionAttentionImageSha256[] =
+    "e8757f4464fdb39f5505241a1ffd0f40b74f18704318280e070015bd4302d71c";
+constexpr char kVisionAttentionKernelSymbol[] = "_fwd_kernel";
 constexpr char kResidentLayoutManifestSha256[] =
     "b8a9f4f909b66104f1815d9ed49791c8692077455a517f2d4e8f0defe6893dd7";
 
@@ -445,6 +452,7 @@ struct NativeResidentVisionPlanEntry {
 struct NativeResidentVisionExecutionPlanEntry {
   std::size_t patch_count = 0;
   std::vector<std::uint32_t> cu_seqlens;
+  std::string attention_image_sha256;
   std::shared_ptr<NativeVisionPatchEmbedPlan> patch;
   std::shared_ptr<const NativeVisionAotAttentionPlan> attention;
   std::shared_ptr<NativeVisionAotBlockGemmPlans> block_gemms;
@@ -483,6 +491,58 @@ bool same_vision_grids(const std::vector<NativeVlGrid>& left,
     }
   }
   return true;
+}
+
+bool use_dense_image_vision_attention(
+    const std::vector<NativeVlGrid>& grids) {
+  return grids.size() >= kDenseImageVisionAttentionMinimumGridCount &&
+         std::all_of(grids.begin(), grids.end(),
+                     [](const NativeVlGrid& grid) {
+                       return grid.temporal == 1;
+                     });
+}
+
+const char* vision_attention_image_sha256_for_grids(
+    const std::vector<NativeVlGrid>& grids) {
+  return use_dense_image_vision_attention(grids)
+             ? kDenseImageVisionAttentionImageSha256
+             : kVisionAttentionImageSha256;
+}
+
+std::shared_ptr<const NativeVisionAotAttentionPlan>
+make_vision_attention_plan(
+    const std::filesystem::path& primary_image_path,
+    std::string_view desired_image_sha256, std::size_t patch_count,
+    const std::vector<std::uint32_t>& cu_seqlens) {
+  if (desired_image_sha256 == kVisionAttentionImageSha256) {
+    return std::make_shared<NativeVisionAotAttentionPlan>(
+        primary_image_path, patch_count, cu_seqlens);
+  }
+  if (desired_image_sha256 != kDenseImageVisionAttentionImageSha256) {
+    throw std::runtime_error(
+        "native vision attention dispatch selected an unknown image");
+  }
+  const EmbeddedAotImage* image =
+      find_embedded_aot_image(kDenseImageVisionAttentionKernelHash);
+  if (image == nullptr || image->symbol == nullptr || image->image == nullptr ||
+      image->image_bytes == 0 ||
+      std::string_view(image->symbol) != kVisionAttentionKernelSymbol ||
+      image->num_warps != 8 || image->warp_size != 32 ||
+      image->shared_memory_bytes != 32768 ||
+      sha256_bytes(image->image, image->image_bytes) !=
+          kDenseImageVisionAttentionImageSha256) {
+    throw std::runtime_error(
+        "native dense-image vision attention registry entry is missing or "
+        "changed");
+  }
+  auto result = NativeVisionAotAttentionPlan::from_embedded_dense_image(
+      image->image, image->image_bytes, patch_count, cu_seqlens);
+  if (!result ||
+      result->image_sha256() != kDenseImageVisionAttentionImageSha256) {
+    throw std::runtime_error(
+        "native dense-image vision attention plan identity changed");
+  }
+  return result;
 }
 
 std::vector<std::uint32_t> vision_attention_cu_seqlens(
@@ -736,13 +796,19 @@ struct NativeResidentEngine::Impl {
   void retain_warmed_vision_execution_plans(
       const NativeVisionPipelinePlan& pipeline) {
     const std::size_t patch_count = pipeline.patch_count();
+    const std::string attention_image_sha256 =
+        pipeline.attention_image_sha256();
     const auto existing = std::find_if(
         vision_warmed_execution_plans.begin(),
         vision_warmed_execution_plans.end(),
-        [patch_count](const NativeResidentVisionExecutionPlanEntry& entry) {
-          return entry.patch_count == patch_count;
+        [patch_count, &attention_image_sha256](
+            const NativeResidentVisionExecutionPlanEntry& entry) {
+          return entry.patch_count == patch_count &&
+                 entry.attention_image_sha256 == attention_image_sha256;
         });
     if (existing != vision_warmed_execution_plans.end()) {
+      existing->cu_seqlens = pipeline.cu_seqlens();
+      existing->attention = pipeline.attention_plan();
       existing->use = ++vision_execution_plan_clock;
       return;
     }
@@ -760,11 +826,13 @@ struct NativeResidentEngine::Impl {
     NativeResidentVisionExecutionPlanEntry entry;
     entry.patch_count = patch_count;
     entry.cu_seqlens = pipeline.cu_seqlens();
+    entry.attention_image_sha256 = attention_image_sha256;
     entry.patch = pipeline.patch_plan();
     entry.attention = pipeline.attention_plan();
     entry.block_gemms = pipeline.block_gemm_plans();
     entry.merger = pipeline.merger_plan();
-    if (entry.cu_seqlens.empty() || !entry.patch || !entry.attention ||
+    if (entry.cu_seqlens.empty() || entry.attention_image_sha256.empty() ||
+        !entry.patch || !entry.attention ||
         !entry.block_gemms || !entry.merger) {
       throw std::runtime_error(
           "native warmed vision execution plans are incomplete");
@@ -829,41 +897,71 @@ struct NativeResidentEngine::Impl {
     const auto started = std::chrono::steady_clock::now();
     const std::vector<std::uint32_t> cu_seqlens =
         vision_attention_cu_seqlens(grids);
-    const auto warmed = std::find_if(
+    const std::string desired_attention_image_sha256 =
+        vision_attention_image_sha256_for_grids(grids);
+    const auto warmed_resources = std::find_if(
         vision_warmed_execution_plans.begin(),
         vision_warmed_execution_plans.end(),
         [incoming_patches](
             const NativeResidentVisionExecutionPlanEntry& entry) {
           return entry.patch_count == incoming_patches;
         });
-    if (warmed != vision_warmed_execution_plans.end()) {
-      warmed->use = ++vision_execution_plan_clock;
+    const auto exact_attention = std::find_if(
+        vision_warmed_execution_plans.begin(),
+        vision_warmed_execution_plans.end(),
+        [incoming_patches, &cu_seqlens,
+         &desired_attention_image_sha256](
+            const NativeResidentVisionExecutionPlanEntry& entry) {
+          return entry.patch_count == incoming_patches &&
+                 entry.cu_seqlens == cu_seqlens &&
+                 entry.attention_image_sha256 ==
+                     desired_attention_image_sha256;
+        });
+    const auto warmed_attention = std::find_if(
+        vision_warmed_execution_plans.begin(),
+        vision_warmed_execution_plans.end(),
+        [&desired_attention_image_sha256](
+            const NativeResidentVisionExecutionPlanEntry& entry) {
+          return entry.attention_image_sha256 ==
+                 desired_attention_image_sha256;
+        });
+    if (warmed_resources != vision_warmed_execution_plans.end()) {
+      warmed_resources->use = ++vision_execution_plan_clock;
+    }
+    if (warmed_attention != vision_warmed_execution_plans.end()) {
+      warmed_attention->use = ++vision_execution_plan_clock;
+    }
+    if (exact_attention != vision_warmed_execution_plans.end()) {
+      exact_attention->use = ++vision_execution_plan_clock;
     }
     std::unique_ptr<NativeVisionPipelinePlan> pipeline;
     bool attention_reused = false;
     std::shared_ptr<const NativeVisionAotAttentionPlan> attention;
-    if (warmed != vision_warmed_execution_plans.end() &&
-        warmed->cu_seqlens == cu_seqlens) {
-      attention = warmed->attention;
+    if (exact_attention != vision_warmed_execution_plans.end()) {
+      attention = exact_attention->attention;
       attention_reused = true;
-    } else if (!vision_warmed_execution_plans.empty()) {
-      attention =
-          vision_warmed_execution_plans.front().attention->rebind(
-              incoming_patches, cu_seqlens);
+    } else if (warmed_attention != vision_warmed_execution_plans.end()) {
+      attention = warmed_attention->attention->rebind(
+          incoming_patches, cu_seqlens);
+    } else {
+      attention = make_vision_attention_plan(
+          vision_attention_image, desired_attention_image_sha256,
+          incoming_patches, cu_seqlens);
     }
-    if (warmed == vision_warmed_execution_plans.end()) {
+    if (warmed_resources == vision_warmed_execution_plans.end()) {
       pipeline = std::make_unique<NativeVisionPipelinePlan>(
           visual_weights, vision_attention_image, grids, nullptr,
           std::move(attention), nullptr, nullptr);
     } else {
       pipeline = std::make_unique<NativeVisionPipelinePlan>(
-          visual_weights, vision_attention_image, grids, warmed->patch,
-          std::move(attention), warmed->block_gemms, warmed->merger);
+          visual_weights, vision_attention_image, grids,
+          warmed_resources->patch, std::move(attention),
+          warmed_resources->block_gemms, warmed_resources->merger);
     }
     if (prepare_on_miss &&
         incoming_patches > kVisionRequestPlanPreparationMinPatches &&
         incoming_patches <= kVisionRequestPlanPreparationPatchLimit &&
-        (warmed == vision_warmed_execution_plans.end() ||
+        (warmed_resources == vision_warmed_execution_plans.end() ||
          !attention_reused)) {
       prepare_vision_pipeline_once(
           *pipeline, "native request vision plan preparation");
@@ -1501,6 +1599,10 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
       impl_->structured_token_mask_bytes;
   impl_->metrics.vision_plan_cache_capacity =
       kVisionPlanCacheEntries;
+  impl_->metrics.vision_attention_image_sha256 =
+      kVisionAttentionImageSha256;
+  impl_->metrics.vision_dense_image_attention_image_sha256 =
+      kDenseImageVisionAttentionImageSha256;
   impl_->metrics.vision_warmup_patches = vision_warmup_metrics.patches;
   impl_->metrics.vision_warmup_visual_tokens =
       vision_warmup_metrics.visual_tokens;
@@ -2060,6 +2162,8 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
             throw std::runtime_error(
                 "native resident vision batch shape is inconsistent");
           }
+          metrics.vl_vision_attention_image_sha256s.push_back(
+              pipeline.attention_image_sha256());
           const std::uint64_t batch_pixel_bytes =
               batch.patch_count * kVisionPixelColumns *
               sizeof(std::uint16_t);

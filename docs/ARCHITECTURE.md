@@ -95,6 +95,21 @@ Full-vocabulary release gates are distributional: finite logits, matching top-1
 and KLD below `0.005`. Exact boundary probes remain available for localization
 but are not substituted for the end-to-end gate.
 
+## Native VL vision attention
+
+The visual tower uses two hash-locked, bit-exact gfx1151 attention images. The
+external WPE3 image is the general path and remains selected for video, mixed
+media and ordinary image batches. The WPE6 image is embedded in the executable's
+verified AOT registry and is selected only for dense batches containing at
+least eight single-frame grids. Startup executes a standard portrait on WPE3
+and the maximum image-count warmup on WPE6 before publishing readiness.
+
+Vision plan reuse separates shape resources from executable identity. Patch
+embedding, GEMM and merger plans can be shared by patch count; attention reuse
+also requires the selected image SHA-256 and exact sequence boundaries. A
+different boundary layout may rebind metadata only from the same image, never
+from the other occupancy variant.
+
 ## Request execution
 
 A cold request starts from clean resident state. It runs one or more resident

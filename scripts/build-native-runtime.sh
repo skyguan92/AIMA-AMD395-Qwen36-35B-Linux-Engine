@@ -49,6 +49,7 @@ PACKED_LINEAR_DECODE_MANIFEST="${ROOT}/native/aot/gfx1151/packed-linear-decode-v
 CAUSAL_CONV_DECODE_MANIFEST="${ROOT}/native/aot/gfx1151/causal-conv-decode-v0.1.0/manifest.json"
 LINEAR_GATED_NORM_DECODE_MANIFEST="${ROOT}/native/aot/gfx1151/linear-gated-norm-decode-v0.1.0/manifest.json"
 ROUTED_MOE_DECODE_MANIFEST="${ROOT}/native/aot/gfx1151/routed-moe-decode-v0.1.0/manifest.json"
+DENSE_IMAGE_VISION_ATTENTION_MANIFEST="${ROOT}/native/aot/gfx1151/vision-attention-v0.2.0/manifest.json"
 case ":${AOT_MANIFESTS}:" in
   *":${VL_UNIFIED_ATTENTION_MANIFEST}:"*) ;;
   *) AOT_MANIFESTS="${AOT_MANIFESTS}:${VL_UNIFIED_ATTENTION_MANIFEST}" ;;
@@ -76,6 +77,10 @@ esac
 case ":${AOT_MANIFESTS}:" in
   *":${ROUTED_MOE_DECODE_MANIFEST}:"*) ;;
   *) AOT_MANIFESTS="${AOT_MANIFESTS}:${ROUTED_MOE_DECODE_MANIFEST}" ;;
+esac
+case ":${AOT_MANIFESTS}:" in
+  *":${DENSE_IMAGE_VISION_ATTENTION_MANIFEST}:"*) ;;
+  *) AOT_MANIFESTS="${AOT_MANIFESTS}:${DENSE_IMAGE_VISION_ATTENTION_MANIFEST}" ;;
 esac
 VISION_ATTENTION_IMAGE="${ROOT}/native/aot/gfx1151/vision-attention-v0.3.0/kernels/d09fefdcb1ddb6cb-_fwd_kernel.hsaco"
 VISION_ATTENTION_IMAGE_SHA256="8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e"

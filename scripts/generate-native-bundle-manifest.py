@@ -175,7 +175,8 @@ def main() -> int:
             "lib/libaima-fmha-q16384-hybrid.so",
             "lib/libaotriton_v2.so.0.11.1",
             "one shape-selected gfx1151 AOTriton code object",
-            "one hash-locked gfx1151 vision-attention code object",
+            "hash-locked gfx1151 vision attention: external general image "
+            "plus embedded dense-image variant",
         ],
         "statically_linked_components": ["ICU 74.2"],
         "bundled_system_userspace": [

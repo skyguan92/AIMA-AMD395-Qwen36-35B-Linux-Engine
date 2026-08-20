@@ -524,6 +524,8 @@ class NativeRuntimeContractTest(unittest.TestCase):
             "8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e",
             script,
         )
+        self.assertIn("vision-attention-v0.2.0/manifest.json", script)
+        self.assertIn("DENSE_IMAGE_VISION_ATTENTION_MANIFEST", script)
         self.assertIn("native_doctor.cpp", script)
         self.assertIn("AIMA_SOURCE_COMMIT", script)
         self.assertIn("portable_launcher.c", script)
@@ -598,6 +600,11 @@ class NativeRuntimeContractTest(unittest.TestCase):
         self.assertIn("sha256sum", package)
         self.assertIn("native_bundle_closure.py", package)
         self.assertIn("AIMA_ALLOW_DIRTY_PACKAGE", package)
+        bundle_manifest = (
+            ROOT / "scripts/generate-native-bundle-manifest.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn("external general image", bundle_manifest)
+        self.assertIn("embedded dense-image variant", bundle_manifest)
         self.assertIn("--source-commit", package)
         makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
         self.assertIn(

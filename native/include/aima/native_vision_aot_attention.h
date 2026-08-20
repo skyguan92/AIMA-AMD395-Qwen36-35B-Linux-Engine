@@ -20,6 +20,14 @@ class NativeVisionAotAttentionPlan {
   NativeVisionAotAttentionPlan(
       const std::filesystem::path& image_path, std::size_t patch_count,
       const std::vector<std::uint32_t>& cu_seqlens);
+  // Construct the separately qualified dense-image variant from bytes kept
+  // inside the native executable. The implementation verifies the exact
+  // frozen image SHA-256 before loading the module.
+  static std::shared_ptr<const NativeVisionAotAttentionPlan>
+  from_embedded_dense_image(
+      const unsigned char* image, std::size_t image_bytes,
+      std::size_t patch_count,
+      const std::vector<std::uint32_t>& cu_seqlens);
   ~NativeVisionAotAttentionPlan();
   NativeVisionAotAttentionPlan(const NativeVisionAotAttentionPlan&) = delete;
   NativeVisionAotAttentionPlan& operator=(
@@ -41,6 +49,9 @@ class NativeVisionAotAttentionPlan {
   const std::string& image_sha256() const;
 
  private:
+  NativeVisionAotAttentionPlan(
+      std::vector<unsigned char> image, std::size_t patch_count,
+      const std::vector<std::uint32_t>& cu_seqlens);
   NativeVisionAotAttentionPlan(
       std::shared_ptr<AotKernel> kernel, std::string image_sha256,
       std::size_t patch_count,

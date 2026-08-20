@@ -79,6 +79,8 @@ struct NativeResidentLoadMetrics {
   std::uint64_t vl_prompt_index_state_bytes = 0;
   std::uint64_t structured_token_mask_bytes = 0;
   std::size_t vision_plan_cache_capacity = 0;
+  std::string vision_attention_image_sha256;
+  std::string vision_dense_image_attention_image_sha256;
   std::size_t vision_warmup_patches = 0;
   std::size_t vision_warmup_visual_tokens = 0;
   std::size_t vision_image_count_warmup_patches = 0;
@@ -244,6 +246,9 @@ struct NativeResidentRequestMetrics {
   std::size_t vl_vision_batch_count = 0;
   std::size_t vl_vision_max_batch_patches = 0;
   std::size_t vl_vision_max_batch_tokens = 0;
+  // One exact image identity per vision batch executed by this request.
+  // Exact embedding-cache hits execute no vision batches and leave this empty.
+  std::vector<std::string> vl_vision_attention_image_sha256s;
   bool vl_vision_plan_cache_hit = false;
   std::size_t vl_vision_plan_cache_entries = 0;
   bool vl_vision_embedding_cache_hit = false;

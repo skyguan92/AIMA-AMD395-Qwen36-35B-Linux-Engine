@@ -125,6 +125,13 @@ class VlCapabilityEnvelopeTest(unittest.TestCase):
         self.assertIn("vision_preparation_embeddings", resident)
         self.assertIn("prepare_on_miss", resident)
         self.assertIn("retain_warmed_vision_execution_plans", resident)
+        self.assertIn("use_dense_image_vision_attention", resident)
+        self.assertIn(
+            "kDenseImageVisionAttentionMinimumGridCount = 8", resident
+        )
+        self.assertIn("entry.attention_image_sha256", resident)
+        self.assertIn("desired_attention_image_sha256", resident)
+        self.assertIn("from_embedded_dense_image", resident)
         self.assertIn("warm_up_standard_vision", resident)
         self.assertIn(
             "const std::vector<NativeVlGrid> grids{{1, 64, 16}};",
@@ -137,6 +144,9 @@ class VlCapabilityEnvelopeTest(unittest.TestCase):
         self.assertIn("vision_warmup_completed", http)
         self.assertIn("vision_image_count_warmup_patches", http)
         self.assertIn("vision_image_count_warmup_encode_wall_ms", http)
+        self.assertIn("vision_attention_image_sha256", http)
+        self.assertIn("vision_dense_image_attention_image_sha256", http)
+        self.assertIn("vision_attention_image_sha256s", http)
         release_all = resident.index("vision_plans.clear();")
         eviction = resident.index("vision_plans.erase(oldest);")
         construction = resident.index(

@@ -966,6 +966,28 @@ class NativeVisualLayoutTest(unittest.TestCase):
             image["sha256"],
         )
 
+        dense_manifest_path = (
+            ROOT / "native/aot/gfx1151/vision-attention-v0.2.0/manifest.json"
+        )
+        dense_manifest = json.loads(
+            dense_manifest_path.read_text(encoding="utf-8")
+        )
+        self.assertEqual(dense_manifest["kernel_count"], 1)
+        dense_kernel = dense_manifest["kernels"][0]
+        self.assertEqual(
+            dense_kernel["kernel_hash"],
+            "2bb5125141eea1b811395f9833de3077de68893bfebbbf1950ca26832db6bb52",
+        )
+        self.assertEqual(dense_kernel["symbol"], "_fwd_kernel")
+        self.assertEqual(dense_kernel["metadata"]["waves_per_eu"], 6)
+        dense_image = dense_kernel["image"]
+        self.assertEqual(
+            hashlib.sha256(
+                (dense_manifest_path.parent / dense_image["path"]).read_bytes()
+            ).hexdigest(),
+            dense_image["sha256"],
+        )
+
         header = (
             ROOT / "native/include/aima/native_vision_aot_attention.h"
         ).read_text(encoding="utf-8")
@@ -977,7 +999,9 @@ class NativeVisualLayoutTest(unittest.TestCase):
         ).read_text(encoding="utf-8")
         self.assertIn("class NativeVisionAotAttentionPlan", header)
         self.assertIn("rebind", header)
+        self.assertIn("from_embedded_dense_image", header)
         self.assertIn(kernel["image"]["sha256"], source)
+        self.assertIn(dense_image["sha256"], source)
         self.assertIn("AotKernel::from_file", source)
         self.assertIn("std::shared_ptr<AotKernel> kernel", source)
         self.assertIn("load_verified_attention_executable", source)
