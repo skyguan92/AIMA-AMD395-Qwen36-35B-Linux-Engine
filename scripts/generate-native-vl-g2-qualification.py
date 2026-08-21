@@ -35,6 +35,12 @@ CASE_ORDER = (
     "multi_video",
     "mixed_image_video",
 )
+VISION_BOUNDARY_ORDER = (
+    "vision_block_0",
+    "vision_block_13",
+    "vision_block_26",
+    "vision_merger",
+)
 SHA1 = re.compile(r"^[0-9a-f]{40}$")
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
@@ -94,6 +100,51 @@ def validate_high_level(
         "qualified": payload.get("qualified") is True,
         "source_commit_exact": source_commit(payload) == candidate_source_commit,
         "binary_sha256_exact": binary_sha256(payload) == candidate_binary_sha256,
+    }
+
+
+def validate_vision_pipeline(
+    payload: dict[str, Any],
+    candidate_source_commit: str,
+    candidate_binary_sha256: str,
+) -> dict[str, bool]:
+    decision = require_mapping(payload.get("decision"), "vision_pipeline.decision")
+    cases = require_sequence(payload.get("cases"), "vision_pipeline.cases")
+    boundary_names_exact = len(cases) == len(CASE_ORDER) and all(
+        isinstance(case, dict)
+        and tuple(
+            boundary.get("name")
+            for boundary in require_sequence(
+                case.get("boundaries"), "vision_pipeline.case.boundaries"
+            )
+            if isinstance(boundary, dict)
+        )
+        == VISION_BOUNDARY_ORDER
+        for case in cases
+    )
+    return {
+        "schema_exact": payload.get("schema")
+        == "aima-amd395-qwen36/native-vision-pipeline-qualification/v2",
+        "complete": payload.get("complete") is True,
+        "qualified": payload.get("qualified") is True,
+        "source_commit_exact": source_commit(payload) == candidate_source_commit,
+        "candidate_binary_sha256_exact": payload.get("candidate_binary_sha256")
+        == candidate_binary_sha256,
+        "five_case_order_exact": exact_case_order(payload, CASE_ORDER),
+        "all_internal_checks": all_true(payload.get("checks")),
+        "required_boundary_order_exact": boundary_names_exact,
+        "twenty_boundaries_bit_exact": (
+            decision.get("boundary_comparison_count") == 20
+            and decision.get("total_boundary_elements") == 6_856_704
+            and decision.get("exact_boundary_elements") == 6_856_704
+            and decision.get("all_boundaries_bit_exact") is True
+        ),
+        "all_visual_outputs_exact": (
+            decision.get("total_visual_output_elements") == 884_736
+            and decision.get("all_repeats_deterministic") is True
+            and decision.get("all_27_blocks_executed") is True
+            and decision.get("full_visual_pipeline_qualified") is True
+        ),
     }
 
 
@@ -425,13 +476,11 @@ def build_payload(
             == 23,
         }
     )
-    vision_checks = {
-        "complete": vision_pipeline.get("complete") is True,
-        "full_visual_pipeline_qualified": require_mapping(
-            vision_pipeline.get("decision"), "vision_pipeline.decision"
-        ).get("full_visual_pipeline_qualified")
-        is True,
-    }
+    vision_checks = validate_vision_pipeline(
+        vision_pipeline,
+        candidate_source_commit,
+        candidate_binary_sha256,
+    )
     task_checks = validate_high_level(
         "task_quality",
         task_quality,

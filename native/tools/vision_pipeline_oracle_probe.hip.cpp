@@ -255,12 +255,12 @@ void print_comparison(const Comparison& comparison) {
 }  // namespace
 
 int main(int argc, char** argv) {
-  if (argc != 12) {
+  if (argc != 14) {
     std::cerr
         << "usage: native-vision-pipeline-probe MODEL_DIR ATTENTION_IMAGE "
-           "GRID_SPEC PIXEL_INPUTS EXPECTED_BLOCK0 EXPECTED_BLOCK26 "
-           "EXPECTED_MERGER LOAD_REPORT ACTUAL_BLOCK0 ACTUAL_BLOCK26 "
-           "ACTUAL_MERGER\n";
+           "GRID_SPEC PIXEL_INPUTS EXPECTED_BLOCK0 EXPECTED_BLOCK13 "
+           "EXPECTED_BLOCK26 EXPECTED_MERGER LOAD_REPORT ACTUAL_BLOCK0 "
+           "ACTUAL_BLOCK13 ACTUAL_BLOCK26 ACTUAL_MERGER\n";
     return 2;
   }
   try {
@@ -276,7 +276,7 @@ int main(int argc, char** argv) {
 
     aima::NativeWeightLoadOptions options;
     options.model_dir = std::filesystem::absolute(argv[1]);
-    options.native_report = std::filesystem::absolute(argv[8]);
+    options.native_report = std::filesystem::absolute(argv[9]);
     aima::NativeWeightStore weights;
     const aima::NativeWeightLoadMetrics load = weights.load_visual(options);
     std::vector<std::unique_ptr<aima::NativeVisionPipelinePlan>> plans;
@@ -319,12 +319,15 @@ int main(int argc, char** argv) {
     }
     const std::vector<unsigned char> expected_block0 =
         read_file(std::filesystem::absolute(argv[5]));
-    const std::vector<unsigned char> expected_block26 =
+    const std::vector<unsigned char> expected_block13 =
         read_file(std::filesystem::absolute(argv[6]));
-    const std::vector<unsigned char> expected_merger =
+    const std::vector<unsigned char> expected_block26 =
         read_file(std::filesystem::absolute(argv[7]));
+    const std::vector<unsigned char> expected_merger =
+        read_file(std::filesystem::absolute(argv[8]));
     if (pixels.size() != pixel_bytes ||
         expected_block0.size() != hidden_bytes ||
+        expected_block13.size() != hidden_bytes ||
         expected_block26.size() != hidden_bytes ||
         expected_merger.size() != output_bytes) {
       throw std::runtime_error("pipeline oracle byte size mismatch");
@@ -377,9 +380,20 @@ int main(int argc, char** argv) {
     check_hip(hipMemcpy(actual_block0.data(), hidden_device.get(), hidden_bytes,
                         hipMemcpyDeviceToHost),
               "hipMemcpy pipeline block 0");
-    write_file(std::filesystem::absolute(argv[9]), actual_block0);
+    write_file(std::filesystem::absolute(argv[10]), actual_block0);
     const Comparison block0_comparison =
         compare_bf16(actual_block0, expected_block0);
+
+    launch_encoder_all(13);
+    check_hip(hipDeviceSynchronize(),
+              "hipDeviceSynchronize pipeline block 13");
+    std::vector<unsigned char> actual_block13(hidden_bytes);
+    check_hip(hipMemcpy(actual_block13.data(), hidden_device.get(), hidden_bytes,
+                        hipMemcpyDeviceToHost),
+              "hipMemcpy pipeline block 13");
+    write_file(std::filesystem::absolute(argv[11]), actual_block13);
+    const Comparison block13_comparison =
+        compare_bf16(actual_block13, expected_block13);
 
     launch_encoder_all(26);
     check_hip(hipDeviceSynchronize(),
@@ -388,7 +402,7 @@ int main(int argc, char** argv) {
     check_hip(hipMemcpy(actual_block26.data(), hidden_device.get(), hidden_bytes,
                         hipMemcpyDeviceToHost),
               "hipMemcpy pipeline block 26");
-    write_file(std::filesystem::absolute(argv[10]), actual_block26);
+    write_file(std::filesystem::absolute(argv[12]), actual_block26);
     const Comparison block26_comparison =
         compare_bf16(actual_block26, expected_block26);
 
@@ -420,7 +434,7 @@ int main(int argc, char** argv) {
     check_hip(hipMemcpy(actual.data(), output_device.get(), output_bytes,
                         hipMemcpyDeviceToHost),
               "hipMemcpy pipeline output");
-    write_file(std::filesystem::absolute(argv[11]), actual);
+    write_file(std::filesystem::absolute(argv[13]), actual);
     const Comparison merger_comparison = compare_bf16(actual, expected_merger);
     std::vector<double> sorted_ms = measured_ms;
     std::sort(sorted_ms.begin(), sorted_ms.end());
@@ -428,12 +442,13 @@ int main(int argc, char** argv) {
     const bool deterministic =
         first_sha256 == merger_comparison.actual_sha256;
     const bool passed = block0_comparison.passed() &&
+                        block13_comparison.passed() &&
                         block26_comparison.passed() &&
                         merger_comparison.passed() && deterministic;
 
     std::cout << std::setprecision(17)
               << "{\"schema\":\"aima-amd395-qwen36/"
-                 "native-vision-pipeline-oracle/v1\","
+                 "native-vision-pipeline-oracle/v2\","
               << "\"complete\":" << (passed ? "true" : "false")
               << ",\"patches\":" << total_patches
               << ",\"merged_tokens\":" << total_merged_tokens
@@ -470,6 +485,8 @@ int main(int argc, char** argv) {
     std::cout << "],\"median_ms\":" << median_ms
               << ",\"comparisons\":{\"vision_block_0\":";
     print_comparison(block0_comparison);
+    std::cout << ",\"vision_block_13\":";
+    print_comparison(block13_comparison);
     std::cout << ",\"vision_block_26\":";
     print_comparison(block26_comparison);
     std::cout << ",\"vision_merger\":";

@@ -1203,7 +1203,8 @@ class NativeVisualLayoutTest(unittest.TestCase):
         self.assertIn("impl_->merger->launch", source)
         self.assertIn("launch_encoder_through", header)
         self.assertIn("impl_->blocks.launch_through", source)
-        self.assertIn("native-vision-pipeline-oracle/v1", probe)
+        self.assertIn("native-vision-pipeline-oracle/v2", probe)
+        self.assertIn("launch_encoder_all(13)", probe)
         self.assertIn("read_concatenated_files", probe)
         self.assertIn("native_vision_pipeline.hip.cpp", build)
 

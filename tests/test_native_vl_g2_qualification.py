@@ -58,6 +58,49 @@ class NativeVlG2QualificationLogicTest(unittest.TestCase):
         self.assertFalse(self.generator.all_true([]))
         self.assertTrue(self.generator.all_true({"outer": {"inner": True}}))
 
+    def test_vision_pipeline_requires_all_named_depth_boundaries(self) -> None:
+        payload = {
+            "schema": (
+                "aima-amd395-qwen36/"
+                "native-vision-pipeline-qualification/v2"
+            ),
+            "complete": True,
+            "qualified": True,
+            "source": {"commit": CANDIDATE_COMMIT},
+            "candidate_binary_sha256": "b" * 64,
+            "cases": [
+                {
+                    "case_id": case_id,
+                    "boundaries": [
+                        {"name": name}
+                        for name in self.generator.VISION_BOUNDARY_ORDER
+                    ],
+                }
+                for case_id in self.generator.CASE_ORDER
+            ],
+            "checks": {"aggregate": True},
+            "decision": {
+                "boundary_comparison_count": 20,
+                "total_boundary_elements": 6_856_704,
+                "exact_boundary_elements": 6_856_704,
+                "all_boundaries_bit_exact": True,
+                "total_visual_output_elements": 884_736,
+                "all_repeats_deterministic": True,
+                "all_27_blocks_executed": True,
+                "full_visual_pipeline_qualified": True,
+            },
+        }
+        checks = self.generator.validate_vision_pipeline(
+            payload, CANDIDATE_COMMIT, "b" * 64
+        )
+        self.assertTrue(all(checks.values()))
+
+        payload["cases"][0]["boundaries"].pop(1)
+        failed_checks = self.generator.validate_vision_pipeline(
+            payload, CANDIDATE_COMMIT, "b" * 64
+        )
+        self.assertFalse(failed_checks["required_boundary_order_exact"])
+
     def test_full_language_requires_exact_case_order_and_rows(self) -> None:
         payload = {
             "schema": (
