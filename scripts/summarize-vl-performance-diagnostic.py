@@ -697,6 +697,21 @@ def build_summary(
                 "client_decode_tokens_per_second": candidate_timings.get(
                     "decode_tokens_per_second"
                 ),
+                "engine_decode_tokens_executed": (
+                    native.get("decode_tokens_executed")
+                    if isinstance(native, Mapping)
+                    else None
+                ),
+                "engine_decode_wall_seconds": (
+                    seconds_from_milliseconds(native.get("decode_wall_ms"))
+                    if isinstance(native, Mapping)
+                    else None
+                ),
+                "engine_decode_tokens_per_second": (
+                    native.get("decode_tokens_per_second")
+                    if isinstance(native, Mapping)
+                    else None
+                ),
                 "memory": candidate.get("memory"),
             },
         },

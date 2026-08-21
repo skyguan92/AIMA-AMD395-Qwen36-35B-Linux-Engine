@@ -42,6 +42,9 @@ THROUGHPUT_RATIOS = (
     "vision_tps_candidate_over_reference",
 )
 AVAILABILITY_SCHEMA = "aima-amd395-qwen36/vl-performance-reference-availability/v1"
+TEXT_MATRIX_SCHEMA = (
+    "aima-amd395-qwen36/native-v151-paired-text-matrix/v1"
+)
 
 
 def load_object(path: Path) -> dict[str, Any]:
@@ -242,11 +245,157 @@ def aggregate_cell(
     }
 
 
+def text_decode_curve(
+    text_matrix: Mapping[str, Any], identity: Mapping[str, Any]
+) -> dict[tuple[int, int], float]:
+    """Return exact-candidate text decode medians keyed by effective shape."""
+    candidate = identity.get("candidate")
+    text_candidate = text_matrix.get("engines", {}).get("candidate")
+    host = identity.get("host")
+    text_host = text_matrix.get("host")
+    if not isinstance(candidate, Mapping) or not isinstance(
+        text_candidate, Mapping
+    ):
+        raise ValueError("candidate identity is missing from text/G4 evidence")
+    files = candidate.get("files")
+    if not isinstance(files, list):
+        raise ValueError("G4 candidate closure is missing")
+    engine_files = [
+        item
+        for item in files
+        if isinstance(item, Mapping)
+        and item.get("path") == "aima-engine-native"
+    ]
+    if len(engine_files) != 1:
+        raise ValueError("G4 candidate closure must contain one native engine")
+    if (
+        text_matrix.get("schema") != TEXT_MATRIX_SCHEMA
+        or text_matrix.get("complete") is not True
+        or text_matrix.get("qualified") is not True
+        or text_matrix.get("all_cells_pass") is not True
+        or text_matrix.get("text_request_path_idle") is not True
+        or candidate.get("source_commit")
+        != text_candidate.get("build_info", {}).get("source_commit")
+        or engine_files[0].get("sha256") != text_candidate.get("sha256")
+        or not isinstance(host, Mapping)
+        or not isinstance(text_host, Mapping)
+        or host.get("hostname") != text_host.get("hostname")
+    ):
+        raise ValueError("text decode curve does not bind the G4 candidate/host")
+    cells = text_matrix.get("cells")
+    if not isinstance(cells, list) or not cells:
+        raise ValueError("text decode curve has no cells")
+    curve: dict[tuple[int, int], float] = {}
+    for cell in cells:
+        if not isinstance(cell, Mapping):
+            raise ValueError("text decode curve contains a malformed cell")
+        input_tokens = cell.get("input_tokens")
+        output_tokens = cell.get("output_tokens")
+        if (
+            not isinstance(input_tokens, int)
+            or isinstance(input_tokens, bool)
+            or not isinstance(output_tokens, int)
+            or isinstance(output_tokens, bool)
+            or output_tokens <= 1
+        ):
+            continue
+        candidate_medians = cell.get("candidate_medians")
+        if not isinstance(candidate_medians, Mapping):
+            raise ValueError("text decode candidate medians are missing")
+        decode_tps = finite_float(
+            candidate_medians.get("decode_tps"),
+            f"text q{input_tokens}/o{output_tokens} decode throughput",
+        )
+        if decode_tps <= 0.0 or (input_tokens, output_tokens) in curve:
+            raise ValueError("text decode curve is duplicate or nonpositive")
+        curve[(input_tokens, output_tokens)] = decode_tps
+    if not curve:
+        raise ValueError("text decode curve contains no positive-output cells")
+    return curve
+
+
+def apply_text_decode_retention(
+    cells: Sequence[dict[str, Any]], curve: Mapping[tuple[int, int], float]
+) -> list[dict[str, Any]]:
+    """Gate VL engine decode against the same binary's exact text curve."""
+    records: list[dict[str, Any]] = []
+    for cell in cells:
+        output_tokens = int(cell.get("output_tokens", 0))
+        if output_tokens <= 1:
+            continue
+        prompt_values: list[int] = []
+        decode_values: list[float] = []
+        for pair in cell.get("pairs", []):
+            measurements = pair.get("measurements")
+            candidate = (
+                measurements.get("candidate")
+                if isinstance(measurements, Mapping)
+                else None
+            )
+            if not isinstance(candidate, Mapping):
+                raise ValueError(
+                    f"candidate measurements are missing for {cell['cell_id']}"
+                )
+            prompt_tokens = candidate.get("prompt_tokens")
+            completion_tokens = candidate.get("completion_tokens")
+            decode_tokens = candidate.get("engine_decode_tokens_executed")
+            if (
+                not isinstance(prompt_tokens, int)
+                or isinstance(prompt_tokens, bool)
+                or completion_tokens != output_tokens
+                or decode_tokens != output_tokens - 1
+            ):
+                raise ValueError(
+                    f"engine decode shape is invalid for {cell['cell_id']}"
+                )
+            prompt_values.append(prompt_tokens)
+            decode_values.append(
+                finite_float(
+                    candidate.get("engine_decode_tokens_per_second"),
+                    f"{cell['cell_id']} engine decode throughput",
+                )
+            )
+        if len(set(prompt_values)) != 1 or not decode_values:
+            raise ValueError(
+                f"effective prompt shape drifted for {cell['cell_id']}"
+            )
+        input_tokens = prompt_values[0]
+        key = (input_tokens, output_tokens)
+        if key not in curve:
+            raise ValueError(
+                f"text decode baseline is missing for q{input_tokens}/o{output_tokens}"
+            )
+        candidate_median = float(statistics.median(decode_values))
+        text_median = float(curve[key])
+        retention = candidate_median / text_median
+        cell["paired_medians"][
+            "decode_tps_candidate_over_text_product"
+        ] = retention
+        cell["gates"]["decode_paired_median_gte_text_product"] = (
+            retention >= 1.0
+        )
+        cell["qualified"] = cell["complete"] and all(cell["gates"].values())
+        records.append(
+            {
+                "cell_id": cell["cell_id"],
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
+                "candidate_measurements": decode_values,
+                "candidate_median": candidate_median,
+                "text_product_median": text_median,
+                "candidate_over_text_product": retention,
+                "qualified": retention >= 1.0,
+            }
+        )
+    return records
+
+
 def aggregate(
     pair_records: Sequence[Mapping[str, Any]],
     matrix: Mapping[str, Any],
     identity: Mapping[str, Any],
     minimum_pairs: int = 5,
+    text_matrix: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     ordered = sorted(pair_records, key=lambda item: int(item["pair_index"]))
     comparable_partition = matrix.get("schema") == COMPARABLE_MATRIX_SCHEMA
@@ -257,6 +406,13 @@ def aggregate(
     if not isinstance(cells, list) or not cells:
         raise ValueError("matrix has no cells")
     cell_results = [aggregate_cell(cell, ordered) for cell in cells]
+    text_decode_retention = (
+        apply_text_decode_retention(
+            cell_results, text_decode_curve(text_matrix, identity)
+        )
+        if text_matrix is not None
+        else []
+    )
     startup_by_group: dict[str, list[float]] = {"disabled": [], "enabled": []}
     for pair in ordered:
         groups = pair.get("process_groups")
@@ -338,6 +494,11 @@ def aggregate(
             for item in unavailable
         ),
     }
+    if text_matrix is not None:
+        checks["every_decode_cell_bound_to_text_product_curve"] = (
+            len(text_decode_retention)
+            == sum(int(cell.get("output_tokens", 0)) > 1 for cell in cells)
+        )
     paired_gate_name = (
         "every_comparable_cell_paired_median_qualified"
         if comparable_partition
@@ -352,6 +513,10 @@ def aggregate(
             "enabled"
         ]["qualified"],
     }
+    if text_matrix is not None:
+        gates["every_decode_cell_gte_text_product_curve"] = all(
+            item["qualified"] for item in text_decode_retention
+        )
     complete = all(checks.values())
     qualified = complete and all(gates.values())
     if qualified and unavailable:
@@ -386,6 +551,7 @@ def aggregate(
         "checks": checks,
         "gates": gates,
         "candidate_startup": startup,
+        "text_product_decode_retention": text_decode_retention,
         "artifact_identity": dict(identity),
         "matrix_derivation": matrix.get("derivation"),
         "required_coverage": matrix.get("required_coverage"),
@@ -411,6 +577,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--pair-dir", action="append", type=Path, required=True)
     parser.add_argument("--matrix", type=Path, required=True)
+    parser.add_argument("--text-matrix", type=Path)
     parser.add_argument("--reference-availability", type=Path)
     parser.add_argument("--candidate-binary", type=Path)
     parser.add_argument("--candidate-source-commit")
@@ -427,6 +594,19 @@ def main() -> int:
     matrix = load_object(matrix_path)
     if matrix.get("complete") is not True or verify_manifest_integrity(matrix):
         raise SystemExit("performance matrix is incomplete or corrupt")
+    text_matrix_path = (
+        args.text_matrix.resolve() if args.text_matrix is not None else None
+    )
+    if (
+        matrix.get("schema") == COMPARABLE_MATRIX_SCHEMA
+        and text_matrix_path is None
+    ):
+        parser.error("the comparable G4 partition requires --text-matrix")
+    text_matrix = (
+        load_object(text_matrix_path)
+        if text_matrix_path is not None
+        else None
+    )
     if args.reference_availability is not None:
         if args.reference_python is not None or args.model_dir is not None:
             parser.error(
@@ -485,7 +665,9 @@ def main() -> int:
         "integrity": matrix.get("integrity"),
     }
     records = [pair_record(path.resolve()) for path in args.pair_dir]
-    result = aggregate(records, matrix, identity)
+    result = aggregate(
+        records, matrix, identity, text_matrix=text_matrix
+    )
     binding_paths = {
         "matrix": matrix_path,
         "pair_runner": ROOT / "scripts/run-vl-performance-matrix-pair.sh",
@@ -508,8 +690,13 @@ def main() -> int:
         "pair_summarizer": (
             ROOT / "scripts/summarize-vl-performance-matrix-pair.py"
         ),
+        "diagnostic_summarizer": (
+            ROOT / "scripts/summarize-vl-performance-diagnostic.py"
+        ),
         "aggregator": Path(__file__).resolve(),
     }
+    if text_matrix_path is not None:
+        binding_paths["text_product_matrix"] = text_matrix_path
     result["bindings"] = {
         name: file_component(path, logical_path(path))
         for name, path in binding_paths.items()
@@ -524,6 +711,7 @@ def main() -> int:
             "python3 scripts/summarize-vl-performance-matrix.py "
             "--pair-dir <pair-1> ... --pair-dir <pair-5> "
             "--matrix <bound-comparable-matrix> "
+            "--text-matrix <bound-exact-candidate-text-matrix> "
             "--reference-availability <bound-availability> "
             "--candidate-binary <exact-native-binary> "
             "--candidate-source-commit <embedded-source-commit> "

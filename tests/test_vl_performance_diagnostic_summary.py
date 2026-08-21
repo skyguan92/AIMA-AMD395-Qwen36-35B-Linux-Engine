@@ -216,6 +216,9 @@ class VlPerformanceDiagnosticSummaryLogicTest(unittest.TestCase):
                     payload["native_metrics"] = {
                         "prompt_tokens": 100,
                         "ttft_ms": 600,
+                        "decode_tokens_executed": 7,
+                        "decode_wall_ms": 350,
+                        "decode_tokens_per_second": 20.0,
                         "prefix_cache": {"lookup": "miss"},
                         "vl": {
                             "visual_tokens": 50,
@@ -268,6 +271,9 @@ class VlPerformanceDiagnosticSummaryLogicTest(unittest.TestCase):
             candidate["logical_projection_plan_build_seconds"], 0.05
         )
         self.assertAlmostEqual(candidate["llm_prefill_seconds"], 0.3)
+        self.assertEqual(candidate["engine_decode_tokens_executed"], 7)
+        self.assertEqual(candidate["engine_decode_wall_seconds"], 0.35)
+        self.assertEqual(candidate["engine_decode_tokens_per_second"], 20.0)
         self.assertAlmostEqual(
             result["comparisons"]["prefill_tps_candidate_over_reference"],
             5 / 3,

@@ -46,7 +46,7 @@ def measured_cell(cell_id: str, index: int, output: int) -> dict:
     }
     if output > 1:
         ratios["decode_tps_candidate_over_reference"] = 1.04
-    return {
+    result = {
         "cell_id": cell_id,
         "pair_index": index,
         "process_group": "disabled",
@@ -59,6 +59,16 @@ def measured_cell(cell_id: str, index: int, output: int) -> dict:
             "response": {"content_sha256": "b" * 64},
         },
     }
+    if output > 1:
+        result["measurements"] = {
+            "candidate": {
+                "prompt_tokens": 1024,
+                "completion_tokens": output,
+                "engine_decode_tokens_executed": output - 1,
+                "engine_decode_tokens_per_second": 101.0,
+            }
+        }
+    return result
 
 
 def pair(index: int) -> dict:
@@ -98,7 +108,42 @@ class VlPerformanceMatrixSummaryTest(unittest.TestCase):
                 cell_spec("long-output512", 512),
             ],
         }
-        self.identity = {"matrix": {"sha256": "d" * 64}}
+        self.identity = {
+            "matrix": {"sha256": "d" * 64},
+            "candidate": {
+                "source_commit": "e" * 40,
+                "files": [
+                    {
+                        "path": "aima-engine-native",
+                        "sha256": "f" * 64,
+                    }
+                ],
+            },
+            "host": {"hostname": "test-host"},
+        }
+
+    def text_matrix(self, decode_tps: float = 100.0) -> dict:
+        return {
+            "schema": summary.TEXT_MATRIX_SCHEMA,
+            "complete": True,
+            "qualified": True,
+            "all_cells_pass": True,
+            "text_request_path_idle": True,
+            "engines": {
+                "candidate": {
+                    "sha256": "f" * 64,
+                    "build_info": {"source_commit": "e" * 40},
+                }
+            },
+            "host": {"hostname": "test-host"},
+            "cells": [
+                {
+                    "input_tokens": 1024,
+                    "output_tokens": 512,
+                    "candidate_medians": {"decode_tps": decode_tps},
+                }
+            ],
+        }
 
     def test_every_cell_median_and_decode_gate_qualify(self) -> None:
         result = summary.aggregate(
@@ -126,6 +171,38 @@ class VlPerformanceMatrixSummaryTest(unittest.TestCase):
         self.assertTrue(result["complete"])
         self.assertFalse(result["qualified"])
         self.assertFalse(result["gates"]["every_cell_paired_median_qualified"])
+
+    def test_vl_decode_is_gated_against_exact_candidate_text_curve(self) -> None:
+        pairs = [pair(index) for index in range(1, 6)]
+        passing = summary.aggregate(
+            pairs,
+            self.matrix,
+            self.identity,
+            text_matrix=self.text_matrix(),
+        )
+        self.assertTrue(passing["qualified"])
+        retention = passing["text_product_decode_retention"]
+        self.assertEqual(len(retention), 1)
+        self.assertEqual(retention[0]["candidate_over_text_product"], 1.01)
+        self.assertTrue(
+            passing["gates"]["every_decode_cell_gte_text_product_curve"]
+        )
+
+        for current in pairs[2:]:
+            current["cells"][1]["measurements"]["candidate"][
+                "engine_decode_tokens_per_second"
+            ] = 99.0
+        regressed = summary.aggregate(
+            pairs,
+            self.matrix,
+            self.identity,
+            text_matrix=self.text_matrix(),
+        )
+        self.assertTrue(regressed["complete"])
+        self.assertFalse(regressed["qualified"])
+        self.assertFalse(
+            regressed["gates"]["every_decode_cell_gte_text_product_curve"]
+        )
 
     def test_exact_media_hit_uses_explicit_encoder_skip_gate(self) -> None:
         cell = cell_spec("cache-exact", 1)
