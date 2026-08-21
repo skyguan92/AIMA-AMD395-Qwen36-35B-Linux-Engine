@@ -17,7 +17,7 @@
     "unit": " x",
     "frozen_single_token_id": 830,
     "unit_sha256": "830a815db067f9501633539c2505e8c8a82ecc045b2adea256a55365ef516c4b",
-    "base_prompt_tokens": 55,
+    "base_prompt_tokens": 50,
     "chat_template_mode": "enable_thinking=false"
   },
   "balanced_orders": [
@@ -38,11 +38,11 @@
       "g4_cell_id": "image_portrait_q1k_output512",
       "expected_prompt_tokens": 1024,
       "expected_completion_tokens": 512,
-      "text_padding_tokens": 969,
+      "text_padding_tokens": 974,
       "request": {
         "path": "benchmarks/fixtures/vl-text-decode-control-v0.1.0/requests/q1024-o512.json",
-        "bytes": 341,
-        "sha256": "f028fe286103478b8c3c910ff25df74f83b3748144fa72abab662d57de1015ae"
+        "bytes": 261,
+        "sha256": "5a35f105bacb6ee15081b75b02061125ca1814e0fd0cb2595b1d2f70544fb59d"
       }
     },
     {
@@ -50,11 +50,11 @@
       "g4_cell_id": "video_typical_q1k_output1024",
       "expected_prompt_tokens": 1039,
       "expected_completion_tokens": 1024,
-      "text_padding_tokens": 984,
+      "text_padding_tokens": 989,
       "request": {
         "path": "benchmarks/fixtures/vl-text-decode-control-v0.1.0/requests/q1039-o1024.json",
-        "bytes": 342,
-        "sha256": "85d95dc5c6d288a0200d8c05ad8f57cdba44566ba421cbf3b55447a8f32ce6ee"
+        "bytes": 262,
+        "sha256": "e66448da498a2b4cad4fcc174c754bcc2e8980966e4b656fc8245e3378666d6f"
       }
     },
     {
@@ -62,16 +62,16 @@
       "g4_cell_id": "mixed_multi_turn_q8k_output512",
       "expected_prompt_tokens": 8236,
       "expected_completion_tokens": 512,
-      "text_padding_tokens": 8181,
+      "text_padding_tokens": 8186,
       "request": {
         "path": "benchmarks/fixtures/vl-text-decode-control-v0.1.0/requests/q8236-o512.json",
-        "bytes": 341,
-        "sha256": "f028fe286103478b8c3c910ff25df74f83b3748144fa72abab662d57de1015ae"
+        "bytes": 261,
+        "sha256": "5a35f105bacb6ee15081b75b02061125ca1814e0fd0cb2595b1d2f70544fb59d"
       }
     }
   ],
   "integrity": {
     "algorithm": "sha256",
-    "canonical_payload_sha256": "9a41524ac8c541f8164be1b478e38f88a754c562e9ede77a5f809b2b58ed2422"
+    "canonical_payload_sha256": "0ae2837552c29a9cff1c6a05b9b35f3b0935ceb2ed292bc6adf420fafe735771"
   }
 }

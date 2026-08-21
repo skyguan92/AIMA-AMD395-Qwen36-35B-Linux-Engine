@@ -160,7 +160,7 @@ def manifest_controls(
         and padding_contract.get("frozen_single_token_id") == 830
         and padding_contract.get("unit_sha256")
         == "830a815db067f9501633539c2505e8c8a82ecc045b2adea256a55365ef516c4b"
-        and padding_contract.get("base_prompt_tokens") == 55
+        and padding_contract.get("base_prompt_tokens") == 50
         and padding_contract.get("chat_template_mode")
         == "enable_thinking=false"
     ):
@@ -182,7 +182,7 @@ def manifest_controls(
             or not isinstance(padding_tokens, int)
             or isinstance(padding_tokens, bool)
             or control.get("expected_prompt_tokens")
-            != 55 + padding_tokens
+            != 50 + padding_tokens
         ):
             raise ValueError("text-control IDs, requests and padding must be exact")
         request_path = ROOT / str(request.get("path"))
