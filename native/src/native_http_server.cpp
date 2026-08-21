@@ -683,6 +683,8 @@ Json request_metrics_json(const NativeResidentRequestMetrics& metrics) {
                   {"processor_wall_ms", metrics.vl_processor_wall_ms},
                   {"vision_plan_build_wall_ms",
                    metrics.vl_vision_plan_build_wall_ms},
+                  {"vision_input_upload_wall_ms",
+                   metrics.vl_vision_input_upload_wall_ms},
                   {"vision_encode_wall_ms",
                    metrics.vl_vision_encode_wall_ms},
                   {"embedding_injection_wall_ms",

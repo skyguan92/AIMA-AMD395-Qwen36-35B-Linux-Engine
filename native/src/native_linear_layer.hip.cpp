@@ -444,15 +444,15 @@ NativeLinearLayerMetrics run_native_linear_layer(
   // provider, then runs causal_conv1d_update in-place. The captured historical
   // fused launch uses a different convolution reduction and is retained only
   // as schedule evidence.
-  launch_bf16_wvsplitk(qkv_weight.device_pointer, input_norm, nullptr,
-                       projected_qkv, kLinearQkv, kHidden, cu_count, stream);
-  launch_bf16_wvsplitk(z_weight.device_pointer, input_norm, nullptr,
-                       projected_z, kLinearValue, kHidden, cu_count, stream);
-  launch_bf16_wvsplitk(a_weight.device_pointer, input_norm, nullptr,
-                       projected_a, kLinearGate, kHidden, cu_count, stream);
-  launch_bf16_wvsplitk(b_weight.device_pointer, input_norm, nullptr,
-                       projected_b, kLinearGate, kHidden, cu_count, stream);
-  metrics.native_projection_launches += 4;
+  const Bf16WvSplitKProjection input_projections[] = {
+      {qkv_weight.device_pointer, projected_qkv, kLinearQkv},
+      {z_weight.device_pointer, projected_z, kLinearValue},
+      {a_weight.device_pointer, projected_a, kLinearGate},
+      {b_weight.device_pointer, projected_b, kLinearGate},
+  };
+  launch_bf16_wvsplitk_grouped(input_projections, 4, input_norm, kHidden,
+                               cu_count, stream);
+  ++metrics.native_projection_launches;
   observe_boundary(observer, "qkv_projection", projected_qkv,
                    kLinearQkv * sizeof(__hip_bfloat16),
                    DecodeTensorDtype::kBfloat16);
@@ -526,14 +526,15 @@ NativeLinearLayerMetrics run_native_linear_layer(
                    post_attention_norm,
                    kHidden * sizeof(__hip_bfloat16),
                    DecodeTensorDtype::kBfloat16);
-  executor.launch(launches[base + 5], stream);
-  ++metrics.aot_launches;
+  hipStream_t shared_expert_stream = stream;
   if (use_current_vllm_projections) {
     if (shared_gate_plan == nullptr || shared_gate_plan->m() != 1 ||
         shared_gate_plan->n() != 1 || shared_gate_plan->k() != kHidden) {
       throw std::runtime_error(
           "native VL singleton shared-gate plan is incomplete");
     }
+    shared_expert_stream = static_cast<hipStream_t>(
+        begin_native_decode_shared_expert_overlap(stream_value));
     auto* shared_input_bytes =
         static_cast<unsigned char*>(shared_input.device_pointer);
     // Current vLLM routes [1,2048] x [1,2048]^T through PyTorch's
@@ -541,57 +542,43 @@ NativeLinearLayerMetrics run_native_linear_layer(
     // different reductions for this scalar edge shape.
     shared_gate_plan->launch(
         post_attention_norm, shared_expert_gate_weight.device_pointer,
-        shared_input_bytes, stream);
+        shared_input_bytes, shared_expert_stream);
+    const Bf16WvSplitKProjection shared_projections[] = {
+        {shared_gate_weight.device_pointer,
+         shared_input_bytes + sizeof(__hip_bfloat16), kSharedIntermediate},
+        {shared_up_weight.device_pointer,
+         shared_input_bytes +
+             (1 + kSharedIntermediate) * sizeof(__hip_bfloat16),
+         kSharedIntermediate},
+    };
+    launch_bf16_wvsplitk_grouped(shared_projections, 2,
+                                 post_attention_norm, kHidden, cu_count,
+                                 shared_expert_stream);
     launch_bf16_wvsplitk(
-        shared_gate_weight.device_pointer, post_attention_norm, nullptr,
-        shared_input_bytes + sizeof(__hip_bfloat16), kSharedIntermediate,
-        kHidden, cu_count, stream);
-    launch_bf16_wvsplitk(
-        shared_up_weight.device_pointer, post_attention_norm, nullptr,
-        shared_input_bytes +
-            (1 + kSharedIntermediate) * sizeof(__hip_bfloat16),
-        kSharedIntermediate, kHidden, cu_count, stream);
+        router_weight.device_pointer, post_attention_norm, nullptr,
+        router_logits.device_pointer, kExperts, kHidden, cu_count, stream);
     metrics.native_projection_launches += 3;
   }
-  observe_boundary(tail_observer, "shared_gate_logits",
-                   shared_input.device_pointer,
-                   sizeof(__hip_bfloat16),
-                   DecodeTensorDtype::kBfloat16);
-  observe_boundary(
-      tail_observer, "shared_gate_up_projection",
-      static_cast<unsigned char*>(shared_input.device_pointer) +
-          sizeof(__hip_bfloat16),
-      2 * kSharedIntermediate * sizeof(__hip_bfloat16),
-      DecodeTensorDtype::kBfloat16);
   if (use_current_vllm_projections) {
     launch_shared_silu_multiply(shared_input.device_pointer,
-                                activated.device_pointer, stream);
+                                activated.device_pointer,
+                                shared_expert_stream);
   } else {
     launch_shared_silu_multiply_v151(
-        shared_input.device_pointer, activated.device_pointer, stream);
+        shared_input.device_pointer, activated.device_pointer,
+        shared_expert_stream);
   }
   ++metrics.native_pointwise_launches;
-  observe_boundary(tail_observer, "shared_activation",
-                   activated.device_pointer,
-                   kSharedIntermediate * sizeof(__hip_bfloat16),
-                   DecodeTensorDtype::kBfloat16);
   launch_bf16_wvsplitk(
       shared_down_weight.device_pointer, activated.device_pointer, nullptr,
       shared_down.device_pointer, kHidden, kSharedIntermediate, cu_count,
-      stream);
+      shared_expert_stream);
   ++metrics.native_projection_launches;
-  observe_boundary(tail_observer, "shared_down_projection",
-                   shared_down.device_pointer,
-                   kHidden * sizeof(__hip_bfloat16),
-                   DecodeTensorDtype::kBfloat16);
   launch_shared_sigmoid_scale(shared_input.device_pointer,
                               shared_down.device_pointer,
-                              shared_scaled.device_pointer, stream);
+                              shared_scaled.device_pointer,
+                              shared_expert_stream);
   ++metrics.native_pointwise_launches;
-  observe_boundary(tail_observer, "shared_moe_output",
-                   shared_scaled.device_pointer,
-                   kHidden * sizeof(__hip_bfloat16),
-                   DecodeTensorDtype::kBfloat16);
 
   const NativeDecodeRoutedMoeBuffers routed_buffers{
       router_logits.device_pointer,
@@ -604,16 +591,40 @@ NativeLinearLayerMetrics run_native_linear_layer(
       routed_moe.device_pointer,
   };
   const NativeDecodeRoutedMoeMetrics routed_metrics =
-      run_native_decode_routed_moe(
-          post_attention_norm, router_weight.device_pointer,
-          routed_gate_up_weight.device_pointer,
+      run_native_decode_routed_moe_from_logits(
+          post_attention_norm, routed_gate_up_weight.device_pointer,
           routed_down_weight.device_pointer, routed_buffers, executor,
-          cu_count, stream);
+          stream);
   metrics.aot_launches += routed_metrics.aot_launches;
   metrics.native_projection_launches +=
       routed_metrics.native_projection_launches;
   metrics.native_pointwise_launches +=
       routed_metrics.native_pointwise_launches;
+  if (use_current_vllm_projections) {
+    complete_native_decode_shared_expert_overlap(stream_value);
+  }
+  observe_boundary(tail_observer, "shared_gate_logits",
+                   shared_input.device_pointer,
+                   sizeof(__hip_bfloat16),
+                   DecodeTensorDtype::kBfloat16);
+  observe_boundary(
+      tail_observer, "shared_gate_up_projection",
+      static_cast<unsigned char*>(shared_input.device_pointer) +
+          sizeof(__hip_bfloat16),
+      2 * kSharedIntermediate * sizeof(__hip_bfloat16),
+      DecodeTensorDtype::kBfloat16);
+  observe_boundary(tail_observer, "shared_activation",
+                   activated.device_pointer,
+                   kSharedIntermediate * sizeof(__hip_bfloat16),
+                   DecodeTensorDtype::kBfloat16);
+  observe_boundary(tail_observer, "shared_down_projection",
+                   shared_down.device_pointer,
+                   kHidden * sizeof(__hip_bfloat16),
+                   DecodeTensorDtype::kBfloat16);
+  observe_boundary(tail_observer, "shared_moe_output",
+                   shared_scaled.device_pointer,
+                   kHidden * sizeof(__hip_bfloat16),
+                   DecodeTensorDtype::kBfloat16);
   observe_boundary(tail_observer, "router_logits", router_logits.device_pointer,
                    kExperts * sizeof(__hip_bfloat16),
                    DecodeTensorDtype::kBfloat16);

@@ -19,6 +19,21 @@ void launch_bf16_wvsplitk(const void* weight_mk, const void* activation_1k,
                           std::size_t m, std::size_t k, int cu_count,
                           void* stream = nullptr);
 
+// Multiple singleton projections that consume the same activation. Each
+// logical row preserves launch_bf16_wvsplitk's FP32 accumulation and BF16
+// output boundary; grouping only amortizes activation staging and short-matrix
+// wave tails. The projection count is limited to four and bias is unsupported.
+struct Bf16WvSplitKProjection {
+  const void* weight_mk = nullptr;
+  void* output_1m = nullptr;
+  std::size_t m = 0;
+};
+
+void launch_bf16_wvsplitk_grouped(
+    const Bf16WvSplitKProjection* projections,
+    std::size_t projection_count, const void* activation_1k,
+    std::size_t k, int cu_count, void* stream = nullptr);
+
 struct Bf16WvSplitKCaseResult {
   std::size_t m = 0;
   std::size_t k = 0;

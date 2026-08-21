@@ -2215,11 +2215,16 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
               static_cast<unsigned char*>(impl_->vision_embeddings) +
               batch.visual_token_offset * kHidden *
                   sizeof(std::uint16_t);
+          const auto upload_started = std::chrono::steady_clock::now();
           check_hip(
               hipMemcpyAsync(impl_->vision_pixel_values, batch_pixels,
                              batch_pixel_bytes, hipMemcpyHostToDevice,
                              nullptr),
               "hipMemcpyAsync resident vision batch pixels");
+          check_hip(hipDeviceSynchronize(),
+                    "hipDeviceSynchronize resident vision batch upload");
+          metrics.vl_vision_input_upload_wall_ms +=
+              elapsed_ms(upload_started);
           const auto vision_started = std::chrono::steady_clock::now();
           pipeline.launch(impl_->vision_pixel_values, batch_embeddings,
                           impl_->vision_temporary,

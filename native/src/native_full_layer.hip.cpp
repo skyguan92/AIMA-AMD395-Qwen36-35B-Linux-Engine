@@ -250,18 +250,17 @@ NativeFullLayerMetrics run_native_full_layer(
     // provider. Preserve the historical fused AOT launch for the frozen text
     // path, while matching that reduction boundary for native VL decode.
     auto* qkv_bytes = static_cast<unsigned char*>(qkv.device_pointer);
-    launch_bf16_wvsplitk(q_weight.device_pointer,
-                         normalized_input.device_pointer, nullptr, qkv_bytes,
-                         8192, kHidden, cu_count, stream);
-    launch_bf16_wvsplitk(
-        k_weight.device_pointer, normalized_input.device_pointer, nullptr,
-        qkv_bytes + kRawKeyOffsetElements * sizeof(__hip_bfloat16), 512,
-        kHidden, cu_count, stream);
-    launch_bf16_wvsplitk(
-        v_weight.device_pointer, normalized_input.device_pointer, nullptr,
-        qkv_bytes + kRawValueOffsetElements * sizeof(__hip_bfloat16), 512,
-        kHidden, cu_count, stream);
-    metrics.native_projection_launches += 3;
+    const Bf16WvSplitKProjection qkv_projections[] = {
+        {q_weight.device_pointer, qkv_bytes, 8192},
+        {k_weight.device_pointer,
+         qkv_bytes + kRawKeyOffsetElements * sizeof(__hip_bfloat16), 512},
+        {v_weight.device_pointer,
+         qkv_bytes + kRawValueOffsetElements * sizeof(__hip_bfloat16), 512},
+    };
+    launch_bf16_wvsplitk_grouped(qkv_projections, 3,
+                                 normalized_input.device_pointer, kHidden,
+                                 cu_count, stream);
+    ++metrics.native_projection_launches;
   } else {
     executor.launch(launches[base + 1], stream);
     ++metrics.aot_launches;
@@ -319,48 +318,60 @@ NativeFullLayerMetrics run_native_full_layer(
     executor.launch(launches[base + 4], stream);
     ++metrics.aot_launches;
   }
-  executor.launch(launches[base + 5], stream);
-  ++metrics.aot_launches;
+  hipStream_t shared_expert_stream = stream;
   if (use_mrope) {
     if (shared_gate_plan == nullptr || shared_gate_plan->m() != 1 ||
         shared_gate_plan->n() != 1 || shared_gate_plan->k() != kHidden) {
       throw std::runtime_error(
           "native VL singleton shared-gate plan is incomplete");
     }
+    shared_expert_stream = static_cast<hipStream_t>(
+        begin_native_decode_shared_expert_overlap(stream_value));
     auto* shared_input_bytes =
         static_cast<unsigned char*>(shared_input.device_pointer);
     // Match the PyTorch hipBLASLt fallback used by the scalar shared gate;
     // gate/up retain current vLLM's singleton wvSplitK provider.
     shared_gate_plan->launch(
         post_attention_norm, shared_expert_gate_weight.device_pointer,
-        shared_input_bytes, stream);
+        shared_input_bytes, shared_expert_stream);
+    const Bf16WvSplitKProjection shared_projections[] = {
+        {shared_gate_weight.device_pointer,
+         shared_input_bytes + sizeof(__hip_bfloat16), kSharedIntermediate},
+        {shared_up_weight.device_pointer,
+         shared_input_bytes +
+             (1 + kSharedIntermediate) * sizeof(__hip_bfloat16),
+         kSharedIntermediate},
+    };
+    launch_bf16_wvsplitk_grouped(shared_projections, 2,
+                                 post_attention_norm, kHidden, cu_count,
+                                 shared_expert_stream);
     launch_bf16_wvsplitk(
-        shared_gate_weight.device_pointer, post_attention_norm, nullptr,
-        shared_input_bytes + sizeof(__hip_bfloat16), kSharedIntermediate,
-        kHidden, cu_count, stream);
-    launch_bf16_wvsplitk(
-        shared_up_weight.device_pointer, post_attention_norm, nullptr,
-        shared_input_bytes +
-            (1 + kSharedIntermediate) * sizeof(__hip_bfloat16),
-        kSharedIntermediate, kHidden, cu_count, stream);
+        router_weight.device_pointer, post_attention_norm, nullptr,
+        router_logits.device_pointer, kExperts, kHidden, cu_count, stream);
     metrics.native_projection_launches += 3;
+  } else {
+    executor.launch(launches[base + 5], stream);
+    ++metrics.aot_launches;
   }
   if (use_mrope) {
     launch_shared_silu_multiply(shared_input.device_pointer,
-                                activated.device_pointer, stream);
+                                activated.device_pointer,
+                                shared_expert_stream);
   } else {
     launch_shared_silu_multiply_v151(
-        shared_input.device_pointer, activated.device_pointer, stream);
+        shared_input.device_pointer, activated.device_pointer,
+        shared_expert_stream);
   }
   ++metrics.native_pointwise_launches;
   launch_bf16_wvsplitk(
       shared_down_weight.device_pointer, activated.device_pointer, nullptr,
       shared_down.device_pointer, kHidden, kSharedIntermediate, cu_count,
-      stream);
+      shared_expert_stream);
   ++metrics.native_projection_launches;
   launch_shared_sigmoid_scale(shared_input.device_pointer,
                               shared_down.device_pointer,
-                              shared_scaled.device_pointer, stream);
+                              shared_scaled.device_pointer,
+                              shared_expert_stream);
   ++metrics.native_pointwise_launches;
   void* routed_output = frozen_routed_moe.device_pointer;
   if (use_mrope) {
@@ -375,17 +386,17 @@ NativeFullLayerMetrics run_native_full_layer(
         routed_moe.device_pointer,
     };
     const NativeDecodeRoutedMoeMetrics routed_metrics =
-        run_native_decode_routed_moe(
-            post_attention_norm, router_weight.device_pointer,
-            routed_gate_up_weight.device_pointer,
+        run_native_decode_routed_moe_from_logits(
+            post_attention_norm, routed_gate_up_weight.device_pointer,
             routed_down_weight.device_pointer, routed_buffers, executor,
-            cu_count, stream);
+            stream);
     metrics.aot_launches += routed_metrics.aot_launches;
     metrics.native_projection_launches +=
         routed_metrics.native_projection_launches;
     metrics.native_pointwise_launches +=
         routed_metrics.native_pointwise_launches;
     routed_output = routed_moe.device_pointer;
+    complete_native_decode_shared_expert_overlap(stream_value);
   } else {
     for (std::size_t offset = 6; offset < 10; ++offset) {
       executor.launch(launches[base + offset], stream);

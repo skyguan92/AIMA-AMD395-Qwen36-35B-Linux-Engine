@@ -28,7 +28,18 @@ namespace aima {
 namespace {
 
 constexpr int kThreads = 32;
-constexpr int kWavesPerGroup = 16;
+#ifndef AIMA_WVSPLITK_GROUPED_WAVES
+#define AIMA_WVSPLITK_GROUPED_WAVES 5
+#endif
+#ifndef AIMA_WVSPLITK_SMALL_WAVES
+#define AIMA_WVSPLITK_SMALL_WAVES 5
+#endif
+#ifndef AIMA_WVSPLITK_WIDE_SMALL_WAVES
+#define AIMA_WVSPLITK_WIDE_SMALL_WAVES 16
+#endif
+constexpr int kGroupedWaves = AIMA_WVSPLITK_GROUPED_WAVES;
+constexpr int kSmallWaves = AIMA_WVSPLITK_SMALL_WAVES;
+constexpr int kWideSmallWaves = AIMA_WVSPLITK_WIDE_SMALL_WAVES;
 constexpr int kYTile = 2;
 constexpr int kActivationChunk = 8;
 constexpr int kUnroll = 2;
@@ -75,7 +86,8 @@ __device__ __forceinline__ void dot2_accumulate(float& accumulator,
   accumulator += product.x + product.y;
 }
 
-__global__ void __launch_bounds__(kWavesPerGroup * kThreads)
+template <int WavesPerGroup>
+__global__ void __launch_bounds__(WavesPerGroup * kThreads)
     bf16_wvsplitk_n1_small_kernel(
         int k, int weight_stride, int activation_stride, int m,
         const __hip_bfloat16* weight, const __hip_bfloat16* activation,
@@ -87,7 +99,7 @@ __global__ void __launch_bounds__(kWavesPerGroup * kThreads)
            (threadIdx.y * kThreads + threadIdx.x) * kActivationChunk;
        offset < min_u32(static_cast<std::uint32_t>(activation_stride),
                         kLdsBf16Elements);
-       offset += kThreads * kWavesPerGroup * kActivationChunk) {
+       offset += kThreads * WavesPerGroup * kActivationChunk) {
     *reinterpret_cast<Vector8*>(&shared_activation[offset]) =
         *reinterpret_cast<const Vector8*>(&activation[offset]);
   }
@@ -167,18 +179,138 @@ __global__ void __launch_bounds__(kWavesPerGroup * kThreads)
   }
 }
 
+template <int WavesPerGroup>
+__global__ void __launch_bounds__(WavesPerGroup * kThreads)
+    bf16_wvsplitk_n1_grouped_kernel(
+        int k, int total_m, const __hip_bfloat16* weight0,
+        const __hip_bfloat16* weight1, const __hip_bfloat16* weight2,
+        const __hip_bfloat16* weight3, __hip_bfloat16* output0,
+        __hip_bfloat16* output1, __hip_bfloat16* output2,
+        __hip_bfloat16* output3, int m0, int m1, int m2, int m3,
+        const __hip_bfloat16* activation, int active_waves_per_group,
+        int cu_count) {
+  __shared__ __hip_bfloat16 shared_activation[kLdsBf16Elements];
+
+  for (std::uint32_t offset =
+           (threadIdx.y * kThreads + threadIdx.x) * kActivationChunk;
+       offset < min_u32(static_cast<std::uint32_t>(k),
+                        kLdsBf16Elements);
+       offset += kThreads * WavesPerGroup * kActivationChunk) {
+    *reinterpret_cast<Vector8*>(&shared_activation[offset]) =
+        *reinterpret_cast<const Vector8*>(&activation[offset]);
+  }
+  __syncthreads();
+
+  if (threadIdx.y >= active_waves_per_group) return;
+  std::uint32_t row =
+      (blockIdx.x * active_waves_per_group + threadIdx.y) * kYTile;
+  const std::uint32_t end0 = static_cast<std::uint32_t>(m0);
+  const std::uint32_t end1 = end0 + static_cast<std::uint32_t>(m1);
+  const std::uint32_t end2 = end1 + static_cast<std::uint32_t>(m2);
+
+  while (row < static_cast<std::uint32_t>(total_m)) {
+    const __hip_bfloat16* weight = weight3;
+    __hip_bfloat16* output = output3;
+    std::uint32_t local_row = row - end2;
+    std::uint32_t projection_m = static_cast<std::uint32_t>(m3);
+    if (row < end0) {
+      weight = weight0;
+      output = output0;
+      local_row = row;
+      projection_m = static_cast<std::uint32_t>(m0);
+    } else if (row < end1) {
+      weight = weight1;
+      output = output1;
+      local_row = row - end0;
+      projection_m = static_cast<std::uint32_t>(m1);
+    } else if (row < end2) {
+      weight = weight2;
+      output = output2;
+      local_row = row - end1;
+      projection_m = static_cast<std::uint32_t>(m2);
+    }
+
+    float sum[kYTile] = {};
+    for (std::uint32_t k1 = 0; k1 < static_cast<std::uint32_t>(k);
+         k1 += kThreads * kActivationChunk * kUnroll) {
+      Vector8 activation_chunk[kUnroll] = {};
+      Vector8 weight_chunk[kYTile][kUnroll];
+
+#pragma unroll
+      for (std::uint32_t k2 = 0; k2 < kUnroll; ++k2) {
+        const std::uint32_t base = k1 + k2 * kThreads * kActivationChunk;
+        const std::uint32_t lane_offset =
+            base + threadIdx.x * kActivationChunk;
+        const __hip_bfloat16* weight_lane =
+            &weight[min_u32(lane_offset, static_cast<std::uint32_t>(
+                                             k - kActivationChunk))];
+#pragma unroll
+        for (int y = 0; y < kYTile; ++y) {
+          const std::uint32_t bounded_row =
+              min_u32(local_row + y, projection_m - 1);
+          weight_chunk[y][k2].h8 = load_nontemporal(
+              reinterpret_cast<Scalar8*>(const_cast<__hip_bfloat16*>(
+                  &weight_lane[bounded_row * k])));
+        }
+      }
+
+#pragma unroll
+      for (std::uint32_t k2 = 0; k2 < kUnroll; ++k2) {
+        const std::uint32_t base = k1 + k2 * kThreads * kActivationChunk;
+        const std::uint32_t lane_offset =
+            base + threadIdx.x * kActivationChunk;
+        if (lane_offset >= static_cast<std::uint32_t>(k)) break;
+        activation_chunk[k2] =
+            *reinterpret_cast<const Vector8*>(&shared_activation[lane_offset]);
+      }
+
+#pragma unroll
+      for (std::uint32_t k2 = 0; k2 < kUnroll; ++k2) {
+#pragma unroll
+        for (int y = 0; y < kYTile; ++y) {
+#pragma unroll
+          for (std::uint32_t pair = 0; pair < kActivationChunk / 2; ++pair) {
+            dot2_accumulate(sum[y], activation_chunk[k2].f[pair],
+                            weight_chunk[y][k2].f[pair]);
+          }
+        }
+      }
+    }
+
+    __builtin_amdgcn_sched_barrier(0);
+#pragma unroll
+    for (int y = 0; y < kYTile; ++y) {
+      sum[y] += __builtin_amdgcn_mov_dpp(sum[y], 0x118, 0xf, 0xf, 1);
+      sum[y] += __builtin_amdgcn_mov_dpp(sum[y], 0x114, 0xf, 0xf, 1);
+      sum[y] += __builtin_amdgcn_mov_dpp(sum[y], 0x112, 0xf, 0xf, 1);
+      sum[y] += __builtin_amdgcn_mov_dpp(sum[y], 0x111, 0xf, 0xf, 1);
+      sum[y] += __shfl_xor(sum[y], 16);
+    }
+
+    if (threadIdx.x == kThreads - 1) {
+#pragma unroll
+      for (int y = 0; y < kYTile; ++y) {
+        output[local_row + y] = __float2bfloat16(sum[y]);
+      }
+    }
+    row += cu_count * active_waves_per_group * kYTile;
+  }
+}
+
 int minimum_divisor(int rows, int first_divisor, int second_divisor) {
   const int rows_per_round = first_divisor * second_divisor;
-  std::array<int, 13> rounds{};
-  int candidate = rows_per_round;
-  for (int index = 0; index < static_cast<int>(rounds.size()); ++index) {
-    rounds[index] = (rows + candidate - 1) / candidate;
-    candidate -= first_divisor;
-  }
-  for (int index = static_cast<int>(rounds.size()) - 1; index >= 0; --index) {
-    if (rounds[0] == rounds[index]) return second_divisor - index;
+  const int minimum_rounds = (rows + rows_per_round - 1) / rows_per_round;
+  for (int active_waves = 4; active_waves <= second_divisor; ++active_waves) {
+    const int candidate_rows = first_divisor * active_waves;
+    if ((rows + candidate_rows - 1) / candidate_rows == minimum_rounds) {
+      return active_waves;
+    }
   }
   return 0;
+}
+
+int small_wave_limit(std::size_t m, std::size_t k) {
+  return k <= 512 || m <= 512 ? kWideSmallWaves : kSmallWaves;
 }
 
 class DeviceAllocation {
@@ -261,8 +393,9 @@ Bf16WvSplitKCaseResult probe_case(std::size_t m, std::size_t k,
   result.m = m;
   result.k = k;
   result.cu_count = cu_count;
+  const int wave_limit = small_wave_limit(m, k);
   result.active_waves_per_group = minimum_divisor(
-      static_cast<int>(m), cu_count * kYTile, kWavesPerGroup);
+      static_cast<int>(m), cu_count * kYTile, wave_limit);
   result.launches_per_sample = kLaunchesPerSample;
   result.expected_elements = m;
 
@@ -349,20 +482,84 @@ void launch_bf16_wvsplitk(const void* weight_mk, const void* activation_1k,
       k > static_cast<std::size_t>(std::numeric_limits<int>::max())) {
     throw std::invalid_argument("BF16 wvSplitK dimensions exceed int32");
   }
+  const int wave_limit = small_wave_limit(m, k);
   const int active_waves = minimum_divisor(
-      static_cast<int>(m), cu_count * kYTile, kWavesPerGroup);
-  if (active_waves <= 0 || active_waves > kWavesPerGroup) {
+      static_cast<int>(m), cu_count * kYTile, wave_limit);
+  if (active_waves <= 0 || active_waves > wave_limit) {
     throw std::runtime_error("BF16 wvSplitK could not select an active-wave count");
   }
-  hipLaunchKernelGGL(
-      bf16_wvsplitk_n1_small_kernel, dim3(cu_count),
-      dim3(kThreads, kWavesPerGroup), 0, static_cast<hipStream_t>(stream),
-      static_cast<int>(k), static_cast<int>(k), static_cast<int>(k),
-      static_cast<int>(m), static_cast<const __hip_bfloat16*>(weight_mk),
-      static_cast<const __hip_bfloat16*>(activation_1k),
-      static_cast<const __hip_bfloat16*>(bias_m),
-      static_cast<__hip_bfloat16*>(output_1m), active_waves, cu_count);
+  if (wave_limit == kWideSmallWaves) {
+    hipLaunchKernelGGL(
+        HIP_KERNEL_NAME(
+            bf16_wvsplitk_n1_small_kernel<kWideSmallWaves>),
+        dim3(cu_count), dim3(kThreads, kWideSmallWaves), 0,
+        static_cast<hipStream_t>(stream), static_cast<int>(k),
+        static_cast<int>(k), static_cast<int>(k), static_cast<int>(m),
+        static_cast<const __hip_bfloat16*>(weight_mk),
+        static_cast<const __hip_bfloat16*>(activation_1k),
+        static_cast<const __hip_bfloat16*>(bias_m),
+        static_cast<__hip_bfloat16*>(output_1m), active_waves, cu_count);
+  } else {
+    hipLaunchKernelGGL(
+        HIP_KERNEL_NAME(bf16_wvsplitk_n1_small_kernel<kSmallWaves>),
+        dim3(cu_count), dim3(kThreads, kSmallWaves), 0,
+        static_cast<hipStream_t>(stream), static_cast<int>(k),
+        static_cast<int>(k), static_cast<int>(k), static_cast<int>(m),
+        static_cast<const __hip_bfloat16*>(weight_mk),
+        static_cast<const __hip_bfloat16*>(activation_1k),
+        static_cast<const __hip_bfloat16*>(bias_m),
+        static_cast<__hip_bfloat16*>(output_1m), active_waves, cu_count);
+  }
   check_hip(hipGetLastError(), "bf16_wvsplitk_n1_small_kernel");
+}
+
+void launch_bf16_wvsplitk_grouped(
+    const Bf16WvSplitKProjection* projections,
+    std::size_t projection_count, const void* activation_1k,
+    std::size_t k, int cu_count, void* stream) {
+  if (projections == nullptr || activation_1k == nullptr ||
+      projection_count < 2 || projection_count > 4 || k == 0 ||
+      k % kActivationChunk != 0 ||
+      k > static_cast<std::size_t>(kLdsBf16Elements) || cu_count <= 0) {
+    throw std::invalid_argument("unsupported grouped BF16 wvSplitK shape");
+  }
+  std::array<const __hip_bfloat16*, 4> weights{};
+  std::array<__hip_bfloat16*, 4> outputs{};
+  std::array<int, 4> rows{};
+  std::size_t total_rows = 0;
+  for (std::size_t index = 0; index < projection_count; ++index) {
+    const Bf16WvSplitKProjection& projection = projections[index];
+    if (projection.weight_mk == nullptr || projection.output_1m == nullptr ||
+        projection.m <= 8 || projection.m % kYTile != 0 ||
+        projection.m >
+            static_cast<std::size_t>(std::numeric_limits<int>::max()) ||
+        total_rows > static_cast<std::size_t>(
+                         std::numeric_limits<int>::max()) - projection.m) {
+      throw std::invalid_argument(
+          "grouped BF16 wvSplitK projection is invalid");
+    }
+    weights[index] =
+        static_cast<const __hip_bfloat16*>(projection.weight_mk);
+    outputs[index] = static_cast<__hip_bfloat16*>(projection.output_1m);
+    rows[index] = static_cast<int>(projection.m);
+    total_rows += projection.m;
+  }
+  const int active_waves = minimum_divisor(
+      static_cast<int>(total_rows), cu_count * kYTile, kGroupedWaves);
+  if (active_waves <= 0 || active_waves > kGroupedWaves) {
+    throw std::runtime_error(
+        "grouped BF16 wvSplitK could not select an active-wave count");
+  }
+  hipLaunchKernelGGL(
+      HIP_KERNEL_NAME(bf16_wvsplitk_n1_grouped_kernel<kGroupedWaves>),
+      dim3(cu_count), dim3(kThreads, kGroupedWaves), 0,
+      static_cast<hipStream_t>(stream),
+      static_cast<int>(k), static_cast<int>(total_rows), weights[0], weights[1],
+      weights[2], weights[3], outputs[0], outputs[1], outputs[2], outputs[3],
+      rows[0], rows[1], rows[2], rows[3],
+      static_cast<const __hip_bfloat16*>(activation_1k), active_waves,
+      cu_count);
+  check_hip(hipGetLastError(), "bf16_wvsplitk_n1_grouped_kernel");
 }
 
 Bf16WvSplitKProbeResult probe_bf16_wvsplitk() {

@@ -23,11 +23,16 @@ constexpr std::size_t kTopK = 8;
 constexpr std::size_t kIntermediate = 512;
 constexpr std::size_t kGateUp = 2 * kIntermediate;
 constexpr unsigned kThreads = 256;
-constexpr char kGateUpKernelHash[] =
-    "3ef02098201cfc66fd82896bf7c1abc4fe406c41fb911c2b58e0023e1eca1c99";
+constexpr char kHybridScalarGateUpKernelHash[] =
+    "2923d4c0b0336ee9b6a96d81b36eec15a22c102c888c10a73202d17839a386c5";
+constexpr char kSparseGateUpCorrectionKernelHash[] =
+    "0e6da1f589b4787c411264ea8288e26cb4259c61da6f88e1a1f7d8b4e3e74dab";
 constexpr char kDownKernelHash[] =
     "775c54180f9368197b9493aa15e604d3f7622519a20fc322e827e2d51a979b75";
-constexpr AotLaunchConfig kGateUpLaunchConfig{512, 1, 1, 4, 32, 16384};
+constexpr AotLaunchConfig kHybridScalarGateUpLaunchConfig{8, 256, 1, 8, 32,
+                                                          128};
+constexpr AotLaunchConfig kSparseGateUpCorrectionLaunchConfig{512, 1, 1, 4,
+                                                              32, 16384};
 constexpr AotLaunchConfig kDownLaunchConfig{1024, 1, 1, 4, 32, 16384};
 
 void check_hip(hipError_t status, const char* operation) {
@@ -35,6 +40,58 @@ void check_hip(hipError_t status, const char* operation) {
     throw std::runtime_error(std::string(operation) + ": " +
                              hipGetErrorString(status));
   }
+}
+
+class SharedExpertOverlap {
+ public:
+  SharedExpertOverlap() {
+    check_hip(hipStreamCreateWithFlags(&side_stream_, hipStreamNonBlocking),
+              "hipStreamCreateWithFlags shared expert");
+    check_hip(hipEventCreateWithFlags(&input_ready_, hipEventDisableTiming),
+              "hipEventCreateWithFlags shared expert input");
+    check_hip(hipEventCreateWithFlags(&output_ready_, hipEventDisableTiming),
+              "hipEventCreateWithFlags shared expert output");
+  }
+
+  ~SharedExpertOverlap() {
+    if (output_ready_ != nullptr) {
+      const hipError_t ignored = hipEventDestroy(output_ready_);
+      static_cast<void>(ignored);
+    }
+    if (input_ready_ != nullptr) {
+      const hipError_t ignored = hipEventDestroy(input_ready_);
+      static_cast<void>(ignored);
+    }
+    if (side_stream_ != nullptr) {
+      const hipError_t ignored = hipStreamDestroy(side_stream_);
+      static_cast<void>(ignored);
+    }
+  }
+
+  void* begin(hipStream_t main_stream) {
+    check_hip(hipEventRecord(input_ready_, main_stream),
+              "hipEventRecord shared expert input");
+    check_hip(hipStreamWaitEvent(side_stream_, input_ready_, 0),
+              "hipStreamWaitEvent shared expert input");
+    return side_stream_;
+  }
+
+  void complete(hipStream_t main_stream) {
+    check_hip(hipEventRecord(output_ready_, side_stream_),
+              "hipEventRecord shared expert output");
+    check_hip(hipStreamWaitEvent(main_stream, output_ready_, 0),
+              "hipStreamWaitEvent shared expert output");
+  }
+
+ private:
+  hipStream_t side_stream_ = nullptr;
+  hipEvent_t input_ready_ = nullptr;
+  hipEvent_t output_ready_ = nullptr;
+};
+
+SharedExpertOverlap& shared_expert_overlap() {
+  static SharedExpertOverlap overlap;
+  return overlap;
 }
 
 void require_complete(const NativeDecodeRoutedMoeBuffers& buffers) {
@@ -205,7 +262,38 @@ void launch_fused_moe(
   executor.launch_embedded(kernel_hash, config, parameters, stream);
 }
 
+void launch_hybrid_gate_up(void* hidden, void* weight, void* expert_ids,
+                           void* output, void* flagged_indices,
+                           void* flagged_count,
+                           NativeDecodeExecutor& executor, void* stream) {
+  check_hip(hipMemsetAsync(flagged_count, 0, sizeof(std::int32_t),
+                           static_cast<hipStream_t>(stream)),
+            "hipMemsetAsync routed gate/up correction count");
+  const std::vector<void*> parameters = {
+      &hidden,
+      &weight,
+      &expert_ids,
+      &output,
+      &flagged_indices,
+      &flagged_count,
+  };
+  executor.launch_embedded(kHybridScalarGateUpKernelHash,
+                           kHybridScalarGateUpLaunchConfig, parameters,
+                           stream);
+  executor.launch_embedded(kSparseGateUpCorrectionKernelHash,
+                           kSparseGateUpCorrectionLaunchConfig, parameters,
+                           stream);
+}
+
 }  // namespace
+
+void* begin_native_decode_shared_expert_overlap(void* main_stream) {
+  return shared_expert_overlap().begin(static_cast<hipStream_t>(main_stream));
+}
+
+void complete_native_decode_shared_expert_overlap(void* main_stream) {
+  shared_expert_overlap().complete(static_cast<hipStream_t>(main_stream));
+}
 
 NativeDecodeRoutedMoeMetrics run_native_decode_routed_moe(
     const void* hidden_bf16, const void* router_weight_bf16,
@@ -223,6 +311,28 @@ NativeDecodeRoutedMoeMetrics run_native_decode_routed_moe(
                        buffers.router_logits_bf16, kExperts, kHidden,
                        cu_count, stream);
   ++metrics.native_projection_launches;
+  const NativeDecodeRoutedMoeMetrics tail =
+      run_native_decode_routed_moe_from_logits(
+          hidden_bf16, gate_up_weight_bf16, down_weight_bf16, buffers,
+          executor, stream);
+  metrics.aot_launches += tail.aot_launches;
+  metrics.native_projection_launches += tail.native_projection_launches;
+  metrics.native_pointwise_launches += tail.native_pointwise_launches;
+  return metrics;
+}
+
+NativeDecodeRoutedMoeMetrics run_native_decode_routed_moe_from_logits(
+    const void* hidden_bf16, const void* gate_up_weight_bf16,
+    const void* down_weight_bf16,
+    const NativeDecodeRoutedMoeBuffers& buffers,
+    NativeDecodeExecutor& executor, void* stream) {
+  if (hidden_bf16 == nullptr || gate_up_weight_bf16 == nullptr ||
+      down_weight_bf16 == nullptr || !executor.loaded()) {
+    throw std::invalid_argument(
+        "native decode routed-MoE owners are incomplete");
+  }
+  require_complete(buffers);
+  NativeDecodeRoutedMoeMetrics metrics;
   hipStream_t hip_stream = static_cast<hipStream_t>(stream);
   hipLaunchKernelGGL(
       router_topk8_softmax_256_kernel, dim3(1), dim3(32), 0, hip_stream,
@@ -233,13 +343,12 @@ NativeDecodeRoutedMoeMetrics run_native_decode_routed_moe(
   check_hip(hipGetLastError(), "router_topk8_softmax_256_kernel");
   ++metrics.native_pointwise_launches;
 
-  launch_fused_moe(
-      kGateUpKernelHash, kGateUpLaunchConfig,
-      const_cast<void*>(hidden_bf16), const_cast<void*>(gate_up_weight_bf16),
-      buffers.gate_up_bf16, buffers.router_weights_fp32,
-      buffers.router_indices_i32, buffers.num_tokens_post_padded_i32,
-      1024, 2048, 2097152, 2048, 2048, 1024, executor, stream);
-  ++metrics.aot_launches;
+  launch_hybrid_gate_up(
+      const_cast<void*>(hidden_bf16),
+      const_cast<void*>(gate_up_weight_bf16), buffers.router_indices_i32,
+      buffers.gate_up_bf16, buffers.weighted_expert_outputs_bf16,
+      buffers.router_logits_bf16, executor, stream);
+  metrics.aot_launches += 2;
   constexpr std::size_t activation_elements = kTopK * kIntermediate;
   hipLaunchKernelGGL(
       routed_silu_multiply_kernel,

@@ -49,6 +49,7 @@ PACKED_LINEAR_DECODE_MANIFEST="${ROOT}/native/aot/gfx1151/packed-linear-decode-v
 CAUSAL_CONV_DECODE_MANIFEST="${ROOT}/native/aot/gfx1151/causal-conv-decode-v0.1.0/manifest.json"
 LINEAR_GATED_NORM_DECODE_MANIFEST="${ROOT}/native/aot/gfx1151/linear-gated-norm-decode-v0.1.0/manifest.json"
 ROUTED_MOE_DECODE_MANIFEST="${ROOT}/native/aot/gfx1151/routed-moe-decode-v0.1.0/manifest.json"
+ROUTED_MOE_EXACT_HYBRID_MANIFEST="${ROOT}/native/aot/gfx1151/routed-moe-exact-hybrid-v0.1.0/manifest.json"
 DENSE_IMAGE_VISION_ATTENTION_MANIFEST="${ROOT}/native/aot/gfx1151/vision-attention-v0.2.0/manifest.json"
 case ":${AOT_MANIFESTS}:" in
   *":${VL_UNIFIED_ATTENTION_MANIFEST}:"*) ;;
@@ -77,6 +78,10 @@ esac
 case ":${AOT_MANIFESTS}:" in
   *":${ROUTED_MOE_DECODE_MANIFEST}:"*) ;;
   *) AOT_MANIFESTS="${AOT_MANIFESTS}:${ROUTED_MOE_DECODE_MANIFEST}" ;;
+esac
+case ":${AOT_MANIFESTS}:" in
+  *":${ROUTED_MOE_EXACT_HYBRID_MANIFEST}:"*) ;;
+  *) AOT_MANIFESTS="${AOT_MANIFESTS}:${ROUTED_MOE_EXACT_HYBRID_MANIFEST}" ;;
 esac
 case ":${AOT_MANIFESTS}:" in
   *":${DENSE_IMAGE_VISION_ATTENTION_MANIFEST}:"*) ;;

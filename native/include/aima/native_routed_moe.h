@@ -29,6 +29,15 @@ struct NativeDecodeRoutedMoeMetrics {
   std::size_t aot_launches = 0;
 };
 
+// The resident decoder is serial. These helpers expose one non-blocking side
+// stream and event pair so the shared expert can execute beside the routed
+// experts without changing either arithmetic chain. Call begin after the
+// common input is ready on main_stream and complete before consuming the
+// shared output on main_stream.
+void* begin_native_decode_shared_expert_overlap(void* main_stream = nullptr);
+void complete_native_decode_shared_expert_overlap(
+    void* main_stream = nullptr);
+
 // Executes the pinned current-vLLM singleton routed-MoE chain:
 // BF16 router projection, FP32 normalized top-8 routing, two embedded Triton
 // expert GEMMs, BF16-boundary SiLU-and-multiply, and the eight-row reduction.
@@ -38,5 +47,13 @@ NativeDecodeRoutedMoeMetrics run_native_decode_routed_moe(
     const NativeDecodeRoutedMoeBuffers& buffers,
     NativeDecodeExecutor& executor, int cu_count,
     void* stream = nullptr);
+
+// Continue the same routed-MoE chain when an exact singleton projection has
+// already populated buffers.router_logits_bf16 on the same stream.
+NativeDecodeRoutedMoeMetrics run_native_decode_routed_moe_from_logits(
+    const void* hidden_bf16, const void* gate_up_weight_bf16,
+    const void* down_weight_bf16,
+    const NativeDecodeRoutedMoeBuffers& buffers,
+    NativeDecodeExecutor& executor, void* stream = nullptr);
 
 }  // namespace aima

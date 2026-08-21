@@ -261,6 +261,7 @@ struct NativeResidentRequestMetrics {
   double vl_media_load_decode_wall_ms = 0.0;
   double vl_processor_wall_ms = 0.0;
   double vl_vision_plan_build_wall_ms = 0.0;
+  double vl_vision_input_upload_wall_ms = 0.0;
   double vl_vision_encode_wall_ms = 0.0;
   double vl_embedding_injection_wall_ms = 0.0;
   std::size_t decode_tokens_executed = 0;

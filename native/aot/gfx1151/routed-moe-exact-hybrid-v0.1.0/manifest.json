@@ -1,0 +1,51 @@
+{
+  "kernel_count": 2,
+  "kernel_symbol_count": 2,
+  "kernels": [
+    {
+      "image": {
+        "bytes": 7904,
+        "path": "kernels/2923d4c0b0336ee9-hybrid_scalar_block_flag_kernel.hsaco",
+        "sha256": "8d0a92755bf4dfbc08bebbe40394a06ecdaab888f1860b54f239aa1d6281bdd1"
+      },
+      "kernel_hash": "2923d4c0b0336ee9b6a96d81b36eec15a22c102c888c10a73202d17839a386c5",
+      "metadata": {
+        "block_m": 4,
+        "correct_subnormals": false,
+        "error_coefficient": 2e-06,
+        "num_warps": 8,
+        "shared": 128,
+        "warp_size": 32
+      },
+      "symbol": "hybrid_scalar_block_flag_kernel"
+    },
+    {
+      "image": {
+        "bytes": 9416,
+        "path": "kernels/0e6da1f589b4787c-sparse_wmma_correction_kernel.hsaco",
+        "sha256": "40958cc9168155be48eaaed800efb657c0683b56b44b2db71012702ae380e700"
+      },
+      "kernel_hash": "0e6da1f589b4787c411264ea8288e26cb4259c61da6f88e1a1f7d8b4e3e74dab",
+      "metadata": {
+        "num_warps": 4,
+        "shared": 16384,
+        "warp_size": 32
+      },
+      "symbol": "sparse_wmma_correction_kernel"
+    }
+  ],
+  "launch_variant_count": 2,
+  "packaged_hsaco_bytes": 17320,
+  "schema": "aima-amd395-qwen36/native-aot-closure/v1",
+  "source": {
+    "exporter": "benchmarks/shape-lab/export_exact_hybrid_gate_closure.py",
+    "kernel_source": "benchmarks/shape-lab/routed_exact_scalar_probe.py",
+    "triton_version": "3.6.0"
+  },
+  "status": "qualified_exact_hybrid_routed_gate_up",
+  "target": {
+    "arch": "gfx1151",
+    "backend": "HIP",
+    "warp_size": 32
+  }
+}
