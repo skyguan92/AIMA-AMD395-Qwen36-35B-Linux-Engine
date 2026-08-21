@@ -19,8 +19,9 @@ MEDIA_IO = RESULTS / "vl-media-io-reference-v0.1.0.json"
 REFERENCE = RESULTS / "vl-error-limits-reference-v0.1.0.json"
 NATIVE = RESULTS / "native-vl-error-limits-v0.1.0.json"
 QUALIFIED_COMMIT = "7642995e772fbdc8ae763bcffb90f2da852987f0"
+NATIVE_QUALIFIED_COMMIT = "50289f1cbae150997ca82bbc054635932a2721c3"
 QUALIFIED_BINARY_SHA256 = (
-    "f650ef2061e7a69348c512e55bd0f881a64aa19f8fd390d02418f477b2b95fd5"
+    "4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0"
 )
 MEDIA_IO_CASES = {
     "default_white": (
@@ -139,8 +140,10 @@ class NativeVlErrorLimitsQualificationTest(unittest.TestCase):
         self.assertTrue(result["complete"])
         self.assertTrue(result["qualified"])
         self.assertFalse(result["source"]["dirty"])
-        self.assertEqual(result["source"]["commit"], QUALIFIED_COMMIT)
-        self.assertEqual(result["build_info"]["source_commit"], QUALIFIED_COMMIT)
+        self.assertEqual(result["source"]["commit"], NATIVE_QUALIFIED_COMMIT)
+        self.assertEqual(
+            result["build_info"]["source_commit"], NATIVE_QUALIFIED_COMMIT
+        )
         self.assertEqual(result["binary"]["sha256"], QUALIFIED_BINARY_SHA256)
         assert_components_current(self, result["source"]["files"])
         assert_components_current(
@@ -154,7 +157,7 @@ class NativeVlErrorLimitsQualificationTest(unittest.TestCase):
         )
         self.assertEqual(
             result["dependencies"]["fmha_provider"]["sha256"],
-            "98e6c47c017837ab796e3ca2e8256740d1e9cb6ec2f460af45ee586cd5fb7bd1",
+            "e5336b2d66b36c5f17aeb07ab780fa8f60a6092910f9b01b3ebf4bc31f766bb4",
         )
         self.assertEqual(
             result["dependencies"]["vision_attention_image"]["sha256"],

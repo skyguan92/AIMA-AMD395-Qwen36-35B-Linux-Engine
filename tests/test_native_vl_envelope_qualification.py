@@ -14,9 +14,9 @@ RESULT_SIDECAR = RESULT.with_name(RESULT.name + ".sha256")
 ENVELOPE = ROOT / "benchmarks/results/vl-capability-envelope-v0.1.0.json"
 FIXTURE_ROOT = ROOT / "benchmarks/fixtures/vl-envelope-v0.1.0"
 FIXTURE_MANIFEST = FIXTURE_ROOT / "fixtures-manifest.json"
-QUALIFIED_COMMIT = "3621cbb7b9d0da46780d8b2838bbfea6f7522954"
+QUALIFIED_COMMIT = "50289f1cbae150997ca82bbc054635932a2721c3"
 QUALIFIED_BINARY_SHA256 = (
-    "25ca579dcdab3faea92ef4e8309bc896e9859d744e55b044e0e102071eb98613"
+    "4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0"
 )
 
 
@@ -93,7 +93,7 @@ class NativeVlEnvelopeQualificationTest(unittest.TestCase):
         observations = matrix["observations"]
         self.assertEqual(plan["cells"], 23)
         self.assertEqual(plan["http_observations"], 23)
-        self.assertEqual(plan["client_timeout_seconds"], 7200.0)
+        self.assertEqual(plan["client_timeout_seconds"], 2400.0)
         self.assertEqual(matrix["required_cells"], 23)
         self.assertEqual(matrix["http_observations"], 23)
         self.assertEqual(matrix["successful_observations"], 17)

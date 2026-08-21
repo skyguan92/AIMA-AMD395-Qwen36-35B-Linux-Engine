@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from pathlib import Path
+import subprocess
 import unittest
 
 
@@ -12,6 +15,15 @@ RESULT = (
 FULL_RESULT = (
     ROOT / "benchmarks/results/native-vl-language-full-v0.2.0.json"
 )
+
+
+def git_blob(commit: str, path: str) -> bytes:
+    return subprocess.run(
+        ["git", "show", f"{commit}:{path}"],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+    ).stdout
 
 
 class NativeVlLanguageLayer3MropeTest(unittest.TestCase):
@@ -351,9 +363,6 @@ class NativeVlLanguageLayer3MropeTest(unittest.TestCase):
         self.assertIn("source must be a clean commit", capture)
 
     def test_qualification_is_exact_hash_bound_and_non_overclaiming(self) -> None:
-        import hashlib
-        import json
-
         result = json.loads(RESULT.read_text(encoding="utf-8"))
         self.assertTrue(result["complete"])
         self.assertTrue(result["source"]["clean"])
@@ -364,7 +373,7 @@ class NativeVlLanguageLayer3MropeTest(unittest.TestCase):
         for record in result["source"]["files"]:
             self.assertEqual(
                 hashlib.sha256(
-                    (ROOT / record["path"]).read_bytes()
+                    git_blob(result["source"]["commit"], record["path"])
                 ).hexdigest(),
                 record["sha256"],
             )
@@ -376,7 +385,10 @@ class NativeVlLanguageLayer3MropeTest(unittest.TestCase):
         )
         self.assertEqual(
             hashlib.sha256(
-                (ROOT / capture["capture_script"]["path"]).read_bytes()
+                git_blob(
+                    result["source"]["commit"],
+                    capture["capture_script"]["path"],
+                )
             ).hexdigest(),
             capture["capture_script"]["sha256"],
         )
@@ -424,9 +436,6 @@ class NativeVlLanguageLayer3MropeTest(unittest.TestCase):
     def test_full_language_qualification_is_hash_bound_and_threshold_complete(
         self,
     ) -> None:
-        import hashlib
-        import json
-
         result = json.loads(FULL_RESULT.read_text(encoding="utf-8"))
         self.assertEqual(
             result["schema"],
@@ -442,7 +451,7 @@ class NativeVlLanguageLayer3MropeTest(unittest.TestCase):
         source_records = []
         for record in source_manifest["files"]:
             actual_sha256 = hashlib.sha256(
-                (ROOT / record["path"]).read_bytes()
+                git_blob(result["source"]["commit"], record["path"])
             ).hexdigest()
             self.assertEqual(
                 actual_sha256,

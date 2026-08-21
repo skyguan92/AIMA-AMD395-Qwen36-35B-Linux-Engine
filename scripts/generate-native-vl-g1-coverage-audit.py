@@ -82,10 +82,11 @@ ARTIFACT_PATHS = {
         ROOT / "benchmarks/results/native-vl-error-limits-v0.1.0.json"
     ),
     "vision_pipeline": (
-        ROOT / "benchmarks/results/native-vision-pipeline-v0.1.0.json"
+        ROOT
+        / "benchmarks/results/native-vision-pipeline-current-head-v0.2.0.json"
     ),
     "language_boundary": (
-        ROOT / "benchmarks/results/native-vl-language-full-v0.2.0.json"
+        ROOT / "benchmarks/results/vl-correctness-v0.1.0.json"
     ),
     "task_quality_reference": (
         ROOT / "benchmarks/results/vl-task-quality-reference-v0.1.0.json"
@@ -321,7 +322,10 @@ def build_requirements() -> list[dict[str, Any]]:
             [
                 evidence(
                     "native_capability",
-                    note="20/20 finish-reason parity but only 14/18 exact usage",
+                    note=(
+                        "20/20 finish-reason parity and 16/16 VL usage parity; "
+                        "the two text-only diagnostics remain owned by G3"
+                    ),
                 ),
                 evidence(
                     "resident_serving",
@@ -711,10 +715,38 @@ def validate_inputs(payloads: dict[str, dict[str, Any]]) -> None:
         "full_visual_pipeline_qualified"
     ):
         raise SystemExit("vision pipeline evidence is incomplete")
-    if language.get("complete") is not True or language["decision"].get(
-        "teacher_forced_full_vocabulary_logits_gate"
-    ) != "passed-84-of-84-rows-bit-exact":
+    if (
+        language.get("complete") is not True
+        or language.get("qualified") is not True
+        or language["decision"].get("g2_passed") is not True
+        or language["aggregate"].get("full_vocabulary_rows") != 84
+        or language["aggregate"].get("full_vocabulary_top1_matches") != 84
+    ):
         raise SystemExit("language boundary evidence is incomplete")
+
+    candidate_commit = execution["source"]["commit"]
+    candidate_binary = execution["binary"]["sha256"]
+    for name, payload in (
+        ("native capability", native),
+        ("resident serving", serving),
+        ("mixed/conversation native", extension_native),
+        ("transport/cache native", transport_native),
+        ("error/limit native", error_limits_native),
+        ("task-quality native", task_native),
+        ("generation native", generation_native),
+    ):
+        if (
+            payload["source"]["commit"] != candidate_commit
+            or payload["binary"]["sha256"] != candidate_binary
+        ):
+            raise SystemExit(f"{name} candidate identity differs")
+    if (
+        vision["source"]["commit"] != candidate_commit
+        or vision["candidate_binary_sha256"] != candidate_binary
+        or language["candidate"]["source_commit"] != candidate_commit
+        or language["candidate"]["binary_sha256"] != candidate_binary
+    ):
+        raise SystemExit("vision/language candidate identity differs")
     for name, payload in (
         ("task-quality reference", task_reference),
         ("task-quality native", task_native),
@@ -849,7 +881,15 @@ def validate_inputs(payloads: dict[str, dict[str, Any]]) -> None:
         raise SystemExit("native capability status parity is incomplete")
     if native["matrix"].get("reference_finish_reason_exact") != "20/20":
         raise SystemExit("native capability finish-reason parity is incomplete")
-    if native["matrix"].get("reference_usage_exact") != "14/18":
+    if (
+        native["matrix"].get("reference_usage_exact") != "16/18"
+        or native["matrix"].get("vl_reference_usage_exact") != "16/16"
+        or native["matrix"].get("text_vllm_usage_diagnostic") != "0/2"
+        or native["decision"].get("deterministic_vl_reference_usage_exact")
+        is not True
+        or native["decision"].get("text_usage_boundary_owned_by_g3_v151")
+        is not True
+    ):
         raise SystemExit("native capability usage gap changed")
     if not all(serving["cache_correctness"]["checks"].values()):
         raise SystemExit("resident cache evidence contains a failed check")
@@ -1046,7 +1086,7 @@ def build_payload() -> dict[str, Any]:
     ]
     return {
         "schema": "aima-amd395-qwen36/native-vl-g1-coverage-audit/v1",
-        "audited_on": "2026-08-18",
+        "audited_on": "2026-08-21",
         "complete": True,
         "qualified": False,
         "scope": "goal-sections-2.1-through-2.4-requirement-to-evidence",
@@ -1082,7 +1122,9 @@ def build_payload() -> dict[str, Any]:
             "new_evidence_required": counts["partial"] > 0
             or counts["missing"] > 0,
             "g1_passed": False,
-            "g2_passed": False,
+            "g2_passed": payloads["language_boundary"]["decision"][
+                "g2_passed"
+            ],
             "g3_passed": False,
             "g4_passed": False,
             "g5_passed": False,

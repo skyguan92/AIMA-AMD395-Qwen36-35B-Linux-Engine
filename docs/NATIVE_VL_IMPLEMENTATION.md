@@ -5,6 +5,10 @@
 > Frozen text baseline: `v1.5.1` (`6f3e669`)
 >
 > Current phase: Phase 2 — resident serving and product qualification
+>
+> Formal native candidate: `50289f1cbae150997ca82bbc054635932a2721c3`,
+> binary SHA-256
+> `4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0`
 
 This file is a live requirement-to-evidence index. A status of `in progress`
 or `implemented` is not a release claim. Only evidence that satisfies every
@@ -14,17 +18,48 @@ blocking condition in the governing goal can move a gate to `passed`.
 
 | Gate | Current state | Evidence required to pass | Next blocking action |
 |---|---|---|---|
-| G1 full VL functional parity | the native HTTP path passes the frozen 30-case status/finish/tool/SSE surface and the corrected deterministic execution envelope passes 23/23 cells; mixed/conversation, verified HTTPS, request-level media I/O, error compatibility and cache identity/invariance have reference-exact resident evidence; the frozen 12-case long image/video corpus passes its task-quality gate without regression; consolidated current-HEAD processor-to-output generation is qualified, while two long-generation token vectors remain diagnostic mismatches | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results | close the two long-generation parity divergences and run the complete G3 text/release no-regression protocol |
-| G2 VL correctness parity | the five private and five independently rendered real-HTTP language prompts pass final norm and 84/84 selected full-vocabulary rows bit-exact; current-HEAD tool generation binds exact prompt prefixes, 120/120 prefill states, 82/82 whole-layer rows, 26/26 linear, 30/30 tail and 12/12 full-attention boundaries, with exact top-1 and selected tokens; image task quality is `1.000000` and video task quality is `0.947368`, equal to the fixed vLLM reference, with long generated token vectors exact for 10/12 | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | resolve the two remaining long deterministic-generation divergences, then run the final G2/G3 correctness gates |
-| G3 text product no regression | the exact portable `v1.5.1` executable is retained as an immutable paired baseline; current-head nine-context logits, q8192 exact128, OpenAI features and MMLU-256 are qualified; the allocation-order v33 candidate passes q1024/q32768 diagnostics and cross-request text/VL switching but fails the formal q16384 prefill cell; a numerically equivalent parallel text router in v34 clears q16384 in five adjacent pairs and both q1024 formal cells, but that diagnostic build used a snapshot label rather than a real commit | paired 19-cell, maximum-window, correctness, MMLU, API, cache, startup and memory requalification | rebuild from the exact implementation commit and run its single authoritative 19-cell matrix, then rerun exact-prefix, cache, full correctness and memory gates |
+| G1 full VL functional parity | 13/14 requirement groups are covered on the single formal candidate: the 30-case API surface, 23/23 execution envelope, mixed/conversation, transport/cache, error/limit, deterministic generation and all 12 long task-quality cases are qualified; G2 is complete | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results plus product preservation | run and pass the complete G3 text/release no-regression protocol, the sole remaining product-preservation group |
+| G2 VL correctness parity | **passed** on the formal candidate: five visual cases pass block 0/13/26 plus merger (`6,856,704/6,856,704` exact), and five private plus five independently rendered HTTP language cases pass `84/84` full-vocabulary rows with top-1 exact, KLD `0`, `20,858,880` selected logits exact and `2,420,736` final-norm elements exact | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | none; preserve the sealed evidence while completing G3–G5 |
+| G3 text product no regression | the exact portable `v1.5.1` executable is retained as an immutable paired baseline and the formal `50289f1` candidate is frozen; prior diagnostic candidates established the protocol but are not promotion evidence | paired 19-cell, maximum-window, correctness, MMLU, API, cache, startup and memory requalification | run the single authoritative protocol against the exact formal candidate and retained release baseline |
 | G4 native VL performance | the 23-cell native execution envelope now records per-request stage timings, but it is a single candidate qualification rather than paired performance evidence | paired per-cell stage timings and memory records against the fixed VL-enabled vLLM | run the same frozen cells with the alternating paired vLLM/candidate timing protocol |
 | G5 native release product | the full runtime includes all qualified vision sources, loads the 333 visual tensors in one resident native process and survives the complete execution envelope; the general vision-attention code object remains an external hash-checked package artifact and the dense-image variant is hash-checked inside the embedded AOT registry, but final package qualification has not run | native-only package, security, isolated bundle, second-host, soak and rollback evidence | generate a clean product qualification containing both bound vision variants, then run isolated bundle, second-host, soak and rollback gates |
 
-## G1 coverage audit (2026-08-16)
+## Formal G1/G2 requalification (2026-08-21)
+
+Every current promotion artifact binds clean source commit
+`50289f1cbae150997ca82bbc054635932a2721c3` and native binary SHA-256
+`4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0`.
+The consolidated G2 record is
+`benchmarks/results/vl-correctness-v0.1.0.json`, SHA-256
+`e390093a62d2de50dfb04e1cbb1afb3c6ccf282d123a2caa1cd98dce5040ff6c`.
+It passes every processor/envelope, vision, layer-0, independent layer-3,
+private-language, HTTP-language, deep-router, generation, task-quality and
+error-parity check without threshold widening.
+
+The current visual record is
+`benchmarks/results/native-vision-pipeline-current-head-v0.2.0.json`,
+SHA-256
+`4533048a5c6e6c078ebe5278f795b03460a663f2f22fbbf0d1753ed439602f20`.
+Across the five frozen image/video/mixed shapes, block 0, block 13, block 26
+and merger form 20 qualified boundaries. All `6,856,704` BF16 boundary
+elements are finite and bit-exact, all repeats are deterministic, all 27
+blocks execute, and the `884,736` merger output elements are qualified.
+
+The language evaluator executes both five-case prompt identities. Layer 0 is
+bit-exact for `1,198,080/1,198,080` output elements and passes `165/165`
+diagnostic comparisons. Each independent layer-3 capture passes
+`5,428,800/5,428,800` elements. The private and real-HTTP full-language runs
+jointly pass `84/84` selected full-vocabulary rows, top-1 equality, KLD `0`,
+`20,858,880/20,858,880` selected logits and
+`2,420,736/2,420,736` final-norm elements. The deep multi-video diagnostic
+passes 89 tensor comparisons, 40 router-layer sets and `5,240/5,240` router
+rows.
+
+## G1 coverage audit (2026-08-21)
 
 The first requirement-to-evidence audit is sealed at
 `benchmarks/results/native-vl-g1-coverage-audit-v0.1.0.json`, SHA-256
-`8b21e90859756b66fd20ac0ea4d1a6d793166c3e4fa3a1d46998265ad345545c`.
+`cc8f204e203a3f3eb40562d1311782e2fb1b3ea4e7dc36a092e3579e99102bda`.
 It binds the governing goal, frozen reference surface, native 30-case surface,
 23-cell execution result, resident-serving/cache evidence, visual pipeline,
 language boundary, the new mixed/conversation reference/native pair,
@@ -33,13 +68,10 @@ error/limit reference/native evidence, the long task-quality pair, the
 generation/layer/prefill-state oracle closure, the current-HEAD native
 generation result, cache-identity unit contract and its generator.
 
-The audit deliberately does not promote G1. Twelve of fourteen requirement
-groups are fully covered, including the current-HEAD processor-to-output model
-semantics group. Two are partial. The remaining replayable workstream has two
-explicit blockers:
-
-1. exact closure of the two remaining long greedy generation divergences;
-2. the complete G3 text and release no-regression protocol.
+The audit deliberately does not promote G1 yet. Thirteen of fourteen
+requirement groups are fully covered, no group is missing, and G2 is passed.
+The sole partial group is `G1.2.3.product_preservation`: the complete G3 text
+and release no-regression protocol has not yet run on the formal candidate.
 
 This replaces the ambiguous instruction to “add more coverage” with named
 cases and preserves every existing passing observation as evidence rather
@@ -464,9 +496,10 @@ this avoids the transient double allocations exposed by both the
 small/small/small/maximum-image and small/small/maximum-video target
 sequences. Smaller shapes retain the four-entry LRU behavior.
 
-Clean commit `3621cbb7b9d0da46780d8b2838bbfea6f7522954` and native binary
-SHA-256 `25ca579dcdab3faea92ef4e8309bc896e9859d744e55b044e0e102071eb98613`
-then passed the full execution qualifier on `amd395`. All 23 HTTP
+The formal clean commit `50289f1cbae150997ca82bbc054635932a2721c3`
+and native binary SHA-256
+`4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0`
+passed the full execution qualifier on `amd395`. All 23 HTTP
 observations qualified: 17 accepted requests returned HTTP 200, six rejected
 boundaries returned HTTP 400, and the accepted request indexes were
 contiguous in one resident model load. The direct full-encoder probe executed
@@ -479,7 +512,7 @@ short unified-attention image; the ready record separately verifies the
 automatic CK-primary plus terminal-AOTriton policy. Processor, vision and
 server checks all passed with empty stderr. The sealed
 artifact is `benchmarks/results/native-vl-envelope-v0.1.0.json`, SHA-256
-`4f1bb7f0349b9c6b70bd0af876fa70c4b6be3b81f7b3750f45a24eb0d609b910`.
+`8585411f5d2178d6bd627f84143b041c3951e4e1eaf073e0294484572d7e67b3`.
 This closes the execution-envelope subgate only and does not itself pass G1,
 G2, G3, G4 or G5.
 
@@ -728,15 +761,17 @@ values by one BF16 ULP for the 12-by-32 grid. The production path now uses a
 pure HIP cache-initialization kernel and the pinned gfx1151 float32 inverse
 frequencies. The resulting metadata hashes match independent serving hooks.
 
-All five processor-to-merger cases now match at blocks 0 and 26 and at the
-final merger: 4,866,048 of 4,866,048 BF16 boundary elements are bit-exact,
-relative L2 is zero, cosine is one and repeated final hashes are identical.
-Mixed image/video preserves the reference's two visual calls and concatenates
-their outputs in request order. Diagnostic full-pipeline medians range from
-`12.213 ms` for the two-frame video to `35.281 ms` for multi-image; they are
-kernel-chain measurements, not G4 serving results. The hash-bound records are
-`benchmarks/results/native-vision-multimedia-block-oracle-v0.1.0.json` and
-`benchmarks/results/native-vision-pipeline-v0.1.0.json`.
+The formal current-candidate run supersedes that initial pipeline record. All
+five processor-to-merger cases now match at blocks 0, 13 and 26 and at the
+final merger: `6,856,704/6,856,704` BF16 boundary elements are finite and
+bit-exact, relative L2 is zero, cosine is one and repeated outputs are
+identical. Mixed image/video preserves the reference's two visual calls and
+concatenates their outputs in request order. The 20-boundary record also
+qualifies all `884,736` merger output elements and verifies that all 27 blocks
+executed. The sealed current record is
+`benchmarks/results/native-vision-pipeline-current-head-v0.2.0.json`, SHA-256
+`4533048a5c6e6c078ebe5278f795b03460a663f2f22fbbf0d1753ed439602f20`;
+the earlier multimedia and v0.1 pipeline files remain historical evidence.
 
 Media embedding injection is now a separate fail-closed native boundary. The
 host plan accepts processor-owned prompt spans and explicit visual source
@@ -900,8 +935,8 @@ not post-generation repair. Unsupported schemas return HTTP 400 before model
 execution.
 
 The formal runtime was most recently requalified from clean commit
-`85fa597c782d28c05c51467060d8e03a8a47646e`, native binary SHA-256
-`7fe6ceb07dbae924e8da5efa378b3a47ae7b0cd8e6fc023eff3c74d1298e67b2`.
+`50289f1cbae150997ca82bbc054635932a2721c3`, native binary SHA-256
+`4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0`.
 In one resident run, all 20 successful API cases returned HTTP 200, all 10
 invalid cases returned compatible HTTP 400, status matched `30/30`, finish
 reason matched `20/20`, both tool and both SSE cases were complete, and every
@@ -911,14 +946,14 @@ prompt hash was
 `c00ccaf4063b7a0eb5f30ca053d3484cd2658aac57d1ef7ee79d38287d940566`,
 and 18 certified selections uploaded exactly 4,469,760 mask bytes. The sealed
 result is `benchmarks/results/native-vl-capability-v0.1.0.json`, SHA-256
-`53fe6babad27686a4b7a5eb27f800da247352b5bb3cb80a6148a76441e04defa`.
+`ca16fe64b912623b0528ccfcb086d4757e6c0a5d8907b18316dec39dc27b4290`.
 
-The exact usage triplet now matches fixed vLLM for `14/18` comparable
-non-stream successes. The four remaining differences are explicit: the two
-text-only residency probes preserve the `v1.5.1` text prompt, while forced and
-auto tool requests differ only in completion length. Their media prompt counts
-and hashes are already exact. These completion differences remain G2 work and
-are not hidden by synthetic usage adjustments.
+The exact usage triplet matches fixed vLLM for all `16/16` VL successes and
+for `16/18` successes when the two text-only residency diagnostics are
+included. Those two diagnostics intentionally preserve the `v1.5.1` text
+prompt rather than the vLLM VL server's thinking-enabled text prompt; their
+product comparison is owned by G3. Finish reason remains exact for `20/20`,
+and no VL usage difference remains.
 
 The five serving-oracle requests have their own real-HTTP render manifest so
 the private numerical prompt and public serving prompt are no longer
@@ -945,9 +980,9 @@ language-boundary evidence rather than G4 serving timing. The hash-bound record
 is `benchmarks/results/native-vl-language-full-v0.2.0.json`, SHA-256
 `6de4f46b10a659c358350b1c42dec6e1d361f81c01926bf628b44b892fffb636`.
 
-Clean commit `99cf348accdd5589d95ece0b4c3b64fabb267a9b` then rebuilt the
+Clean commit `50289f1cbae150997ca82bbc054635932a2721c3` rebuilt the
 formal resident runtime with binary SHA-256
-`0aef5b58b621839f8ef2d3d18bea0791c632ba89134710cd7eef0bef77afd1c3`.
+`4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0`.
 One resident process matched all five real-HTTP prompt vectors and preserved
 all five frozen private-oracle 8-token outputs, output text, finish reasons,
 vision shapes and M-RoPE deltas. Before those oracle requests, the same process
@@ -960,7 +995,7 @@ prefix/media hits and token-exact video/mixed hit/miss outputs. It served all
 read no oracle tensors, wrote zero stderr bytes and reported no Python, Torch,
 vLLM or Triton runtime. The sealed result is
 `benchmarks/results/native-vl-serving-v0.1.0.json`, SHA-256
-`9a894c5e54b8ca95160629e2fad7ca2eff6fa27a78ba91b83a795b87ec434fe2`.
+`c3fe421f72ac8f47d6860ad63ab374e45bbeb82879a20a33f57c10d196d6d554`.
 
 Clean commit `1842c8f6d281d6c8e91563205cda3fb66908d8a1` then froze the
 remaining mixed/conversation extension on the same fixed vLLM runtime. The
@@ -973,8 +1008,8 @@ sealed reference is
 `benchmarks/results/vl-g1-mixed-conversation-reference-v0.1.0.json`, SHA-256
 `e769446684c4f69b7a29dde163d050a541449ffddf0996ecbb48510a0c493451`.
 
-The exact-commit native binary SHA-256
-`e7f9f66483a1c4ec3185d0fc8a7cd8d426a4c8c926a052bb23152d2206354892`
+The formal candidate binary SHA-256
+`4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0`
 then replayed all five cases in one resident model load. Every HTTP status,
 prompt-token count and hash, ordered image/video count, M-RoPE boundary,
 generated text, finish reason and usage signature matched the reference; mixed
@@ -982,7 +1017,7 @@ SSE aggregated to the same `The user wants a` text. The server served `5/5`,
 reported no Python/Torch/vLLM/Triton runtime and wrote zero stderr bytes. The
 sealed native result is
 `benchmarks/results/native-vl-g1-extension-v0.1.0.json`, SHA-256
-`2b78b50d9de12028f437b86e3c52afd5df3a8ebbf0a87f5ee37cd5f3cf341b57`.
+`47cb7322a5d72e48137fa9ecee68db92edf091636151d28642bf9fb4609d284d`.
 This closes the mixed, conversation and OpenAI API coverage groups without
 promoting G1 or any later gate.
 
@@ -1014,8 +1049,8 @@ certificate hashes, while a successful HTTPS fetch proves that the replay CA
 was actually trusted. This keeps the reference behavior hash-bound without
 making qualification depend on an expired or retained private credential.
 
-The exact-commit native binary SHA-256
-`246f2f9126e4bc905d3a49617f51311206ee9285f90311501a120ecdfbfbcf7c`
+The formal candidate binary SHA-256
+`4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0`
 replayed 17 cache-enabled and 11 cache-disabled observations in two resident
 model loads. Every observation matched reference status, request contract,
 render prompt, generated content, finish reason and usage. The enabled run
@@ -1025,7 +1060,7 @@ disabled run remained all-miss while preserving 8-token outputs, usage and
 the corrupt-video error status/payload. Both servers had empty stderr and
 reported no Python, Torch, vLLM or Triton runtime. The sealed result is
 `benchmarks/results/native-vl-transport-cache-v0.1.0.json`, SHA-256
-`9f577990025ff785d2af54f394732eaf08b3f1fc91b4c53212971e191edbb66b`.
+`d7a9d9eb4109282259246fe70caafd90abee53c5cc7580d7eacb83c5655f7cfb`.
 This promotes only the transport, cache-identity and cache-invariance audit
 groups; G1 and every later gate remain false.
 
@@ -1059,8 +1094,8 @@ hash, but do not require the current implementation commit to equal the
 capture commit. The native result separately binds its own exact source commit
 and binary hash.
 
-The exact-commit native binary SHA-256
-`f650ef2061e7a69348c512e55bd0f881a64aa19f8fd390d02418f477b2b95fd5`
+The formal candidate binary SHA-256
+`4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0`
 then replayed 13 observations in one resident model load. All eight accepted
 requests were HTTP 200 and reference-exact for request/render/usage; all five
 invalid external-media requests preserved the existing v1.5.1 fail-closed HTTP
@@ -1070,7 +1105,7 @@ also proved RGBA A/B/A cache recovery, empty-video-mapping reuse, long-duration
 execution and error cache non-pollution. It wrote zero stderr bytes and reported
 no Python, Torch, vLLM or Triton runtime. The sealed native result is
 `benchmarks/results/native-vl-error-limits-v0.1.0.json`, SHA-256
-`5bc0b2880ce0ccc8e1f08b9cd3d2421d86e27b52f4444b33367ad5bb27b2682f`.
+`daddd7ca67985d19744fc0409b4ae2ada5b8cd7c9f6c93b803d1e47b4dd29814`.
 This closes only the error-parity audit group; it does not promote a product
 gate.
 
@@ -1115,13 +1150,13 @@ so patch/GEMM/merger resources may be shared without allowing an attention
 executable to cross the image/video policy boundary. The portable bundle
 identity covers the external image
 directly and the embedded variant through the native binary and registry
-manifest. These records now
-close the frozen API/render,
+manifest. These records close the frozen API/render,
 deterministic-resident-serving and min/typical/max execution-envelope slices.
-The task-quality slice is closed by the 12-case result below; deterministic
-generation exactness, complete text no-regression, paired performance,
-portable-package, second-host, soak and rollback qualifications remain
-blocking. Therefore G1 through G5 all remain false.
+The task-quality and deterministic-generation slices are closed by the
+12-case and current-candidate results below. Complete text no-regression,
+paired performance, portable-package, second-host, soak and rollback
+qualifications remain blocking. G2 is passed; G1 awaits G3 product
+preservation, and G3 through G5 remain false.
 
 Generation attribution now binds time as well as tensor identity. Each layer
 capture writes the full-vocabulary FP32 rows for both its target output index
@@ -1193,23 +1228,21 @@ fixture manifest SHA-256 is
 the fixed-vLLM reference SHA-256 is
 `51b3d95e3ce420584d765350bfe6b73f76d5786a8d9d629cf7c3e69ac11b8bce`.
 
-An independent native runtime built from clean commit
-`fffea697af4d4b40ecbc2a8dfa3fb5aa0b9ddf0d`, binary SHA-256
-`ceefb13d2a1deb7c83fbe41c01ab82f84d0e8087315268d1cfb34f37abb477aa`,
+The formal native runtime built from clean commit
+`50289f1cbae150997ca82bbc054635932a2721c3`, binary SHA-256
+`4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0`,
 served all 12 cases in one resident model load with empty stderr and no Python,
 Torch, vLLM or Triton runtime. All blocking per-case checks passed. Native and
 reference aggregate scores are identical: image `1.000000`, video `0.947368`.
 The sealed result is
 `benchmarks/results/native-vl-task-quality-v0.1.0.json`, SHA-256
-`38585272a5ecc5b401e106f971efad425f8b1b85e87023492108d473341aabe0`.
+`f1ffdff8e0c5f9000e2bb1fae576bf6dd3a158f2a169732c7ffb5d07bef4c8e3`.
 
 Task quality and deterministic generation parity remain separate contracts.
-Prompt vectors are exact for 12/12 cases, finish reasons for 12/12, usage for
-11/12, and generated content plus output-token vectors for 10/12. The two
-explicit long-generation diagnostics are `image_central_red_circle` and
-`video_blue_square_moves_down`; both retain the same rubric score as the
-reference. The task-quality subgate is therefore qualified, while the
-long-greedy reference-exact decision and G1 through G5 remain false.
+Prompt vectors, finish reasons, usage, generated content and output-token
+vectors are now exact for all `12/12` cases. The task-quality and long-greedy
+reference-exact decisions are both qualified. G1 remains pending only because
+the G3 product-preservation protocol has not run.
 
 ## Current-HEAD processor-to-output qualification (2026-08-16)
 
@@ -1223,9 +1256,9 @@ and the 129-MB prefill-state manifest SHA-256 is
 All referenced binary components are committed under `benchmarks/oracles` and
 revalidate without errors.
 
-An independent native binary built from clean commit
-`c7bae9436339b3794a627e40d432158a89b00805`, SHA-256
-`5f14765dba20b146fd7828253c151618c0f4f24997be3dcbbd21ddb83abffa9e`,
+The formal native binary built from clean commit
+`50289f1cbae150997ca82bbc054635932a2721c3`, SHA-256
+`4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0`,
 ran both cases in one resident model load. All 62 qualification checks passed:
 both shared prompt prefixes; 120 prefill-state tensors; 82 whole-layer rows;
 26 linear-attention, 30 routed-tail and 12 full-attention internal boundaries;
@@ -1236,8 +1269,8 @@ Stderr was empty.
 
 The sealed result is
 `benchmarks/results/native-vl-generation-current-head-v0.1.0.json`, SHA-256
-`0c142b13aaa90f4b14ae062c6d0af13664db4293b2767762f3fc14d9a8dbf62b`.
+`e6f79c105ba669f9a2c1d5c037bbe06d106d66235254c7ebb45282d9d5b74c8b`.
 It sets `g1_generation_closed=true` for the two frozen tool divergences and
-closes the audit's current-HEAD model-semantics gap. It does not erase the
-separate 10/12 long-greedy parity diagnostic and does not promote G1 through
-G5.
+closes the audit's current-HEAD model-semantics gap. The separate long-greedy
+task-quality replay is also `12/12` exact; only G3 product preservation now
+blocks G1.

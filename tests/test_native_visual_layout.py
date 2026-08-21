@@ -49,6 +49,15 @@ VISION_REPRESENTATIVE_BLOCKS_RESULT_PATH = (
 )
 
 
+def git_blob(commit: str, path: str) -> bytes:
+    return subprocess.run(
+        ["git", "show", f"{commit}:{path}"],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+    ).stdout
+
+
 class NativeVisualLayoutTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -295,7 +304,9 @@ class NativeVisualLayoutTest(unittest.TestCase):
             source_record = result["source"][source_name]
             self.assertEqual(
                 hashlib.sha256(
-                    (ROOT / source_record["path"]).read_bytes()
+                    git_blob(
+                        result["source"]["commit"], source_record["path"]
+                    )
                 ).hexdigest(),
                 source_record["sha256"],
             )
@@ -525,7 +536,9 @@ class NativeVisualLayoutTest(unittest.TestCase):
             source_record = result["source"][source_name]
             self.assertEqual(
                 hashlib.sha256(
-                    (ROOT / source_record["path"]).read_bytes()
+                    git_blob(
+                        result["source"]["commit"], source_record["path"]
+                    )
                 ).hexdigest(),
                 source_record["sha256"],
             )
@@ -593,7 +606,9 @@ class NativeVisualLayoutTest(unittest.TestCase):
             source_record = result["source"][source_name]
             self.assertEqual(
                 hashlib.sha256(
-                    (ROOT / source_record["path"]).read_bytes()
+                    git_blob(
+                        result["source"]["commit"], source_record["path"]
+                    )
                 ).hexdigest(),
                 source_record["sha256"],
             )
@@ -659,7 +674,9 @@ class NativeVisualLayoutTest(unittest.TestCase):
             source_record = result["source"][source_name]
             self.assertEqual(
                 hashlib.sha256(
-                    (ROOT / source_record["path"]).read_bytes()
+                    git_blob(
+                        result["source"]["commit"], source_record["path"]
+                    )
                 ).hexdigest(),
                 source_record["sha256"],
             )
@@ -732,7 +749,9 @@ class NativeVisualLayoutTest(unittest.TestCase):
             source_record = result["source"][source_name]
             self.assertEqual(
                 hashlib.sha256(
-                    (ROOT / source_record["path"]).read_bytes()
+                    git_blob(
+                        result["source"]["commit"], source_record["path"]
+                    )
                 ).hexdigest(),
                 source_record["sha256"],
             )
@@ -807,7 +826,9 @@ class NativeVisualLayoutTest(unittest.TestCase):
             source_record = result["source"][source_name]
             self.assertEqual(
                 hashlib.sha256(
-                    (ROOT / source_record["path"]).read_bytes()
+                    git_blob(
+                        result["source"]["commit"], source_record["path"]
+                    )
                 ).hexdigest(),
                 source_record["sha256"],
             )
@@ -873,7 +894,9 @@ class NativeVisualLayoutTest(unittest.TestCase):
             source_record = result["source"][source_name]
             self.assertEqual(
                 hashlib.sha256(
-                    (ROOT / source_record["path"]).read_bytes()
+                    git_blob(
+                        result["source"]["commit"], source_record["path"]
+                    )
                 ).hexdigest(),
                 source_record["sha256"],
             )
@@ -1077,7 +1100,9 @@ class NativeVisualLayoutTest(unittest.TestCase):
         self.assertTrue(encoder["complete"])
         for source in encoder["source"]["files"]:
             self.assertEqual(
-                hashlib.sha256((ROOT / source["path"]).read_bytes()).hexdigest(),
+                hashlib.sha256(
+                    git_blob(encoder["source"]["commit"], source["path"])
+                ).hexdigest(),
                 source["sha256"],
             )
         self.assertEqual(encoder["attention_aot"]["shared_plan_count"], 1)
@@ -1141,7 +1166,9 @@ class NativeVisualLayoutTest(unittest.TestCase):
         self.assertTrue(evidence["complete"])
         for source in evidence["source"]["files"]:
             self.assertEqual(
-                hashlib.sha256((ROOT / source["path"]).read_bytes()).hexdigest(),
+                hashlib.sha256(
+                    git_blob(evidence["source"]["commit"], source["path"])
+                ).hexdigest(),
                 source["sha256"],
             )
         self.assertEqual(
@@ -1229,7 +1256,9 @@ class NativeVisualLayoutTest(unittest.TestCase):
         self.assertTrue(multimedia["complete"])
         for source in multimedia["source"]["files"]:
             self.assertEqual(
-                hashlib.sha256((ROOT / source["path"]).read_bytes()).hexdigest(),
+                hashlib.sha256(
+                    git_blob(multimedia["source"]["commit"], source["path"])
+                ).hexdigest(),
                 source["sha256"],
             )
         self.assertEqual(
@@ -1248,7 +1277,9 @@ class NativeVisualLayoutTest(unittest.TestCase):
         self.assertTrue(evidence["complete"])
         for source in evidence["source"]["files"]:
             self.assertEqual(
-                hashlib.sha256((ROOT / source["path"]).read_bytes()).hexdigest(),
+                hashlib.sha256(
+                    git_blob(evidence["source"]["commit"], source["path"])
+                ).hexdigest(),
                 source["sha256"],
             )
         for dependency in ("encoder_qualification", "merger_qualification"):

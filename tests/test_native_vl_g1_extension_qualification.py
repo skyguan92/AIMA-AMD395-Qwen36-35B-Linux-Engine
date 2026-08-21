@@ -17,8 +17,9 @@ RESULTS = ROOT / "benchmarks/results"
 REFERENCE = RESULTS / "vl-g1-mixed-conversation-reference-v0.1.0.json"
 NATIVE = RESULTS / "native-vl-g1-extension-v0.1.0.json"
 QUALIFIED_COMMIT = "1842c8f6d281d6c8e91563205cda3fb66908d8a1"
+NATIVE_QUALIFIED_COMMIT = "50289f1cbae150997ca82bbc054635932a2721c3"
 QUALIFIED_BINARY_SHA256 = (
-    "e7f9f66483a1c4ec3185d0fc8a7cd8d426a4c8c926a052bb23152d2206354892"
+    "4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0"
 )
 
 
@@ -97,15 +98,17 @@ class NativeVlG1ExtensionQualificationTest(unittest.TestCase):
         self.assertTrue(result["complete"])
         self.assertTrue(result["qualified"])
         self.assertFalse(result["source"]["dirty"])
-        self.assertEqual(result["source"]["commit"], QUALIFIED_COMMIT)
-        self.assertEqual(result["build_info"]["source_commit"], QUALIFIED_COMMIT)
+        self.assertEqual(result["source"]["commit"], NATIVE_QUALIFIED_COMMIT)
+        self.assertEqual(
+            result["build_info"]["source_commit"], NATIVE_QUALIFIED_COMMIT
+        )
         self.assertEqual(result["binary"]["sha256"], QUALIFIED_BINARY_SHA256)
         assert_components_current(self, result["source"]["files"])
         for name in ("reference", "fixture_manifest"):
             assert_components_current(self, [result["dependencies"][name]])
         self.assertEqual(
             result["dependencies"]["fmha_provider"]["sha256"],
-            "98e6c47c017837ab796e3ca2e8256740d1e9cb6ec2f460af45ee586cd5fb7bd1",
+            "e5336b2d66b36c5f17aeb07ab780fa8f60a6092910f9b01b3ebf4bc31f766bb4",
         )
         self.assertEqual(
             tuple(case["case_id"] for case in result["cases"]), CASE_ORDER

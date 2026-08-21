@@ -1,0 +1,366 @@
+{
+  "aggregate": {
+    "all_gates_passed": true,
+    "full_language_cases": 10,
+    "full_vocabulary_rows": 84,
+    "full_vocabulary_top1_matches": 84,
+    "maximum_logits_kl_divergence": 0.0,
+    "prompt_identities": 2
+  },
+  "candidate": {
+    "binary_sha256": "4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0",
+    "source_commit": "50289f1cbae150997ca82bbc054635932a2721c3"
+  },
+  "complete": true,
+  "decision": {
+    "exact_binary_bound": true,
+    "g2_passed": true,
+    "no_threshold_widening": true
+  },
+  "gates": {
+    "cross_evidence": {
+      "checks": {
+        "eighty_four_full_vocabulary_rows": true,
+        "independent_layer3_capture_manifests": true,
+        "independent_private_and_http_prompt_manifests": true,
+        "ten_full_language_cases": true,
+        "twenty_million_eight_hundred_fifty_eight_thousand_eight_hundred_eighty_selected_logits": true,
+        "two_million_four_hundred_twenty_thousand_seven_hundred_thirty_six_final_norm_elements": true
+      }
+    },
+    "deep_http_multi_video_language": {
+      "checks": {
+        "all_router_rows_exact": true,
+        "all_tensor_comparisons_pass": true,
+        "complete": true,
+        "diagnostics_provided": true,
+        "forty_layer_router_sets": true,
+        "one_case_exact": true,
+        "selector_exact": true,
+        "source_commit_exact": true
+      },
+      "summary": {
+        "exact_router_rows": 5240,
+        "router_layer_sets": 40,
+        "router_rows": 5240,
+        "tensor_comparisons": 89
+      }
+    },
+    "deterministic_generation": {
+      "checks": {
+        "all_internal_checks": true,
+        "binary_sha256_exact": true,
+        "complete": true,
+        "g1_generation_closed": true,
+        "qualified": true,
+        "source_commit_exact": true
+      }
+    },
+    "error_parity": {
+      "checks": {
+        "all_error_observations_qualified": true,
+        "all_qualification_checks": true,
+        "binary_sha256_exact": true,
+        "complete": true,
+        "qualified": true,
+        "source_commit_exact": true,
+        "thirteen_error_observations": true
+      }
+    },
+    "full_language_http_rendered_prompt": {
+      "checks": {
+        "all_cases_complete": true,
+        "all_cases_production_operation_shape": true,
+        "all_final_norms_bit_exact": true,
+        "all_final_norms_pass": true,
+        "all_logits_rows_pass": true,
+        "all_outputs_repeat_deterministic": true,
+        "all_selected_logits_bit_exact": true,
+        "case_order_exact": true,
+        "complete": true,
+        "schema_exact": true,
+        "single_resident_weight_load": true,
+        "source_commit_exact": true
+      },
+      "summary": {
+        "case_count": 5,
+        "final_norm_elements": 1222656,
+        "final_norm_exact_elements": 1222656,
+        "logical_prompt_tokens": 597,
+        "maximum_logits_kl_divergence": 0.0,
+        "selected_logits_elements": 10429440,
+        "selected_logits_exact_elements": 10429440,
+        "selected_logits_rows": 42,
+        "top1_matches": 42
+      }
+    },
+    "full_language_private_processor_prompt": {
+      "checks": {
+        "all_cases_complete": true,
+        "all_cases_production_operation_shape": true,
+        "all_final_norms_bit_exact": true,
+        "all_final_norms_pass": true,
+        "all_logits_rows_pass": true,
+        "all_outputs_repeat_deterministic": true,
+        "all_selected_logits_bit_exact": true,
+        "case_order_exact": true,
+        "complete": true,
+        "schema_exact": true,
+        "single_resident_weight_load": true,
+        "source_commit_exact": true
+      },
+      "summary": {
+        "case_count": 5,
+        "final_norm_elements": 1198080,
+        "final_norm_exact_elements": 1198080,
+        "logical_prompt_tokens": 585,
+        "maximum_logits_kl_divergence": 0.0,
+        "selected_logits_elements": 10429440,
+        "selected_logits_exact_elements": 10429440,
+        "selected_logits_rows": 42,
+        "top1_matches": 42
+      }
+    },
+    "language_layer0": {
+      "checks": {
+        "all_diagnostics_pass": true,
+        "all_output_elements_bit_exact": true,
+        "all_outputs_finite": true,
+        "all_outputs_repeat_deterministic": true,
+        "complete": true,
+        "five_case_order_exact": true,
+        "schema_exact": true,
+        "single_resident_weight_load": true,
+        "source_commit_exact": true
+      },
+      "summary": {
+        "case_count": 5,
+        "diagnostic_comparisons": 165,
+        "exact_output_elements": 1198080,
+        "maximum_diagnostic_relative_l2_error": 8.215728667517548e-06,
+        "minimum_diagnostic_cosine_similarity": 0.9999999999662511,
+        "output_elements": 1198080,
+        "prompt_tokens": 585
+      }
+    },
+    "language_layer3_mrope_capture_a": {
+      "checks": {
+        "all_elements_bit_exact": true,
+        "complete": true,
+        "five_case_order_exact": true,
+        "mrope_contract_exact": true,
+        "runtime_native_only": true,
+        "schema_exact": true,
+        "source_commit_exact": true
+      },
+      "summary": {
+        "capture_manifest_sha256": "3eec5efb9db108dc5eeaba2001cadd7b4f3335e7e2a346a312cd034ee6989b9a",
+        "capture_source_commit": "8e6f66c60c10d5a9df908c14ca7b0950929074da",
+        "case_count": 5,
+        "elements": 5428800,
+        "exact_elements": 5428800
+      }
+    },
+    "language_layer3_mrope_capture_b": {
+      "checks": {
+        "all_elements_bit_exact": true,
+        "complete": true,
+        "five_case_order_exact": true,
+        "mrope_contract_exact": true,
+        "runtime_native_only": true,
+        "schema_exact": true,
+        "source_commit_exact": true
+      },
+      "summary": {
+        "capture_manifest_sha256": "461c057c12d85d9d02d318c0205fa2069c915268213f8e11d2ec57cf92c5f504",
+        "capture_source_commit": "8e6f66c60c10d5a9df908c14ca7b0950929074da",
+        "case_count": 5,
+        "elements": 5428800,
+        "exact_elements": 5428800
+      }
+    },
+    "processor_and_execution_envelope": {
+      "checks": {
+        "all_envelope_observations_qualified": true,
+        "binary_sha256_exact": true,
+        "complete": true,
+        "processor_probe_exact": true,
+        "qualified": true,
+        "source_commit_exact": true,
+        "twenty_three_envelope_observations": true,
+        "vision_envelope_exact": true
+      }
+    },
+    "task_quality": {
+      "checks": {
+        "all_decisions_qualified": true,
+        "binary_sha256_exact": true,
+        "complete": true,
+        "qualified": true,
+        "source_commit_exact": true
+      }
+    },
+    "vision_boundary": {
+      "checks": {
+        "all_internal_checks": true,
+        "all_visual_outputs_exact": true,
+        "candidate_binary_sha256_exact": true,
+        "complete": true,
+        "five_case_order_exact": true,
+        "qualified": true,
+        "required_boundary_order_exact": true,
+        "schema_exact": true,
+        "source_commit_exact": true,
+        "twenty_boundaries_bit_exact": true
+      }
+    }
+  },
+  "inputs": {
+    "envelope": {
+      "bytes": 202544,
+      "path": "benchmarks/results/native-vl-envelope-v0.1.0.json",
+      "sha256": "8585411f5d2178d6bd627f84143b041c3951e4e1eaf073e0294484572d7e67b3"
+    },
+    "error_limits": {
+      "bytes": 85506,
+      "path": "benchmarks/results/native-vl-error-limits-v0.1.0.json",
+      "sha256": "daddd7ca67985d19744fc0409b4ae2ada5b8cd7c9f6c93b803d1e47b4dd29814"
+    },
+    "full_http": {
+      "bytes": 41049,
+      "path": "benchmarks/runs/native-vl-g1-g2-20260821-50289f1/g2/g2-final-full-http-run.json",
+      "sha256": "711cecbca29938117ac81afbfaff3374924179c54fc0f52236ab9b55ec926630"
+    },
+    "full_http_deep": {
+      "bytes": 59928,
+      "path": "benchmarks/runs/native-vl-g1-g2-20260821-50289f1/g2/g2-final-full-http-deep-multi-video-run.json",
+      "sha256": "502edae45918d3838176eefa3b95357e6e3f1b7d2cc918b109f9af7425b8b960"
+    },
+    "full_private": {
+      "bytes": 41077,
+      "path": "benchmarks/runs/native-vl-g1-g2-20260821-50289f1/g2/g2-final-full-private-run.json",
+      "sha256": "272ab3b1fd235f3ec8284c6600699b928afb84c74d71d0b156cc288e7c5bb103"
+    },
+    "generation": {
+      "bytes": 214213,
+      "path": "benchmarks/results/native-vl-generation-current-head-v0.1.0.json",
+      "sha256": "e6f79c105ba669f9a2c1d5c037bbe06d106d66235254c7ebb45282d9d5b74c8b"
+    },
+    "generator": {
+      "bytes": 29955,
+      "path": "scripts/generate-native-vl-g2-qualification.py",
+      "sha256": "555180fd8238d677d4d4981c7f811d402ae42e2584cd97c0672b4c0a7c9d0249"
+    },
+    "goal": {
+      "bytes": 18354,
+      "path": "docs/NATIVE_VL_GOAL.md",
+      "sha256": "4884803ea4c74a3082d949646ad31684536e672a39e229da796589009b0d212c"
+    },
+    "layer0": {
+      "bytes": 93279,
+      "path": "benchmarks/runs/native-vl-g1-g2-20260821-50289f1/g2/g2-final-layer0-run.json",
+      "sha256": "23184138c718b758b8b5a632cad1d4db54295d462d974fdfb9124d7a56f03236"
+    },
+    "layer3_a": {
+      "bytes": 19495,
+      "path": "benchmarks/runs/native-vl-g1-g2-20260821-50289f1/g2/g2-final-layer3-a-run.json",
+      "sha256": "16d002d2948c7351b8881c308dcb0d65d7bd69b7b16527495585a6e15f36637d"
+    },
+    "layer3_b": {
+      "bytes": 19497,
+      "path": "benchmarks/runs/native-vl-g1-g2-20260821-50289f1/g2/g2-final-layer3-b-run.json",
+      "sha256": "0037d44e78cfc75eae4c5e81529782fc950125025716ca3fc5d9a61c11cb9d99"
+    },
+    "task_quality": {
+      "bytes": 128168,
+      "path": "benchmarks/results/native-vl-task-quality-v0.1.0.json",
+      "sha256": "f1ffdff8e0c5f9000e2bb1fae576bf6dd3a158f2a169732c7ffb5d07bef4c8e3"
+    },
+    "vision_pipeline": {
+      "bytes": 15115,
+      "path": "benchmarks/results/native-vision-pipeline-current-head-v0.2.0.json",
+      "sha256": "4533048a5c6e6c078ebe5278f795b03460a663f2f22fbbf0d1753ed439602f20"
+    }
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "canonical_payload_sha256": "eafd8757ecacab55fa448c1d7ed2d9a7cf03f96bad4c65e216b398dc9e55835b"
+  },
+  "qualification": {
+    "files": [
+      {
+        "bytes": 36492,
+        "path": "native/tools/vl_language_layer0_oracle_probe.hip.cpp",
+        "sha256": "9b07d62a5200226de8d2330861cd9892e1567f70b4eee14306304bcb729c1574"
+      },
+      {
+        "bytes": 26547,
+        "path": "native/tools/vl_language_layer3_mrope_oracle_probe.hip.cpp",
+        "sha256": "e2daeda6dec0dc4c51325c856c40f86741abc7d72f4179ea6be64a66d0b31412"
+      },
+      {
+        "bytes": 73869,
+        "path": "native/tools/vl_language_layer3_composed_oracle_probe.hip.cpp",
+        "sha256": "51f780afa44aa04c9b976e6da9265016e2ada645d0921e2935a3fcd8bae49b58"
+      },
+      {
+        "bytes": 4350,
+        "path": "scripts/build-native-vl-language-layer0-probe.sh",
+        "sha256": "11d73cd37c78603f1cb0b1b515c35d37545b252ea6fc4ac03c56f5328b323ddb"
+      },
+      {
+        "bytes": 1124,
+        "path": "scripts/build-native-vl-language-layer3-mrope-probe.sh",
+        "sha256": "58a5c8c1984905162faff45e370f4d1a61e8d5a88f7328d7ffb159f5aa489507"
+      },
+      {
+        "bytes": 4881,
+        "path": "scripts/build-native-vl-language-layer3-composed-probe.sh",
+        "sha256": "9745db42e5aaceb3e0c87db235a0fc9da0d8f290d3cf36dc37cd901527c1d2bf"
+      },
+      {
+        "bytes": 29955,
+        "path": "scripts/generate-native-vl-g2-qualification.py",
+        "sha256": "555180fd8238d677d4d4981c7f811d402ae42e2584cd97c0672b4c0a7c9d0249"
+      }
+    ],
+    "probe_binaries": {
+      "full_language": {
+        "bytes": 2531512,
+        "runtime_python": false,
+        "runtime_torch": false,
+        "runtime_triton": false,
+        "runtime_vllm": false,
+        "sha256": "85e084c663ab536b5371bd40f504848f09bd4b77548542c7059c05374f782fdb"
+      },
+      "layer0": {
+        "bytes": 2271000,
+        "runtime_python": false,
+        "runtime_torch": false,
+        "runtime_triton": false,
+        "runtime_vllm": false,
+        "sha256": "92b155750571ba4669a95c6f897ed149f466a887da39f6d52db74a619c2084df"
+      },
+      "layer3": {
+        "bytes": 527672,
+        "runtime_python": false,
+        "runtime_torch": false,
+        "runtime_triton": false,
+        "runtime_vllm": false,
+        "sha256": "48c672e008ed452c81668af95f148c2297d20fbda68187a1181be7d9e03c4c5b"
+      }
+    },
+    "source_commit": "5671c1767d0dea025386ab04f93ec69b96ae95bd"
+  },
+  "qualified": true,
+  "recorded_on": "2026-08-21",
+  "schema": "aima-amd395-qwen36/native-vl-g2-qualification/v1",
+  "scope": "processor-through-task-quality-exact-binary-vl-correctness",
+  "thresholds": {
+    "discrete_state_exact": true,
+    "maximum_logits_kl_divergence_exclusive": 0.005,
+    "maximum_relative_l2_error": 0.002,
+    "minimum_cosine_similarity": 0.999,
+    "top1_match": true
+  }
+}

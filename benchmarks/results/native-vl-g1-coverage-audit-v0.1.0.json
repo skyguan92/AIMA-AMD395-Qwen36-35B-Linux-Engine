@@ -1,5 +1,5 @@
 {
-  "audited_on": "2026-08-18",
+  "audited_on": "2026-08-21",
   "blocking_gaps": [
     {
       "gaps": [
@@ -215,7 +215,7 @@
         "evidence": [
           {
             "artifact": "native_capability",
-            "note": "20/20 finish-reason parity but only 14/18 exact usage"
+            "note": "20/20 finish-reason parity and 16/16 VL usage parity; the two text-only diagnostics remain owned by G3"
           },
           {
             "artifact": "resident_serving",
@@ -538,7 +538,7 @@
     "coverage_complete": false,
     "current_head_processor_to_output_qualified": true,
     "g1_passed": false,
-    "g2_passed": false,
+    "g2_passed": true,
     "g3_passed": false,
     "g4_passed": false,
     "g5_passed": false,
@@ -548,9 +548,9 @@
   },
   "inputs": {
     "cache_identity_unit": {
-      "bytes": 4487,
+      "bytes": 5767,
       "path": "tests/native_multimodal_cache_test.cpp",
-      "sha256": "764494533015aa046071424304eb7127b0f86ab0e0ac21da35d668d5d90554a2"
+      "sha256": "e8c603b84016fc622cbb80956c2899456fdcccc5d6f7017a2f30df952d0007e4"
     },
     "error_limits_contract": {
       "bytes": 7537,
@@ -558,9 +558,9 @@
       "sha256": "55e61d9060e67d8a67c7eea72480b7b66cc1466c7da393c45507b1591cb99028"
     },
     "error_limits_native": {
-      "bytes": 77812,
+      "bytes": 85506,
       "path": "benchmarks/results/native-vl-error-limits-v0.1.0.json",
-      "sha256": "5bc0b2880ce0ccc8e1f08b9cd3d2421d86e27b52f4444b33367ad5bb27b2682f"
+      "sha256": "daddd7ca67985d19744fc0409b4ae2ada5b8cd7c9f6c93b803d1e47b4dd29814"
     },
     "error_limits_reference": {
       "bytes": 43853,
@@ -568,9 +568,9 @@
       "sha256": "36ca8fe48ce785a52a8123d72be2d9271e3a29731222672bc30989250f2e56f1"
     },
     "execution_envelope": {
-      "bytes": 184268,
+      "bytes": 202544,
       "path": "benchmarks/results/native-vl-envelope-v0.1.0.json",
-      "sha256": "4f1bb7f0349b9c6b70bd0af876fa70c4b6be3b81f7b3750f45a24eb0d609b910"
+      "sha256": "8585411f5d2178d6bd627f84143b041c3951e4e1eaf073e0294484572d7e67b3"
     },
     "generation_layer_oracle": {
       "bytes": 150190,
@@ -578,9 +578,9 @@
       "sha256": "70cec2c7884b5e641884037212a34f6ffc6ac1944af08d59c19dc90353915188"
     },
     "generation_native": {
-      "bytes": 213054,
+      "bytes": 214213,
       "path": "benchmarks/results/native-vl-generation-current-head-v0.1.0.json",
-      "sha256": "c215e30acb6e86aabf1cc4857b84e5521d86ebda2415587828ccda5b7a462332"
+      "sha256": "e6f79c105ba669f9a2c1d5c037bbe06d106d66235254c7ebb45282d9d5b74c8b"
     },
     "generation_oracle": {
       "bytes": 26545,
@@ -588,9 +588,9 @@
       "sha256": "954c6e55389cd90390cb517224df14719f2556555ce7bf44571cae1ad1812888"
     },
     "generator": {
-      "bytes": 43811,
+      "bytes": 45819,
       "path": "scripts/generate-native-vl-g1-coverage-audit.py",
-      "sha256": "7637d52026c67c092789406b26fb5c64e5e620877e3e65e211c6827a765177c8"
+      "sha256": "a86b623df3c264be79bc2ea288cc254133fa99f19bf5ddd75178b1bd7119064d"
     },
     "goal": {
       "bytes": 18354,
@@ -598,9 +598,9 @@
       "sha256": "4884803ea4c74a3082d949646ad31684536e672a39e229da796589009b0d212c"
     },
     "language_boundary": {
-      "bytes": 17611,
-      "path": "benchmarks/results/native-vl-language-full-v0.2.0.json",
-      "sha256": "6de4f46b10a659c358350b1c42dec6e1d361f81c01926bf628b44b892fffb636"
+      "bytes": 12721,
+      "path": "benchmarks/results/vl-correctness-v0.1.0.json",
+      "sha256": "e390093a62d2de50dfb04e1cbb1afb3c6ccf282d123a2caa1cd98dce5040ff6c"
     },
     "media_io_reference": {
       "bytes": 2395,
@@ -608,9 +608,9 @@
       "sha256": "56dff264132bdb49a470bd0af863df6ddca0e22f83da43143ad85267c0a30e98"
     },
     "mixed_conversation_native": {
-      "bytes": 43458,
+      "bytes": 49165,
       "path": "benchmarks/results/native-vl-g1-extension-v0.1.0.json",
-      "sha256": "2b78b50d9de12028f437b86e3c52afd5df3a8ebbf0a87f5ee37cd5f3cf341b57"
+      "sha256": "47cb7322a5d72e48137fa9ecee68db92edf091636151d28642bf9fb4609d284d"
     },
     "mixed_conversation_reference": {
       "bytes": 46417,
@@ -618,9 +618,9 @@
       "sha256": "e769446684c4f69b7a29dde163d050a541449ffddf0996ecbb48510a0c493451"
     },
     "native_capability": {
-      "bytes": 164763,
+      "bytes": 185857,
       "path": "benchmarks/results/native-vl-capability-v0.1.0.json",
-      "sha256": "53fe6babad27686a4b7a5eb27f800da247352b5bb3cb80a6148a76441e04defa"
+      "sha256": "ca16fe64b912623b0528ccfcb086d4757e6c0a5d8907b18316dec39dc27b4290"
     },
     "prefill_state_oracle": {
       "bytes": 57689,
@@ -633,14 +633,14 @@
       "sha256": "72e64b8d5cb0c1de8a355617676c46c98c1e0f05cec7a6e3a7df79dd36560d7a"
     },
     "resident_serving": {
-      "bytes": 46499,
+      "bytes": 58564,
       "path": "benchmarks/results/native-vl-serving-v0.1.0.json",
-      "sha256": "9a894c5e54b8ca95160629e2fad7ca2eff6fa27a78ba91b83a795b87ec434fe2"
+      "sha256": "c3fe421f72ac8f47d6860ad63ab374e45bbeb82879a20a33f57c10d196d6d554"
     },
     "task_quality_native": {
-      "bytes": 118807,
+      "bytes": 128168,
       "path": "benchmarks/results/native-vl-task-quality-v0.1.0.json",
-      "sha256": "4333e176ff9df0e3bb9c64b62d78a6559b4ca2a6ada8a500f2826288b5b9b249"
+      "sha256": "f1ffdff8e0c5f9000e2bb1fae576bf6dd3a158f2a169732c7ffb5d07bef4c8e3"
     },
     "task_quality_reference": {
       "bytes": 186682,
@@ -648,9 +648,9 @@
       "sha256": "51b3d95e3ce420584d765350bfe6b73f76d5786a8d9d629cf7c3e69ac11b8bce"
     },
     "transport_cache_native": {
-      "bytes": 210900,
+      "bytes": 233971,
       "path": "benchmarks/results/native-vl-transport-cache-v0.1.0.json",
-      "sha256": "9f577990025ff785d2af54f394732eaf08b3f1fc91b4c53212971e191edbb66b"
+      "sha256": "d7a9d9eb4109282259246fe70caafd90abee53c5cc7580d7eacb83c5655f7cfb"
     },
     "transport_cache_reference": {
       "bytes": 58936,
@@ -658,14 +658,14 @@
       "sha256": "d98433b1be1cd8264947c116073c88287d8181a0ad8a7e60cce868238b48607a"
     },
     "vision_pipeline": {
-      "bytes": 12538,
-      "path": "benchmarks/results/native-vision-pipeline-v0.1.0.json",
-      "sha256": "037fc26c25c5586959e1f3119a933c1f964e2aeb1d1ec0df056ae958072c1b7b"
+      "bytes": 15115,
+      "path": "benchmarks/results/native-vision-pipeline-current-head-v0.2.0.json",
+      "sha256": "4533048a5c6e6c078ebe5278f795b03460a663f2f22fbbf0d1753ed439602f20"
     }
   },
   "integrity": {
     "algorithm": "sha256",
-    "canonical_payload_sha256": "cf3c7b0d594aacc4698a0fb187c2165b5b5bd0b9a365d72f18b707a09f1a5293"
+    "canonical_payload_sha256": "0974d65b8c6c4e56fd0d12c79de466be9a3d7559dc884c8bf62fb0a9cd7d1170"
   },
   "next_evidence": [
     {

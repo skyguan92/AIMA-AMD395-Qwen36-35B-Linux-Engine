@@ -17,8 +17,9 @@ RESULTS = ROOT / "benchmarks/results"
 REFERENCE = RESULTS / "vl-transport-cache-reference-v0.1.0.json"
 NATIVE = RESULTS / "native-vl-transport-cache-v0.1.0.json"
 QUALIFIED_COMMIT = "82fc48f7d4a0af1f1b30e9abfd26d78f73780715"
+NATIVE_QUALIFIED_COMMIT = "50289f1cbae150997ca82bbc054635932a2721c3"
 QUALIFIED_BINARY_SHA256 = (
-    "246f2f9126e4bc905d3a49617f51311206ee9285f90311501a120ecdfbfbcf7c"
+    "4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0"
 )
 
 
@@ -105,8 +106,10 @@ class NativeVlTransportCacheQualificationTest(unittest.TestCase):
         self.assertTrue(result["complete"])
         self.assertTrue(result["qualified"])
         self.assertFalse(result["source"]["dirty"])
-        self.assertEqual(result["source"]["commit"], QUALIFIED_COMMIT)
-        self.assertEqual(result["build_info"]["source_commit"], QUALIFIED_COMMIT)
+        self.assertEqual(result["source"]["commit"], NATIVE_QUALIFIED_COMMIT)
+        self.assertEqual(
+            result["build_info"]["source_commit"], NATIVE_QUALIFIED_COMMIT
+        )
         self.assertEqual(result["binary"]["sha256"], QUALIFIED_BINARY_SHA256)
         assert_components_current(self, result["source"]["files"])
         assert_components_current(
@@ -118,7 +121,7 @@ class NativeVlTransportCacheQualificationTest(unittest.TestCase):
         )
         self.assertEqual(
             result["dependencies"]["fmha_provider"]["sha256"],
-            "98e6c47c017837ab796e3ca2e8256740d1e9cb6ec2f460af45ee586cd5fb7bd1",
+            "e5336b2d66b36c5f17aeb07ab780fa8f60a6092910f9b01b3ebf4bc31f766bb4",
         )
         self.assertEqual(
             result["dependencies"]["vision_attention_image"]["sha256"],

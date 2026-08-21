@@ -11,9 +11,9 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts/qualify-native-vl-capabilities.py"
 RESULT = ROOT / "benchmarks/results/native-vl-capability-v0.1.0.json"
 RESULT_SIDECAR = RESULT.with_name(RESULT.name + ".sha256")
-QUALIFIED_COMMIT = "85fa597c782d28c05c51467060d8e03a8a47646e"
+QUALIFIED_COMMIT = "50289f1cbae150997ca82bbc054635932a2721c3"
 QUALIFIED_BINARY_SHA256 = (
-    "7fe6ceb07dbae924e8da5efa378b3a47ae7b0cd8e6fc023eff3c74d1298e67b2"
+    "4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0"
 )
 
 
@@ -189,8 +189,16 @@ class NativeVlCapabilityQualificationTest(unittest.TestCase):
         ):
             self.assertTrue(decision[gate])
         self.assertEqual(
-            self.result["matrix"]["reference_usage_exact"], "14/18"
+            self.result["matrix"]["reference_usage_exact"], "16/18"
         )
+        self.assertEqual(
+            self.result["matrix"]["vl_reference_usage_exact"], "16/16"
+        )
+        self.assertEqual(
+            self.result["matrix"]["text_vllm_usage_diagnostic"], "0/2"
+        )
+        self.assertTrue(decision["deterministic_vl_reference_usage_exact"])
+        self.assertTrue(decision["text_usage_boundary_owned_by_g3_v151"])
         self.assertFalse(decision["deterministic_reference_usage_exact"])
         for gate in (
             "g1_passed",

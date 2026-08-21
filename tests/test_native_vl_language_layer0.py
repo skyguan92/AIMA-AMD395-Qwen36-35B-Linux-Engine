@@ -21,6 +21,32 @@ QUALIFICATION_RESULT = (
 )
 
 
+def git_blob(commit: str, path: str) -> bytes:
+    return subprocess.run(
+        ["git", "show", f"{commit}:{path}"],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+    ).stdout
+
+
+def git_blob_with_sha256(path: str, expected_sha256: str) -> bytes:
+    revisions = subprocess.run(
+        ["git", "log", "--all", "--format=%H", "--", path],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.splitlines()
+    for revision in revisions:
+        payload = git_blob(revision, path)
+        if hashlib.sha256(payload).hexdigest() == expected_sha256:
+            return payload
+    raise AssertionError(
+        f"no committed version of {path} has sha256 {expected_sha256}"
+    )
+
+
 class NativeVlLanguageLayer0Test(unittest.TestCase):
     def test_logical_projection_owner_is_resident_and_vl_scoped(self) -> None:
         header = (
@@ -690,13 +716,17 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         )
         for record in result["source"]["files"]:
             self.assertEqual(
-                hashlib.sha256((ROOT / record["path"]).read_bytes()).hexdigest(),
+                hashlib.sha256(
+                    git_blob(result["source"]["commit"], record["path"])
+                ).hexdigest(),
                 record["sha256"],
             )
         for dependency in result["dependencies"].values():
             self.assertEqual(
                 hashlib.sha256(
-                    (ROOT / dependency["path"]).read_bytes()
+                    git_blob_with_sha256(
+                        dependency["path"], dependency["sha256"]
+                    )
                 ).hexdigest(),
                 dependency["sha256"],
             )

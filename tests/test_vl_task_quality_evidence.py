@@ -25,12 +25,12 @@ QUALIFIED_COMMIT = "c3ab45ad4d6215c7cfa5c6772c90e75e9d1db9cd"
 REFERENCE_SHA256 = (
     "51b3d95e3ce420584d765350bfe6b73f76d5786a8d9d629cf7c3e69ac11b8bce"
 )
-NATIVE_QUALIFIED_COMMIT = "1c5f6387898d0ae37d06234c5930221fe0ec5404"
+NATIVE_QUALIFIED_COMMIT = "50289f1cbae150997ca82bbc054635932a2721c3"
 NATIVE_BINARY_SHA256 = (
-    "8524beee2e98bb9d261bb00d6f1febefc980953d5d02c8e0b005f56c5ee98339"
+    "4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0"
 )
 NATIVE_SHA256 = (
-    "4333e176ff9df0e3bb9c64b62d78a6559b4ca2a6ada8a500f2826288b5b9b249"
+    "f1ffdff8e0c5f9000e2bb1fae576bf6dd3a158f2a169732c7ffb5d07bef4c8e3"
 )
 
 
@@ -186,7 +186,7 @@ class VlTaskQualityEvidenceTest(unittest.TestCase):
             },
             {
                 "fmha_provider": (
-                    "98e6c47c017837ab796e3ca2e8256740d1e9cb6ec2f460af45ee586cd5fb7bd1"
+                    "e5336b2d66b36c5f17aeb07ab780fa8f60a6092910f9b01b3ebf4bc31f766bb4"
                 ),
                 "aotriton_runtime": (
                     "e0638806efa5d35cef04fd7fb02c62cd038b3a38727ecb5d87a49045aa1b9aa5"

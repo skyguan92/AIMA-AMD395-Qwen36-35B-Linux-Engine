@@ -212,7 +212,7 @@ class NativeVlG1CoverageAuditTest(unittest.TestCase):
         }
         self.assertEqual(covered, blocked)
 
-    def test_audit_does_not_promote_any_product_gate(self) -> None:
+    def test_audit_promotes_only_the_closed_g2_gate(self) -> None:
         decision = self.result["decision"]
         self.assertTrue(decision["audit_complete"])
         self.assertTrue(decision["all_referenced_cases_qualified"])
@@ -221,13 +221,8 @@ class NativeVlG1CoverageAuditTest(unittest.TestCase):
         self.assertTrue(decision["twelve_long_greedy_cases_reference_exact"])
         self.assertFalse(decision["coverage_complete"])
         self.assertTrue(decision["new_evidence_required"])
-        for gate in (
-            "g1_passed",
-            "g2_passed",
-            "g3_passed",
-            "g4_passed",
-            "g5_passed",
-        ):
+        self.assertTrue(decision["g2_passed"])
+        for gate in ("g1_passed", "g3_passed", "g4_passed", "g5_passed"):
             self.assertFalse(decision[gate])
 
     def test_audit_contains_no_private_machine_paths(self) -> None:
