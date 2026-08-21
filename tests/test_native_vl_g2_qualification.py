@@ -101,6 +101,17 @@ class NativeVlG2QualificationLogicTest(unittest.TestCase):
         )
         self.assertFalse(failed_checks["required_boundary_order_exact"])
 
+        payload["cases"][0]["boundaries"].insert(
+            1, {"name": "vision_block_13"}
+        )
+        payload["schema"] = (
+            "aima-amd395-qwen36/native-vision-pipeline-qualification/v1"
+        )
+        stale_checks = self.generator.validate_vision_pipeline(
+            payload, CANDIDATE_COMMIT, "b" * 64
+        )
+        self.assertFalse(stale_checks["schema_exact"])
+
     def test_full_language_requires_exact_case_order_and_rows(self) -> None:
         payload = {
             "schema": (

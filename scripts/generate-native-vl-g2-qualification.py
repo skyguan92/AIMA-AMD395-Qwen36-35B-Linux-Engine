@@ -110,18 +110,24 @@ def validate_vision_pipeline(
 ) -> dict[str, bool]:
     decision = require_mapping(payload.get("decision"), "vision_pipeline.decision")
     cases = require_sequence(payload.get("cases"), "vision_pipeline.cases")
-    boundary_names_exact = len(cases) == len(CASE_ORDER) and all(
-        isinstance(case, dict)
-        and tuple(
-            boundary.get("name")
-            for boundary in require_sequence(
-                case.get("boundaries"), "vision_pipeline.case.boundaries"
-            )
-            if isinstance(boundary, dict)
+    boundary_names_exact = len(cases) == len(CASE_ORDER)
+    for case in cases:
+        if not isinstance(case, dict):
+            boundary_names_exact = False
+            break
+        boundaries = require_sequence(
+            case.get("boundaries"), "vision_pipeline.case.boundaries"
         )
-        == VISION_BOUNDARY_ORDER
-        for case in cases
-    )
+        if len(boundaries) != len(VISION_BOUNDARY_ORDER) or not all(
+            isinstance(boundary, dict) for boundary in boundaries
+        ):
+            boundary_names_exact = False
+            break
+        if tuple(
+            boundary.get("name") for boundary in boundaries
+        ) != VISION_BOUNDARY_ORDER:
+            boundary_names_exact = False
+            break
     return {
         "schema_exact": payload.get("schema")
         == "aima-amd395-qwen36/native-vision-pipeline-qualification/v2",
