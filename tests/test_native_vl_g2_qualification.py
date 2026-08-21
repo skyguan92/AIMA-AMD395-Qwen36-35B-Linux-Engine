@@ -1,13 +1,17 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
+import json
 from pathlib import Path
+import subprocess
 import sys
 import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts/generate-native-vl-g2-qualification.py"
+RESULT = ROOT / "benchmarks/results/vl-correctness-v0.1.0.json"
 CANDIDATE_COMMIT = "a" * 40
 
 
@@ -57,6 +61,20 @@ class NativeVlG2QualificationLogicTest(unittest.TestCase):
         self.assertFalse(self.generator.all_true({}))
         self.assertFalse(self.generator.all_true([]))
         self.assertTrue(self.generator.all_true({"outer": {"inner": True}}))
+
+    def test_all_language_probe_sources_are_content_bound(self) -> None:
+        self.assertEqual(
+            {path.name for path in self.generator.QUALIFICATION_FILES},
+            {
+                "vl_language_layer0_oracle_probe.hip.cpp",
+                "vl_language_layer3_mrope_oracle_probe.hip.cpp",
+                "vl_language_layer3_composed_oracle_probe.hip.cpp",
+                "build-native-vl-language-layer0-probe.sh",
+                "build-native-vl-language-layer3-mrope-probe.sh",
+                "build-native-vl-language-layer3-composed-probe.sh",
+                "generate-native-vl-g2-qualification.py",
+            },
+        )
 
     def test_vision_pipeline_requires_all_named_depth_boundaries(self) -> None:
         payload = {
@@ -270,6 +288,93 @@ class NativeVlG2QualificationLogicTest(unittest.TestCase):
             layer3, CANDIDATE_COMMIT
         )
         self.assertTrue(all(layer3_checks.values()))
+
+
+class NativeVlG2QualificationArtifactTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.payload = RESULT.read_bytes()
+        cls.result = json.loads(cls.payload)
+
+    def test_result_is_exact_and_reproducible(self) -> None:
+        result = self.result
+        qualification = result["qualification"]
+        probes = qualification["probe_binaries"]
+        inputs = result["inputs"]
+        command = [
+            "python3",
+            str(SCRIPT),
+            "--candidate-source-commit",
+            result["candidate"]["source_commit"],
+            "--candidate-binary-sha256",
+            result["candidate"]["binary_sha256"],
+            "--qualification-source-commit",
+            qualification["source_commit"],
+            "--layer0-probe-sha256",
+            probes["layer0"]["sha256"],
+            "--layer0-probe-bytes",
+            str(probes["layer0"]["bytes"]),
+            "--layer3-probe-sha256",
+            probes["layer3"]["sha256"],
+            "--layer3-probe-bytes",
+            str(probes["layer3"]["bytes"]),
+            "--full-language-probe-sha256",
+            probes["full_language"]["sha256"],
+            "--full-language-probe-bytes",
+            str(probes["full_language"]["bytes"]),
+            "--recorded-on",
+            result["recorded_on"],
+        ]
+        for name in (
+            "envelope",
+            "vision_pipeline",
+            "task_quality",
+            "generation",
+            "error_limits",
+            "layer0",
+            "layer3_a",
+            "layer3_b",
+            "full_private",
+            "full_http",
+            "full_http_deep",
+        ):
+            command.extend(
+                [f"--{name.replace('_', '-')}", inputs[name]["path"]]
+            )
+        command.extend(["--output", str(RESULT), "--check"])
+        completed = subprocess.run(
+            command, cwd=ROOT, capture_output=True, text=True, check=False
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertIn("native VL G2 qualification: PASS", completed.stdout)
+
+    def test_result_and_qualification_inputs_are_hash_bound(self) -> None:
+        digest = hashlib.sha256(self.payload).hexdigest()
+        sidecar = RESULT.with_name(RESULT.name + ".sha256")
+        self.assertEqual(
+            sidecar.read_text(encoding="utf-8"),
+            f"{digest}  {RESULT.name}\n",
+        )
+        for component in self.result["qualification"]["files"]:
+            path = ROOT / component["path"]
+            self.assertEqual(path.stat().st_size, component["bytes"])
+            self.assertEqual(
+                hashlib.sha256(path.read_bytes()).hexdigest(),
+                component["sha256"],
+            )
+
+    def test_all_g2_gates_pass_without_threshold_widening(self) -> None:
+        self.assertTrue(self.result["complete"])
+        self.assertTrue(self.result["qualified"])
+        self.assertTrue(self.result["decision"]["g2_passed"])
+        self.assertTrue(self.result["decision"]["exact_binary_bound"])
+        self.assertTrue(self.result["decision"]["no_threshold_widening"])
+        self.assertTrue(
+            all(
+                all(gate["checks"].values())
+                for gate in self.result["gates"].values()
+            )
+        )
 
 
 if __name__ == "__main__":

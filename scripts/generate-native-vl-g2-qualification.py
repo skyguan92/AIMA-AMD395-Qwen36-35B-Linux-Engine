@@ -41,6 +41,15 @@ VISION_BOUNDARY_ORDER = (
     "vision_block_26",
     "vision_merger",
 )
+QUALIFICATION_FILES = (
+    ROOT / "native/tools/vl_language_layer0_oracle_probe.hip.cpp",
+    ROOT / "native/tools/vl_language_layer3_mrope_oracle_probe.hip.cpp",
+    ROOT / "native/tools/vl_language_layer3_composed_oracle_probe.hip.cpp",
+    ROOT / "scripts/build-native-vl-language-layer0-probe.sh",
+    ROOT / "scripts/build-native-vl-language-layer3-mrope-probe.sh",
+    ROOT / "scripts/build-native-vl-language-layer3-composed-probe.sh",
+    Path(__file__).resolve(),
+)
 SHA1 = re.compile(r"^[0-9a-f]{40}$")
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
@@ -415,6 +424,8 @@ def build_payload(
     *,
     candidate_source_commit: str,
     candidate_binary_sha256: str,
+    qualification_source_commit: str,
+    probe_binaries: dict[str, dict[str, Any]],
     recorded_on: str,
     paths: dict[str, Path],
 ) -> dict[str, Any]:
@@ -634,6 +645,14 @@ def build_payload(
             "source_commit": candidate_source_commit,
             "binary_sha256": candidate_binary_sha256,
         },
+        "qualification": {
+            "source_commit": qualification_source_commit,
+            "files": [
+                file_component(path, str(path.relative_to(ROOT)))
+                for path in QUALIFICATION_FILES
+            ],
+            "probe_binaries": probe_binaries,
+        },
         "thresholds": {
             "minimum_cosine_similarity": 0.999,
             "maximum_relative_l2_error": 0.002,
@@ -686,6 +705,14 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--candidate-source-commit", required=True)
     parser.add_argument("--candidate-binary-sha256", required=True)
+    parser.add_argument("--qualification-source-commit", required=True)
+    for name in ("layer0", "layer3", "full_language"):
+        parser.add_argument(
+            f"--{name.replace('_', '-')}-probe-sha256", required=True
+        )
+        parser.add_argument(
+            f"--{name.replace('_', '-')}-probe-bytes", type=int, required=True
+        )
     parser.add_argument("--recorded-on", type=date.fromisoformat, required=True)
     for name in (
         "envelope",
@@ -708,6 +735,26 @@ def main() -> int:
         parser.error("--candidate-source-commit must be a lowercase SHA-1")
     if not SHA256.fullmatch(args.candidate_binary_sha256):
         parser.error("--candidate-binary-sha256 must be a lowercase SHA-256")
+    if not SHA1.fullmatch(args.qualification_source_commit):
+        parser.error("--qualification-source-commit must be a lowercase SHA-1")
+    probe_binaries = {}
+    for name in ("layer0", "layer3", "full_language"):
+        sha256 = getattr(args, f"{name}_probe_sha256")
+        size = getattr(args, f"{name}_probe_bytes")
+        if not SHA256.fullmatch(sha256):
+            parser.error(
+                f"--{name.replace('_', '-')}-probe-sha256 must be a lowercase SHA-256"
+            )
+        if size <= 0:
+            parser.error(f"--{name.replace('_', '-')}-probe-bytes must be positive")
+        probe_binaries[name] = {
+            "sha256": sha256,
+            "bytes": size,
+            "runtime_python": False,
+            "runtime_torch": False,
+            "runtime_vllm": False,
+            "runtime_triton": False,
+        }
     paths = {
         name: getattr(args, name).resolve()
         for name in (
@@ -733,6 +780,8 @@ def main() -> int:
         build_payload(
             candidate_source_commit=args.candidate_source_commit,
             candidate_binary_sha256=args.candidate_binary_sha256,
+            qualification_source_commit=args.qualification_source_commit,
+            probe_binaries=probe_binaries,
             recorded_on=args.recorded_on.isoformat(),
             paths=paths,
         )
