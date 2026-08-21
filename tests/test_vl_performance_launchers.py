@@ -11,6 +11,7 @@ DIAGNOSTIC = ROOT / "scripts/run-vl-performance-diagnostic-pair.sh"
 VLLM_ENTRYPOINT = ROOT / "scripts/aima_vllm_vl_performance_server.py"
 NATIVE_HTTP = ROOT / "native/src/native_http_server.cpp"
 MATRIX_RUNNER = ROOT / "scripts/run-vl-performance-matrix-pair.sh"
+TEXT_CONTROL_RUNNER = ROOT / "scripts/run-vl-text-decode-control.sh"
 DIAGNOSTIC_REQUEST = (
     ROOT
     / "benchmarks/fixtures/vl-performance-v0.1.0/requests/"
@@ -121,6 +122,22 @@ class VlPerformanceLauncherTest(unittest.TestCase):
         self.assertIn('--prompt-nonce "${prompt_nonce}"', source)
         self.assertIn("--expected-completion-tokens", source)
         self.assertIn("summarize-vl-performance-matrix-pair.py", source)
+
+    def test_text_controls_match_the_candidate_service_boundary(self) -> None:
+        source = TEXT_CONTROL_RUNNER.read_text(encoding="utf-8")
+        self.assertIn("RUN_INDEX % 2", source)
+        self.assertIn("balanced_orders", source)
+        self.assertIn("run-native-vl-performance-candidate.sh", source)
+        self.assertIn("AIMA_VL_CACHE_MODE=disabled", source)
+        self.assertIn("AIMA_VL_PREFIX_CACHE_MODE=disabled", source)
+        self.assertIn("AIMA_VL_CONTEXT_TOKENS=262143", source)
+        self.assertIn("AIMA_VL_CACHE_CAPACITY=262144", source)
+        self.assertIn("symmetric warmup", source)
+        self.assertIn("capture-vl-text-decode-control.py", source)
+        self.assertIn("--expected-prompt-tokens", source)
+        self.assertIn("--expected-completion-tokens", source)
+        self.assertIn('pgrep -g "${active_pid}"', source)
+        self.assertNotIn("0.0.0.0", source)
 
 
 if __name__ == "__main__":

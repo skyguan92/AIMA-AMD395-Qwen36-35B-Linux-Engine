@@ -122,28 +122,31 @@ class VlPerformanceMatrixSummaryTest(unittest.TestCase):
             "host": {"hostname": "test-host"},
         }
 
-    def text_matrix(self, decode_tps: float = 100.0) -> dict:
-        return {
-            "schema": summary.TEXT_MATRIX_SCHEMA,
+    def text_control(self, retention: float = 1.01) -> dict:
+        return seal_manifest({
+            "schema": summary.TEXT_CONTROL_SCHEMA,
             "complete": True,
             "qualified": True,
-            "all_cells_pass": True,
-            "text_request_path_idle": True,
-            "engines": {
-                "candidate": {
-                    "sha256": "f" * 64,
-                    "build_info": {"source_commit": "e" * 40},
-                }
-            },
+            "artifact_identity": {"candidate": self.identity["candidate"]},
             "host": {"hostname": "test-host"},
+            "raw_runs": [
+                {
+                    "run_index": index,
+                    "g4_summary_sha256": "c" * 64,
+                }
+                for index in range(1, 6)
+            ],
             "cells": [
                 {
-                    "input_tokens": 1024,
-                    "output_tokens": 512,
-                    "candidate_medians": {"decode_tps": decode_tps},
+                    "g4_cell_id": "long-output512",
+                    "prompt_tokens": 1024,
+                    "completion_tokens": 512,
+                    "pair_count": 5,
+                    "paired_median_vl_over_text_client_decode": retention,
+                    "qualified": retention >= 1.0,
                 }
             ],
-        }
+        })
 
     def test_every_cell_median_and_decode_gate_qualify(self) -> None:
         result = summary.aggregate(
@@ -172,36 +175,38 @@ class VlPerformanceMatrixSummaryTest(unittest.TestCase):
         self.assertFalse(result["qualified"])
         self.assertFalse(result["gates"]["every_cell_paired_median_qualified"])
 
-    def test_vl_decode_is_gated_against_exact_candidate_text_curve(self) -> None:
+    def test_vl_decode_is_gated_against_same_boundary_text_control(self) -> None:
         pairs = [pair(index) for index in range(1, 6)]
         passing = summary.aggregate(
             pairs,
             self.matrix,
             self.identity,
-            text_matrix=self.text_matrix(),
+            text_control=self.text_control(),
         )
         self.assertTrue(passing["qualified"])
-        retention = passing["text_product_decode_retention"]
+        retention = passing["text_decode_retention"]
         self.assertEqual(len(retention), 1)
-        self.assertEqual(retention[0]["candidate_over_text_product"], 1.01)
+        self.assertEqual(
+            retention[0]["paired_median_candidate_over_text_control"], 1.01
+        )
         self.assertTrue(
-            passing["gates"]["every_decode_cell_gte_text_product_curve"]
+            passing["gates"][
+                "every_decode_cell_gte_same_boundary_text_control"
+            ]
         )
 
-        for current in pairs[2:]:
-            current["cells"][1]["measurements"]["candidate"][
-                "engine_decode_tokens_per_second"
-            ] = 99.0
         regressed = summary.aggregate(
             pairs,
             self.matrix,
             self.identity,
-            text_matrix=self.text_matrix(),
+            text_control=self.text_control(0.99),
         )
         self.assertTrue(regressed["complete"])
         self.assertFalse(regressed["qualified"])
         self.assertFalse(
-            regressed["gates"]["every_decode_cell_gte_text_product_curve"]
+            regressed["gates"][
+                "every_decode_cell_gte_same_boundary_text_control"
+            ]
         )
 
     def test_exact_media_hit_uses_explicit_encoder_skip_gate(self) -> None:
