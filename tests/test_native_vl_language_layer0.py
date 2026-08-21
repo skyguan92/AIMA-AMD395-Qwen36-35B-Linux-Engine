@@ -8,6 +8,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
+import re
 import subprocess
 import tempfile
 import unittest
@@ -206,6 +207,21 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         ).read_text(encoding="utf-8")
         makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
 
+        logical_moe_binding = re.compile(
+            r"(?P<options>\w+)\.gemm_plans\s*=\s*"
+            r"&logical_projections\.router_gemm_plans\(\);\s*"
+            r"(?P=options)\.logical_router_gemm_plans\s*=\s*"
+            r"&logical_projections\.router_gemm_plans\(\);"
+        )
+        self.assertEqual(len(logical_moe_binding.findall(probe)), 2)
+        self.assertEqual(len(logical_moe_binding.findall(layer3_probe)), 4)
+        self.assertNotIn(".gemm_plans = &active_gemm_plans", probe)
+        self.assertNotIn(".gemm_plans = &gemm_plans", layer3_probe)
+        self.assertEqual(probe.count(".active_tokens = prompt_tokens;"), 3)
+        self.assertEqual(
+            layer3_probe.count(".active_tokens = prompt_tokens;"), 9
+        )
+
         self.assertIn("constexpr std::size_t kBucketTokens = 1024", probe)
         self.assertIn("native_prefill_layer_input_pointer", probe)
         self.assertIn("native_prefill_layer_output_pointer", probe)
@@ -213,12 +229,12 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         self.assertIn('tensor_pointer(sequence, "v_new")', probe)
         self.assertIn("linear_options.seed_layer_input = false", probe)
         self.assertIn("linear_options.collect_oracle_comparisons = false", probe)
-        self.assertIn("linear_options.active_tokens = 0", probe)
+        self.assertIn("linear_options.active_tokens = prompt_tokens", probe)
         self.assertIn("linear_options.comparison_tokens = prompt_tokens", probe)
         self.assertIn("linear_options.exact_b_projection_tokens", probe)
         self.assertIn("moe_options.seed_post_attention = false", probe)
         self.assertIn("moe_options.collect_oracle_comparisons = false", probe)
-        self.assertIn("moe_options.active_tokens = 0", probe)
+        self.assertIn("moe_options.active_tokens = prompt_tokens", probe)
         self.assertIn("moe_options.comparison_tokens = prompt_tokens", probe)
         self.assertIn("linear_options.sequence_oracle_dir", probe)
         self.assertIn("moe_options.chain_output_oracle_dir", probe)

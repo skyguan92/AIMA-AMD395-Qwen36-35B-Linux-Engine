@@ -383,7 +383,6 @@ Execution execute_layers_0_through_3(
     const aima::NativeDecodeBindings& bindings,
     const aima::NativePrefillWorkspace& workspace,
     aima::NativePrefillInvocations& invocations,
-    aima::NativeQ8192PrefillGemmPlans& gemm_plans,
     aima::NativeVlLogicalProjectionState& logical_projections,
     aima::NativeDecodeExecutor& executor,
     aima::NativeQ8192CkProvider& provider,
@@ -429,13 +428,15 @@ Execution execute_layers_0_through_3(
     aima::NativeLinearPrefillOracleOptions attention_options;
     attention_options.layer_index = layer_index;
     attention_options.use_vl_rmsnorm_semantics = true;
+    attention_options.active_tokens = prompt_tokens;
     attention_options.comparison_tokens = prompt_tokens;
     attention_options.exact_b_projection_tokens =
         layer_index == 0 && prompt_tokens <= 64 ? prompt_tokens : 0;
     attention_options.seed_layer_input = false;
     attention_options.run_output_projection_diagnostic = false;
     attention_options.collect_oracle_comparisons = false;
-    attention_options.gemm_plans = &gemm_plans;
+    attention_options.gemm_plans =
+        &logical_projections.router_gemm_plans();
     attention_options.logical_ab_gemm_plan = &logical_projections.ab_plan();
     attention_options.logical_ab_weight =
         logical_projections.ab_weight(layer_index);
@@ -455,11 +456,12 @@ Execution execute_layers_0_through_3(
     moe_options.layer_index = layer_index;
     moe_options.use_vl_router_semantics = true;
     moe_options.use_vl_shared_expert_semantics = true;
+    moe_options.active_tokens = prompt_tokens;
     moe_options.comparison_tokens = prompt_tokens;
     moe_options.seed_post_attention = false;
     moe_options.run_routing_diagnostic = false;
     moe_options.collect_oracle_comparisons = false;
-    moe_options.gemm_plans = &gemm_plans;
+    moe_options.gemm_plans = &logical_projections.router_gemm_plans();
     moe_options.logical_router_gemm_plans =
         &logical_projections.router_gemm_plans();
     if (!prefix_oracle_dir.empty()) {
@@ -506,7 +508,7 @@ Execution execute_layers_0_through_3(
   full_options.seed_layer_input = false;
   full_options.prepare_rotary_table = true;
   full_options.collect_oracle_comparisons = false;
-  full_options.gemm_plans = &gemm_plans;
+  full_options.gemm_plans = &logical_projections.router_gemm_plans();
   full_options.bindings = &bindings;
   full_options.vl_unified_attention = &vl_unified_attention;
   full_options.mrope_positions_i64 = positions_device;
@@ -526,11 +528,12 @@ Execution execute_layers_0_through_3(
   moe_options.layer_index = 3;
   moe_options.use_vl_router_semantics = true;
   moe_options.use_vl_shared_expert_semantics = true;
+  moe_options.active_tokens = prompt_tokens;
   moe_options.comparison_tokens = prompt_tokens;
   moe_options.seed_post_attention = false;
   moe_options.run_routing_diagnostic = false;
   moe_options.collect_oracle_comparisons = false;
-  moe_options.gemm_plans = &gemm_plans;
+  moe_options.gemm_plans = &logical_projections.router_gemm_plans();
   moe_options.logical_router_gemm_plans =
       &logical_projections.router_gemm_plans();
   if (!prefix_oracle_dir.empty()) {
@@ -605,7 +608,6 @@ FullLanguageExecution execute_full_language(
     const aima::NativeDecodeBindings& bindings,
     const aima::NativePrefillWorkspace& workspace,
     aima::NativePrefillInvocations& invocations,
-    aima::NativeQ8192PrefillGemmPlans& gemm_plans,
     aima::NativeVlLogicalProjectionState& logical_projections,
     aima::NativeDecodeExecutor& executor,
     aima::NativeQ8192CkProvider& provider,
@@ -681,7 +683,8 @@ FullLanguageExecution execute_full_language(
       attention_options.seed_layer_input = false;
       attention_options.prepare_rotary_table = true;
       attention_options.collect_oracle_comparisons = false;
-      attention_options.gemm_plans = &gemm_plans;
+      attention_options.gemm_plans =
+          &logical_projections.router_gemm_plans();
       attention_options.bindings = &bindings;
       attention_options.vl_unified_attention = &vl_unified_attention;
       attention_options.mrope_positions_i64 = positions_device;
@@ -702,13 +705,15 @@ FullLanguageExecution execute_full_language(
       aima::NativeLinearPrefillOracleOptions attention_options;
       attention_options.layer_index = layer_index;
       attention_options.use_vl_rmsnorm_semantics = true;
+      attention_options.active_tokens = prompt_tokens;
       attention_options.comparison_tokens = prompt_tokens;
       attention_options.exact_b_projection_tokens =
           layer_index == 0 && prompt_tokens <= 64 ? prompt_tokens : 0;
       attention_options.seed_layer_input = false;
       attention_options.run_output_projection_diagnostic = false;
       attention_options.collect_oracle_comparisons = false;
-      attention_options.gemm_plans = &gemm_plans;
+      attention_options.gemm_plans =
+          &logical_projections.router_gemm_plans();
       attention_options.logical_ab_gemm_plan =
           &logical_projections.ab_plan();
       attention_options.logical_ab_weight =
@@ -729,11 +734,12 @@ FullLanguageExecution execute_full_language(
     moe_options.layer_index = layer_index;
     moe_options.use_vl_router_semantics = true;
     moe_options.use_vl_shared_expert_semantics = true;
+    moe_options.active_tokens = prompt_tokens;
     moe_options.comparison_tokens = prompt_tokens;
     moe_options.seed_post_attention = false;
     moe_options.run_routing_diagnostic = false;
     moe_options.collect_oracle_comparisons = false;
-    moe_options.gemm_plans = &gemm_plans;
+    moe_options.gemm_plans = &logical_projections.router_gemm_plans();
     moe_options.logical_router_gemm_plans =
         &logical_projections.router_gemm_plans();
     if (!diagnostic_oracle_dir.empty()) {
@@ -877,8 +883,7 @@ json qualify_case(
   const Execution warmup = execute_layers_0_through_3(
       injected, positions, prompt_tokens, prefix_case_oracle_dir,
       case_oracle_dir, weights, bindings, workspace, invocations,
-      gemm_plans, logical_projections, executor, provider,
-      vl_unified_attention,
+      logical_projections, executor, provider, vl_unified_attention,
       positions_device);
   std::set<std::string> expected_labels = {
       "layer-003-attention_input_full_sequence",
@@ -964,13 +969,15 @@ json qualify_case(
   aima::NativeLinearPrefillOracleOptions attention_diagnostic_options;
   attention_diagnostic_options.layer_index = 1;
   attention_diagnostic_options.use_vl_rmsnorm_semantics = true;
+  attention_diagnostic_options.active_tokens = prompt_tokens;
   attention_diagnostic_options.comparison_tokens = prompt_tokens;
   attention_diagnostic_options.seed_layer_input = true;
   attention_diagnostic_options.layer_input_oracle_label =
       "return-layer_body-output";
   attention_diagnostic_options.run_output_projection_diagnostic = false;
   attention_diagnostic_options.collect_oracle_comparisons = false;
-  attention_diagnostic_options.gemm_plans = &gemm_plans;
+  attention_diagnostic_options.gemm_plans =
+      &logical_projections.router_gemm_plans();
   attention_diagnostic_options.logical_ab_gemm_plan =
       &logical_projections.ab_plan();
   attention_diagnostic_options.logical_ab_weight =
@@ -1024,6 +1031,7 @@ json qualify_case(
   diagnostic_options.layer_index = 1;
   diagnostic_options.use_vl_router_semantics = true;
   diagnostic_options.use_vl_shared_expert_semantics = true;
+  diagnostic_options.active_tokens = prompt_tokens;
   diagnostic_options.comparison_tokens = prompt_tokens;
   diagnostic_options.seed_post_attention = true;
   diagnostic_options.post_attention_h2_oracle_label =
@@ -1032,7 +1040,8 @@ json qualify_case(
       "return-layer_body-after_attn";
   diagnostic_options.run_routing_diagnostic = false;
   diagnostic_options.collect_oracle_comparisons = false;
-  diagnostic_options.gemm_plans = &gemm_plans;
+  diagnostic_options.gemm_plans =
+      &logical_projections.router_gemm_plans();
   diagnostic_options.logical_router_gemm_plans =
       &logical_projections.router_gemm_plans();
   diagnostic_options.oracle_label_prefix = "layer-001-";
@@ -1107,8 +1116,7 @@ json qualify_case(
   for (std::size_t run = 0; run < kMeasuredRuns; ++run) {
     measured.push_back(execute_layers_0_through_3(
         injected, positions, prompt_tokens, {}, {}, weights, bindings,
-        workspace, invocations, gemm_plans, logical_projections, executor,
-        provider,
+        workspace, invocations, logical_projections, executor, provider,
         vl_unified_attention,
         positions_device));
   }
@@ -1264,8 +1272,8 @@ json qualify_full_language_case(
           : diagnostic_oracle_root / case_id;
   const FullLanguageExecution warmup = execute_full_language(
       injected, positions, prompt_tokens, selected_rows, weights, bindings,
-      workspace, invocations, gemm_plans, logical_projections, executor,
-      provider, vl_unified_attention, logits_plan, positions_device,
+      workspace, invocations, logical_projections, executor, provider,
+      vl_unified_attention, logits_plan, positions_device,
       final_norm_device.get(), logits_device.get(), true,
       diagnostic_oracle_dir);
   std::vector<FullLanguageExecution> measured;
@@ -1273,8 +1281,8 @@ json qualify_full_language_case(
   for (std::size_t run = 0; run < kMeasuredRuns; ++run) {
     measured.push_back(execute_full_language(
         injected, positions, prompt_tokens, selected_rows, weights, bindings,
-        workspace, invocations, gemm_plans, logical_projections, executor,
-        provider, vl_unified_attention, logits_plan, positions_device,
+        workspace, invocations, logical_projections, executor, provider,
+        vl_unified_attention, logits_plan, positions_device,
         final_norm_device.get(), logits_device.get(), false));
   }
   bool deterministic = true;

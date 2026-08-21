@@ -255,7 +255,6 @@ Execution execute_layer0(
     const aima::NativeWeightStore& weights,
     const aima::NativeDecodeBindings& bindings,
     aima::NativeDecodeExecutor& executor,
-    aima::NativeQ8192PrefillGemmPlans& active_gemm_plans,
     aima::NativeVlLogicalProjectionState& logical_projections,
     const std::filesystem::path& diagnostic_oracle_dir = {}) {
   if (prompt_tokens == 0 || prompt_tokens > kBucketTokens ||
@@ -283,7 +282,7 @@ Execution execute_layer0(
   aima::NativeLinearPrefillOracleOptions linear_options;
   linear_options.layer_index = 0;
   linear_options.use_vl_rmsnorm_semantics = true;
-  linear_options.active_tokens = 0;
+  linear_options.active_tokens = prompt_tokens;
   linear_options.comparison_tokens = prompt_tokens;
   linear_options.exact_b_projection_tokens =
       prompt_tokens <= 64 ? prompt_tokens : 0;
@@ -291,7 +290,7 @@ Execution execute_layer0(
   linear_options.run_output_projection_diagnostic = false;
   linear_options.collect_oracle_comparisons = false;
   linear_options.has_initial_state = false;
-  linear_options.gemm_plans = &active_gemm_plans;
+  linear_options.gemm_plans = &logical_projections.router_gemm_plans();
   linear_options.logical_ab_gemm_plan = &logical_projections.ab_plan();
   linear_options.logical_ab_weight = logical_projections.ab_weight(0);
   linear_options.logical_ab_output = logical_projections.ab_output();
@@ -301,12 +300,12 @@ Execution execute_layer0(
   moe_options.layer_index = 0;
   moe_options.use_vl_router_semantics = true;
   moe_options.use_vl_shared_expert_semantics = true;
-  moe_options.active_tokens = 0;
+  moe_options.active_tokens = prompt_tokens;
   moe_options.comparison_tokens = prompt_tokens;
   moe_options.seed_post_attention = false;
   moe_options.run_routing_diagnostic = false;
   moe_options.collect_oracle_comparisons = false;
-  moe_options.gemm_plans = &active_gemm_plans;
+  moe_options.gemm_plans = &logical_projections.router_gemm_plans();
   moe_options.logical_router_gemm_plans =
       &logical_projections.router_gemm_plans();
   if (!diagnostic_oracle_dir.empty()) {
@@ -358,7 +357,7 @@ Execution execute_layer0(
     seeded_moe_options.layer_index = 0;
     seeded_moe_options.use_vl_router_semantics = true;
     seeded_moe_options.use_vl_shared_expert_semantics = true;
-    seeded_moe_options.active_tokens = 0;
+    seeded_moe_options.active_tokens = prompt_tokens;
     seeded_moe_options.comparison_tokens = prompt_tokens;
     seeded_moe_options.seed_post_attention = true;
     seeded_moe_options.post_attention_h2_oracle_label = "diagnostic-h2";
@@ -366,7 +365,8 @@ Execution execute_layer0(
         "launch-009-residual_out";
     seeded_moe_options.run_routing_diagnostic = false;
     seeded_moe_options.collect_oracle_comparisons = false;
-    seeded_moe_options.gemm_plans = &active_gemm_plans;
+    seeded_moe_options.gemm_plans =
+        &logical_projections.router_gemm_plans();
     seeded_moe_options.logical_router_gemm_plans =
         &logical_projections.router_gemm_plans();
     seeded_moe_options.chain_output_oracle_dir = diagnostic_oracle_dir;
@@ -447,18 +447,17 @@ json qualify_case(
   if (!diagnostic_oracle_root.empty()) {
     diagnostic = execute_layer0(
         injected, prompt_tokens, device, weights, bindings, executor,
-        active_gemm_plans, logical_projections,
-        diagnostic_oracle_root / case_id);
+        logical_projections, diagnostic_oracle_root / case_id);
   }
   const Execution warmup = execute_layer0(
       injected, prompt_tokens, device, weights, bindings, executor,
-      active_gemm_plans, logical_projections);
+      logical_projections);
   std::vector<Execution> measured;
   measured.reserve(kMeasuredRuns);
   for (std::size_t run = 0; run < kMeasuredRuns; ++run) {
     measured.push_back(execute_layer0(
         injected, prompt_tokens, device, weights, bindings, executor,
-        active_gemm_plans, logical_projections));
+        logical_projections));
   }
   write_file(actual_output, measured.front().output);
   const Comparison comparison = compare_bf16(measured.front().output, expected);
