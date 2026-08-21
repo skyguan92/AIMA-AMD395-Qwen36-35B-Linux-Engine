@@ -1,0 +1,25 @@
+{"engine_role": "baseline", "event": "paired_prefix_run_start", "pair_index": 7, "pair_order": ["baseline", "candidate"], "sequence_index": 13}
+{"engine_role": "baseline", "event": "paired_prefix_run_complete", "pair_index": 7, "sequence_index": 13}
+{"engine_role": "candidate", "event": "paired_prefix_run_start", "pair_index": 7, "pair_order": ["baseline", "candidate"], "sequence_index": 14}
+{"engine_role": "candidate", "event": "paired_prefix_run_complete", "pair_index": 7, "sequence_index": 14}
+{"engine_role": "candidate", "event": "paired_prefix_run_start", "pair_index": 8, "pair_order": ["candidate", "baseline"], "sequence_index": 15}
+{"engine_role": "candidate", "event": "paired_prefix_run_complete", "pair_index": 8, "sequence_index": 15}
+{"engine_role": "baseline", "event": "paired_prefix_run_start", "pair_index": 8, "pair_order": ["candidate", "baseline"], "sequence_index": 16}
+{"engine_role": "baseline", "event": "paired_prefix_run_complete", "pair_index": 8, "sequence_index": 16}
+{"engine_role": "baseline", "event": "paired_prefix_run_start", "pair_index": 9, "pair_order": ["baseline", "candidate"], "sequence_index": 17}
+{"engine_role": "baseline", "event": "paired_prefix_run_complete", "pair_index": 9, "sequence_index": 17}
+{"engine_role": "candidate", "event": "paired_prefix_run_start", "pair_index": 9, "pair_order": ["baseline", "candidate"], "sequence_index": 18}
+{"engine_role": "candidate", "event": "paired_prefix_run_complete", "pair_index": 9, "sequence_index": 18}
+{"engine_role": "candidate", "event": "paired_prefix_run_start", "pair_index": 10, "pair_order": ["candidate", "baseline"], "sequence_index": 19}
+{"engine_role": "candidate", "event": "paired_prefix_run_complete", "pair_index": 10, "sequence_index": 19}
+{"engine_role": "baseline", "event": "paired_prefix_run_start", "pair_index": 10, "pair_order": ["candidate", "baseline"], "sequence_index": 20}
+{"engine_role": "baseline", "event": "paired_prefix_run_complete", "pair_index": 10, "sequence_index": 20}
+{"engine_role": "baseline", "event": "paired_prefix_run_start", "pair_index": 11, "pair_order": ["baseline", "candidate"], "sequence_index": 21}
+{"engine_role": "baseline", "event": "paired_prefix_run_complete", "pair_index": 11, "sequence_index": 21}
+{"engine_role": "candidate", "event": "paired_prefix_run_start", "pair_index": 11, "pair_order": ["baseline", "candidate"], "sequence_index": 22}
+{"engine_role": "candidate", "event": "paired_prefix_run_complete", "pair_index": 11, "sequence_index": 22}
+{"engine_role": "candidate", "event": "paired_prefix_run_start", "pair_index": 12, "pair_order": ["candidate", "baseline"], "sequence_index": 23}
+{"engine_role": "candidate", "event": "paired_prefix_run_complete", "pair_index": 12, "sequence_index": 23}
+{"engine_role": "baseline", "event": "paired_prefix_run_start", "pair_index": 12, "pair_order": ["candidate", "baseline"], "sequence_index": 24}
+{"engine_role": "baseline", "event": "paired_prefix_run_complete", "pair_index": 12, "sequence_index": 24}
+{"complete": true, "output": "/tmp/aima-native-vl-g3-50289f1/product-surfaces/surfaces.json", "qualified": true}

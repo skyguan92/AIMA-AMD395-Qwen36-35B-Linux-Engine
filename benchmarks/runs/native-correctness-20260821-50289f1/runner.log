@@ -1,0 +1,21 @@
+{"context_tokens": 1024, "event": "correctness_run_start", "oracle": "/tmp/native-q1024-frozen-uniform1-ref-v4/oracle/0001-return-final_logits-output.bin"}
+{"context_tokens": 1024, "event": "correctness_run_complete", "kl_divergence": 1.3813921765257257e-05, "top1_match": true}
+{"context_tokens": 2048, "event": "correctness_run_start", "oracle": "/tmp/native-q2048-frozen-uniform1-ref-v2/oracle/0001-return-final_logits-output.bin"}
+{"context_tokens": 2048, "event": "correctness_run_complete", "kl_divergence": 9.29836414976865e-05, "top1_match": true}
+{"context_tokens": 4096, "event": "correctness_run_start", "oracle": "/tmp/native-aot-q4096-uniform1-v1/oracle/0001-return-final_logits-output.bin"}
+{"context_tokens": 4096, "event": "correctness_run_complete", "kl_divergence": 3.132107477259805e-05, "top1_match": true}
+{"context_tokens": 8192, "event": "correctness_run_start", "oracle": "${AIMA_ORACLE_ROOT}/native-prefill-state-logits-oracle-q8192-v2/0051-return-final_logits-output.bin"}
+{"context_tokens": 8192, "event": "correctness_run_complete", "kl_divergence": 1.3992540995027699e-05, "top1_match": true}
+{"context_tokens": 16384, "event": "correctness_run_start", "oracle": "/tmp/native-q16384-oracle-uniform1-v2/oracle/0001-return-final_logits-output.bin"}
+{"context_tokens": 16384, "event": "correctness_run_complete", "kl_divergence": 0.0021737683334905086, "top1_match": true}
+{"context_tokens": 32768, "event": "correctness_run_start", "oracle": "/tmp/native-q32768-frozen-uniform1-ref-v2/oracle/0001-return-final_logits-output.bin"}
+{"context_tokens": 32768, "event": "correctness_run_complete", "kl_divergence": 0.0004924284303070451, "top1_match": true}
+{"context_tokens": 65536, "event": "correctness_run_start", "oracle": "/tmp/native-q65536-oracle-production-period-v1/oracle/0000-return-final_logits-output.bin"}
+{"context_tokens": 65536, "event": "correctness_run_complete", "kl_divergence": 4.572931279242872e-06, "top1_match": true}
+{"context_tokens": 131072, "event": "correctness_run_start", "oracle": "/tmp/native-q131072-oracle-production-period-v1/oracle/0000-return-final_logits-output.bin"}
+{"context_tokens": 131072, "event": "correctness_run_complete", "kl_divergence": 5.103597067484831e-06, "top1_match": true}
+{"context_tokens": 261632, "event": "correctness_run_start", "oracle": "/tmp/native-q261632-oracle-production-period-v1/oracle/0000-return-final_logits-output.bin"}
+{"context_tokens": 261632, "event": "correctness_run_complete", "kl_divergence": 1.1054594352961232e-05, "top1_match": true}
+{"completion_tokens": 128, "context_tokens": 8192, "event": "exact_completion_run_start"}
+{"completion_tokens": 128, "context_tokens": 8192, "event": "exact_completion_run_complete", "output_token_ids_sha256": "aa910692fd03ed4a8e89c04497751e3a28eee36c6148237f7e97c74a6dd68201"}
+{"case_count": 9, "complete": true, "output": "/tmp/aima-native-vl-g3-50289f1/correctness/correctness.json", "qualified": true}

@@ -31,27 +31,27 @@ ARTIFACT_PATHS = {
     "goal": ROOT / "docs/NATIVE_VL_GOAL.md",
     "correctness": (
         ROOT
-        / "benchmarks/runs/native-correctness-20260818-native-vl-final/correctness.json"
+        / "benchmarks/runs/native-correctness-20260821-50289f1/correctness.json"
     ),
     "doctor": (
         ROOT
-        / "benchmarks/runs/native-doctor-20260818-native-vl-final/doctor.json"
+        / "benchmarks/runs/native-doctor-20260821-50289f1/doctor.json"
     ),
     "openai_features": (
         ROOT
         / (
-            "benchmarks/runs/native-openai-features-20260818-native-vl-final/"
+            "benchmarks/runs/native-openai-features-20260821-50289f1/"
             "features.json"
         )
     ),
     "mmlu256": (
         ROOT
-        / "benchmarks/runs/native-mmlu256-eval-20260818-native-vl-final/mmlu256.json"
+        / "benchmarks/runs/native-mmlu256-eval-20260821-50289f1/mmlu256.json"
     ),
     "product_surfaces": (
         ROOT
         / (
-            "benchmarks/runs/native-product-surfaces-20260818-native-vl-final/"
+            "benchmarks/runs/native-product-surfaces-20260821-50289f1/"
             "surfaces.json"
         )
     ),
@@ -59,9 +59,12 @@ ARTIFACT_PATHS = {
         ROOT
         / (
             "benchmarks/runs/"
-            "native-paired-text-matrix-20260818-native-vl-final-v46-balanced6/"
+            "native-paired-text-matrix-20260821-50289f1-balanced6/"
             "matrix.json"
         )
+    ),
+    "paired_text_runner": (
+        ROOT / "scripts/qualify-native-paired-text-matrix.py"
     ),
     "generator": Path(__file__).resolve(),
 }
@@ -78,9 +81,9 @@ EXPECTED_CONTEXTS = (
     261632,
 )
 EXPECTED_BINARY_SHA256 = (
-    "99bd1e3f7f3248192c1309af27ecc4f9c696b6d2fa5d30fd8356bd33cb5b64d7"
+    "4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0"
 )
-EXPECTED_SOURCE_COMMIT = "91f7e8b300d87655f9cce6399519b284c1e5a978"
+EXPECTED_SOURCE_COMMIT = "50289f1cbae150997ca82bbc054635932a2721c3"
 EXPECTED_BASELINE_SHA256 = (
     "a9f18771175757af080c8a1d8d7e3fb3906c9aa41b43a496686103b626f80262"
 )
@@ -510,13 +513,13 @@ def check_doctor(payload: dict[str, Any]) -> tuple[dict[str, bool], dict[str, An
 
 def build_payload(
     artifact_paths: dict[str, Path] | None = None,
-    recorded_on: str = "2026-08-19",
+    recorded_on: str = "2026-08-21",
 ) -> dict[str, Any]:
     paths = ARTIFACT_PATHS if artifact_paths is None else artifact_paths
     payloads = {
         name: load_json_object(path)
         for name, path in paths.items()
-        if name not in {"goal", "generator"}
+        if name not in {"goal", "generator", "paired_text_runner"}
     }
     validators = {
         "correctness": check_correctness,
@@ -604,9 +607,9 @@ def build_payload(
             "g4_native_vl_performance": False,
             "g5_native_release_product": False,
             "next_blocking_boundary": (
-                "run the G4 VL diagnostic and any required optimization first, "
-                "then replay exact-source G1/G2/G3 evidence once on the final "
-                "engine before G4 and G5 release qualification"
+                "run and pass the frozen G4 paired VL performance protocol "
+                "against the fixed vLLM reference, preserving this exact-source "
+                "G1/G2/G3 evidence for G5 release qualification"
                 if qualified
                 else "complete every blocking G3 check"
             ),
@@ -634,7 +637,7 @@ def main() -> int:
     parser.add_argument(
         "--candidate-binary-sha256", default=EXPECTED_BINARY_SHA256
     )
-    parser.add_argument("--recorded-on", default="2026-08-19")
+    parser.add_argument("--recorded-on", default="2026-08-21")
     for name in (
         "correctness",
         "doctor",

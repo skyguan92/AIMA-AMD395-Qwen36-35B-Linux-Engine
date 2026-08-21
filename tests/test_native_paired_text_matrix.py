@@ -177,6 +177,46 @@ class NativePairedTextMatrixTest(unittest.TestCase):
                 paired.maximum_recorded_sequence_index(root), 110
             )
 
+    def test_resume_sanitizes_baseline_bundle_paths_without_rerunning(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = Path("/tmp/formal-baseline/bundle")
+            engine = bundle / "libexec/aima-engine.real"
+            report = paired.report_path(
+                root, 1024, (512, 1024), 1, "baseline"
+            )
+            report.parent.mkdir(parents=True)
+            report.write_text(
+                json.dumps(
+                    {
+                        "load": {
+                            "fmha_provider_path": str(
+                                bundle / "lib/libaima-fmha-ck.so"
+                            )
+                        },
+                        "qualification": {"command": [str(engine)]},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            paired.sanitize_role_reports(
+                root,
+                (
+                    (str(engine), "${AIMA_BASELINE_ENGINE}"),
+                    (str(bundle), "${AIMA_BASELINE_RUNTIME_ROOT}"),
+                ),
+            )
+            sanitized = json.loads(report.read_text(encoding="utf-8"))
+            self.assertEqual(
+                sanitized["qualification"]["command"],
+                ["${AIMA_BASELINE_ENGINE}"],
+            )
+            self.assertEqual(
+                sanitized["load"]["fmha_provider_path"],
+                "${AIMA_BASELINE_RUNTIME_ROOT}/lib/libaima-fmha-ck.so",
+            )
+            self.assertNotIn("/tmp/", report.read_text(encoding="utf-8"))
+
     def write_pairs(
         self,
         root: Path,

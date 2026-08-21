@@ -5,8 +5,8 @@
     "source_commit": "65c198415709dad6d046c247acab3dc9df2a95a0"
   },
   "candidate": {
-    "binary_sha256": "99bd1e3f7f3248192c1309af27ecc4f9c696b6d2fa5d30fd8356bd33cb5b64d7",
-    "source_commit": "91f7e8b300d87655f9cce6399519b284c1e5a978"
+    "binary_sha256": "4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0",
+    "source_commit": "50289f1cbae150997ca82bbc054635932a2721c3"
   },
   "checks": {
     "correctness": {
@@ -80,23 +80,23 @@
     "g3_text_product_no_regression": true,
     "g4_native_vl_performance": false,
     "g5_native_release_product": false,
-    "next_blocking_boundary": "run the G4 VL diagnostic and any required optimization first, then replay exact-source G1/G2/G3 evidence once on the final engine before G4 and G5 release qualification"
+    "next_blocking_boundary": "run and pass the frozen G4 paired VL performance protocol against the fixed vLLM reference, preserving this exact-source G1/G2/G3 evidence for G5 release qualification"
   },
   "inputs": {
     "correctness": {
       "bytes": 10003,
-      "path": "benchmarks/runs/native-correctness-20260818-native-vl-final/correctness.json",
-      "sha256": "401659a914469e11d20582761c3403a6160528de5faa84d6a008629b94d72d05"
+      "path": "benchmarks/runs/native-correctness-20260821-50289f1/correctness.json",
+      "sha256": "af784070abd8709c8f2df6f07de71fbc9e4e6fa9599cdc8c2ec41a2eb7e9c406"
     },
     "doctor": {
       "bytes": 4594,
-      "path": "benchmarks/runs/native-doctor-20260818-native-vl-final/doctor.json",
-      "sha256": "26098d80588913586a52dba1ab1a2016fe2c0d2317e267fdf13807cb0d6358ca"
+      "path": "benchmarks/runs/native-doctor-20260821-50289f1/doctor.json",
+      "sha256": "9422856c3ea73a9a4d24b3c2b262609f90895f44da30d2984e32f2786274d00c"
     },
     "generator": {
-      "bytes": 23350,
+      "bytes": 25721,
       "path": "scripts/generate-native-vl-g3-qualification.py",
-      "sha256": "a1c3d15a27c5963028af0b0af5a7b9dd6266762e007ce7bba2156dd5c18c5866"
+      "sha256": "5e2f067dd6bf162796c907c7210edd2e4d0d74217254efd847ede47a9dc6768d"
     },
     "goal": {
       "bytes": 18354,
@@ -104,32 +104,37 @@
       "sha256": "4884803ea4c74a3082d949646ad31684536e672a39e229da796589009b0d212c"
     },
     "mmlu256": {
-      "bytes": 310285,
-      "path": "benchmarks/runs/native-mmlu256-eval-20260818-native-vl-final/mmlu256.json",
-      "sha256": "e7115148ec991af412667c9ba37bfb93f52ef6b925f5735a00127816374bbf08"
+      "bytes": 310283,
+      "path": "benchmarks/runs/native-mmlu256-eval-20260821-50289f1/mmlu256.json",
+      "sha256": "26b2aa2c84640667a1cc2d5004771309648f9a42e692e0a35447f0b274470880"
     },
     "openai_features": {
-      "bytes": 21190,
-      "path": "benchmarks/runs/native-openai-features-20260818-native-vl-final/features.json",
-      "sha256": "345c8b542e49fbc9e95591cb01397be58cea4d873b8404bfbf60ee6e76583df3"
+      "bytes": 23953,
+      "path": "benchmarks/runs/native-openai-features-20260821-50289f1/features.json",
+      "sha256": "aa38692ed156d889c051f7fd1511bcfb4101eec44b9cb4686aa90f69441fc1cc"
     },
     "paired_text_matrix": {
-      "bytes": 223448,
-      "path": "benchmarks/runs/native-paired-text-matrix-20260818-native-vl-final-v46-balanced6/matrix.json",
-      "sha256": "f40a188b4a4d10fb456a1eb697b238c7deb8b0d3619f99783fd5847ca035d1b0"
+      "bytes": 223521,
+      "path": "benchmarks/runs/native-paired-text-matrix-20260821-50289f1-balanced6/matrix.json",
+      "sha256": "22ec7040f3afe705e05a3377a6c91b0394721c0d21edad0857f8684255dcd928"
+    },
+    "paired_text_runner": {
+      "bytes": 43408,
+      "path": "scripts/qualify-native-paired-text-matrix.py",
+      "sha256": "57947019f1b6d8da3644a15f4a5b73401a608765cb25c005cdc845ab96cb5814"
     },
     "product_surfaces": {
-      "bytes": 11310,
-      "path": "benchmarks/runs/native-product-surfaces-20260818-native-vl-final/surfaces.json",
-      "sha256": "102fb25a117d2c2e98a8934e7e4b5d0da61701a73adbc294b5cf07d2d379d25a"
+      "bytes": 20983,
+      "path": "benchmarks/runs/native-product-surfaces-20260821-50289f1/surfaces.json",
+      "sha256": "3211b08492c72018cb34312a60f30458bd824a4487f583a350f3256f78eef6b3"
     }
   },
   "integrity": {
     "algorithm": "sha256",
-    "canonical_payload_sha256": "520097e1436d5e1f900af5a89cfd9ae32a6df29e57980af334dfde09a236f69c"
+    "canonical_payload_sha256": "a429056bc6558fab05deb3cd95b3d2852c0b9dd7c130fa61d48326f504b98dba"
   },
   "qualified": true,
-  "recorded_on": "2026-08-19",
+  "recorded_on": "2026-08-21",
   "schema": "aima-amd395-qwen36/text-v151-nonregression/v1",
   "scope": "NATIVE_VL_GOAL.md G3 exact-binary text product no-regression",
   "summaries": {
@@ -174,17 +179,17 @@
     },
     "paired_text_matrix": {
       "cell_count": 19,
-      "maximum_total_wall_candidate_over_baseline": 0.9902703643424347,
-      "minimum_decode_tps_candidate_over_baseline": 1.0089887130948163,
+      "maximum_total_wall_candidate_over_baseline": 0.987898733224011,
+      "minimum_decode_tps_candidate_over_baseline": 1.011165607426609,
       "minimum_pair_count": 6,
-      "minimum_prefill_tps_candidate_over_baseline": 1.0031282016047185,
-      "q8192_candidate_command_to_ready_median_ms": 40356.5707445
+      "minimum_prefill_tps_candidate_over_baseline": 1.0100010533257713,
+      "q8192_candidate_command_to_ready_median_ms": 38359.5011065
     },
     "product_surfaces": {
-      "prefix_decode_retention_candidate_over_baseline": 1.0003603600330426,
-      "prefix_pair_count": 5,
-      "prefix_ttft_speedup_candidate_over_baseline": 2.906077155268618,
-      "startup_command_to_ready_median_ms": 39324.177083
+      "prefix_decode_retention_candidate_over_baseline": 1.0000604095736452,
+      "prefix_pair_count": 12,
+      "prefix_ttft_speedup_candidate_over_baseline": 2.924273331970549,
+      "startup_command_to_ready_median_ms": 36302.374338
     }
   }
 }

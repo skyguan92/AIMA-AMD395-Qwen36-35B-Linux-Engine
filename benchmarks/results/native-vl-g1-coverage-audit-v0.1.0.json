@@ -1,19 +1,12 @@
 {
   "audited_on": "2026-08-21",
-  "blocking_gaps": [
-    {
-      "gaps": [
-        "the complete G3 text and release no-regression protocol has not run"
-      ],
-      "requirement_id": "G1.2.3.product_preservation"
-    }
-  ],
+  "blocking_gaps": [],
   "complete": true,
   "coverage": {
     "counts": {
-      "covered": 13,
+      "covered": 14,
       "missing": 0,
-      "partial": 1
+      "partial": 0
     },
     "items": [
       {
@@ -435,13 +428,15 @@
           {
             "artifact": "resident_serving",
             "note": "native-only launch, one model load and prefix behavior"
+          },
+          {
+            "artifact": "text_v151_nonregression",
+            "note": "exact-candidate G3 requalification covers text correctness, MMLU-256, OpenAI surfaces, startup, prefix cache, doctor, memory and the frozen 19-cell release comparison"
           }
         ],
-        "gaps": [
-          "the complete G3 text and release no-regression protocol has not run"
-        ],
+        "gaps": [],
         "requirement_id": "G1.2.3.product_preservation",
-        "status": "partial",
+        "status": "covered",
         "title": "Existing text, API, security, startup and cache product behavior"
       },
       {
@@ -535,14 +530,14 @@
   "decision": {
     "all_referenced_cases_qualified": true,
     "audit_complete": true,
-    "coverage_complete": false,
+    "coverage_complete": true,
     "current_head_processor_to_output_qualified": true,
-    "g1_passed": false,
+    "g1_passed": true,
     "g2_passed": true,
-    "g3_passed": false,
+    "g3_passed": true,
     "g4_passed": false,
     "g5_passed": false,
-    "new_evidence_required": true,
+    "new_evidence_required": false,
     "twelve_long_greedy_cases_reference_exact": true,
     "twelve_task_quality_cases_qualified": true
   },
@@ -588,9 +583,9 @@
       "sha256": "954c6e55389cd90390cb517224df14719f2556555ce7bf44571cae1ad1812888"
     },
     "generator": {
-      "bytes": 45819,
+      "bytes": 47807,
       "path": "scripts/generate-native-vl-g1-coverage-audit.py",
-      "sha256": "a86b623df3c264be79bc2ea288cc254133fa99f19bf5ddd75178b1bd7119064d"
+      "sha256": "6e608191015da47731711b750ff47ffdcceea8dcc4ebe8ec3a201bf750991c0d"
     },
     "goal": {
       "bytes": 18354,
@@ -647,6 +642,11 @@
       "path": "benchmarks/results/vl-task-quality-reference-v0.1.0.json",
       "sha256": "51b3d95e3ce420584d765350bfe6b73f76d5786a8d9d629cf7c3e69ac11b8bce"
     },
+    "text_v151_nonregression": {
+      "bytes": 6586,
+      "path": "benchmarks/results/text-v151-nonregression-v0.1.0.json",
+      "sha256": "96346a7cbc55dc7609eceaca84606eb2706a8ede3a27ca5f57a66b0ce0626784"
+    },
     "transport_cache_native": {
       "bytes": 233971,
       "path": "benchmarks/results/native-vl-transport-cache-v0.1.0.json",
@@ -665,20 +665,10 @@
   },
   "integrity": {
     "algorithm": "sha256",
-    "canonical_payload_sha256": "0974d65b8c6c4e56fd0d12c79de466be9a3d7559dc884c8bf62fb0a9cd7d1170"
+    "canonical_payload_sha256": "101f5f631634ef99d6d26e313ee195b6eb9248a11a5fc74b25471af77cf7081b"
   },
-  "next_evidence": [
-    {
-      "cases": [
-        "complete_g3_text_nonregression"
-      ],
-      "evidence_id": "g3-requalification",
-      "requirement_ids": [
-        "G1.2.3.product_preservation"
-      ]
-    }
-  ],
-  "qualified": false,
+  "next_evidence": [],
+  "qualified": true,
   "schema": "aima-amd395-qwen36/native-vl-g1-coverage-audit/v1",
   "scope": "goal-sections-2.1-through-2.4-requirement-to-evidence"
 }

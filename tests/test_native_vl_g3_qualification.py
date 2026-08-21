@@ -13,9 +13,13 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts/generate-native-vl-g3-qualification.py"
 RESULT = ROOT / "benchmarks/results/text-v151-nonregression-v0.1.0.json"
 RESULT_SIDECAR = RESULT.with_name(RESULT.name + ".sha256")
-QUALIFIED_COMMIT = "91f7e8b300d87655f9cce6399519b284c1e5a978"
+PAIRED_MATRIX_ROOT = (
+    ROOT
+    / "benchmarks/runs/native-paired-text-matrix-20260821-50289f1-balanced6"
+)
+QUALIFIED_COMMIT = "50289f1cbae150997ca82bbc054635932a2721c3"
 QUALIFIED_BINARY_SHA256 = (
-    "99bd1e3f7f3248192c1309af27ecc4f9c696b6d2fa5d30fd8356bd33cb5b64d7"
+    "4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0"
 )
 BASELINE_COMMIT = "65c198415709dad6d046c247acab3dc9df2a95a0"
 BASELINE_BINARY_SHA256 = (
@@ -228,6 +232,18 @@ class NativeVlG3QualificationTest(unittest.TestCase):
         serialized = self.payload.decode("utf-8")
         for prefix in ("/home/", "/Users/", "/data/", "/tmp/"):
             self.assertNotIn(f'"{prefix}', serialized)
+
+    def test_paired_raw_tree_contains_no_private_machine_paths(self) -> None:
+        self.assertTrue(PAIRED_MATRIX_ROOT.is_dir())
+        files = [
+            path for path in PAIRED_MATRIX_ROOT.rglob("*") if path.is_file()
+        ]
+        self.assertGreater(len(files), 0)
+        for path in files:
+            payload = path.read_bytes()
+            with self.subTest(path=path.relative_to(ROOT)):
+                for prefix in (b"/home/", b"/Users/", b"/data/", b"/tmp/"):
+                    self.assertNotIn(prefix, payload)
 
 
 if __name__ == "__main__":

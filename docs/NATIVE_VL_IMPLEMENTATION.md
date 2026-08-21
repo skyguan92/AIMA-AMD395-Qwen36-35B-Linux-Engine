@@ -18,13 +18,13 @@ blocking condition in the governing goal can move a gate to `passed`.
 
 | Gate | Current state | Evidence required to pass | Next blocking action |
 |---|---|---|---|
-| G1 full VL functional parity | 13/14 requirement groups are covered on the single formal candidate: the 30-case API surface, 23/23 execution envelope, mixed/conversation, transport/cache, error/limit, deterministic generation and all 12 long task-quality cases are qualified; G2 is complete | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results plus product preservation | run and pass the complete G3 text/release no-regression protocol, the sole remaining product-preservation group |
-| G2 VL correctness parity | **passed** on the formal candidate: five visual cases pass block 0/13/26 plus merger (`6,856,704/6,856,704` exact), and five private plus five independently rendered HTTP language cases pass `84/84` full-vocabulary rows with top-1 exact, KLD `0`, `20,858,880` selected logits exact and `2,420,736` final-norm elements exact | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | none; preserve the sealed evidence while completing G3–G5 |
-| G3 text product no regression | the exact portable `v1.5.1` executable is retained as an immutable paired baseline and the formal `50289f1` candidate is frozen; prior diagnostic candidates established the protocol but are not promotion evidence | paired 19-cell, maximum-window, correctness, MMLU, API, cache, startup and memory requalification | run the single authoritative protocol against the exact formal candidate and retained release baseline |
+| G1 full VL functional parity | **passed** on the single formal candidate: all `14/14` requirement groups are covered, with no partial or missing group; the sealed audit binds the complete VL surface plus the passed G2 and G3 product-preservation records | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results plus product preservation | none; preserve the sealed G1–G3 evidence while completing G4–G5 |
+| G2 VL correctness parity | **passed** on the formal candidate: five visual cases pass block 0/13/26 plus merger (`6,856,704/6,856,704` exact), and five private plus five independently rendered HTTP language cases pass `84/84` full-vocabulary rows with top-1 exact, KLD `0`, `20,858,880` selected logits exact and `2,420,736` final-norm elements exact | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | none; preserve the sealed evidence while completing G4–G5 |
+| G3 text product no regression | **passed** on the exact formal `50289f1` candidate against the retained portable `v1.5.1` baseline: all 19 frozen cells pass six balanced pairs, startup passes, and correctness, MMLU-256, OpenAI, cache/product and doctor/memory requalification all pass | paired 19-cell, maximum-window, correctness, MMLU, API, cache, startup and memory requalification | none; preserve the sealed G1–G3 evidence while completing G4–G5 |
 | G4 native VL performance | the 23-cell native execution envelope now records per-request stage timings, but it is a single candidate qualification rather than paired performance evidence | paired per-cell stage timings and memory records against the fixed VL-enabled vLLM | run the same frozen cells with the alternating paired vLLM/candidate timing protocol |
 | G5 native release product | the full runtime includes all qualified vision sources, loads the 333 visual tensors in one resident native process and survives the complete execution envelope; the general vision-attention code object remains an external hash-checked package artifact and the dense-image variant is hash-checked inside the embedded AOT registry, but final package qualification has not run | native-only package, security, isolated bundle, second-host, soak and rollback evidence | generate a clean product qualification containing both bound vision variants, then run isolated bundle, second-host, soak and rollback gates |
 
-## Formal G1/G2 requalification (2026-08-21)
+## Formal G1/G2/G3 requalification (2026-08-21)
 
 Every current promotion artifact binds clean source commit
 `50289f1cbae150997ca82bbc054635932a2721c3` and native binary SHA-256
@@ -59,25 +59,26 @@ rows.
 
 The first requirement-to-evidence audit is sealed at
 `benchmarks/results/native-vl-g1-coverage-audit-v0.1.0.json`, SHA-256
-`cc8f204e203a3f3eb40562d1311782e2fb1b3ea4e7dc36a092e3579e99102bda`.
+`15f8d99b01198a1fd9a859e51c808922ccd93a24c93541d888d6b8fafbf1ee72`.
 It binds the governing goal, frozen reference surface, native 30-case surface,
 23-cell execution result, resident-serving/cache evidence, visual pipeline,
 language boundary, the new mixed/conversation reference/native pair,
 the verified-HTTPS/sampling/cache reference/native pair, the image-I/O and
 error/limit reference/native evidence, the long task-quality pair, the
 generation/layer/prefill-state oracle closure, the current-HEAD native
-generation result, cache-identity unit contract and its generator.
+generation result, cache-identity unit contract, the exact-candidate G3 text
+product record and its generator.
 
-The audit deliberately does not promote G1 yet. Thirteen of fourteen
-requirement groups are fully covered, no group is missing, and G2 is passed.
-The sole partial group is `G1.2.3.product_preservation`: the complete G3 text
-and release no-regression protocol has not yet run on the formal candidate.
+The regenerated audit promotes G1. All fourteen requirement groups are fully
+covered, no group is partial or missing, and its content-bound decisions mark
+G1, G2 and G3 passed. `G1.2.3.product_preservation` is closed by the formal
+G3 text/release no-regression record below.
 
 This replaces the ambiguous instruction to “add more coverage” with named
 cases and preserves every existing passing observation as evidence rather
 than rerunning it without closing a gap.
 
-## G3 paired text protocol (2026-08-16)
+## G3 paired text qualification (2026-08-21)
 
 `scripts/qualify-native-paired-text-matrix.py` converts the G3 performance
 language into an executable fail-closed protocol. It binds both executables by
@@ -105,9 +106,9 @@ The runner writes a partial aggregate after every pair and resumes only raw
 records whose engine hash, role, pair index, order, context and output sequence
 still match. A final aggregate cannot pass when any one of the nineteen cells,
 startup, identity, or text-path checks fails. The script and its threshold
-semantics are covered by `tests/test_native_paired_text_matrix.py`. This is a
-replayable methodology artifact, not G3 evidence; G3 remains false until the
-live matrix and every other blocking text/release gate pass.
+semantics are covered by `tests/test_native_paired_text_matrix.py`. The runner
+is itself content-bound by the sealed result, and the formal live matrix below
+supplies the promotion evidence.
 
 The candidate runtime binding covers all product-selected attention artifacts:
 the short-context AOTriton provider and its exact runtime/image closure, the
@@ -119,6 +120,38 @@ context routing and could benchmark AOTriton at q8192 or long context instead
 of the actual product path. Each candidate raw record binds a digest of that
 runtime closure and policy, so `--resume` cannot reuse an older run made with
 the same engine binary but a different provider selection.
+
+### Formal G3 result
+
+The sealed decision is
+`benchmarks/results/text-v151-nonregression-v0.1.0.json`, SHA-256
+`96346a7cbc55dc7609eceaca84606eb2706a8ede3a27ca5f57a66b0ce0626784`.
+It binds candidate source
+`50289f1cbae150997ca82bbc054635932a2721c3` and binary SHA-256
+`4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0`
+against the retained `v1.5.1` baseline source
+`65c198415709dad6d046c247acab3dc9df2a95a0` and binary SHA-256
+`a9f18771175757af080c8a1d8d7e3fb3906c9aa41b43a496686103b626f80262`.
+All four cross-evidence identity/host checks and all 45 blocking checks pass.
+
+The paired matrix covers all 19 frozen cells with six alternating adjacent
+pairs per cell. Every per-cell paired and historical-floor check passes. The
+worst aggregate boundaries are `1.0100010533x` minimum prefill throughput,
+`1.0111656074x` minimum decode throughput and `0.9878987332x` maximum
+candidate/baseline total wall time. The q8192 candidate startup median is
+`38,359.501107 ms`, below the fixed `44,900 ms` ceiling. All 132 unique role
+reports have continuous execution sequence numbers, empty stderr and a valid
+report/load/stderr hash chain; the retained tree contains no private machine
+paths.
+
+The five companion gates also pass: nine-context correctness has top-1 exact
+at every context, maximum KLD `0.0021737683` and an exact 128-token q8192
+completion; MMLU-256 scores `218/256` versus the frozen reference's `216/256`
+with zero invalid answers and `256/256` prompt hashes; the OpenAI feature run
+serves all 14 requests in one model load with every text path idle; product
+surfaces pass 12 prefix pairs, startup, memory and cache checks; and doctor
+passes all `13/13` required checks. G3 is therefore passed, and G4 is the next
+blocking gate.
 
 ### Text/VL arithmetic isolation
 
@@ -226,8 +259,9 @@ q1024 record is under
 `benchmarks/runs/native-correctness-q1024-20260817-q1024-split-v33/`; the raw
 q32768 diagnostic and hash-bound summary are under
 `benchmarks/runs/native-paired-q32768-20260817-q1024-split-v33/`. This closes
-that diagnostic cell only. The official final-binary 19-cell run and the
-remaining G3 gates are still blocking. The structural contract is covered by
+that diagnostic cell only. At that diagnostic point, the official final-binary
+19-cell run and the other G3 gates had not yet run; the later formal G3 result
+supersedes that boundary. The structural contract is covered by
 `tests/test_native_text_closure_isolation.py`.
 
 The separately owned tail must also survive serial switching between the two
@@ -372,8 +406,8 @@ All raw shape/byte/SHA-256 records were independently reread on `amd395`; the
 manifest contains no target-private paths. The manifest SHA-256 is
 `87dcdf76b7251f78da01a2a5f4312a9fb5c7d07a1ca2b2420566e77930f23d44` and
 was captured from clean commit `09e3fac8a07d9e5884007f0afdf46fb6603ae78d`.
-This closes oracle creation only; G2 remains blocked on native comparison,
-task-quality suites and error parity.
+That checkpoint closed oracle creation only; G2 was still blocked then on
+native comparison, task-quality suites and error parity.
 
 ## Phase 1 implementation evidence
 
@@ -468,8 +502,9 @@ bounded batches with exact patch and embedding offsets; requests at or below
 batch count and maximum batch token/patch counts so qualification can prove
 the bound directly. The full 262,144-image cell is explicitly
 processor/vision-only because an HTTP request also needs text and wrapper
-headroom. These source and CPU boundary checks are not target execution
-evidence; all 23 cells still must run before G1 or G2 can pass.
+headroom. These source and CPU boundary checks were not target execution
+evidence; at that checkpoint all 23 cells still had to run before G1 or G2
+could pass.
 
 A checked-in 16-file deterministic media corpus now makes that execution plan
 replayable without synthesizing inputs on the target. Its sealed manifest is
@@ -513,8 +548,8 @@ automatic CK-primary plus terminal-AOTriton policy. Processor, vision and
 server checks all passed with empty stderr. The sealed
 artifact is `benchmarks/results/native-vl-envelope-v0.1.0.json`, SHA-256
 `8585411f5d2178d6bd627f84143b041c3951e4e1eaf073e0294484572d7e67b3`.
-This closes the execution-envelope subgate only and does not itself pass G1,
-G2, G3, G4 or G5.
+That record closed the execution-envelope subgate only and did not by itself
+pass G1, G2, G3, G4 or G5.
 
 The first full-window HTTP attempt also exposed a launch-geometry bug that the
 original 81-token unified-attention capture could not reveal. Timeline-mode
@@ -633,7 +668,8 @@ bit-for-bit across 1,105,920 BF16 elements; duplicated-media concatenation and
 zero-input in-place addition each matched another 2,211,840 elements exactly.
 The corrected result is
 `benchmarks/results/native-vision-position-v0.2.0.json`. The 27 vision blocks,
-merger and serving integration remain incomplete, so neither G1 nor G2 passes.
+merger and serving integration were still incomplete at that checkpoint, so
+neither G1 nor G2 passed then.
 
 Vision block development now has a serving-path internal oracle rather than a
 standalone mathematical replay. A clean `23ddda5` full-model run hooked block 0
@@ -658,8 +694,8 @@ cases, LayerNorm had relative L2 error at most `1.37e-5` and cosine above
 `0.9999999984`. All 1,769,472 compared BF16 elements were finite. The hash-bound
 record is `benchmarks/results/native-vision-block-prefix-v0.1.0.json`.
 Attention, the projection/residual and MLP half of each block, blocks 13/26,
-the merger and serving integration remain unqualified, so neither G1 nor G2
-passes.
+the merger and serving integration were still unqualified at that checkpoint,
+so neither G1 nor G2 passed then.
 
 The following Q/K rotary and QKV-layout boundary is also native and qualified.
 The frozen ROCm reference uses FlashAttention's Triton Neox rotary kernel with
@@ -813,7 +849,8 @@ prompt-position boundary and implements the decode-position formula. Language
 layer 0 is a linear-attention layer and does not consume rotary positions; the
 first consumer is the full-attention layer 3. Its isolated table and Q/K
 boundary is now qualified below, while resident integration and the complete
-layer remain blocking. G1 and G2 therefore remain false.
+layer were still blocking at that checkpoint. G1 and G2 therefore remained
+false at that point; the later formal requalification supersedes that status.
 
 The first resident language compute boundary is qualified at the actual
 product geometry. A clean `85fa597` worktree executes the complete q1024
@@ -890,8 +927,9 @@ This closes the isolated layer-3 position-table and Q/K-consumption boundary,
 not the complete layer. The resident q1024 request path still must upload and
 bind the plan, layers 0 through 3 must be composed in one request, and layer-3
 causal attention, output projection, residual and MoE must pass before moving
-to the remaining language layers, final norm, lm_head and logits. G3 paired
-text qualification and G4 serving performance also remain blocking.
+to the remaining language layers, final norm, lm_head and logits. At that
+checkpoint G3 paired text qualification and G4 serving performance were also
+blocking; the formal evidence now closes G1–G3, while G4 remains current.
 
 `native_media_test` and `native_chat_protocol_test` both compile with strict
 warnings and pass on `amd395`. This is implementation progress, not G1 or G2
@@ -1018,8 +1056,8 @@ reported no Python/Torch/vLLM/Triton runtime and wrote zero stderr bytes. The
 sealed native result is
 `benchmarks/results/native-vl-g1-extension-v0.1.0.json`, SHA-256
 `47cb7322a5d72e48137fa9ecee68db92edf091636151d28642bf9fb4609d284d`.
-This closes the mixed, conversation and OpenAI API coverage groups without
-promoting G1 or any later gate.
+That record closed the mixed, conversation and OpenAI API coverage groups
+without by itself promoting G1 or any later gate.
 
 Clean commit `82fc48f7d4a0af1f1b30e9abfd26d78f73780715` then closed the
 request-level video sampling mismatch exposed by the frozen vLLM source. A
@@ -1061,8 +1099,8 @@ the corrupt-video error status/payload. Both servers had empty stderr and
 reported no Python, Torch, vLLM or Triton runtime. The sealed result is
 `benchmarks/results/native-vl-transport-cache-v0.1.0.json`, SHA-256
 `d7a9d9eb4109282259246fe70caafd90abee53c5cc7580d7eacb83c5655f7cfb`.
-This promotes only the transport, cache-identity and cache-invariance audit
-groups; G1 and every later gate remain false.
+That checkpoint promoted only the transport, cache-identity and
+cache-invariance audit groups; G1 and every later gate were still false then.
 
 Clean implementation commit `5339e1d7f71960e175ce17e97012751238057675`
 then completed the frozen image-I/O and merge semantics. RGBA images composite
@@ -1124,8 +1162,9 @@ provider-only staging directory from silently selecting an incomplete runtime
 through host search paths.
 
 The capability result keeps two usage views instead of conflating product
-contracts. `vl_reference_usage_exact` is the blocking G1/G2 comparison for
-requests carrying image/video/mixed surfaces. The all-surface diagnostic also
+contracts. `vl_reference_usage_exact` was the blocking G1/G2 comparison for
+requests carrying image/video/mixed surfaces and is now satisfied. The
+all-surface diagnostic also
 includes the two text-only residency sentinels. The fixed vLLM VL server leaves
 thinking enabled for those sentinels (15/18 prompt tokens), while the immutable
 `v1.5.1` text product disables thinking (17/20 prompt tokens). Changing native
@@ -1153,10 +1192,10 @@ directly and the embedded variant through the native binary and registry
 manifest. These records close the frozen API/render,
 deterministic-resident-serving and min/typical/max execution-envelope slices.
 The task-quality and deterministic-generation slices are closed by the
-12-case and current-candidate results below. Complete text no-regression,
-paired performance, portable-package, second-host, soak and rollback
-qualifications remain blocking. G2 is passed; G1 awaits G3 product
-preservation, and G3 through G5 remain false.
+12-case and current-candidate results below. Complete text no-regression is now
+sealed. Paired VL performance, portable-package, second-host, soak and
+rollback qualifications remain blocking. G1 through G3 are passed; G4 and G5
+remain false.
 
 Generation attribution now binds time as well as tensor identity. Each layer
 capture writes the full-vocabulary FP32 rows for both its target output index
@@ -1241,8 +1280,8 @@ The sealed result is
 Task quality and deterministic generation parity remain separate contracts.
 Prompt vectors, finish reasons, usage, generated content and output-token
 vectors are now exact for all `12/12` cases. The task-quality and long-greedy
-reference-exact decisions are both qualified. G1 remains pending only because
-the G3 product-preservation protocol has not run.
+reference-exact decisions are both qualified. This evidence feeds the sealed
+coverage audit; after the formal G3 product-preservation pass, G1 is passed.
 
 ## Current-HEAD processor-to-output qualification (2026-08-16)
 
@@ -1272,5 +1311,5 @@ The sealed result is
 `e6f79c105ba669f9a2c1d5c037bbe06d106d66235254c7ebb45282d9d5b74c8b`.
 It sets `g1_generation_closed=true` for the two frozen tool divergences and
 closes the audit's current-HEAD model-semantics gap. The separate long-greedy
-task-quality replay is also `12/12` exact; only G3 product preservation now
-blocks G1.
+task-quality replay is also `12/12` exact. The formal product-preservation
+record now closes G3 and G1; G4 is the next blocking gate.

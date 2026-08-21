@@ -95,12 +95,12 @@ class NativeVlG1CoverageAuditTest(unittest.TestCase):
             "aima-amd395-qwen36/native-vl-g1-coverage-audit/v1",
         )
         self.assertTrue(result["complete"])
-        self.assertFalse(result["qualified"])
+        self.assertTrue(result["qualified"])
         coverage = result["coverage"]
         self.assertEqual(coverage["requirements"], 14)
         self.assertEqual(
             coverage["counts"],
-            {"covered": 13, "partial": 1, "missing": 0},
+            {"covered": 14, "partial": 0, "missing": 0},
         )
         items = coverage["items"]
         self.assertEqual(len(items), len({item["requirement_id"] for item in items}))
@@ -110,7 +110,7 @@ class NativeVlG1CoverageAuditTest(unittest.TestCase):
                 for item in items
             )
         )
-        self.assertEqual(len(result["blocking_gaps"]), 1)
+        self.assertEqual(result["blocking_gaps"], [])
 
     def test_referenced_native_cases_exist_and_are_qualified(self) -> None:
         native = json.loads(
@@ -194,35 +194,23 @@ class NativeVlG1CoverageAuditTest(unittest.TestCase):
                     case = case_maps[record["artifact"]][case_id]
                     self.assertTrue(case["qualified"], case_id)
 
-    def test_next_evidence_names_every_blocking_workstream(self) -> None:
-        expected = {
-            "g3-requalification",
-        }
-        self.assertEqual(
-            {item["evidence_id"] for item in self.result["next_evidence"]},
-            expected,
-        )
-        covered = {
-            requirement_id
-            for item in self.result["next_evidence"]
-            for requirement_id in item["requirement_ids"]
-        }
-        blocked = {
-            item["requirement_id"] for item in self.result["blocking_gaps"]
-        }
-        self.assertEqual(covered, blocked)
+    def test_no_blocking_workstream_remains(self) -> None:
+        self.assertEqual(self.result["next_evidence"], [])
+        self.assertEqual(self.result["blocking_gaps"], [])
 
-    def test_audit_promotes_only_the_closed_g2_gate(self) -> None:
+    def test_audit_promotes_closed_g1_g2_and_g3_gates(self) -> None:
         decision = self.result["decision"]
         self.assertTrue(decision["audit_complete"])
         self.assertTrue(decision["all_referenced_cases_qualified"])
         self.assertTrue(decision["current_head_processor_to_output_qualified"])
         self.assertTrue(decision["twelve_task_quality_cases_qualified"])
         self.assertTrue(decision["twelve_long_greedy_cases_reference_exact"])
-        self.assertFalse(decision["coverage_complete"])
-        self.assertTrue(decision["new_evidence_required"])
+        self.assertTrue(decision["coverage_complete"])
+        self.assertFalse(decision["new_evidence_required"])
+        self.assertTrue(decision["g1_passed"])
         self.assertTrue(decision["g2_passed"])
-        for gate in ("g1_passed", "g3_passed", "g4_passed", "g5_passed"):
+        self.assertTrue(decision["g3_passed"])
+        for gate in ("g4_passed", "g5_passed"):
             self.assertFalse(decision[gate])
 
     def test_audit_contains_no_private_machine_paths(self) -> None:

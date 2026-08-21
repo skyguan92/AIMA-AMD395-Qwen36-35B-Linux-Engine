@@ -108,6 +108,22 @@ def publicize(value: Any, replacements: Iterable[tuple[str, str]]) -> Any:
     return value
 
 
+def sanitize_role_reports(
+    output_dir: Path, replacements: tuple[tuple[str, str], ...]
+) -> None:
+    """Apply current path redactions to role reports retained by --resume."""
+    raw = output_dir / "raw"
+    if not raw.is_dir():
+        return
+    for path in sorted(raw.rglob("*.json")):
+        if path.name not in {"baseline.json", "candidate.json"}:
+            continue
+        payload = load_json(path)
+        sanitized = publicize(payload, replacements)
+        if sanitized != payload:
+            atomic_json(path, sanitized)
+
+
 def engine_build_info(engine: Path) -> dict[str, Any]:
     completed = subprocess.run(
         [str(engine), "--build-info"],
@@ -1062,8 +1078,17 @@ def main() -> None:
     identities["candidate"]["runtime_binding_sha256"] = json_sha256(
         identities["candidate"]["runtime_dependencies"]
     )
+    baseline_runtime_root = (
+        baseline_engine.parents[1]
+        if baseline_engine.parent.name == "libexec"
+        else baseline_engine.parent
+    )
     replacements = (
         (str(baseline_engine), "${AIMA_BASELINE_ENGINE}"),
+        (
+            str(baseline_runtime_root),
+            "${AIMA_BASELINE_RUNTIME_ROOT}",
+        ),
         (str(candidate_engine), "${AIMA_CANDIDATE_ENGINE}"),
         (
             str(candidate_fmha_provider),
@@ -1163,6 +1188,7 @@ def main() -> None:
                 ),
             )
 
+    sanitize_role_reports(output_dir, replacements)
     result = build_result(
         output_dir=output_dir,
         pair_counts=pair_counts,
@@ -1177,7 +1203,7 @@ def main() -> None:
                 "cell_count": result["observed_cell_count"],
                 "minimum_pair_count": min(pair_counts.values()),
                 "maximum_pair_count": max(pair_counts.values()),
-                "output": str(output_dir / "matrix.json"),
+                "output": "${AIMA_QUALIFICATION_DIR}/matrix.json",
             },
             sort_keys=True,
         )

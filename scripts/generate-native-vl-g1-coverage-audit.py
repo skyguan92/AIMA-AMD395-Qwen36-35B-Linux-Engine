@@ -108,6 +108,9 @@ ARTIFACT_PATHS = {
         ROOT
         / "benchmarks/results/native-vl-generation-current-head-v0.1.0.json"
     ),
+    "text_v151_nonregression": (
+        ROOT / "benchmarks/results/text-v151-nonregression-v0.1.0.json"
+    ),
     "error_limits_contract": ROOT / "aima_engine/vl_error_limits.py",
     "cache_identity_unit": ROOT / "tests/native_multimodal_cache_test.cpp",
     "generator": Path(__file__).resolve(),
@@ -120,6 +123,19 @@ GENERATION_LAYER_ORACLE_ROOT = (
 PREFILL_STATE_ORACLE_ROOT = (
     ROOT / "benchmarks/oracles/vl-prefill-state-v0.1.0"
 )
+EXPECTED_CANDIDATE = {
+    "source_commit": "50289f1cbae150997ca82bbc054635932a2721c3",
+    "binary_sha256": (
+        "4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0"
+    ),
+}
+EXPECTED_BASELINE = {
+    "release": "v1.5.1",
+    "source_commit": "65c198415709dad6d046c247acab3dc9df2a95a0",
+    "binary_sha256": (
+        "a9f18771175757af080c8a1d8d7e3fb3906c9aa41b43a496686103b626f80262"
+    ),
+}
 
 
 def evidence(artifact: str, *case_ids: str, note: str) -> dict[str, Any]:
@@ -536,7 +552,7 @@ def build_requirements() -> list[dict[str, Any]]:
         requirement(
             "G1.2.3.product_preservation",
             "Existing text, API, security, startup and cache product behavior",
-            "partial",
+            "covered",
             [
                 evidence(
                     "native_capability",
@@ -548,8 +564,15 @@ def build_requirements() -> list[dict[str, Any]]:
                     "resident_serving",
                     note="native-only launch, one model load and prefix behavior",
                 ),
+                evidence(
+                    "text_v151_nonregression",
+                    note=(
+                        "exact-candidate G3 requalification covers text correctness, "
+                        "MMLU-256, OpenAI surfaces, startup, prefix cache, doctor, "
+                        "memory and the frozen 19-cell release comparison"
+                    ),
+                ),
             ],
-            ["the complete G3 text and release no-regression protocol has not run"],
         ),
         requirement(
             "G1.2.4.cache_identity",
@@ -697,6 +720,7 @@ def validate_inputs(payloads: dict[str, dict[str, Any]]) -> None:
     generation_layer = payloads["generation_layer_oracle"]
     prefill_state = payloads["prefill_state_oracle"]
     generation_native = payloads["generation_native"]
+    text_nonregression = payloads["text_v151_nonregression"]
     for name, payload in (
         ("native capability", native),
         ("execution envelope", execution),
@@ -871,6 +895,35 @@ def validate_inputs(payloads: dict[str, dict[str, Any]]) -> None:
             raise SystemExit(
                 f"current-HEAD generation evidence is missing: {decision}"
             )
+    if (
+        text_nonregression.get("schema")
+        != "aima-amd395-qwen36/text-v151-nonregression/v1"
+        or text_nonregression.get("complete") is not True
+        or text_nonregression.get("qualified") is not True
+        or text_nonregression.get("candidate") != EXPECTED_CANDIDATE
+        or text_nonregression.get("baseline") != EXPECTED_BASELINE
+        or text_nonregression.get("decision", {}).get(
+            "g3_text_product_no_regression"
+        )
+        is not True
+    ):
+        raise SystemExit("exact-candidate G3 text non-regression evidence is invalid")
+    cross_checks = text_nonregression.get("cross_evidence_checks")
+    check_groups = text_nonregression.get("checks")
+    if (
+        not isinstance(cross_checks, dict)
+        or not cross_checks
+        or not all(value is True for value in cross_checks.values())
+        or not isinstance(check_groups, dict)
+        or not check_groups
+        or not all(
+            isinstance(group, dict)
+            and group
+            and all(value is True for value in group.values())
+            for group in check_groups.values()
+        )
+    ):
+        raise SystemExit("G3 text non-regression contains a failed check")
     validate_current_components(
         "native task-quality", task_native["source"]["files"]
     )
@@ -1084,11 +1137,17 @@ def build_payload() -> dict[str, Any]:
         for item in requirements
         if item["status"] != "covered"
     ]
+    coverage_complete = counts["partial"] == 0 and counts["missing"] == 0
+    g2_passed = payloads["language_boundary"]["decision"]["g2_passed"]
+    g3_passed = payloads["text_v151_nonregression"]["decision"][
+        "g3_text_product_no_regression"
+    ]
+    qualified = coverage_complete and g2_passed and g3_passed
     return {
         "schema": "aima-amd395-qwen36/native-vl-g1-coverage-audit/v1",
         "audited_on": "2026-08-21",
         "complete": True,
-        "qualified": False,
+        "qualified": qualified,
         "scope": "goal-sections-2.1-through-2.4-requirement-to-evidence",
         "inputs": {
             name: file_component(path, str(path.relative_to(ROOT)))
@@ -1100,32 +1159,18 @@ def build_payload() -> dict[str, Any]:
             "items": requirements,
         },
         "blocking_gaps": blockers,
-        "next_evidence": [
-            {
-                "evidence_id": "g3-requalification",
-                "requirement_ids": [
-                    "G1.2.3.product_preservation",
-                ],
-                "cases": [
-                    "complete_g3_text_nonregression",
-                ],
-            },
-        ],
+        "next_evidence": [],
         "decision": {
             "audit_complete": True,
             "all_referenced_cases_qualified": True,
             "current_head_processor_to_output_qualified": True,
             "twelve_task_quality_cases_qualified": True,
             "twelve_long_greedy_cases_reference_exact": True,
-            "coverage_complete": counts["partial"] == 0
-            and counts["missing"] == 0,
-            "new_evidence_required": counts["partial"] > 0
-            or counts["missing"] > 0,
-            "g1_passed": False,
-            "g2_passed": payloads["language_boundary"]["decision"][
-                "g2_passed"
-            ],
-            "g3_passed": False,
+            "coverage_complete": coverage_complete,
+            "new_evidence_required": not coverage_complete,
+            "g1_passed": qualified,
+            "g2_passed": g2_passed,
+            "g3_passed": g3_passed,
             "g4_passed": False,
             "g5_passed": False,
         },
@@ -1160,7 +1205,7 @@ def main() -> int:
         json.dumps(
             {
                 "output": str(output),
-                "qualified": False,
+                "qualified": sealed["qualified"],
                 "sha256": digest,
             },
             sort_keys=True,
