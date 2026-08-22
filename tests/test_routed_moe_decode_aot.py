@@ -22,7 +22,7 @@ DOWN_HASH = (
     "775c54180f9368197b9493aa15e604d3f7622519a20fc322e827e2d51a979b75"
 )
 HYBRID_GATE_UP_HASH = (
-    "2aabec08044ef14f7f5f08e4854473bd85f15e17feb31d52b10cdf94a801a4ce"
+    "b7457a70c1c87f2e9cbe2a99def59e8873877c7c174f83f84f668d0063886df1"
 )
 SPARSE_CORRECTION_HASH = (
     "0e6da1f589b4787c411264ea8288e26cb4259c61da6f88e1a1f7d8b4e3e74dab"
@@ -122,7 +122,7 @@ class RoutedMoeDecodeAotTests(unittest.TestCase):
         )
         hybrid_images = {
             HYBRID_GATE_UP_HASH:
-                "d3e5ce8a26568e9707e525df1660fcac7ba43ce8e894c411eeec77d2cf3085b4",
+                "cc56ebf9369afcf7dfce270cb9c9d0b31d0fe9f68b72f5af85aa5c9474b09732",
             SPARSE_CORRECTION_HASH:
                 "40958cc9168155be48eaaed800efb657c0683b56b44b2db71012702ae380e700",
         }
@@ -136,7 +136,7 @@ class RoutedMoeDecodeAotTests(unittest.TestCase):
             hybrid_kernels[HYBRID_GATE_UP_HASH]["metadata"][
                 "error_coefficient"
             ],
-            0.000002,
+            0.000003,
         )
         self.assertTrue(
             hybrid_kernels[HYBRID_GATE_UP_HASH]["metadata"][

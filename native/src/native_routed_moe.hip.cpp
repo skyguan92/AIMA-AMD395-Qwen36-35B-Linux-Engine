@@ -24,7 +24,7 @@ constexpr std::size_t kIntermediate = 512;
 constexpr std::size_t kGateUp = 2 * kIntermediate;
 constexpr unsigned kThreads = 256;
 constexpr char kHybridScalarGateUpKernelHash[] =
-    "2aabec08044ef14f7f5f08e4854473bd85f15e17feb31d52b10cdf94a801a4ce";
+    "b7457a70c1c87f2e9cbe2a99def59e8873877c7c174f83f84f668d0063886df1";
 constexpr char kSparseGateUpCorrectionKernelHash[] =
     "0e6da1f589b4787c411264ea8288e26cb4259c61da6f88e1a1f7d8b4e3e74dab";
 constexpr char kDownKernelHash[] =
