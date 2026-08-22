@@ -22,6 +22,10 @@ AOT_MANIFEST = ROOT / "native/aot/gfx1151/q8192-output2/manifest.json"
 AOT_RESULT = ROOT / "benchmarks/results/native-aot-q8192-v0.1.0.json"
 GEMM_RESULT = ROOT / "benchmarks/results/native-bf16-gemm-v0.1.0.json"
 WVSPLITK_RESULT = ROOT / "benchmarks/results/native-wvsplitk-v0.1.0.json"
+WVSPLITK_RELEASE_COMMIT = "e430e50dcb41af04465386287d696caa0ff22b10"
+WVSPLITK_CURRENT_SHA256 = (
+    "83a0f3f182ea38912570304d516bc1ba7d2ff163fb776c129c65b792fb565ee3"
+)
 DERIVED_RESULT = ROOT / "benchmarks/results/native-derived-weights-v0.1.0.json"
 DERIVED_V2_RESULT = ROOT / "benchmarks/results/native-derived-weights-v0.2.0.json"
 PORTABLE_BUNDLE_RESULT = ROOT / "benchmarks/results/native-portable-bundle-v0.1.0.json"
@@ -970,10 +974,29 @@ class NativeRuntimeContractTest(unittest.TestCase):
             result["source"]["upstream"]["commit"],
             "29e5d102050669d03992a2eb863ad364ea50fab2",
         )
+        source_path = result["source"]["native_source"]
+        historical_source = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(ROOT),
+                "show",
+                f"{WVSPLITK_RELEASE_COMMIT}:{source_path}",
+            ],
+            capture_output=True,
+            check=True,
+        ).stdout
         self.assertEqual(
-            sha256(ROOT / result["source"]["native_source"]),
+            hashlib.sha256(historical_source).hexdigest(),
             result["source"]["native_source_sha256"],
         )
+        current_source = (ROOT / source_path).read_bytes()
+        self.assertEqual(
+            hashlib.sha256(current_source).hexdigest(),
+            WVSPLITK_CURRENT_SHA256,
+        )
+        self.assertIn(b"bf16_wvsplitk_n1_small_kernel", current_source)
+        self.assertIn(b"launch_bf16_wvsplitk_grouped", current_source)
         self.assertFalse(result["binary"]["runtime_python"])
         self.assertFalse(result["binary"]["runtime_torch"])
         self.assertFalse(result["binary"]["runtime_vllm"])

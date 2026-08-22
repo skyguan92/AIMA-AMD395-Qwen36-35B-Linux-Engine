@@ -368,11 +368,13 @@ NativeFullLayerMetrics run_native_full_layer(
       shared_down.device_pointer, kHidden, kSharedIntermediate, cu_count,
       shared_expert_stream);
   ++metrics.native_projection_launches;
-  launch_shared_sigmoid_scale(shared_input.device_pointer,
-                              shared_down.device_pointer,
-                              shared_scaled.device_pointer,
-                              shared_expert_stream);
-  ++metrics.native_pointwise_launches;
+  if (!use_mrope) {
+    launch_shared_sigmoid_scale(shared_input.device_pointer,
+                                shared_down.device_pointer,
+                                shared_scaled.device_pointer,
+                                shared_expert_stream);
+    ++metrics.native_pointwise_launches;
+  }
   void* routed_output = frozen_routed_moe.device_pointer;
   if (use_mrope) {
     const NativeDecodeRoutedMoeBuffers routed_buffers{
@@ -389,7 +391,7 @@ NativeFullLayerMetrics run_native_full_layer(
         run_native_decode_routed_moe_from_logits(
             post_attention_norm, routed_gate_up_weight.device_pointer,
             routed_down_weight.device_pointer, routed_buffers, executor,
-            stream);
+            stream, true);
     metrics.aot_launches += routed_metrics.aot_launches;
     metrics.native_projection_launches +=
         routed_metrics.native_projection_launches;
@@ -403,10 +405,18 @@ NativeFullLayerMetrics run_native_full_layer(
       ++metrics.aot_launches;
     }
   }
-  launch_bf16_add_pair(
-      routed_output, shared_scaled.device_pointer,
-      after_attn.device_pointer, combined_moe.device_pointer,
-      output.device_pointer, kHidden, stream);
+  if (use_mrope) {
+    launch_native_decode_moe_tail(
+        routed_weighted.device_pointer, shared_input.device_pointer,
+        shared_down.device_pointer, after_attn.device_pointer,
+        routed_moe.device_pointer, shared_scaled.device_pointer,
+        combined_moe.device_pointer, output.device_pointer, stream);
+  } else {
+    launch_bf16_add_pair(
+        routed_output, shared_scaled.device_pointer,
+        after_attn.device_pointer, combined_moe.device_pointer,
+        output.device_pointer, kHidden, stream);
+  }
   ++metrics.native_pointwise_launches;
   if (attention_observer != nullptr) {
     check_hip(hipStreamSynchronize(stream),

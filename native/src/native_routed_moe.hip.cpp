@@ -26,13 +26,13 @@ constexpr unsigned kThreads = 256;
 constexpr char kHybridScalarGateUpKernelHash[] =
     "b7457a70c1c87f2e9cbe2a99def59e8873877c7c174f83f84f668d0063886df1";
 constexpr char kSparseGateUpCorrectionKernelHash[] =
-    "0e6da1f589b4787c411264ea8288e26cb4259c61da6f88e1a1f7d8b4e3e74dab";
+    "cfe9a4fd5c5b2198d068a7ea38726d99e0f79374da9246109905e8ed316dfbf4";
 constexpr char kDownKernelHash[] =
     "775c54180f9368197b9493aa15e604d3f7622519a20fc322e827e2d51a979b75";
 constexpr AotLaunchConfig kHybridScalarGateUpLaunchConfig{8, 256, 1, 8, 32,
                                                           128};
-constexpr AotLaunchConfig kSparseGateUpCorrectionLaunchConfig{512, 1, 1, 4,
-                                                              32, 16384};
+constexpr AotLaunchConfig kSparseGateUpCorrectionLaunchConfig{128, 1, 1, 4,
+                                                              32, 40960};
 constexpr AotLaunchConfig kDownLaunchConfig{1024, 1, 1, 4, 32, 16384};
 
 void check_hip(hipError_t status, const char* operation) {
@@ -108,7 +108,8 @@ void require_complete(const NativeDecodeRoutedMoeBuffers& buffers) {
 
 __global__ void router_topk8_softmax_256_kernel(
     const __hip_bfloat16* logits, float* weights, std::int32_t* indices,
-    std::int32_t* num_tokens_post_padded) {
+    std::int32_t* num_tokens_post_padded,
+    std::int32_t* gate_up_correction_count) {
   constexpr int kRouterWave = 32;
   constexpr int kValuesPerLane = kExperts / kRouterWave;
   const int lane = threadIdx.x;
@@ -189,6 +190,7 @@ __global__ void router_topk8_softmax_256_kernel(
       weights[rank] = selected_probabilities[rank] / denominator;
     }
     *num_tokens_post_padded = 128;
+    *gate_up_correction_count = 0;
   }
 }
 
@@ -224,6 +226,64 @@ __global__ void routed_sum8_kernel(const __hip_bfloat16* input,
   sum += sum26;
   sum += sum37;
   output[hidden] = __float2bfloat16(sum);
+}
+
+__global__ void native_decode_moe_tail_kernel(
+    const __hip_bfloat16* weighted_expert_outputs,
+    const __hip_bfloat16* shared_input,
+    const __hip_bfloat16* shared_down,
+    const __hip_bfloat16* residual,
+    __hip_bfloat16* routed_output,
+    __hip_bfloat16* shared_output,
+    __hip_bfloat16* combined_output,
+    __hip_bfloat16* output) {
+  const std::size_t hidden = blockIdx.x * blockDim.x + threadIdx.x;
+  if (hidden >= kHidden) return;
+
+  const float sum04 =
+      __bfloat162float(weighted_expert_outputs[hidden]) +
+      __bfloat162float(weighted_expert_outputs[4 * kHidden + hidden]);
+  const float sum15 =
+      __bfloat162float(weighted_expert_outputs[kHidden + hidden]) +
+      __bfloat162float(weighted_expert_outputs[5 * kHidden + hidden]);
+  const float sum26 =
+      __bfloat162float(weighted_expert_outputs[2 * kHidden + hidden]) +
+      __bfloat162float(weighted_expert_outputs[6 * kHidden + hidden]);
+  const float sum37 =
+      __bfloat162float(weighted_expert_outputs[3 * kHidden + hidden]) +
+      __bfloat162float(weighted_expert_outputs[7 * kHidden + hidden]);
+  float routed_sum = sum04 + sum15;
+  routed_sum += sum26;
+  routed_sum += sum37;
+  volatile __hip_bfloat16* volatile_routed_output = routed_output;
+  const __hip_bfloat16 routed_converted = __float2bfloat16(routed_sum);
+  volatile_routed_output[hidden] =
+      static_cast<__hip_bfloat16_raw>(routed_converted);
+  const __hip_bfloat16 routed_bf16(
+      static_cast<__hip_bfloat16_raw>(volatile_routed_output[hidden]));
+
+  const float gate_fp32 =
+      1.0f / (1.0f + expf(-__bfloat162float(shared_input[0])));
+  const __hip_bfloat16 gate_bf16 = __float2bfloat16(gate_fp32);
+  volatile __hip_bfloat16* volatile_shared_output = shared_output;
+  const __hip_bfloat16 shared_converted = __float2bfloat16(
+      __bfloat162float(gate_bf16) *
+      __bfloat162float(shared_down[hidden]));
+  volatile_shared_output[hidden] =
+      static_cast<__hip_bfloat16_raw>(shared_converted);
+  const __hip_bfloat16 shared_bf16(
+      static_cast<__hip_bfloat16_raw>(volatile_shared_output[hidden]));
+
+  volatile __hip_bfloat16* volatile_combined_output = combined_output;
+  const __hip_bfloat16 combined_converted = __float2bfloat16(
+      __bfloat162float(routed_bf16) + __bfloat162float(shared_bf16));
+  volatile_combined_output[hidden] =
+      static_cast<__hip_bfloat16_raw>(combined_converted);
+  const __hip_bfloat16 combined_bf16(
+      static_cast<__hip_bfloat16_raw>(volatile_combined_output[hidden]));
+  output[hidden] = __float2bfloat16(
+      __bfloat162float(residual[hidden]) +
+      __bfloat162float(combined_bf16));
 }
 
 void launch_fused_moe(
@@ -266,9 +326,6 @@ void launch_hybrid_gate_up(void* hidden, void* weight, void* expert_ids,
                            void* output, void* flagged_indices,
                            void* flagged_count,
                            NativeDecodeExecutor& executor, void* stream) {
-  check_hip(hipMemsetAsync(flagged_count, 0, sizeof(std::int32_t),
-                           static_cast<hipStream_t>(stream)),
-            "hipMemsetAsync routed gate/up correction count");
   const std::vector<void*> parameters = {
       &hidden,
       &weight,
@@ -293,6 +350,35 @@ void* begin_native_decode_shared_expert_overlap(void* main_stream) {
 
 void complete_native_decode_shared_expert_overlap(void* main_stream) {
   shared_expert_overlap().complete(static_cast<hipStream_t>(main_stream));
+}
+
+void launch_native_decode_moe_tail(
+    const void* weighted_expert_outputs_bf16,
+    const void* fused_shared_input_bf16, const void* shared_down_bf16,
+    const void* residual_bf16, void* routed_output_bf16,
+    void* shared_output_bf16, void* combined_output_bf16,
+    void* output_bf16, void* stream) {
+  if (weighted_expert_outputs_bf16 == nullptr ||
+      fused_shared_input_bf16 == nullptr || shared_down_bf16 == nullptr ||
+      residual_bf16 == nullptr || routed_output_bf16 == nullptr ||
+      shared_output_bf16 == nullptr || combined_output_bf16 == nullptr ||
+      output_bf16 == nullptr) {
+    throw std::invalid_argument(
+        "native decode MoE tail requires non-null pointers");
+  }
+  hipLaunchKernelGGL(
+      native_decode_moe_tail_kernel,
+      dim3(static_cast<unsigned>((kHidden + kThreads - 1) / kThreads)),
+      dim3(kThreads), 0, static_cast<hipStream_t>(stream),
+      static_cast<const __hip_bfloat16*>(weighted_expert_outputs_bf16),
+      static_cast<const __hip_bfloat16*>(fused_shared_input_bf16),
+      static_cast<const __hip_bfloat16*>(shared_down_bf16),
+      static_cast<const __hip_bfloat16*>(residual_bf16),
+      static_cast<__hip_bfloat16*>(routed_output_bf16),
+      static_cast<__hip_bfloat16*>(shared_output_bf16),
+      static_cast<__hip_bfloat16*>(combined_output_bf16),
+      static_cast<__hip_bfloat16*>(output_bf16));
+  check_hip(hipGetLastError(), "native_decode_moe_tail_kernel");
 }
 
 NativeDecodeRoutedMoeMetrics run_native_decode_routed_moe(
@@ -325,7 +411,7 @@ NativeDecodeRoutedMoeMetrics run_native_decode_routed_moe_from_logits(
     const void* hidden_bf16, const void* gate_up_weight_bf16,
     const void* down_weight_bf16,
     const NativeDecodeRoutedMoeBuffers& buffers,
-    NativeDecodeExecutor& executor, void* stream) {
+    NativeDecodeExecutor& executor, void* stream, bool defer_sum) {
   if (hidden_bf16 == nullptr || gate_up_weight_bf16 == nullptr ||
       down_weight_bf16 == nullptr || !executor.loaded()) {
     throw std::invalid_argument(
@@ -339,7 +425,8 @@ NativeDecodeRoutedMoeMetrics run_native_decode_routed_moe_from_logits(
       static_cast<const __hip_bfloat16*>(buffers.router_logits_bf16),
       static_cast<float*>(buffers.router_weights_fp32),
       static_cast<std::int32_t*>(buffers.router_indices_i32),
-      static_cast<std::int32_t*>(buffers.num_tokens_post_padded_i32));
+      static_cast<std::int32_t*>(buffers.num_tokens_post_padded_i32),
+      static_cast<std::int32_t*>(buffers.activation_bf16));
   check_hip(hipGetLastError(), "router_topk8_softmax_256_kernel");
   ++metrics.native_pointwise_launches;
 
@@ -367,15 +454,17 @@ NativeDecodeRoutedMoeMetrics run_native_decode_routed_moe_from_logits(
       buffers.router_indices_i32, buffers.num_tokens_post_padded_i32,
       2048, 512, 1048576, 512, 512, 2048, executor, stream);
   ++metrics.aot_launches;
-  hipLaunchKernelGGL(
-      routed_sum8_kernel,
-      dim3(static_cast<unsigned>((kHidden + kThreads - 1) / kThreads)),
-      dim3(kThreads), 0, hip_stream,
-      static_cast<const __hip_bfloat16*>(
-          buffers.weighted_expert_outputs_bf16),
-      static_cast<__hip_bfloat16*>(buffers.output_bf16));
-  check_hip(hipGetLastError(), "routed_sum8_kernel");
-  ++metrics.native_pointwise_launches;
+  if (!defer_sum) {
+    hipLaunchKernelGGL(
+        routed_sum8_kernel,
+        dim3(static_cast<unsigned>((kHidden + kThreads - 1) / kThreads)),
+        dim3(kThreads), 0, hip_stream,
+        static_cast<const __hip_bfloat16*>(
+            buffers.weighted_expert_outputs_bf16),
+        static_cast<__hip_bfloat16*>(buffers.output_bf16));
+    check_hip(hipGetLastError(), "routed_sum8_kernel");
+    ++metrics.native_pointwise_launches;
+  }
   return metrics;
 }
 

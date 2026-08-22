@@ -84,21 +84,22 @@ def sparse_wmma_correction_kernel(
     HIDDEN_SIZE: tl.constexpr,
     OUTPUT_SIZE: tl.constexpr,
     BLOCK_K: tl.constexpr,
+    BLOCK_N: tl.constexpr,
 ):
     pid = tl.program_id(0)
     flagged_count = tl.load(flagged_count_ptr)
-    if pid * 16 >= flagged_count:
+    if pid * BLOCK_N >= flagged_count:
         return
     offsets_m = tl.arange(0, 16)
-    list_offsets = pid * 16 + offsets_m
+    offsets_n = tl.arange(0, BLOCK_N)
+    list_offsets = pid * BLOCK_N + offsets_n
     valid = list_offsets < flagged_count
     encoded = tl.load(flagged_indices_ptr + list_offsets, mask=valid, other=0)
     ranks = encoded // OUTPUT_SIZE
     output_indices = encoded % OUTPUT_SIZE
     experts = tl.load(expert_ids_ptr + ranks, mask=valid, other=0).to(tl.int64)
-    offsets_n = tl.arange(0, 16)
     offsets_k = tl.arange(0, BLOCK_K)
-    accumulator = tl.zeros((16, 16), tl.float32)
+    accumulator = tl.zeros((16, BLOCK_N), tl.float32)
     for block in range(0, tl.cdiv(HIDDEN_SIZE, BLOCK_K)):
         k = block * BLOCK_K + offsets_k
         hidden = tl.load(

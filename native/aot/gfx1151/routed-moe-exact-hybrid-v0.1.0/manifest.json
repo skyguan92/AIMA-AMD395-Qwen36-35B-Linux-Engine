@@ -21,21 +21,24 @@
     },
     {
       "image": {
-        "bytes": 9416,
-        "path": "kernels/0e6da1f589b4787c-sparse_wmma_correction_kernel.hsaco",
-        "sha256": "40958cc9168155be48eaaed800efb657c0683b56b44b2db71012702ae380e700"
+        "bytes": 11208,
+        "path": "kernels/cfe9a4fd5c5b2198-sparse_wmma_correction_kernel.hsaco",
+        "sha256": "a37ccb3948e08d318bca748144282ba52f28739a4f95ff649c0309ab868d0d72"
       },
-      "kernel_hash": "0e6da1f589b4787c411264ea8288e26cb4259c61da6f88e1a1f7d8b4e3e74dab",
+      "kernel_hash": "cfe9a4fd5c5b2198d068a7ea38726d99e0f79374da9246109905e8ed316dfbf4",
       "metadata": {
+        "block_n": 64,
+        "grid_size": 128,
+        "maximum_flagged_values": 8192,
         "num_warps": 4,
-        "shared": 16384,
+        "shared": 40960,
         "warp_size": 32
       },
       "symbol": "sparse_wmma_correction_kernel"
     }
   ],
   "launch_variant_count": 2,
-  "packaged_hsaco_bytes": 17320,
+  "packaged_hsaco_bytes": 19112,
   "schema": "aima-amd395-qwen36/native-aot-closure/v1",
   "source": {
     "exporter": "benchmarks/shape-lab/export_exact_hybrid_gate_closure.py",

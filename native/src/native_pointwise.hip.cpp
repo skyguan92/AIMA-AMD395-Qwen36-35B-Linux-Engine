@@ -195,31 +195,36 @@ __global__ void singleton_rmsnorm_2048_kernel(
   }
   partials[lane] = sum;
 
-  // ATen's singleton [1, 2048] reduction vectorizes the input across one
-  // 512-thread block. Reduce its sixteen gfx1151 wave32 groups through shared
-  // memory, then preserve ROCm's ascending-offset shuffle tree in wave 0.
-  for (unsigned offset = kBlockThreads / 2; offset >= 32; offset >>= 1) {
-    __syncthreads();
-    if (lane < offset) {
-      sum = sum + partials[lane + offset];
-      partials[lane] = sum;
+  // ATen's singleton [1, 2048] reduction combines the sixteen wave32 groups
+  // at thread offsets 256, 128, 64 and 32, then reduces the remaining wave
+  // with ascending shuffle offsets. After one block barrier, every wave can
+  // replay the same tree from the immutable LDS snapshot. The redundant wave
+  // work avoids a second block barrier solely to broadcast inverse_rms.
+  __syncthreads();
+  const unsigned wave_lane = lane & 31;
+  float wave_sums[16];
+#pragma unroll
+  for (unsigned wave = 0; wave < 16; ++wave) {
+    wave_sums[wave] = partials[wave_lane + wave * 32];
+  }
+  for (unsigned span = 8; span > 0; span >>= 1) {
+#pragma unroll
+    for (unsigned wave = 0; wave < span; ++wave) {
+      wave_sums[wave] = wave_sums[wave] + wave_sums[wave + span];
     }
   }
-  __syncthreads();
-  if (lane < 32) {
-    sum = partials[lane];
-    for (unsigned offset = 1; offset < 32; offset <<= 1) {
-      sum = sum + __shfl_down(sum, offset, 32);
-    }
-    if (lane == 0) {
-      volatile float variance =
-          sum * (1.0f / static_cast<float>(kHidden));
-      volatile float variance_with_epsilon = variance + 1.0e-6f;
-      partials[0] = pytorch_rounded_rsqrtf(variance_with_epsilon);
-    }
+  sum = wave_sums[0];
+  for (unsigned offset = 1; offset < 32; offset <<= 1) {
+    sum = sum + __shfl_down(sum, offset, 32);
   }
-  __syncthreads();
-  const float inverse_rms = partials[0];
+  float inverse_rms = 0.0f;
+  if (wave_lane == 0) {
+    volatile float variance =
+        sum * (1.0f / static_cast<float>(kHidden));
+    volatile float variance_with_epsilon = variance + 1.0e-6f;
+    inverse_rms = pytorch_rounded_rsqrtf(variance_with_epsilon);
+  }
+  inverse_rms = __shfl(inverse_rms, 0, 32);
 
 #pragma unroll
   for (unsigned component = 0; component < kVectorWidth; ++component) {

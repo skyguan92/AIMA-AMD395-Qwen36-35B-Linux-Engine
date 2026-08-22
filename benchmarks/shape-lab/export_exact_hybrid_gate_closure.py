@@ -16,6 +16,10 @@ import subprocess
 import torch
 
 
+CORRECTION_BLOCK_N = 64
+CORRECTION_GRID_SIZE = 8192 // CORRECTION_BLOCK_N
+
+
 def load_probe(path: Path):
     spec = importlib.util.spec_from_file_location("routed_exact_scalar_probe", path)
     if spec is None or spec.loader is None:
@@ -88,9 +92,10 @@ def main() -> int:
         2048,
         1024,
         BLOCK_K=256,
+        BLOCK_N=CORRECTION_BLOCK_N,
         num_warps=4,
         num_stages=2,
-        grid=(512,),
+        grid=(CORRECTION_GRID_SIZE,),
     )
     output_root = args.output_root.resolve()
     if output_root.exists() and any(output_root.iterdir()):
@@ -147,6 +152,9 @@ def main() -> int:
                     "num_warps": correction.metadata.num_warps,
                     "warp_size": correction.metadata.warp_size,
                     "shared": correction.metadata.shared,
+                    "block_n": CORRECTION_BLOCK_N,
+                    "grid_size": CORRECTION_GRID_SIZE,
+                    "maximum_flagged_values": 8192,
                 },
                 "image": correction_image,
             },

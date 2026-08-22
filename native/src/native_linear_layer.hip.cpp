@@ -574,11 +574,13 @@ NativeLinearLayerMetrics run_native_linear_layer(
       shared_down.device_pointer, kHidden, kSharedIntermediate, cu_count,
       shared_expert_stream);
   ++metrics.native_projection_launches;
-  launch_shared_sigmoid_scale(shared_input.device_pointer,
-                              shared_down.device_pointer,
-                              shared_scaled.device_pointer,
-                              shared_expert_stream);
-  ++metrics.native_pointwise_launches;
+  if (!use_current_vllm_projections) {
+    launch_shared_sigmoid_scale(shared_input.device_pointer,
+                                shared_down.device_pointer,
+                                shared_scaled.device_pointer,
+                                shared_expert_stream);
+    ++metrics.native_pointwise_launches;
+  }
 
   const NativeDecodeRoutedMoeBuffers routed_buffers{
       router_logits.device_pointer,
@@ -594,7 +596,7 @@ NativeLinearLayerMetrics run_native_linear_layer(
       run_native_decode_routed_moe_from_logits(
           post_attention_norm, routed_gate_up_weight.device_pointer,
           routed_down_weight.device_pointer, routed_buffers, executor,
-          stream);
+          stream, use_current_vllm_projections);
   metrics.aot_launches += routed_metrics.aot_launches;
   metrics.native_projection_launches +=
       routed_metrics.native_projection_launches;
@@ -602,6 +604,12 @@ NativeLinearLayerMetrics run_native_linear_layer(
       routed_metrics.native_pointwise_launches;
   if (use_current_vllm_projections) {
     complete_native_decode_shared_expert_overlap(stream_value);
+    launch_native_decode_moe_tail(
+        routed_weighted.device_pointer, shared_input.device_pointer,
+        shared_down.device_pointer, after_attn.device_pointer,
+        routed_moe.device_pointer, shared_scaled.device_pointer,
+        combined_moe.device_pointer, output.device_pointer, stream);
+    ++metrics.native_pointwise_launches;
   }
   observe_boundary(tail_observer, "shared_gate_logits",
                    shared_input.device_pointer,
@@ -650,11 +658,13 @@ NativeLinearLayerMetrics run_native_linear_layer(
                    routed_moe.device_pointer,
                    kHidden * sizeof(__hip_bfloat16),
                    DecodeTensorDtype::kBfloat16);
-  launch_bf16_add_pair(
-      routed_moe.device_pointer, shared_scaled.device_pointer,
-      after_attn.device_pointer, combined_moe.device_pointer,
-      output.device_pointer, kHidden, stream);
-  ++metrics.native_pointwise_launches;
+  if (!use_current_vllm_projections) {
+    launch_bf16_add_pair(
+        routed_moe.device_pointer, shared_scaled.device_pointer,
+        after_attn.device_pointer, combined_moe.device_pointer,
+        output.device_pointer, kHidden, stream);
+    ++metrics.native_pointwise_launches;
+  }
   observe_boundary(tail_observer, "combined_moe_output",
                    combined_moe.device_pointer,
                    kHidden * sizeof(__hip_bfloat16),

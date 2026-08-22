@@ -25,7 +25,7 @@ HYBRID_GATE_UP_HASH = (
     "b7457a70c1c87f2e9cbe2a99def59e8873877c7c174f83f84f668d0063886df1"
 )
 SPARSE_CORRECTION_HASH = (
-    "0e6da1f589b4787c411264ea8288e26cb4259c61da6f88e1a1f7d8b4e3e74dab"
+    "cfe9a4fd5c5b2198d068a7ea38726d99e0f79374da9246109905e8ed316dfbf4"
 )
 
 
@@ -124,7 +124,7 @@ class RoutedMoeDecodeAotTests(unittest.TestCase):
             HYBRID_GATE_UP_HASH:
                 "cc56ebf9369afcf7dfce270cb9c9d0b31d0fe9f68b72f5af85aa5c9474b09732",
             SPARSE_CORRECTION_HASH:
-                "40958cc9168155be48eaaed800efb657c0683b56b44b2db71012702ae380e700",
+                "a37ccb3948e08d318bca748144282ba52f28739a4f95ff649c0309ab868d0d72",
         }
         for kernel_hash, kernel in hybrid_kernels.items():
             image = EXACT_HYBRID_ROOT / kernel["image"]["path"]
@@ -143,6 +143,14 @@ class RoutedMoeDecodeAotTests(unittest.TestCase):
                 "correct_subnormals"
             ]
         )
+        correction_metadata = hybrid_kernels[SPARSE_CORRECTION_HASH][
+            "metadata"
+        ]
+        self.assertEqual(correction_metadata["block_n"], 64)
+        self.assertEqual(correction_metadata["grid_size"], 128)
+        self.assertEqual(correction_metadata["maximum_flagged_values"], 8192)
+        self.assertEqual(correction_metadata["num_warps"], 4)
+        self.assertEqual(correction_metadata["shared"], 40960)
 
         runtime_build = (
             ROOT / "scripts/build-native-runtime.sh"
@@ -168,10 +176,19 @@ class RoutedMoeDecodeAotTests(unittest.TestCase):
         self.assertIn("router_weights_fp32", runtime)
         self.assertIn("buffers.activation_bf16, executor, stream", runtime)
         self.assertIn("*num_tokens_post_padded = 128", runtime)
+        self.assertIn("*gate_up_correction_count = 0", runtime)
+        self.assertNotIn("hipMemsetAsync", runtime)
         self.assertIn("const __hip_bfloat16 silu_bf16", runtime)
+        self.assertIn("native_decode_moe_tail_kernel", runtime)
+        self.assertIn("volatile_routed_output", runtime)
+        self.assertIn("volatile_shared_output", runtime)
+        self.assertIn("volatile_combined_output", runtime)
         self.assertIn("native.decode.routed_weighted", workspace)
         self.assertIn("run_native_decode_routed_moe", linear)
         self.assertIn("run_native_decode_routed_moe", full)
+        self.assertIn("launch_native_decode_moe_tail", linear)
+        self.assertIn("launch_native_decode_moe_tail", full)
+        self.assertIn("stream, true", full)
         frozen_loop = "for (std::size_t offset = 6; offset < 10; ++offset)"
         linear_frozen_start = linear.index("if (!use_current_vllm_projections)")
         linear_frozen_end = linear.index("return metrics;", linear_frozen_start)

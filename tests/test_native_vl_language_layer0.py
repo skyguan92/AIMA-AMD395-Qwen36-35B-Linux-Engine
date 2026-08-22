@@ -428,13 +428,22 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
             singleton_rmsnorm,
         )
         self.assertIn("static_assert(kBlockThreads == 512)", singleton_rmsnorm)
+        self.assertIn("float wave_sums[16]", singleton_rmsnorm)
         self.assertIn(
-            "for (unsigned offset = kBlockThreads / 2; offset >= 32;",
+            "for (unsigned wave = 0; wave < 16; ++wave)",
+            singleton_rmsnorm,
+        )
+        self.assertIn(
+            "for (unsigned span = 8; span > 0; span >>= 1)",
             singleton_rmsnorm,
         )
         self.assertIn(
             "for (unsigned offset = 1; offset < 32; offset <<= 1)",
             singleton_rmsnorm,
+        )
+        self.assertEqual(singleton_rmsnorm.count("__syncthreads()"), 1)
+        self.assertIn(
+            "inverse_rms = __shfl(inverse_rms, 0, 32)", singleton_rmsnorm
         )
         self.assertIn("if (token_count == 1)", pointwise_source)
         self.assertIn("dim3(1), dim3(512)", pointwise_source)
