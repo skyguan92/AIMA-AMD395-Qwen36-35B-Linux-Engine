@@ -5,13 +5,13 @@
     {
       "image": {
         "bytes": 7904,
-        "path": "kernels/2923d4c0b0336ee9-hybrid_scalar_block_flag_kernel.hsaco",
-        "sha256": "8d0a92755bf4dfbc08bebbe40394a06ecdaab888f1860b54f239aa1d6281bdd1"
+        "path": "kernels/2aabec08044ef14f-hybrid_scalar_block_flag_kernel.hsaco",
+        "sha256": "d3e5ce8a26568e9707e525df1660fcac7ba43ce8e894c411eeec77d2cf3085b4"
       },
-      "kernel_hash": "2923d4c0b0336ee9b6a96d81b36eec15a22c102c888c10a73202d17839a386c5",
+      "kernel_hash": "2aabec08044ef14f7f5f08e4854473bd85f15e17feb31d52b10cdf94a801a4ce",
       "metadata": {
         "block_m": 4,
-        "correct_subnormals": false,
+        "correct_subnormals": true,
         "error_coefficient": 2e-06,
         "num_warps": 8,
         "shared": 128,

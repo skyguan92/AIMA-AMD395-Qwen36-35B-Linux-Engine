@@ -74,7 +74,7 @@ def main() -> int:
         BLOCK_M=4,
         CHUNK_K=2048,
         ERROR_COEFFICIENT=args.coefficient,
-        CORRECT_SUBNORMALS=False,
+        CORRECT_SUBNORMALS=True,
         num_warps=8,
         grid=(8, 256),
     )
@@ -136,7 +136,7 @@ def main() -> int:
                     "shared": flag.metadata.shared,
                     "error_coefficient": args.coefficient,
                     "block_m": 4,
-                    "correct_subnormals": False,
+                    "correct_subnormals": True,
                 },
                 "image": flag_image,
             },

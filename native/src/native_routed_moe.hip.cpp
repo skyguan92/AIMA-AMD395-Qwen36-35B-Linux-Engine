@@ -24,7 +24,7 @@ constexpr std::size_t kIntermediate = 512;
 constexpr std::size_t kGateUp = 2 * kIntermediate;
 constexpr unsigned kThreads = 256;
 constexpr char kHybridScalarGateUpKernelHash[] =
-    "2923d4c0b0336ee9b6a96d81b36eec15a22c102c888c10a73202d17839a386c5";
+    "2aabec08044ef14f7f5f08e4854473bd85f15e17feb31d52b10cdf94a801a4ce";
 constexpr char kSparseGateUpCorrectionKernelHash[] =
     "0e6da1f589b4787c411264ea8288e26cb4259c61da6f88e1a1f7d8b4e3e74dab";
 constexpr char kDownKernelHash[] =
@@ -347,7 +347,7 @@ NativeDecodeRoutedMoeMetrics run_native_decode_routed_moe_from_logits(
       const_cast<void*>(hidden_bf16),
       const_cast<void*>(gate_up_weight_bf16), buffers.router_indices_i32,
       buffers.gate_up_bf16, buffers.weighted_expert_outputs_bf16,
-      buffers.router_logits_bf16, executor, stream);
+      buffers.activation_bf16, executor, stream);
   metrics.aot_launches += 2;
   constexpr std::size_t activation_elements = kTopK * kIntermediate;
   hipLaunchKernelGGL(
