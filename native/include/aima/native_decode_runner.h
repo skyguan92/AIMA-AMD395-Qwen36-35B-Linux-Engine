@@ -11,6 +11,7 @@
 #include "aima/native_linear_layer.h"
 #include "aima/native_weight_store.h"
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -60,6 +61,20 @@ struct NativeLmHeadTop1Metrics {
   double synchronized_wall_ms = 0.0;
 };
 
+// Resident VL decode reuses the same 39 cross-layer RMSNorm destinations on
+// every token. Resolve the weight and workspace names once at engine load so
+// the hot loop only copies two already-validated pointers per layer.
+struct NativeDecodeCrossLayerNormBindings {
+  std::array<const void*, 39> weight_bf16{};
+  std::array<void*, 39> output_bf16{};
+  const void* cosine_fp32 = nullptr;
+  const void* sine_fp32 = nullptr;
+};
+
+NativeDecodeCrossLayerNormBindings bind_native_decode_cross_layer_norms(
+    const NativeWeightStore& weights,
+    const NativeDecodeInvocations& invocations);
+
 // Prepares the next resident decode step without host-side tensor libraries:
 // device embedding lookup plus the model's 64-dimensional rotary slice.
 NativeDecodePrepareMetrics prepare_native_decode_step(
@@ -106,6 +121,7 @@ NativeDecodeRunMetrics run_native_decode_token(
     const NativeDecodeLinearLayer0Observer* layer0_tail_observer = nullptr,
     const NativeDecodeFullAttentionObserver* full_attention_observer = nullptr,
     bool use_mrope = false,
-    const Bf16GemmPlan* shared_gate_plan = nullptr);
+    const Bf16GemmPlan* shared_gate_plan = nullptr,
+    const NativeDecodeCrossLayerNormBindings* cross_layer_norms = nullptr);
 
 }  // namespace aima

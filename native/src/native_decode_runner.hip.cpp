@@ -6,6 +6,7 @@
 #include "aima/native_full_layer.h"
 #include "aima/native_linear_layer.h"
 #include "aima/native_lm_head_certificate.h"
+#include "aima/native_routed_moe.h"
 
 #include <hip/hip_bf16.h>
 #include <hip/hip_runtime.h>
@@ -40,10 +41,9 @@ __global__ void next_token_embedding_kernel(
                             index];
 }
 
-__global__ void decode_rotary_kernel(std::size_t position, float* cosine,
-                                     float* sine, bool round_through_bf16) {
-  const std::size_t index = threadIdx.x;
-  if (index >= kRotaryHalfDimension) return;
+__device__ __forceinline__ void write_decode_rotary_value(
+    std::size_t position, std::size_t index, float* cosine, float* sine,
+    bool round_through_bf16) {
   const float exponent =
       static_cast<float>(2 * index) / static_cast<float>(kRotaryDimension);
   const float inverse_frequency = 1.0f / powf(kRopeTheta, exponent);
@@ -60,6 +60,34 @@ __global__ void decode_rotary_kernel(std::size_t position, float* cosine,
   sine[index] = round_through_bf16
                     ? __bfloat162float(__float2bfloat16(sine_value))
                     : sine_value;
+}
+
+__global__ void decode_rotary_kernel(std::size_t position, float* cosine,
+                                     float* sine, bool round_through_bf16) {
+  const std::size_t index = threadIdx.x;
+  if (index >= kRotaryHalfDimension) return;
+  write_decode_rotary_value(position, index, cosine, sine,
+                            round_through_bf16);
+}
+
+// VL needs both immutable embedding lookup and one independent 32-value
+// rotary row before the language stack can start.  They write disjoint
+// buffers, so placing the rotary work in block zero removes one launch while
+// the remaining embedding blocks proceed in parallel.  The following stream
+// launch remains the full-grid completion boundary.
+__global__ void next_token_embedding_mrope_kernel(
+    const __hip_bfloat16* embedding, std::uint32_t token_id,
+    __hip_bfloat16* hidden, std::size_t rotary_position, float* cosine,
+    float* sine) {
+  const std::size_t index = blockIdx.x * blockDim.x + threadIdx.x;
+  if (index < kHidden) {
+    hidden[index] = embedding[static_cast<std::size_t>(token_id) * kHidden +
+                              index];
+  }
+  if (blockIdx.x == 0 && threadIdx.x < kRotaryHalfDimension) {
+    write_decode_rotary_value(rotary_position, threadIdx.x, cosine, sine,
+                              true);
+  }
 }
 
 NativeDecodePrepareMetrics prepare_native_decode_step_impl(
@@ -80,6 +108,16 @@ NativeDecodePrepareMetrics prepare_native_decode_step_impl(
   void* cosine = invocations.tensor_pointer(32, "cos");
   void* sine = invocations.tensor_pointer(32, "sin");
   hipStream_t stream = static_cast<hipStream_t>(stream_value);
+  if (round_rotary_through_bf16) {
+    hipLaunchKernelGGL(
+        next_token_embedding_mrope_kernel, dim3(kHidden / 256), dim3(256), 0,
+        stream,
+        static_cast<const __hip_bfloat16*>(embedding->device_pointer),
+        input_token_id, static_cast<__hip_bfloat16*>(hidden), rotary_position,
+        static_cast<float*>(cosine), static_cast<float*>(sine));
+    check_hip(hipGetLastError(), "next_token_embedding_mrope_kernel");
+    return {1, position, rotary_position, input_token_id};
+  }
   hipLaunchKernelGGL(
       next_token_embedding_kernel, dim3(kHidden / 256), dim3(256), 0, stream,
       static_cast<const __hip_bfloat16*>(embedding->device_pointer),
@@ -87,8 +125,7 @@ NativeDecodePrepareMetrics prepare_native_decode_step_impl(
   check_hip(hipGetLastError(), "next_token_embedding_kernel");
   hipLaunchKernelGGL(
       decode_rotary_kernel, dim3(1), dim3(32), 0, stream, rotary_position,
-      static_cast<float*>(cosine), static_cast<float*>(sine),
-      round_rotary_through_bf16);
+      static_cast<float*>(cosine), static_cast<float*>(sine), false);
   check_hip(hipGetLastError(), "decode_rotary_kernel");
   return {2, position, rotary_position, input_token_id};
 }
@@ -206,7 +243,8 @@ NativeDecodeRunMetrics run_native_decode_token(
     const NativeDecodeLinearLayer0Observer* linear_layer0_observer,
     const NativeDecodeLinearLayer0Observer* layer0_tail_observer,
     const NativeDecodeFullAttentionObserver* full_attention_observer,
-    bool use_mrope, const Bf16GemmPlan* shared_gate_plan) {
+    bool use_mrope, const Bf16GemmPlan* shared_gate_plan,
+    const NativeDecodeCrossLayerNormBindings* cross_layer_norms) {
   const auto& launches = invocations.launches();
   if (launches.size() != 402 || !executor.loaded() || !lm_head.built() ||
       cu_count <= 0 ||
@@ -218,6 +256,36 @@ NativeDecodeRunMetrics run_native_decode_token(
   const auto started = std::chrono::steady_clock::now();
   for (std::size_t layer_index = 0; layer_index < 40; ++layer_index) {
     const std::size_t base = layer_index * 10;
+    NativeDecodeNextInputNorm next_input_norm;
+    const NativeDecodeNextInputNorm* next_input_norm_binding = nullptr;
+    if (use_mrope && layer_index + 1 < 40) {
+      if (cross_layer_norms != nullptr) {
+        next_input_norm.weight_bf16 =
+            cross_layer_norms->weight_bf16[layer_index];
+        next_input_norm.output_bf16 =
+            cross_layer_norms->output_bf16[layer_index];
+      } else {
+        const std::string next_prefix =
+            "model.language_model.layers." +
+            std::to_string(layer_index + 1) + ".input_layernorm.weight";
+        const NativeTensorView* next_weight = weights.find(next_prefix);
+        if (next_weight == nullptr || next_weight->device_pointer == nullptr ||
+            next_weight->payload_bytes !=
+                kHidden * sizeof(__hip_bfloat16)) {
+          throw std::runtime_error(
+              "native decode next-layer RMSNorm weight is incomplete");
+        }
+        next_input_norm.weight_bf16 = next_weight->device_pointer;
+        next_input_norm.output_bf16 =
+            invocations.tensor_pointer(base + 10, "out");
+      }
+      if (next_input_norm.weight_bf16 == nullptr ||
+          next_input_norm.output_bf16 == nullptr) {
+        throw std::runtime_error(
+            "native decode cross-layer RMSNorm binding is incomplete");
+      }
+      next_input_norm_binding = &next_input_norm;
+    }
     if (std::string(launches[base + 1].launch->symbol) ==
         "triton_fused_input_proj_conv_kernel") {
       const NativeLinearLayerMetrics layer = run_native_linear_layer(
@@ -227,7 +295,8 @@ NativeDecodeRunMetrics run_native_decode_token(
               ? linear_layer0_observer
               : nullptr,
           layer_index == linear_observer_layer_index ? layer0_tail_observer
-                                                     : nullptr);
+                                                     : nullptr,
+          use_mrope && layer_index != 0, next_input_norm_binding);
       ++metrics.linear_layer_count;
       metrics.aot_launches += layer.aot_launches;
       metrics.native_projection_launches += layer.native_projection_launches;
@@ -237,7 +306,12 @@ NativeDecodeRunMetrics run_native_decode_token(
           layer_index, position, cache_end, weights, workspace, invocations,
           executor, attention_state, cu_count, stream, false,
           use_mrope, shared_gate_plan,
-          full_attention_observer);
+          full_attention_observer, use_mrope && layer_index != 0,
+          next_input_norm_binding,
+          cross_layer_norms != nullptr ? cross_layer_norms->cosine_fp32
+                                       : nullptr,
+          cross_layer_norms != nullptr ? cross_layer_norms->sine_fp32
+                                       : nullptr);
       ++metrics.full_layer_count;
       metrics.aot_launches += layer.aot_launches;
       metrics.native_attention_launches += layer.native_attention_launches;
@@ -285,6 +359,39 @@ NativeDecodeRunMetrics run_native_decode_token(
           std::chrono::steady_clock::now() - started)
           .count();
   return metrics;
+}
+
+NativeDecodeCrossLayerNormBindings bind_native_decode_cross_layer_norms(
+    const NativeWeightStore& weights,
+    const NativeDecodeInvocations& invocations) {
+  if (invocations.launches().size() != 402) {
+    throw std::runtime_error(
+        "native decode cross-layer RMSNorm schedule is incomplete");
+  }
+  NativeDecodeCrossLayerNormBindings bindings;
+  bindings.cosine_fp32 = invocations.tensor_pointer(32, "cos");
+  bindings.sine_fp32 = invocations.tensor_pointer(32, "sin");
+  if (bindings.cosine_fp32 == nullptr || bindings.sine_fp32 == nullptr) {
+    throw std::runtime_error(
+        "native decode M-RoPE table binding is incomplete");
+  }
+  for (std::size_t layer_index = 0; layer_index + 1 < 40; ++layer_index) {
+    const std::string name =
+        "model.language_model.layers." +
+        std::to_string(layer_index + 1) + ".input_layernorm.weight";
+    const NativeTensorView* weight = weights.find(name);
+    void* output = invocations.tensor_pointer(
+        (layer_index + 1) * 10, "out");
+    if (weight == nullptr || weight->device_pointer == nullptr ||
+        weight->payload_bytes != kHidden * sizeof(__hip_bfloat16) ||
+        output == nullptr) {
+      throw std::runtime_error(
+          "native decode cross-layer RMSNorm binding is incomplete");
+    }
+    bindings.weight_bf16[layer_index] = weight->device_pointer;
+    bindings.output_bf16[layer_index] = output;
+  }
+  return bindings;
 }
 
 }  // namespace aima

@@ -42,6 +42,57 @@ void check_hip(hipError_t status, const char* operation) {
   }
 }
 
+__device__ __forceinline__ float pytorch_rounded_rsqrtf(float value) {
+  // Match the correctly rounded FP32 result produced by the pinned
+  // PyTorch/ROCm RMSNorm boundary.  This is intentionally identical to the
+  // singleton implementation in native_pointwise.hip.cpp: the compiler's
+  // direct rsqrtf result can otherwise differ by one ULP.
+  const float seed = rsqrtf(value);
+  const double seed64 = static_cast<double>(seed);
+  const unsigned value_exponent = __float_as_uint(value) & 0x7f800000U;
+  bool seed_above_root = false;
+  bool seed_below_root = false;
+  if (value_exponent == 0U || value_exponent >= 0x7e800000U) {
+    const double seed_test =
+        static_cast<double>(value) * seed64 * seed64;
+    seed_above_root = seed_test > 1.0;
+    seed_below_root = seed_test < 1.0;
+  } else {
+    const float seed_squared = seed * seed;
+    const float squared_error = fmaf(seed, seed, -seed_squared);
+    const float product = value * seed_squared;
+    const float product_error =
+        fmaf(value, seed_squared, -product) + value * squared_error;
+    seed_above_root =
+        product > 1.0f || (product == 1.0f && product_error > 0.0f);
+    seed_below_root =
+        product < 1.0f || (product == 1.0f && product_error < 0.0f);
+  }
+  float selected = seed;
+  if (seed_above_root) {
+    const float lower = nextafterf(seed, 0.0f);
+    const double midpoint =
+        (static_cast<double>(lower) + seed64) * 0.5;
+    const double midpoint_test =
+        static_cast<double>(value) * midpoint * midpoint;
+    if (midpoint_test > 1.0 ||
+        (midpoint_test == 1.0 && (__float_as_uint(lower) & 1U) == 0)) {
+      selected = lower;
+    }
+  } else if (seed_below_root) {
+    const float upper = nextafterf(seed, __int_as_float(0x7f800000));
+    const double midpoint =
+        (seed64 + static_cast<double>(upper)) * 0.5;
+    const double midpoint_test =
+        static_cast<double>(value) * midpoint * midpoint;
+    if (midpoint_test < 1.0 ||
+        (midpoint_test == 1.0 && (__float_as_uint(upper) & 1U) == 0)) {
+      selected = upper;
+    }
+  }
+  return selected;
+}
+
 class SharedExpertOverlap {
  public:
   SharedExpertOverlap() {
@@ -286,6 +337,133 @@ __global__ void native_decode_moe_tail_kernel(
       __bfloat162float(combined_bf16));
 }
 
+__global__ void native_decode_moe_tail_next_rmsnorm_kernel(
+    const __hip_bfloat16* weighted_expert_outputs,
+    const __hip_bfloat16* shared_input,
+    const __hip_bfloat16* shared_down,
+    const __hip_bfloat16* residual,
+    __hip_bfloat16* routed_output,
+    __hip_bfloat16* shared_output,
+    __hip_bfloat16* combined_output,
+    __hip_bfloat16* output,
+    const __hip_bfloat16* next_norm_weight,
+    __hip_bfloat16* next_norm_output) {
+  constexpr unsigned kVectorWidth = 4;
+  constexpr unsigned kBlockThreads = kHidden / kVectorWidth;
+  static_assert(kBlockThreads == 512);
+  __shared__ float partials[kBlockThreads];
+  __shared__ float shared_inverse_rms;
+
+  const unsigned lane = threadIdx.x;
+  const unsigned vector_base = lane * kVectorWidth;
+  const float gate_fp32 =
+      1.0f / (1.0f + expf(-__bfloat162float(shared_input[0])));
+  const __hip_bfloat16 gate_bf16 = __float2bfloat16(gate_fp32);
+  volatile __hip_bfloat16* volatile_routed_output = routed_output;
+  volatile __hip_bfloat16* volatile_shared_output = shared_output;
+  volatile __hip_bfloat16* volatile_combined_output = combined_output;
+  volatile __hip_bfloat16* volatile_output = output;
+  float sum = 0.0f;
+#pragma unroll
+  for (unsigned component = 0; component < kVectorWidth; ++component) {
+    const unsigned hidden = vector_base + component;
+    const float sum04 =
+        __bfloat162float(weighted_expert_outputs[hidden]) +
+        __bfloat162float(weighted_expert_outputs[4 * kHidden + hidden]);
+    const float sum15 =
+        __bfloat162float(weighted_expert_outputs[kHidden + hidden]) +
+        __bfloat162float(weighted_expert_outputs[5 * kHidden + hidden]);
+    const float sum26 =
+        __bfloat162float(weighted_expert_outputs[2 * kHidden + hidden]) +
+        __bfloat162float(weighted_expert_outputs[6 * kHidden + hidden]);
+    const float sum37 =
+        __bfloat162float(weighted_expert_outputs[3 * kHidden + hidden]) +
+        __bfloat162float(weighted_expert_outputs[7 * kHidden + hidden]);
+    float routed_sum = sum04 + sum15;
+    routed_sum += sum26;
+    routed_sum += sum37;
+    const __hip_bfloat16 routed_converted = __float2bfloat16(routed_sum);
+    volatile_routed_output[hidden] =
+        static_cast<__hip_bfloat16_raw>(routed_converted);
+    const __hip_bfloat16 routed_bf16(
+        static_cast<__hip_bfloat16_raw>(volatile_routed_output[hidden]));
+
+    const __hip_bfloat16 shared_converted = __float2bfloat16(
+        __bfloat162float(gate_bf16) *
+        __bfloat162float(shared_down[hidden]));
+    volatile_shared_output[hidden] =
+        static_cast<__hip_bfloat16_raw>(shared_converted);
+    const __hip_bfloat16 shared_bf16(
+        static_cast<__hip_bfloat16_raw>(volatile_shared_output[hidden]));
+
+    const __hip_bfloat16 combined_converted = __float2bfloat16(
+        __bfloat162float(routed_bf16) + __bfloat162float(shared_bf16));
+    volatile_combined_output[hidden] =
+        static_cast<__hip_bfloat16_raw>(combined_converted);
+    const __hip_bfloat16 combined_bf16(
+        static_cast<__hip_bfloat16_raw>(volatile_combined_output[hidden]));
+
+    const __hip_bfloat16 output_converted = __float2bfloat16(
+        __bfloat162float(residual[hidden]) +
+        __bfloat162float(combined_bf16));
+    volatile_output[hidden] =
+        static_cast<__hip_bfloat16_raw>(output_converted);
+    const __hip_bfloat16 output_bf16(
+        static_cast<__hip_bfloat16_raw>(volatile_output[hidden]));
+    const float value = __bfloat162float(output_bf16);
+    volatile float squared = value * value;
+    sum = sum + squared;
+  }
+  partials[lane] = sum;
+
+  // Replay the exact singleton [1, 2048] ATen reduction used by the
+  // standalone input RMSNorm.  Wave 0 combines the sixteen groups and
+  // evaluates the correctly-rounded rsqrt once, then broadcasts it through
+  // LDS.  This preserves the reduction tree while avoiding sixteen copies of
+  // the FP64-assisted scalar tail.
+  __syncthreads();
+  const unsigned wave_lane = lane & 31;
+  if (lane < 32) {
+    float wave_sums[16];
+#pragma unroll
+    for (unsigned wave = 0; wave < 16; ++wave) {
+      wave_sums[wave] = partials[wave_lane + wave * 32];
+    }
+    for (unsigned span = 8; span > 0; span >>= 1) {
+#pragma unroll
+      for (unsigned wave = 0; wave < span; ++wave) {
+        wave_sums[wave] = wave_sums[wave] + wave_sums[wave + span];
+      }
+    }
+    float sum = wave_sums[0];
+    for (unsigned offset = 1; offset < 32; offset <<= 1) {
+      sum = sum + __shfl_down(sum, offset, 32);
+    }
+    if (wave_lane == 0) {
+      volatile float variance =
+          sum * (1.0f / static_cast<float>(kHidden));
+      volatile float variance_with_epsilon = variance + 1.0e-6f;
+      shared_inverse_rms =
+          pytorch_rounded_rsqrtf(variance_with_epsilon);
+    }
+  }
+  __syncthreads();
+  const float inverse_rms = shared_inverse_rms;
+
+#pragma unroll
+  for (unsigned component = 0; component < kVectorWidth; ++component) {
+    const unsigned hidden = vector_base + component;
+    const __hip_bfloat16 output_bf16(
+        static_cast<__hip_bfloat16_raw>(volatile_output[hidden]));
+    const float value = __bfloat162float(output_bf16);
+    volatile float scaled = value * inverse_rms;
+    volatile float weight_plus_one =
+        __bfloat162float(next_norm_weight[hidden]) + 1.0f;
+    volatile float weighted = scaled * weight_plus_one;
+    next_norm_output[hidden] = __float2bfloat16(weighted);
+  }
+}
+
 void launch_fused_moe(
     const char* kernel_hash, const AotLaunchConfig& config,
     void* activation, void* weight, void* output, void* topk_weights,
@@ -379,6 +557,39 @@ void launch_native_decode_moe_tail(
       static_cast<__hip_bfloat16*>(combined_output_bf16),
       static_cast<__hip_bfloat16*>(output_bf16));
   check_hip(hipGetLastError(), "native_decode_moe_tail_kernel");
+}
+
+void launch_native_decode_moe_tail_next_rmsnorm(
+    const void* weighted_expert_outputs_bf16,
+    const void* fused_shared_input_bf16, const void* shared_down_bf16,
+    const void* residual_bf16, void* routed_output_bf16,
+    void* shared_output_bf16, void* combined_output_bf16,
+    void* output_bf16, const void* next_norm_weight_bf16,
+    void* next_norm_output_bf16, void* stream) {
+  if (weighted_expert_outputs_bf16 == nullptr ||
+      fused_shared_input_bf16 == nullptr || shared_down_bf16 == nullptr ||
+      residual_bf16 == nullptr || routed_output_bf16 == nullptr ||
+      shared_output_bf16 == nullptr || combined_output_bf16 == nullptr ||
+      output_bf16 == nullptr || next_norm_weight_bf16 == nullptr ||
+      next_norm_output_bf16 == nullptr) {
+    throw std::invalid_argument(
+        "native decode MoE tail plus next RMSNorm requires non-null pointers");
+  }
+  hipLaunchKernelGGL(
+      native_decode_moe_tail_next_rmsnorm_kernel, dim3(1), dim3(512), 0,
+      static_cast<hipStream_t>(stream),
+      static_cast<const __hip_bfloat16*>(weighted_expert_outputs_bf16),
+      static_cast<const __hip_bfloat16*>(fused_shared_input_bf16),
+      static_cast<const __hip_bfloat16*>(shared_down_bf16),
+      static_cast<const __hip_bfloat16*>(residual_bf16),
+      static_cast<__hip_bfloat16*>(routed_output_bf16),
+      static_cast<__hip_bfloat16*>(shared_output_bf16),
+      static_cast<__hip_bfloat16*>(combined_output_bf16),
+      static_cast<__hip_bfloat16*>(output_bf16),
+      static_cast<const __hip_bfloat16*>(next_norm_weight_bf16),
+      static_cast<__hip_bfloat16*>(next_norm_output_bf16));
+  check_hip(hipGetLastError(),
+            "native_decode_moe_tail_next_rmsnorm_kernel");
 }
 
 NativeDecodeRoutedMoeMetrics run_native_decode_routed_moe(

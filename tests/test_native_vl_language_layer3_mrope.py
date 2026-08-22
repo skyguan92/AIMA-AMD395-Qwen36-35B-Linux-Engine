@@ -46,10 +46,19 @@ class NativeVlLanguageLayer3MropeTest(unittest.TestCase):
         )
         self.assertIn("bool UseWideKReduction", source)
         self.assertIn("if constexpr (!UseWideKReduction)", source)
+        self.assertIn(
+            "UseWideKReduction ? blockIdx.y : threadIdx.y", source
+        )
+        self.assertIn(
+            "dim3(token_count, kQueryHeads + kKvHeads)", source
+        )
         self.assertIn("else if (query)", source)
-        self.assertIn("first_squared_components[0]", source)
-        self.assertIn("second_squared_components[0]", source)
+        self.assertIn("volatile float first0_squared", source)
+        self.assertIn("volatile float second0_squared", source)
         self.assertIn("sum = first_half + second_half", source)
+        self.assertIn("const float first_normalized", source)
+        self.assertIn("const float second_normalized", source)
+        self.assertIn("for (unsigned group = 2; group < 8; ++group)", source)
         self.assertIn(
             "launch_full_attention_head_norm_rope_prefill_impl<false, true>",
             source,
@@ -164,6 +173,10 @@ class NativeVlLanguageLayer3MropeTest(unittest.TestCase):
         self.assertIn("std::size_t rotary_position", decode_header)
         self.assertIn("position, position, input_token_id", decode)
         self.assertIn("decode_rotary_kernel", decode)
+        self.assertIn("next_token_embedding_mrope_kernel", decode)
+        self.assertIn(
+            "return {1, position, rotary_position, input_token_id}", decode
+        )
         self.assertIn(
             "static_cast<float*>(cosine), static_cast<float*>(sine)", decode
         )
@@ -221,7 +234,10 @@ class NativeVlLanguageLayer3MropeTest(unittest.TestCase):
             'prefix + ".post_attention_layernorm.weight"', decode_full
         )
         self.assertEqual(
-            decode_full.count("launch_prefill_rmsnorm_2048("), 2
+            decode_full.count("launch_prefill_rmsnorm_2048("), 1
+        )
+        self.assertEqual(
+            decode_full.count("launch_prefill_add_rmsnorm_2048("), 1
         )
         self.assertIn("use_current_vllm_projections", decode_linear)
         self.assertIn(
@@ -245,7 +261,10 @@ class NativeVlLanguageLayer3MropeTest(unittest.TestCase):
             'prefix + ".post_attention_layernorm.weight"', decode_linear
         )
         self.assertEqual(
-            decode_linear.count("launch_prefill_rmsnorm_2048("), 2
+            decode_linear.count("launch_prefill_rmsnorm_2048("), 1
+        )
+        self.assertEqual(
+            decode_linear.count("launch_prefill_add_rmsnorm_2048("), 1
         )
         self.assertIn(
             "stream, false, use_mrope, shared_gate_plan", decode
@@ -259,6 +278,10 @@ class NativeVlLanguageLayer3MropeTest(unittest.TestCase):
             "mrope_plan != nullptr, impl_->decode_shared_gate_plan.get()",
             resident,
         )
+        self.assertIn("decode_cross_layer_norms", resident)
+        self.assertIn("bind_native_decode_cross_layer_norms(", decode)
+        self.assertIn("cross_layer_norms->cosine_fp32", decode)
+        self.assertIn("mrope_cosine_fp32", decode_full)
 
     def test_unified_attention_artifact_is_embedded_and_hash_bound(self) -> None:
         import hashlib

@@ -39,12 +39,34 @@ __device__ __forceinline__ float pytorch_rounded_rsqrtf(float value) {
   // reciprocal square root, while this package's ROCm compiler maps rsqrtf
   // to a result that can be one ULP away. Start with the fast estimate and
   // select its correctly rounded neighbor by testing the exact-root midpoint
-  // in FP64. This avoids a throughput-heavy FP64 sqrt/divide.
+  // in FP64.  For the normal exponent range used by model RMSNorm, two FMA
+  // residuals determine which side of the exact root contains the seed.  The
+  // result is bit-equivalent to the former FP64 direction test across every
+  // mantissa for exponents 1..252; subnormals and the two largest exponents
+  // retain the conservative FP64 path.
   const float seed = rsqrtf(value);
   const double seed64 = static_cast<double>(seed);
-  const double seed_test = static_cast<double>(value) * seed64 * seed64;
+  const unsigned value_exponent = __float_as_uint(value) & 0x7f800000U;
+  bool seed_above_root = false;
+  bool seed_below_root = false;
+  if (value_exponent == 0U || value_exponent >= 0x7e800000U) {
+    const double seed_test =
+        static_cast<double>(value) * seed64 * seed64;
+    seed_above_root = seed_test > 1.0;
+    seed_below_root = seed_test < 1.0;
+  } else {
+    const float seed_squared = seed * seed;
+    const float squared_error = fmaf(seed, seed, -seed_squared);
+    const float product = value * seed_squared;
+    const float product_error =
+        fmaf(value, seed_squared, -product) + value * squared_error;
+    seed_above_root =
+        product > 1.0f || (product == 1.0f && product_error > 0.0f);
+    seed_below_root =
+        product < 1.0f || (product == 1.0f && product_error < 0.0f);
+  }
   float selected = seed;
-  if (seed_test > 1.0) {
+  if (seed_above_root) {
     const float lower = nextafterf(seed, 0.0f);
     const double midpoint =
         (static_cast<double>(lower) + seed64) * 0.5;
@@ -54,7 +76,7 @@ __device__ __forceinline__ float pytorch_rounded_rsqrtf(float value) {
         (midpoint_test == 1.0 && (__float_as_uint(lower) & 1U) == 0)) {
       selected = lower;
     }
-  } else if (seed_test < 1.0) {
+  } else if (seed_below_root) {
     const float upper = nextafterf(seed, __int_as_float(0x7f800000));
     const double midpoint =
         (seed64 + static_cast<double>(upper)) * 0.5;
@@ -181,6 +203,7 @@ __global__ void singleton_rmsnorm_2048_kernel(
   constexpr unsigned kBlockThreads = kHidden / kVectorWidth;
   static_assert(kBlockThreads == 512);
   __shared__ float partials[kBlockThreads];
+  __shared__ float shared_inverse_rms;
 
   const unsigned lane = threadIdx.x;
   const unsigned vector_base = lane * kVectorWidth;
@@ -197,34 +220,37 @@ __global__ void singleton_rmsnorm_2048_kernel(
 
   // ATen's singleton [1, 2048] reduction combines the sixteen wave32 groups
   // at thread offsets 256, 128, 64 and 32, then reduces the remaining wave
-  // with ascending shuffle offsets. After one block barrier, every wave can
-  // replay the same tree from the immutable LDS snapshot. The redundant wave
-  // work avoids a second block barrier solely to broadcast inverse_rms.
+  // with ascending shuffle offsets.  Only wave 0 replays this exact tree and
+  // the correctly-rounded FP64-assisted rsqrt; one additional block barrier
+  // is cheaper than repeating that work in all sixteen waves.
   __syncthreads();
   const unsigned wave_lane = lane & 31;
-  float wave_sums[16];
+  if (lane < 32) {
+    float wave_sums[16];
 #pragma unroll
-  for (unsigned wave = 0; wave < 16; ++wave) {
-    wave_sums[wave] = partials[wave_lane + wave * 32];
-  }
-  for (unsigned span = 8; span > 0; span >>= 1) {
+    for (unsigned wave = 0; wave < 16; ++wave) {
+      wave_sums[wave] = partials[wave_lane + wave * 32];
+    }
+    for (unsigned span = 8; span > 0; span >>= 1) {
 #pragma unroll
-    for (unsigned wave = 0; wave < span; ++wave) {
-      wave_sums[wave] = wave_sums[wave] + wave_sums[wave + span];
+      for (unsigned wave = 0; wave < span; ++wave) {
+        wave_sums[wave] = wave_sums[wave] + wave_sums[wave + span];
+      }
+    }
+    float sum = wave_sums[0];
+    for (unsigned offset = 1; offset < 32; offset <<= 1) {
+      sum = sum + __shfl_down(sum, offset, 32);
+    }
+    if (wave_lane == 0) {
+      volatile float variance =
+          sum * (1.0f / static_cast<float>(kHidden));
+      volatile float variance_with_epsilon = variance + 1.0e-6f;
+      shared_inverse_rms =
+          pytorch_rounded_rsqrtf(variance_with_epsilon);
     }
   }
-  sum = wave_sums[0];
-  for (unsigned offset = 1; offset < 32; offset <<= 1) {
-    sum = sum + __shfl_down(sum, offset, 32);
-  }
-  float inverse_rms = 0.0f;
-  if (wave_lane == 0) {
-    volatile float variance =
-        sum * (1.0f / static_cast<float>(kHidden));
-    volatile float variance_with_epsilon = variance + 1.0e-6f;
-    inverse_rms = pytorch_rounded_rsqrtf(variance_with_epsilon);
-  }
-  inverse_rms = __shfl(inverse_rms, 0, 32);
+  __syncthreads();
+  const float inverse_rms = shared_inverse_rms;
 
 #pragma unroll
   for (unsigned component = 0; component < kVectorWidth; ++component) {
@@ -235,6 +261,82 @@ __global__ void singleton_rmsnorm_2048_kernel(
         __bfloat162float(weight[hidden]) + 1.0f;
     volatile float weighted = scaled * weight_plus_one;
     output[hidden] = __float2bfloat16(weighted);
+  }
+}
+
+__global__ void singleton_add_rmsnorm_2048_kernel(
+    const __hip_bfloat16* input, const __hip_bfloat16* residual,
+    const __hip_bfloat16* weight, __hip_bfloat16* residual_output,
+    __hip_bfloat16* norm_output) {
+  constexpr unsigned kVectorWidth = 4;
+  constexpr unsigned kBlockThreads = kHidden / kVectorWidth;
+  static_assert(kBlockThreads == 512);
+  __shared__ float partials[kBlockThreads];
+  __shared__ float shared_inverse_rms;
+
+  const unsigned lane = threadIdx.x;
+  const unsigned vector_base = lane * kVectorWidth;
+  volatile __hip_bfloat16* volatile_residual_output = residual_output;
+  float sum = 0.0f;
+#pragma unroll
+  for (unsigned component = 0; component < kVectorWidth; ++component) {
+    const unsigned hidden = vector_base + component;
+    const __hip_bfloat16 rounded = __float2bfloat16(
+        __bfloat162float(input[hidden]) +
+        __bfloat162float(residual[hidden]));
+    volatile_residual_output[hidden] =
+        static_cast<__hip_bfloat16_raw>(rounded);
+    const __hip_bfloat16 stored(
+        static_cast<__hip_bfloat16_raw>(volatile_residual_output[hidden]));
+    const float value = __bfloat162float(stored);
+    volatile float squared = value * value;
+    sum = sum + squared;
+  }
+  partials[lane] = sum;
+
+  // Replay the exact singleton ATen wave-combine tree, as in the standalone
+  // RMSNorm kernel above. The volatile BF16 store/reload preserves the
+  // observable residual-add boundary before the reduction.
+  __syncthreads();
+  const unsigned wave_lane = lane & 31;
+  if (lane < 32) {
+    float wave_sums[16];
+#pragma unroll
+    for (unsigned wave = 0; wave < 16; ++wave) {
+      wave_sums[wave] = partials[wave_lane + wave * 32];
+    }
+    for (unsigned span = 8; span > 0; span >>= 1) {
+#pragma unroll
+      for (unsigned wave = 0; wave < span; ++wave) {
+        wave_sums[wave] = wave_sums[wave] + wave_sums[wave + span];
+      }
+    }
+    float sum = wave_sums[0];
+    for (unsigned offset = 1; offset < 32; offset <<= 1) {
+      sum = sum + __shfl_down(sum, offset, 32);
+    }
+    if (wave_lane == 0) {
+      volatile float variance =
+          sum * (1.0f / static_cast<float>(kHidden));
+      volatile float variance_with_epsilon = variance + 1.0e-6f;
+      shared_inverse_rms =
+          pytorch_rounded_rsqrtf(variance_with_epsilon);
+    }
+  }
+  __syncthreads();
+  const float inverse_rms = shared_inverse_rms;
+
+#pragma unroll
+  for (unsigned component = 0; component < kVectorWidth; ++component) {
+    const unsigned hidden = vector_base + component;
+    const __hip_bfloat16 value_bf16(
+        static_cast<__hip_bfloat16_raw>(volatile_residual_output[hidden]));
+    const float value = __bfloat162float(value_bf16);
+    volatile float scaled = value * inverse_rms;
+    volatile float weight_plus_one =
+        __bfloat162float(weight[hidden]) + 1.0f;
+    volatile float weighted = scaled * weight_plus_one;
+    norm_output[hidden] = __float2bfloat16(weighted);
   }
 }
 
@@ -427,7 +529,13 @@ __global__ void full_attention_head_norm_rope_prefill_kernel(
     __hip_bfloat16* v_output) {
   const unsigned lane = threadIdx.x;
   const std::size_t token = blockIdx.x;
-  const std::size_t local_head = threadIdx.y;
+  // Singleton and other small batches otherwise place all 18 independent
+  // head waves in one block and leave the rest of the GPU idle.  Preserve
+  // each wave's exact reduction tree while distributing heads across blocks.
+  // Normal prefill retains one token per block so its frozen launch geometry
+  // and occupancy are unchanged.
+  const std::size_t local_head =
+      UseWideKReduction ? blockIdx.y : threadIdx.y;
   const bool query = local_head < kQueryHeads;
   const std::size_t head = query ? local_head : local_head - kQueryHeads;
   const __hip_bfloat16* input =
@@ -440,22 +548,6 @@ __global__ void full_attention_head_norm_rope_prefill_kernel(
   // The frozen eager path materializes pow(2) before mean, so keep every
   // square rounded independently instead of allowing a fused multiply-add.
   const unsigned vector_base = lane * 4;
-  float accumulator[4];
-  float first_squared_components[4];
-  float second_squared_components[4];
-#pragma unroll
-  for (unsigned component = 0; component < 4; ++component) {
-    const float first = __bfloat162float(input[vector_base + component]);
-    const float second =
-        __bfloat162float(input[128 + vector_base + component]);
-    volatile float first_squared = first * first;
-    volatile float second_squared = second * second;
-    if constexpr (UseWideKReduction) {
-      first_squared_components[component] = first_squared;
-      second_squared_components[component] = second_squared;
-    }
-    accumulator[component] = first_squared + second_squared;
-  }
   // ATen's vectorized reduction uses a 32-wide block whenever the flattened
   // row count is at least 16. That always covers Q (16 heads per token) and K
   // batches of at least 8 tokens: each lane joins the same component from the
@@ -465,30 +557,61 @@ __global__ void full_attention_head_norm_rope_prefill_kernel(
   // both with one physical wave. Select the small-batch K geometry at host
   // dispatch so every normal prefill compiles back to the frozen v1.5.1
   // branch-free reduction and carries no decode-only component arrays.
-  float sum = accumulator[0];
+  float sum = 0.0f;
   if constexpr (!UseWideKReduction) {
+    float accumulator[4];
+#pragma unroll
+    for (unsigned component = 0; component < 4; ++component) {
+      const float first = __bfloat162float(input[vector_base + component]);
+      const float second =
+          __bfloat162float(input[128 + vector_base + component]);
+      volatile float first_squared = first * first;
+      volatile float second_squared = second * second;
+      accumulator[component] = first_squared + second_squared;
+    }
+    sum = accumulator[0];
 #pragma unroll
     for (unsigned component = 1; component < 4; ++component) {
       sum = sum + accumulator[component];
     }
   } else if (query) {
 #pragma unroll
-    for (unsigned component = 1; component < 4; ++component) {
-      sum = sum + accumulator[component];
+    for (unsigned component = 0; component < 4; ++component) {
+      const float first = __bfloat162float(input[vector_base + component]);
+      const float second =
+          __bfloat162float(input[128 + vector_base + component]);
+      volatile float first_squared = first * first;
+      volatile float second_squared = second * second;
+      volatile float pair_sum = first_squared + second_squared;
+      if (component == 0) {
+        sum = pair_sum;
+      } else {
+        volatile float next_sum = sum + pair_sum;
+        sum = next_sum;
+      }
     }
   } else {
-    volatile float first_pair =
-        first_squared_components[0] + first_squared_components[1];
-    volatile float first_three =
-        first_pair + first_squared_components[2];
-    volatile float first_half =
-        first_three + first_squared_components[3];
-    volatile float second_pair =
-        second_squared_components[0] + second_squared_components[1];
-    volatile float second_three =
-        second_pair + second_squared_components[2];
-    volatile float second_half =
-        second_three + second_squared_components[3];
+    const float first0 = __bfloat162float(input[vector_base]);
+    volatile float first0_squared = first0 * first0;
+    float first_half = first0_squared;
+#pragma unroll
+    for (unsigned component = 1; component < 4; ++component) {
+      const float value = __bfloat162float(input[vector_base + component]);
+      volatile float squared = value * value;
+      volatile float next = first_half + squared;
+      first_half = next;
+    }
+    const float second0 = __bfloat162float(input[128 + vector_base]);
+    volatile float second0_squared = second0 * second0;
+    float second_half = second0_squared;
+#pragma unroll
+    for (unsigned component = 1; component < 4; ++component) {
+      const float value =
+          __bfloat162float(input[128 + vector_base + component]);
+      volatile float squared = value * value;
+      volatile float next = second_half + squared;
+      second_half = next;
+    }
     sum = first_half + second_half;
   }
   for (unsigned offset = 1; offset < 32; offset <<= 1) {
@@ -504,59 +627,138 @@ __global__ void full_attention_head_norm_rope_prefill_kernel(
   }
   inverse_rms = __shfl(inverse_rms, 0, 32);
 
-#pragma unroll
-  for (unsigned group = 0; group < 8; ++group) {
-    const unsigned dimension = lane + group * 32;
-    const float value = __bfloat162float(input[dimension]);
-    volatile float scaled_storage = value * inverse_rms;
-    volatile float weight_plus_one =
-        __bfloat162float(weight[dimension]) + 1.0f;
-    volatile float weighted_storage = scaled_storage * weight_plus_one;
-    const __hip_bfloat16 normalized_bf16 =
-        __float2bfloat16(weighted_storage);
-    float output = __bfloat162float(normalized_bf16);
-    if (dimension < kRotaryDim) {
-      const unsigned mate_dimension =
-          dimension < kRotaryPairs ? dimension + kRotaryPairs
-                                   : dimension - kRotaryPairs;
-      const float mate_value = __bfloat162float(input[mate_dimension]);
-      volatile float mate_scaled_storage = mate_value * inverse_rms;
-      volatile float mate_weight_plus_one =
-          __bfloat162float(weight[mate_dimension]) + 1.0f;
-      volatile float mate_weighted_storage =
-          mate_scaled_storage * mate_weight_plus_one;
-      const float mate = __bfloat162float(
-          __float2bfloat16(mate_weighted_storage));
-      const unsigned pair =
-          dimension < kRotaryPairs ? dimension : dimension - kRotaryPairs;
-      const float cos_value = cosine[token * kRotaryPairs + pair];
-      const float sin_value = sine[token * kRotaryPairs + pair];
-      float first_product = 0.0f;
-      float second_product = 0.0f;
-      if constexpr (TruncateRotaryProducts) {
-        // Triton's AMD BF16 multiply lowers to RTZ, followed by an FP32
-        // add/subtract and an RNE BF16 store.  Preserving both boundaries is
-        // required for bit-exact Qwen3.6 M-RoPE consumption.
-        first_product = triton_bf16_product_rtz(output, cos_value);
-        second_product = triton_bf16_product_rtz(mate, sin_value);
-      } else {
-        volatile float first_product_storage = output * cos_value;
-        volatile float second_product_storage = mate * sin_value;
-        first_product = first_product_storage;
-        second_product = second_product_storage;
-      }
-      output = dimension < kRotaryPairs
-                   ? first_product - second_product
-                   : first_product + second_product;
+  __hip_bfloat16* destination =
+      query ? q_output + (token * kQueryHeads + head) * kHeadDim
+            : k_output + (token * kKvHeads + head) * kHeadDim;
+  if constexpr (UseWideKReduction) {
+    // A rotary pair is owned by the same physical lane: dimensions lane and
+    // lane+32.  Normalize both once and materialize both rotated outputs.
+    // The former generic loop normalized each value again when it became the
+    // mate of the other half, which was exact but wasted 64 RMSNorm scalar
+    // operations per head on the singleton decode path.
+    const unsigned first_dimension = lane;
+    const unsigned second_dimension = lane + kRotaryPairs;
+    const float first_value = __bfloat162float(input[first_dimension]);
+    volatile float first_scaled_storage = first_value * inverse_rms;
+    volatile float first_weight_plus_one =
+        __bfloat162float(weight[first_dimension]) + 1.0f;
+    volatile float first_weighted_storage =
+        first_scaled_storage * first_weight_plus_one;
+    const float first_normalized = __bfloat162float(
+        __float2bfloat16(first_weighted_storage));
+    const float second_value = __bfloat162float(input[second_dimension]);
+    volatile float second_scaled_storage = second_value * inverse_rms;
+    volatile float second_weight_plus_one =
+        __bfloat162float(weight[second_dimension]) + 1.0f;
+    volatile float second_weighted_storage =
+        second_scaled_storage * second_weight_plus_one;
+    const float second_normalized = __bfloat162float(
+        __float2bfloat16(second_weighted_storage));
+    const float cos_value = cosine[token * kRotaryPairs + lane];
+    const float sin_value = sine[token * kRotaryPairs + lane];
+    float first_cos = 0.0f;
+    float second_sin = 0.0f;
+    float second_cos = 0.0f;
+    float first_sin = 0.0f;
+    if constexpr (TruncateRotaryProducts) {
+      first_cos = triton_bf16_product_rtz(first_normalized, cos_value);
+      second_sin = triton_bf16_product_rtz(second_normalized, sin_value);
+      second_cos = triton_bf16_product_rtz(second_normalized, cos_value);
+      first_sin = triton_bf16_product_rtz(first_normalized, sin_value);
+    } else {
+      volatile float first_cos_storage = first_normalized * cos_value;
+      volatile float second_sin_storage = second_normalized * sin_value;
+      volatile float second_cos_storage = second_normalized * cos_value;
+      volatile float first_sin_storage = first_normalized * sin_value;
+      first_cos = first_cos_storage;
+      second_sin = second_sin_storage;
+      second_cos = second_cos_storage;
+      first_sin = first_sin_storage;
     }
-    __hip_bfloat16* destination =
-        query ? q_output + (token * kQueryHeads + head) * kHeadDim
-              : k_output + (token * kKvHeads + head) * kHeadDim;
-    destination[dimension] = __float2bfloat16(output);
+    destination[first_dimension] =
+        __float2bfloat16(first_cos - second_sin);
+    destination[second_dimension] =
+        __float2bfloat16(second_cos + first_sin);
     if constexpr (CopyV) {
       if (!query) {
-        v_output[(token * kKvHeads + head) * kHeadDim + dimension] =
-            v_raw[token * VRowStride + head * kHeadDim + dimension];
+        const std::size_t v_base =
+            (token * kKvHeads + head) * kHeadDim;
+        const std::size_t raw_v_base =
+            token * VRowStride + head * kHeadDim;
+        v_output[v_base + first_dimension] =
+            v_raw[raw_v_base + first_dimension];
+        v_output[v_base + second_dimension] =
+            v_raw[raw_v_base + second_dimension];
+      }
+    }
+#pragma unroll
+    for (unsigned group = 2; group < 8; ++group) {
+      const unsigned dimension = lane + group * 32;
+      const float value = __bfloat162float(input[dimension]);
+      volatile float scaled_storage = value * inverse_rms;
+      volatile float weight_plus_one =
+          __bfloat162float(weight[dimension]) + 1.0f;
+      volatile float weighted_storage = scaled_storage * weight_plus_one;
+      destination[dimension] = __float2bfloat16(weighted_storage);
+      if constexpr (CopyV) {
+        if (!query) {
+          v_output[(token * kKvHeads + head) * kHeadDim + dimension] =
+              v_raw[token * VRowStride + head * kHeadDim + dimension];
+        }
+      }
+    }
+  } else {
+#pragma unroll
+    for (unsigned group = 0; group < 8; ++group) {
+      const unsigned dimension = lane + group * 32;
+      const float value = __bfloat162float(input[dimension]);
+      volatile float scaled_storage = value * inverse_rms;
+      volatile float weight_plus_one =
+          __bfloat162float(weight[dimension]) + 1.0f;
+      volatile float weighted_storage = scaled_storage * weight_plus_one;
+      const __hip_bfloat16 normalized_bf16 =
+          __float2bfloat16(weighted_storage);
+      float output = __bfloat162float(normalized_bf16);
+      if (dimension < kRotaryDim) {
+        const unsigned mate_dimension =
+            dimension < kRotaryPairs ? dimension + kRotaryPairs
+                                     : dimension - kRotaryPairs;
+        const float mate_value = __bfloat162float(input[mate_dimension]);
+        volatile float mate_scaled_storage = mate_value * inverse_rms;
+        volatile float mate_weight_plus_one =
+            __bfloat162float(weight[mate_dimension]) + 1.0f;
+        volatile float mate_weighted_storage =
+            mate_scaled_storage * mate_weight_plus_one;
+        const float mate = __bfloat162float(
+            __float2bfloat16(mate_weighted_storage));
+        const unsigned pair =
+            dimension < kRotaryPairs ? dimension : dimension - kRotaryPairs;
+        const float cos_value = cosine[token * kRotaryPairs + pair];
+        const float sin_value = sine[token * kRotaryPairs + pair];
+        float first_product = 0.0f;
+        float second_product = 0.0f;
+        if constexpr (TruncateRotaryProducts) {
+          // Triton's AMD BF16 multiply lowers to RTZ, followed by an FP32
+          // add/subtract and an RNE BF16 store.  Preserving both boundaries
+          // is required for bit-exact Qwen3.6 M-RoPE consumption.
+          first_product = triton_bf16_product_rtz(output, cos_value);
+          second_product = triton_bf16_product_rtz(mate, sin_value);
+        } else {
+          volatile float first_product_storage = output * cos_value;
+          volatile float second_product_storage = mate * sin_value;
+          first_product = first_product_storage;
+          second_product = second_product_storage;
+        }
+        output = dimension < kRotaryPairs
+                     ? first_product - second_product
+                     : first_product + second_product;
+      }
+      destination[dimension] = __float2bfloat16(output);
+      if constexpr (CopyV) {
+        if (!query) {
+          v_output[(token * kKvHeads + head) * kHeadDim + dimension] =
+              v_raw[token * VRowStride + head * kHeadDim + dimension];
+        }
       }
     }
   }
@@ -588,12 +790,19 @@ void launch_full_attention_head_norm_rope_prefill_impl(
     throw std::invalid_argument(
         "native full-attention head norm geometry is unsupported");
   }
+  const dim3 grid =
+      UseWideKReduction
+          ? dim3(token_count, kQueryHeads + kKvHeads)
+          : dim3(token_count);
+  const dim3 block = UseWideKReduction
+                         ? dim3(32)
+                         : dim3(32, kQueryHeads + kKvHeads);
   if (split_projection) {
     hipLaunchKernelGGL(
         (full_attention_head_norm_rope_prefill_kernel<
             8192, 512, 0, false, TruncateRotaryProducts,
             UseWideKReduction>),
-        dim3(token_count), dim3(32, kQueryHeads + kKvHeads), 0,
+        grid, block, 0,
         static_cast<hipStream_t>(stream_value),
         static_cast<const __hip_bfloat16*>(q_gate),
         static_cast<const __hip_bfloat16*>(k_raw), nullptr,
@@ -608,7 +817,7 @@ void launch_full_attention_head_norm_rope_prefill_impl(
         (full_attention_head_norm_rope_prefill_kernel<
             9216, 9216, 0, false, TruncateRotaryProducts,
             UseWideKReduction>),
-        dim3(token_count), dim3(32, kQueryHeads + kKvHeads), 0,
+        grid, block, 0,
         static_cast<hipStream_t>(stream_value),
         static_cast<const __hip_bfloat16*>(q_gate),
         static_cast<const __hip_bfloat16*>(k_raw), nullptr,
@@ -623,7 +832,7 @@ void launch_full_attention_head_norm_rope_prefill_impl(
         (full_attention_head_norm_rope_prefill_kernel<
             9216, 9216, 9216, true, TruncateRotaryProducts,
             UseWideKReduction>),
-        dim3(token_count), dim3(32, kQueryHeads + kKvHeads), 0,
+        grid, block, 0,
         static_cast<hipStream_t>(stream_value),
         static_cast<const __hip_bfloat16*>(q_gate),
         static_cast<const __hip_bfloat16*>(k_raw),
@@ -961,16 +1170,28 @@ void launch_prefill_add_rmsnorm_2048(const void* input_bf16,
     throw std::invalid_argument(
         "native prefill residual RMSNorm geometry is invalid");
   }
-  hipLaunchKernelGGL(
-      prefill_add_rmsnorm_2048_kernel, dim3((token_count + 15) / 16),
-      dim3(32, 16), 0,
-      static_cast<hipStream_t>(stream_value),
-      static_cast<const __hip_bfloat16*>(input_bf16),
-      static_cast<const __hip_bfloat16*>(residual_bf16),
-      static_cast<const __hip_bfloat16*>(weight_bf16),
-      static_cast<__hip_bfloat16*>(residual_output_bf16),
-      static_cast<__hip_bfloat16*>(norm_output_bf16), token_count);
-  check_hip(hipGetLastError(), "prefill_add_rmsnorm_2048_kernel");
+  if (token_count == 1) {
+    hipLaunchKernelGGL(
+        singleton_add_rmsnorm_2048_kernel, dim3(1), dim3(512), 0,
+        static_cast<hipStream_t>(stream_value),
+        static_cast<const __hip_bfloat16*>(input_bf16),
+        static_cast<const __hip_bfloat16*>(residual_bf16),
+        static_cast<const __hip_bfloat16*>(weight_bf16),
+        static_cast<__hip_bfloat16*>(residual_output_bf16),
+        static_cast<__hip_bfloat16*>(norm_output_bf16));
+    check_hip(hipGetLastError(), "singleton_add_rmsnorm_2048_kernel");
+  } else {
+    hipLaunchKernelGGL(
+        prefill_add_rmsnorm_2048_kernel, dim3((token_count + 15) / 16),
+        dim3(32, 16), 0,
+        static_cast<hipStream_t>(stream_value),
+        static_cast<const __hip_bfloat16*>(input_bf16),
+        static_cast<const __hip_bfloat16*>(residual_bf16),
+        static_cast<const __hip_bfloat16*>(weight_bf16),
+        static_cast<__hip_bfloat16*>(residual_output_bf16),
+        static_cast<__hip_bfloat16*>(norm_output_bf16), token_count);
+    check_hip(hipGetLastError(), "prefill_add_rmsnorm_2048_kernel");
+  }
 }
 
 void launch_shared_silu_multiply(const void* fused_shared_input,

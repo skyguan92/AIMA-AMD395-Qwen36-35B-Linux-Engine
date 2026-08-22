@@ -225,6 +225,10 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
         pointwise_source = (
             ROOT / "native/src/native_pointwise.hip.cpp"
         ).read_text(encoding="utf-8")
+        self.assertIn(
+            "fmaf(value, seed_squared, -product)", pointwise_source
+        )
+        self.assertIn("value_exponent >= 0x7e800000U", pointwise_source)
         build = (
             ROOT / "scripts/build-native-vl-language-layer0-probe.sh"
         ).read_text(encoding="utf-8")
@@ -422,7 +426,9 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
 
         singleton_rmsnorm = pointwise_source.split(
             "__global__ void singleton_rmsnorm_2048_kernel(", 1
-        )[1].split("__global__ void prefill_add_rmsnorm_2048_kernel", 1)[0]
+        )[1].split(
+            "__global__ void singleton_add_rmsnorm_2048_kernel", 1
+        )[0]
         self.assertIn(
             "constexpr unsigned kBlockThreads = kHidden / kVectorWidth",
             singleton_rmsnorm,
@@ -441,10 +447,22 @@ class NativeVlLanguageLayer0Test(unittest.TestCase):
             "for (unsigned offset = 1; offset < 32; offset <<= 1)",
             singleton_rmsnorm,
         )
-        self.assertEqual(singleton_rmsnorm.count("__syncthreads()"), 1)
+        self.assertEqual(singleton_rmsnorm.count("__syncthreads()"), 2)
         self.assertIn(
-            "inverse_rms = __shfl(inverse_rms, 0, 32)", singleton_rmsnorm
+            "const float inverse_rms = shared_inverse_rms", singleton_rmsnorm
         )
+        singleton_add_rmsnorm = pointwise_source.split(
+            "__global__ void singleton_add_rmsnorm_2048_kernel(", 1
+        )[1].split("__global__ void prefill_add_rmsnorm_2048_kernel", 1)[0]
+        self.assertIn("volatile_residual_output", singleton_add_rmsnorm)
+        self.assertIn("float wave_sums[16]", singleton_add_rmsnorm)
+        self.assertEqual(singleton_add_rmsnorm.count("__syncthreads()"), 2)
+        self.assertIn(
+            "const float inverse_rms = shared_inverse_rms",
+            singleton_add_rmsnorm,
+        )
+        self.assertIn("launch_prefill_add_rmsnorm_2048(", decode_full_source)
+        self.assertIn("launch_prefill_add_rmsnorm_2048(", decode_linear_source)
         self.assertIn("if (token_count == 1)", pointwise_source)
         self.assertIn("dim3(1), dim3(512)", pointwise_source)
 

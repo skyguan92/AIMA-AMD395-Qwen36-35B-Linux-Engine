@@ -116,6 +116,7 @@ struct NativeTokenizer::Impl {
   std::unique_ptr<icu::RegexPattern> regex;
   std::unordered_map<std::string, std::uint32_t> vocab;
   std::vector<std::string> id_to_token;
+  std::vector<std::string> decoded_token_bytes;
   std::unordered_set<std::uint32_t> added_ids;
   std::vector<AddedToken> added_tokens;
   std::array<std::vector<std::size_t>, 256> added_tokens_by_first_byte;
@@ -145,6 +146,28 @@ struct NativeTokenizer::Impl {
           static_cast<unsigned char>(content.front())]
           .push_back(index);
     }
+  }
+
+  std::string decode_token_bytes_uncached(std::uint32_t token_id) const {
+    if (token_id >= id_to_token.size() || id_to_token[token_id].empty()) {
+      throw std::runtime_error(
+          "token id is outside the native tokenizer vocabulary");
+    }
+    if (added_ids.count(token_id) != 0) return id_to_token[token_id];
+    std::string output;
+    const icu::UnicodeString symbols =
+        icu::UnicodeString::fromUTF8(id_to_token[token_id]);
+    for (int32_t offset = 0; offset < symbols.length();) {
+      const UChar32 point = symbols.char32At(offset);
+      offset += U16_LENGTH(point);
+      const auto found = unicode_to_bytes.find(point);
+      if (found == unicode_to_bytes.end()) {
+        throw std::runtime_error(
+            "BPE vocabulary contains an invalid byte-level symbol");
+      }
+      output.push_back(static_cast<char>(found->second));
+    }
+    return output;
   }
 
   std::vector<std::uint32_t> bpe(std::string_view piece) {
@@ -346,6 +369,16 @@ void NativeTokenizer::load(const std::filesystem::path& model_dir) {
     throw std::runtime_error("could not initialize ICU NFC normalizer");
   }
   impl_->bpe_cache.reserve(32768);
+  // Streaming decode previously rebuilt an ICU string and performed a hash
+  // lookup for every byte-level symbol after every generated token. Resolve
+  // the immutable qualified vocabulary once at load so token callbacks have
+  // output-independent O(1) work; this is especially important for VL
+  // answers whose tokens commonly contain several byte symbols.
+  impl_->decoded_token_bytes.resize(impl_->id_to_token.size());
+  for (std::size_t id = 0; id < impl_->id_to_token.size(); ++id) {
+    impl_->decoded_token_bytes[id] =
+        impl_->decode_token_bytes_uncached(static_cast<std::uint32_t>(id));
+  }
   impl_->loaded = true;
 }
 
@@ -392,28 +425,11 @@ std::string NativeTokenizer::decode(
 
 std::string NativeTokenizer::decode_token_bytes(std::uint32_t token_id) const {
   impl_->require_loaded();
-  if (token_id >= impl_->id_to_token.size() ||
-      impl_->id_to_token[token_id].empty()) {
+  if (token_id >= impl_->decoded_token_bytes.size()) {
     throw std::runtime_error(
         "token id is outside the native tokenizer vocabulary");
   }
-  if (impl_->added_ids.count(token_id) != 0) {
-    return impl_->id_to_token[token_id];
-  }
-  std::string output;
-  const icu::UnicodeString symbols =
-      icu::UnicodeString::fromUTF8(impl_->id_to_token[token_id]);
-  for (int32_t offset = 0; offset < symbols.length();) {
-    const UChar32 point = symbols.char32At(offset);
-    offset += U16_LENGTH(point);
-    const auto found = impl_->unicode_to_bytes.find(point);
-    if (found == impl_->unicode_to_bytes.end()) {
-      throw std::runtime_error(
-          "BPE vocabulary contains an invalid byte-level symbol");
-    }
-    output.push_back(static_cast<char>(found->second));
-  }
-  return output;
+  return impl_->decoded_token_bytes[token_id];
 }
 
 std::string NativeTokenizer::render_chat_prompt(

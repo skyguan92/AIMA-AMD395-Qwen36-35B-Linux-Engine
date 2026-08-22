@@ -167,6 +167,9 @@ class RoutedMoeDecodeAotTests(unittest.TestCase):
         full = (ROOT / "native/src/native_full_layer.hip.cpp").read_text(
             encoding="utf-8"
         )
+        decode_runner = (
+            ROOT / "native/src/native_decode_runner.hip.cpp"
+        ).read_text(encoding="utf-8")
         self.assertIn("ROUTED_MOE_DECODE_MANIFEST", runtime_build)
         self.assertIn("ROUTED_MOE_EXACT_HYBRID_MANIFEST", runtime_build)
         self.assertIn("native_routed_moe.hip.cpp", runtime_build)
@@ -179,7 +182,18 @@ class RoutedMoeDecodeAotTests(unittest.TestCase):
         self.assertIn("*gate_up_correction_count = 0", runtime)
         self.assertNotIn("hipMemsetAsync", runtime)
         self.assertIn("const __hip_bfloat16 silu_bf16", runtime)
+        self.assertIn("fmaf(value, seed_squared, -product)", runtime)
         self.assertIn("native_decode_moe_tail_kernel", runtime)
+        fused_tail_norm = runtime.split(
+            "__global__ void native_decode_moe_tail_next_rmsnorm_kernel(", 1
+        )[1].split("void launch_fused_moe(", 1)[0]
+        self.assertIn("volatile_output", fused_tail_norm)
+        self.assertIn("float wave_sums[16]", fused_tail_norm)
+        self.assertIn("static_assert(kBlockThreads == 512)", fused_tail_norm)
+        self.assertEqual(fused_tail_norm.count("__syncthreads()"), 2)
+        self.assertIn(
+            "const float inverse_rms = shared_inverse_rms", fused_tail_norm
+        )
         self.assertIn("volatile_routed_output", runtime)
         self.assertIn("volatile_shared_output", runtime)
         self.assertIn("volatile_combined_output", runtime)
@@ -188,6 +202,19 @@ class RoutedMoeDecodeAotTests(unittest.TestCase):
         self.assertIn("run_native_decode_routed_moe", full)
         self.assertIn("launch_native_decode_moe_tail", linear)
         self.assertIn("launch_native_decode_moe_tail", full)
+        self.assertIn(
+            "launch_native_decode_moe_tail_next_rmsnorm", linear
+        )
+        self.assertIn(
+            "launch_native_decode_moe_tail_next_rmsnorm", full
+        )
+        self.assertIn("use_mrope && layer_index != 0", decode_runner)
+        self.assertIn(
+            "cross_layer_norms->weight_bf16[layer_index]", decode_runner
+        )
+        self.assertIn(
+            "bind_native_decode_cross_layer_norms(", decode_runner
+        )
         self.assertIn("stream, true", full)
         frozen_loop = "for (std::size_t offset = 6; offset < 10; ++offset)"
         linear_frozen_start = linear.index("if (!use_current_vllm_projections)")

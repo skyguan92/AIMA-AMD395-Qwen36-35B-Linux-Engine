@@ -588,6 +588,7 @@ struct NativeResidentEngine::Impl {
   std::unique_ptr<Bf16GemmPlan> decode_shared_gate_plan;
   NativeDecodeWorkspace decode_workspace;
   NativeDecodeInvocations decode_invocations;
+  NativeDecodeCrossLayerNormBindings decode_cross_layer_norms;
   NativeDecodeExecutor executor;
   std::unique_ptr<NativeVlUnifiedAttentionPlan> vl_unified_attention;
   NativeVlLogicalProjectionState vl_logical_projections;
@@ -1311,6 +1312,8 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
   const NativeDecodeInvocationMetrics decode_invocation_metrics =
       impl_->decode_invocations.build(impl_->bindings,
                                       impl_->decode_workspace);
+  impl_->decode_cross_layer_norms = bind_native_decode_cross_layer_norms(
+      impl_->weights, impl_->decode_invocations);
   const NativeDecodeExecutorMetrics executor_metrics = impl_->executor.load();
   const NativeQ8192CkProviderMetrics provider_metrics =
       impl_->ck_provider.load(provider_path, impl_->prefill_tokens);
@@ -2780,15 +2783,14 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
       rotary_position = static_cast<std::size_t>(value);
       ++metrics.mrope_decode_steps;
     }
-    if (mrope_plan != nullptr) {
-      (void)prepare_native_decode_step(
-          position, rotary_position, metrics.output_token_ids.back(),
-          impl_->weights, impl_->decode_invocations);
-    } else {
-      (void)prepare_native_decode_step(
-          position, metrics.output_token_ids.back(), impl_->weights,
-          impl_->decode_invocations);
-    }
+    const NativeDecodePrepareMetrics prepared =
+        mrope_plan != nullptr
+            ? prepare_native_decode_step(
+                  position, rotary_position, metrics.output_token_ids.back(),
+                  impl_->weights, impl_->decode_invocations)
+            : prepare_native_decode_step(
+                  position, metrics.output_token_ids.back(), impl_->weights,
+                  impl_->decode_invocations);
     const std::uint8_t* allowed_token_mask = prepare_next_token_mask();
     const bool observe_decode_layers =
         request.decode_layer_observer_output_index.has_value() &&
@@ -2816,13 +2818,15 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
         impl_->attention_state, impl_->cu_count, allowed_token_mask, nullptr,
         layer_observer, request.decode_linear_observer_layer_index,
         linear_layer0_observer, layer0_tail_observer, full_attention_observer,
-        mrope_plan != nullptr, impl_->decode_shared_gate_plan.get());
+        mrope_plan != nullptr, impl_->decode_shared_gate_plan.get(),
+        mrope_plan != nullptr ? &impl_->decode_cross_layer_norms : nullptr);
     ++metrics.decode_tokens_executed;
     metrics.decode_aot_launches += token.aot_launches;
     metrics.decode_native_launches +=
         token.native_attention_launches + token.native_projection_launches +
         token.native_pointwise_launches +
-        token.native_lm_head_certificate_launches + 2;
+        token.native_lm_head_certificate_launches +
+        prepared.native_kernel_launches;
     metrics.decode_wall_ms += token.synchronized_wall_ms;
     metrics.all_decode_tokens_certified =
         metrics.all_decode_tokens_certified && token.lm_head_certified;

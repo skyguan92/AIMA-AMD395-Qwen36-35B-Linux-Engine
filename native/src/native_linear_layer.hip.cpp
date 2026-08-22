@@ -200,12 +200,22 @@ NativeLinearLayerMetrics run_native_linear_layer(
     bool synchronize, bool use_current_vllm_projections,
     const Bf16GemmPlan* shared_gate_plan,
     const NativeDecodeLinearLayer0Observer* observer,
-    const NativeDecodeLinearLayer0Observer* tail_observer) {
+    const NativeDecodeLinearLayer0Observer* tail_observer,
+    bool input_norm_precomputed,
+    const NativeDecodeNextInputNorm* next_input_norm) {
   const auto& launches = invocations.launches();
   const std::size_t base = layer_index * 10;
   if (!executor.loaded() || base + 10 > launches.size() ||
       base + 10 >= launches.size() || cu_count <= 0) {
     throw std::runtime_error("native linear layer owners are incomplete");
+  }
+  if ((input_norm_precomputed && !use_current_vllm_projections) ||
+      (next_input_norm != nullptr &&
+       (!use_current_vllm_projections ||
+        next_input_norm->weight_bf16 == nullptr ||
+        next_input_norm->output_bf16 == nullptr))) {
+    throw std::invalid_argument(
+        "native linear layer cross-layer RMSNorm binding is invalid");
   }
   static constexpr const char* kExpectedSymbols[] = {
       "triton_rmsnorm_kernel",
@@ -423,14 +433,14 @@ NativeLinearLayerMetrics run_native_linear_layer(
                           .count();
     return metrics;
   }
-  if (use_current_vllm_projections) {
+  if (use_current_vllm_projections && !input_norm_precomputed) {
     // The current GemmaRMSNorm input boundary can differ from the historical
     // decode image by one BF16 value, which then perturbs resident state.
     launch_prefill_rmsnorm_2048(
         input.device_pointer, input_norm_weight.device_pointer, input_norm, 1,
         stream);
     ++metrics.native_pointwise_launches;
-  } else {
+  } else if (!use_current_vllm_projections) {
     executor.launch(launches[base], stream);
     ++metrics.aot_launches;
   }
@@ -505,23 +515,23 @@ NativeLinearLayerMetrics run_native_linear_layer(
                    attention_output.device_pointer,
                    kHidden * sizeof(__hip_bfloat16),
                    DecodeTensorDtype::kBfloat16);
-  launch_bf16_add(input.device_pointer, attention_output.device_pointer,
-                  after_attn.device_pointer, kHidden, stream);
-  ++metrics.native_pointwise_launches;
+  if (use_current_vllm_projections) {
+    launch_prefill_add_rmsnorm_2048(
+        input.device_pointer, attention_output.device_pointer,
+        post_attention_norm_weight.device_pointer, after_attn.device_pointer,
+        post_attention_norm, 1, stream);
+    ++metrics.native_pointwise_launches;
+  } else {
+    launch_bf16_add(input.device_pointer, attention_output.device_pointer,
+                    after_attn.device_pointer, kHidden, stream);
+    ++metrics.native_pointwise_launches;
+    executor.launch(launches[base + 4], stream);
+    ++metrics.aot_launches;
+  }
   observe_boundary(tail_observer, "attention_residual",
                    after_attn.device_pointer,
                    kHidden * sizeof(__hip_bfloat16),
                    DecodeTensorDtype::kBfloat16);
-
-  if (use_current_vllm_projections) {
-    launch_prefill_rmsnorm_2048(
-        after_attn.device_pointer, post_attention_norm_weight.device_pointer,
-        post_attention_norm, 1, stream);
-    ++metrics.native_pointwise_launches;
-  } else {
-    executor.launch(launches[base + 4], stream);
-    ++metrics.aot_launches;
-  }
   observe_boundary(tail_observer, "post_attention_norm",
                    post_attention_norm,
                    kHidden * sizeof(__hip_bfloat16),
@@ -604,11 +614,20 @@ NativeLinearLayerMetrics run_native_linear_layer(
       routed_metrics.native_pointwise_launches;
   if (use_current_vllm_projections) {
     complete_native_decode_shared_expert_overlap(stream_value);
-    launch_native_decode_moe_tail(
-        routed_weighted.device_pointer, shared_input.device_pointer,
-        shared_down.device_pointer, after_attn.device_pointer,
-        routed_moe.device_pointer, shared_scaled.device_pointer,
-        combined_moe.device_pointer, output.device_pointer, stream);
+    if (next_input_norm != nullptr) {
+      launch_native_decode_moe_tail_next_rmsnorm(
+          routed_weighted.device_pointer, shared_input.device_pointer,
+          shared_down.device_pointer, after_attn.device_pointer,
+          routed_moe.device_pointer, shared_scaled.device_pointer,
+          combined_moe.device_pointer, output.device_pointer,
+          next_input_norm->weight_bf16, next_input_norm->output_bf16, stream);
+    } else {
+      launch_native_decode_moe_tail(
+          routed_weighted.device_pointer, shared_input.device_pointer,
+          shared_down.device_pointer, after_attn.device_pointer,
+          routed_moe.device_pointer, shared_scaled.device_pointer,
+          combined_moe.device_pointer, output.device_pointer, stream);
+    }
     ++metrics.native_pointwise_launches;
   }
   observe_boundary(tail_observer, "shared_gate_logits",

@@ -93,11 +93,22 @@ NativeFullLayerMetrics run_native_full_layer(
     int cu_count, void* stream_value, bool synchronize,
     bool use_mrope,
     const Bf16GemmPlan* shared_gate_plan,
-    const NativeDecodeFullAttentionObserver* attention_observer) {
+    const NativeDecodeFullAttentionObserver* attention_observer,
+    bool input_norm_precomputed,
+    const NativeDecodeNextInputNorm* next_input_norm,
+    const void* mrope_cosine_fp32,
+    const void* mrope_sine_fp32) {
   const auto& launches = invocations.launches();
   const std::size_t base = layer_index * 10;
   if (!executor.loaded() || base + 10 >= launches.size() || cu_count <= 0) {
     throw std::runtime_error("native full layer owners are incomplete");
+  }
+  if ((input_norm_precomputed && !use_mrope) ||
+      (next_input_norm != nullptr &&
+       (!use_mrope || next_input_norm->weight_bf16 == nullptr ||
+        next_input_norm->output_bf16 == nullptr))) {
+    throw std::invalid_argument(
+        "native full layer cross-layer RMSNorm binding is invalid");
   }
   static constexpr const char* kExpectedSymbols[] = {
       "triton_rmsnorm_kernel",
@@ -236,12 +247,12 @@ NativeFullLayerMetrics run_native_full_layer(
   NativeFullLayerMetrics metrics;
   metrics.layer_index = layer_index;
   metrics.cache_end = cache_end;
-  if (use_mrope) {
+  if (use_mrope && !input_norm_precomputed) {
     launch_prefill_rmsnorm_2048(
         input.device_pointer, input_norm_weight.device_pointer,
         normalized_input.device_pointer, 1, stream);
     ++metrics.native_pointwise_launches;
-  } else {
+  } else if (!use_mrope) {
     executor.launch(launches[base], stream);
     ++metrics.aot_launches;
   }
@@ -270,16 +281,26 @@ NativeFullLayerMetrics run_native_full_layer(
   const auto* raw_v = static_cast<const __hip_bfloat16*>(qkv.device_pointer) +
                       kRawValueOffsetElements;
   if (use_mrope) {
-    const auto& cosine = require_typed_workspace(
-        workspace, require_argument_binding(launches[base + 2], "cos"),
-        32 * sizeof(float), DecodeTensorDtype::kFloat32);
-    const auto& sine = require_typed_workspace(
-        workspace, require_argument_binding(launches[base + 2], "sin"),
-        32 * sizeof(float), DecodeTensorDtype::kFloat32);
+    if ((mrope_cosine_fp32 == nullptr) != (mrope_sine_fp32 == nullptr)) {
+      throw std::invalid_argument(
+          "native full layer M-RoPE table binding is incomplete");
+    }
+    if (mrope_cosine_fp32 == nullptr) {
+      mrope_cosine_fp32 =
+          require_typed_workspace(
+              workspace, require_argument_binding(launches[base + 2], "cos"),
+              32 * sizeof(float), DecodeTensorDtype::kFloat32)
+              .device_pointer;
+      mrope_sine_fp32 =
+          require_typed_workspace(
+              workspace, require_argument_binding(launches[base + 2], "sin"),
+              32 * sizeof(float), DecodeTensorDtype::kFloat32)
+              .device_pointer;
+    }
     launch_full_attention_head_norm_mrope_prefill(
         qkv.device_pointer, raw_k, nullptr, q_norm_weight.device_pointer,
-        k_norm_weight.device_pointer, cosine.device_pointer,
-        sine.device_pointer, q.device_pointer, k.device_pointer, nullptr, 1,
+        k_norm_weight.device_pointer, mrope_cosine_fp32,
+        mrope_sine_fp32, q.device_pointer, k.device_pointer, nullptr, 1,
         9216, 9216, 0, stream);
     ++metrics.native_pointwise_launches;
   } else {
@@ -303,18 +324,18 @@ NativeFullLayerMetrics run_native_full_layer(
       attention_state.projected_attention(), kHidden, kQueryDimension,
       cu_count, stream);
   ++metrics.native_projection_launches;
-  launch_bf16_add(input.device_pointer,
-                  attention_state.projected_attention(),
-                  after_attn.device_pointer, kHidden, stream);
-  ++metrics.native_pointwise_launches;
-
   void* post_attention_norm = invocations.tensor_pointer(base + 4, "out");
   if (use_mrope) {
-    launch_prefill_rmsnorm_2048(
-        after_attn.device_pointer, post_attention_norm_weight.device_pointer,
+    launch_prefill_add_rmsnorm_2048(
+        input.device_pointer, attention_state.projected_attention(),
+        post_attention_norm_weight.device_pointer, after_attn.device_pointer,
         post_attention_norm, 1, stream);
     ++metrics.native_pointwise_launches;
   } else {
+    launch_bf16_add(input.device_pointer,
+                    attention_state.projected_attention(),
+                    after_attn.device_pointer, kHidden, stream);
+    ++metrics.native_pointwise_launches;
     executor.launch(launches[base + 4], stream);
     ++metrics.aot_launches;
   }
@@ -406,11 +427,20 @@ NativeFullLayerMetrics run_native_full_layer(
     }
   }
   if (use_mrope) {
-    launch_native_decode_moe_tail(
-        routed_weighted.device_pointer, shared_input.device_pointer,
-        shared_down.device_pointer, after_attn.device_pointer,
-        routed_moe.device_pointer, shared_scaled.device_pointer,
-        combined_moe.device_pointer, output.device_pointer, stream);
+    if (next_input_norm != nullptr) {
+      launch_native_decode_moe_tail_next_rmsnorm(
+          routed_weighted.device_pointer, shared_input.device_pointer,
+          shared_down.device_pointer, after_attn.device_pointer,
+          routed_moe.device_pointer, shared_scaled.device_pointer,
+          combined_moe.device_pointer, output.device_pointer,
+          next_input_norm->weight_bf16, next_input_norm->output_bf16, stream);
+    } else {
+      launch_native_decode_moe_tail(
+          routed_weighted.device_pointer, shared_input.device_pointer,
+          shared_down.device_pointer, after_attn.device_pointer,
+          routed_moe.device_pointer, shared_scaled.device_pointer,
+          combined_moe.device_pointer, output.device_pointer, stream);
+    }
   } else {
     launch_bf16_add_pair(
         routed_output, shared_scaled.device_pointer,

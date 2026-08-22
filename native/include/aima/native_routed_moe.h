@@ -29,6 +29,16 @@ struct NativeDecodeRoutedMoeMetrics {
   std::size_t aot_launches = 0;
 };
 
+// Optional resident destination for the following decoder layer's singleton
+// input RMSNorm.  The VL token runner can attach this to the current MoE tail
+// so the observable BF16 layer output and the next normalized-input boundary
+// are materialized by one launch.  Standalone layer qualification leaves it
+// null and retains the independent RMSNorm launch.
+struct NativeDecodeNextInputNorm {
+  const void* weight_bf16 = nullptr;
+  void* output_bf16 = nullptr;
+};
+
 // The resident decoder is serial. These helpers expose one non-blocking side
 // stream and event pair so the shared expert can execute beside the routed
 // experts without changing either arithmetic chain. Call begin after the
@@ -48,6 +58,17 @@ void launch_native_decode_moe_tail(
     const void* residual_bf16, void* routed_output_bf16,
     void* shared_output_bf16, void* combined_output_bf16,
     void* output_bf16, void* stream = nullptr);
+
+// Extends the exact singleton MoE tail with the following layer's Gemma
+// RMSNorm.  All intermediate BF16 tail boundaries and the final layer output
+// remain materialized before replaying the frozen PyTorch reduction tree.
+void launch_native_decode_moe_tail_next_rmsnorm(
+    const void* weighted_expert_outputs_bf16,
+    const void* fused_shared_input_bf16, const void* shared_down_bf16,
+    const void* residual_bf16, void* routed_output_bf16,
+    void* shared_output_bf16, void* combined_output_bf16,
+    void* output_bf16, const void* next_norm_weight_bf16,
+    void* next_norm_output_bf16, void* stream = nullptr);
 
 // Executes the pinned current-vLLM singleton routed-MoE chain:
 // BF16 router projection, FP32 normalized top-8 routing, two embedded Triton
