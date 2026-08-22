@@ -162,6 +162,12 @@ struct NativeResidentRequestOptions {
   std::optional<NativeResidentVlInput> vl_input;
   std::size_t max_new_tokens = 1;
   std::vector<std::uint32_t> stop_token_ids;
+  // temperature=0 preserves the certified greedy path. A positive value uses
+  // an exact full-vocabulary BF16 LM-head projection followed by stable seeded
+  // nucleus sampling. top_p is admitted only on that stochastic path.
+  double temperature = 0.0;
+  double top_p = 1.0;
+  std::optional<std::uint64_t> sampling_seed;
   // Optional fail-closed token grammar. The callback must replace `mask`
   // with exactly kNativeModelVocabularySize bytes for the next token, where
   // nonzero entries are admitted. The engine uploads this into resident
@@ -265,6 +271,15 @@ struct NativeResidentRequestMetrics {
   double vl_vision_encode_wall_ms = 0.0;
   double vl_embedding_injection_wall_ms = 0.0;
   std::size_t decode_tokens_executed = 0;
+  std::string decode_sampling = "argmax";
+  std::string sampling_logits_source = "certified-top1";
+  double sampling_temperature = 0.0;
+  double sampling_top_p = 1.0;
+  bool sampling_seed_provided = false;
+  std::uint64_t sampling_seed = 0;
+  std::size_t sampling_token_selections = 0;
+  std::uint64_t sampling_logits_device_to_host_bytes = 0;
+  double sampling_wall_ms = 0.0;
   bool constrained_decoding = false;
   std::size_t constrained_token_selections = 0;
   std::uint64_t constrained_token_mask_upload_bytes = 0;

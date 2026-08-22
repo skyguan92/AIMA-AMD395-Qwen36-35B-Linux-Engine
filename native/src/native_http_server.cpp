@@ -25,6 +25,7 @@
 #include <cerrno>
 #include <chrono>
 #include <cctype>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
@@ -614,6 +615,20 @@ Json request_metrics_json(const NativeResidentRequestMetrics& metrics) {
            metrics.aot_prefill_bucket_tokens},
           {"aot_prefill_segments", metrics.aot_prefill_segments},
           {"padded_prefill_tokens", metrics.padded_prefill_tokens},
+          {"sampling",
+           {{"mode", metrics.decode_sampling},
+            {"logits_source", metrics.sampling_logits_source},
+            {"temperature", metrics.sampling_temperature},
+            {"top_p", metrics.sampling_top_p},
+            {"seed_provided", metrics.sampling_seed_provided},
+            {"seed",
+             metrics.decode_sampling == "argmax"
+                 ? Json(nullptr)
+                 : Json(metrics.sampling_seed)},
+            {"token_selections", metrics.sampling_token_selections},
+            {"logits_device_to_host_bytes",
+             metrics.sampling_logits_device_to_host_bytes},
+            {"wall_ms", metrics.sampling_wall_ms}}},
           {"structured_decoding",
            {{"enabled", metrics.constrained_decoding},
             {"token_selections", metrics.constrained_token_selections},
@@ -845,6 +860,9 @@ struct ParsedCompletionRequest {
   std::shared_ptr<NativeNamedToolJsonConstraint>
       named_tool_json_constraint;
   std::size_t max_tokens = 16;
+  double temperature = 0.0;
+  double top_p = 1.0;
+  std::optional<std::uint64_t> seed;
   bool stream = false;
   bool include_usage = false;
   bool raw_prompt_tokens = false;
@@ -876,10 +894,44 @@ ParsedCompletionRequest parse_completion_request(
        request["model"].get<std::string>() != kModelId)) {
     throw std::invalid_argument("model is not served by this engine");
   }
-  require_number(request, "temperature", 0.0);
-  require_number(request, "top_p", 1.0);
   require_number(request, "n", 1.0);
   ParsedCompletionRequest parsed;
+  if (request.contains("temperature")) {
+    if (!request["temperature"].is_number()) {
+      throw std::invalid_argument("temperature must be a number");
+    }
+    parsed.temperature = request["temperature"].get<double>();
+  }
+  if (!std::isfinite(parsed.temperature) || parsed.temperature < 0.0 ||
+      parsed.temperature > 2.0) {
+    throw std::invalid_argument("temperature must be in [0, 2]");
+  }
+  if (request.contains("top_p")) {
+    if (!request["top_p"].is_number()) {
+      throw std::invalid_argument("top_p must be a number");
+    }
+    parsed.top_p = request["top_p"].get<double>();
+  }
+  if (!std::isfinite(parsed.top_p) || parsed.top_p <= 0.0 ||
+      parsed.top_p > 1.0) {
+    throw std::invalid_argument("top_p must be in (0, 1]");
+  }
+  if (parsed.temperature == 0.0 && parsed.top_p != 1.0) {
+    throw std::invalid_argument("top_p requires temperature > 0");
+  }
+  if (request.contains("seed")) {
+    if (request["seed"].is_number_unsigned()) {
+      parsed.seed = request["seed"].get<std::uint64_t>();
+    } else if (request["seed"].is_number_integer()) {
+      const std::int64_t value = request["seed"].get<std::int64_t>();
+      if (value < 0) {
+        throw std::invalid_argument("seed must be a non-negative integer");
+      }
+      parsed.seed = static_cast<std::uint64_t>(value);
+    } else {
+      throw std::invalid_argument("seed must be a non-negative integer");
+    }
+  }
   if (request.contains("stream")) {
     if (!request["stream"].is_boolean()) {
       throw std::invalid_argument("stream must be boolean");
@@ -1085,6 +1137,9 @@ Json chat_completion(NativeResidentEngine& engine, NativeTokenizer& tokenizer,
   native_request.vl_input = std::move(parsed.vl_input);
   native_request.max_new_tokens = parsed.max_tokens;
   native_request.stop_token_ids = {tokenizer.eos_token_id()};
+  native_request.temperature = parsed.temperature;
+  native_request.top_p = parsed.top_p;
+  native_request.sampling_seed = parsed.seed;
   native_request.disable_prefix_cache = parsed.disable_prefix_cache;
   if (parsed.named_tool_json_constraint != nullptr) {
     const auto constraint = parsed.named_tool_json_constraint;
@@ -1185,6 +1240,9 @@ bool stream_chat_completion(
   native_request.vl_input = std::move(parsed.vl_input);
   native_request.max_new_tokens = parsed.max_tokens;
   native_request.stop_token_ids = {tokenizer.eos_token_id()};
+  native_request.temperature = parsed.temperature;
+  native_request.top_p = parsed.top_p;
+  native_request.sampling_seed = parsed.seed;
   native_request.disable_prefix_cache = parsed.disable_prefix_cache;
   if (parsed.named_tool_json_constraint != nullptr) {
     const auto constraint = parsed.named_tool_json_constraint;

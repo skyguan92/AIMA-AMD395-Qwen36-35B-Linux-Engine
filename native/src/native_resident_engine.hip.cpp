@@ -5,6 +5,7 @@
 
 #include "aima/aot_registry.h"
 #include "aima/bf16_gemm.h"
+#include "aima/bf16_wvsplitk.h"
 #include "aima/native_decode_bindings.h"
 #include "aima/native_decode_executor.h"
 #include "aima/native_decode_invocation.h"
@@ -22,6 +23,7 @@
 #include "aima/native_prefill_invocation.h"
 #include "aima/native_prefill_workspace.h"
 #include "aima/native_prompt_plan.h"
+#include "aima/native_sampling.h"
 #include "aima/native_vl_unified_attention.h"
 #include "aima/native_vl_logical_projections.h"
 #include "aima/sha256.h"
@@ -34,6 +36,7 @@
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <cmath>
 #include <cstddef>
 #include <cstdlib>
 #include <cstring>
@@ -41,6 +44,7 @@
 #include <iomanip>
 #include <iostream>
 #include <limits>
+#include <memory>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -623,6 +627,7 @@ struct NativeResidentEngine::Impl {
   void* structured_token_mask = nullptr;
   std::uint64_t structured_token_mask_bytes = 0;
   std::vector<std::uint8_t> host_structured_token_mask;
+  std::vector<std::uint16_t> host_sampling_logits_bf16;
   void* vision_pixel_values = nullptr;
   std::uint64_t vision_pixel_capacity_bytes = 0;
   void* vision_embeddings = nullptr;
@@ -687,6 +692,51 @@ struct NativeResidentEngine::Impl {
       owner.start_sequence = frozen_text_q1024_start_sequence;
     }
     return owner;
+  }
+
+  std::uint32_t sample_current_logits(
+      NativeLogitSampler& sampler,
+      const std::uint8_t* allowed_token_mask,
+      NativeResidentRequestMetrics* request_metrics) {
+    const NativeTensorView* raw_lm_head = weights.find("lm_head.weight");
+    const NativeDecodeWorkspaceView* final_hidden =
+        decode_workspace.find("rmsnorm_final_output");
+    // The certificate has completed before this method runs. Its 4 MiB raw
+    // candidate-row scratch is dead until the next token, so reuse its prefix
+    // for the 485 KiB exact full-vocabulary BF16 projection.
+    const NativeDecodeWorkspaceView* sampling_output =
+        decode_workspace.find("native.lm_head.candidate_weights");
+    constexpr std::uint64_t kSamplingBytes =
+        kVocabulary * sizeof(std::uint16_t);
+    if (raw_lm_head == nullptr || raw_lm_head->device_pointer == nullptr ||
+        raw_lm_head->payload_bytes !=
+            kVocabulary * kHidden * sizeof(std::uint16_t) ||
+        final_hidden == nullptr || final_hidden->device_pointer == nullptr ||
+        final_hidden->payload_bytes < kHidden * sizeof(std::uint16_t) ||
+        sampling_output == nullptr ||
+        sampling_output->device_pointer == nullptr ||
+        sampling_output->payload_bytes < kSamplingBytes || cu_count <= 0 ||
+        host_sampling_logits_bf16.size() != kVocabulary ||
+        request_metrics == nullptr) {
+      throw std::runtime_error(
+          "native stochastic LM-head ownership is incomplete");
+    }
+    const auto started = std::chrono::steady_clock::now();
+    launch_bf16_wvsplitk(
+        raw_lm_head->device_pointer, final_hidden->device_pointer, nullptr,
+        sampling_output->device_pointer, kVocabulary, kHidden, cu_count,
+        nullptr);
+    check_hip(
+        hipMemcpy(host_sampling_logits_bf16.data(),
+                  sampling_output->device_pointer, kSamplingBytes,
+                  hipMemcpyDeviceToHost),
+        "hipMemcpy stochastic full-vocabulary logits");
+    ++request_metrics->sampling_token_selections;
+    request_metrics->sampling_logits_device_to_host_bytes += kSamplingBytes;
+    request_metrics->sampling_wall_ms += elapsed_ms(started);
+    return sampler.sample_bf16(
+        host_sampling_logits_bf16.data(), host_sampling_logits_bf16.size(),
+        allowed_token_mask, allowed_token_mask == nullptr ? 0 : kVocabulary);
   }
 
   void ensure_vision_allocation(void** pointer, std::uint64_t* capacity,
@@ -1473,6 +1523,7 @@ NativeResidentLoadMetrics NativeResidentEngine::load(
                       impl_->structured_token_mask_bytes),
             "hipMalloc resident structured token mask");
   impl_->host_structured_token_mask.resize(kVocabulary);
+  impl_->host_sampling_logits_bf16.resize(kVocabulary);
   impl_->vl_prompt_token_ids = impl_->vl_prompt_index_state;
   impl_->vl_scatter_indices =
       static_cast<unsigned char*>(impl_->vl_prompt_index_state) +
@@ -1700,6 +1751,20 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
           "native resident stop token is outside the vocabulary");
     }
   }
+  if (!std::isfinite(request.temperature) || request.temperature < 0.0 ||
+      request.temperature > 2.0) {
+    throw std::invalid_argument(
+        "native resident temperature must be in [0, 2]");
+  }
+  if (!std::isfinite(request.top_p) || request.top_p <= 0.0 ||
+      request.top_p > 1.0) {
+    throw std::invalid_argument(
+        "native resident top_p must be in (0, 1]");
+  }
+  if (request.temperature == 0.0 && request.top_p != 1.0) {
+    throw std::invalid_argument(
+        "native resident top_p requires positive temperature");
+  }
   if (!request.disable_prefix_cache && impl_->prefix_cache_entries == 0) {
     throw std::invalid_argument(
         "native resident prefix cache was disabled before READY");
@@ -1899,6 +1964,19 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
   NativeResidentRequestMetrics metrics;
   metrics.request_index = ++impl_->request_count;
   metrics.prompt_tokens = request.input_token_ids.size();
+  metrics.sampling_temperature = request.temperature;
+  metrics.sampling_top_p = request.top_p;
+  metrics.sampling_seed_provided = request.sampling_seed.has_value();
+  std::unique_ptr<NativeLogitSampler> sampler;
+  if (request.temperature > 0.0) {
+    metrics.decode_sampling = "temperature-top-p";
+    metrics.sampling_logits_source = "exact-bf16-full-vocabulary";
+    metrics.sampling_seed = request.sampling_seed.value_or(
+        native_random_sampling_seed());
+    sampler = std::make_unique<NativeLogitSampler>(
+        NativeSamplingParameters{request.temperature, request.top_p,
+                                 metrics.sampling_seed});
+  }
   if (vl_input != nullptr) {
     std::ostringstream prompt_token_payload;
     prompt_token_payload << '[';
@@ -2672,7 +2750,15 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
       impl_->decode_invocations, impl_->executor, impl_->cu_count,
       first_allowed_token_mask);
   metrics.first_token_certified = first.certified;
-  first_token_id = first.top1_token_id;
+  first_token_id =
+      sampler != nullptr
+          ? impl_->sample_current_logits(
+                *sampler,
+                first_allowed_token_mask == nullptr
+                    ? nullptr
+                    : impl_->host_structured_token_mask.data(),
+                &metrics)
+          : first.top1_token_id;
   if (timeline_enabled) {
     check_hip(hipDeviceSynchronize(),
               "hipDeviceSynchronize after first-token LM head");
@@ -2830,14 +2916,27 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
     metrics.decode_wall_ms += token.synchronized_wall_ms;
     metrics.all_decode_tokens_certified =
         metrics.all_decode_tokens_certified && token.lm_head_certified;
-    metrics.output_token_ids.push_back(token.top1_token_id);
+    std::uint32_t selected_token_id = token.top1_token_id;
+    if (sampler != nullptr) {
+      const double sampling_wall_before = metrics.sampling_wall_ms;
+      selected_token_id = impl_->sample_current_logits(
+          *sampler,
+          allowed_token_mask == nullptr
+              ? nullptr
+              : impl_->host_structured_token_mask.data(),
+          &metrics);
+      metrics.decode_wall_ms +=
+          metrics.sampling_wall_ms - sampling_wall_before;
+      ++metrics.decode_native_launches;
+    }
+    metrics.output_token_ids.push_back(selected_token_id);
     if (request.token_callback &&
-        !request.token_callback(token.top1_token_id,
+        !request.token_callback(selected_token_id,
                                 metrics.output_token_ids.size() - 1)) {
       metrics.client_cancelled = true;
     }
-    metrics.stopped = contains(request.stop_token_ids, token.top1_token_id);
-    if (metrics.stopped) metrics.stop_token_id = token.top1_token_id;
+    metrics.stopped = contains(request.stop_token_ids, selected_token_id);
+    if (metrics.stopped) metrics.stop_token_id = selected_token_id;
   }
 
   metrics.completion_tokens = metrics.output_token_ids.size();
