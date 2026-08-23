@@ -26,6 +26,14 @@ assert CAPTURE_SPEC is not None and CAPTURE_SPEC.loader is not None
 control_capture = importlib.util.module_from_spec(CAPTURE_SPEC)
 CAPTURE_SPEC.loader.exec_module(control_capture)
 
+VL_CAPTURE_SCRIPT = ROOT / "scripts" / "capture-vl-performance-request.py"
+VL_CAPTURE_SPEC = importlib.util.spec_from_file_location(
+    "vl_performance_capture", VL_CAPTURE_SCRIPT
+)
+assert VL_CAPTURE_SPEC is not None and VL_CAPTURE_SPEC.loader is not None
+vl_capture = importlib.util.module_from_spec(VL_CAPTURE_SPEC)
+VL_CAPTURE_SPEC.loader.exec_module(vl_capture)
+
 
 CONTROL_SPECS = {
     "text_q1024_output512": {
@@ -49,49 +57,44 @@ CONTROL_SPECS = {
 }
 
 
-def text_run(index: int, decode_tps: float = 100.0) -> dict:
+def paired_run(
+    index: int, text_decode_tps: float = 100.0, vl_decode_tps: float = 101.0
+) -> dict:
+    request_order = (
+        list(CONTROL_SPECS)
+        if index % 2
+        else list(reversed(CONTROL_SPECS))
+    )
     return {
         "run_index": index,
-        "directory": f"control-{index:02d}",
+        "directory": f"paired-control-{index:02d}",
         "manifest_sha256": "a" * 64,
+        "matrix_sha256": "9" * 64,
         "health_sha256": "b" * 64,
         "health_contract": {"context_capacity": 262144},
         "candidate_binary_sha256": "c" * 64,
         "server_pid": 1000 + index,
         "host": "test-host",
-        "request_order": list(CONTROL_SPECS),
+        "request_order": request_order,
+        "pair_order": ["text", "vl"] if index % 2 else ["vl", "text"],
         "samples": {
             control_id: {
-                "client_decode_tokens_per_second": decode_tps,
-                "engine_decode_tokens_per_second": decode_tps + 0.1,
-                "content_sha256": "d" * 64,
-                "output_token_ids_sha256": "e" * 64,
-                "raw_sha256": "f" * 64,
-            }
-            for control_id in CONTROL_SPECS
-        },
-    }
-
-
-def g4_pair(index: int, decode_tps: float = 101.0) -> dict:
-    return {
-        "pair_index": index,
-        "directory": f"pair-{index:02d}",
-        "summary_sha256": "1" * 64,
-        "health_sha256": "2" * 64,
-        "health_contract": {"context_capacity": 262144},
-        "server_pid": 2000 + index,
-        "host": "test-host",
-        "execution_order": (
-            "reference candidate" if index % 2 else "candidate reference"
-        ),
-        "samples": {
-            control_id: {
-                "client_decode_tokens_per_second": decode_tps,
-                "engine_decode_tokens_per_second": decode_tps + 0.1,
-                "content_sha256": "3" * 64,
-                "output_token_ids_sha256": "4" * 64,
-                "raw_sha256": "5" * 64,
+                "text": {
+                    "client_decode_tokens_per_second": text_decode_tps,
+                    "engine_decode_tokens_per_second": text_decode_tps + 0.1,
+                    "content_sha256": "d" * 64,
+                    "output_token_ids_sha256": "e" * 64,
+                    "raw_sha256": "f" * 64,
+                    "request_index": 2,
+                },
+                "vl": {
+                    "client_decode_tokens_per_second": vl_decode_tps,
+                    "engine_decode_tokens_per_second": vl_decode_tps + 0.1,
+                    "content_sha256": "3" * 64,
+                    "output_token_ids_sha256": "4" * 64,
+                    "raw_sha256": "5" * 64,
+                    "request_index": 3,
+                },
             }
             for control_id in CONTROL_SPECS
         },
@@ -130,11 +133,16 @@ class VlTextDecodeControlsTest(unittest.TestCase):
             controls_summary.TIMING_BOUNDARY,
             control_capture.TIMING_BOUNDARY,
         )
+        self.assertEqual(
+            controls_summary.TIMING_BOUNDARY,
+            vl_capture.TIMING_BOUNDARY,
+        )
+        self.assertIn("adjacent", manifest["protocol"]["pairing"])
+        self.assertIn("odd", manifest["protocol"]["pair_order"])
 
     def test_five_exact_shape_controls_qualify_every_decode_cell(self) -> None:
         result = controls_summary.aggregate(
-            [text_run(index) for index in range(1, 6)],
-            [g4_pair(index) for index in range(1, 6)],
+            [paired_run(index) for index in range(1, 6)],
             CONTROL_SPECS,
             self.candidate,
         )
@@ -150,13 +158,12 @@ class VlTextDecodeControlsTest(unittest.TestCase):
             self.assertTrue(cell["qualified"])
 
     def test_one_decode_cell_below_text_blocks_qualification(self) -> None:
-        pairs = [g4_pair(index) for index in range(1, 6)]
+        pairs = [paired_run(index) for index in range(1, 6)]
         for pair in pairs:
-            pair["samples"]["text_q1039_output1024"][
+            pair["samples"]["text_q1039_output1024"]["vl"][
                 "client_decode_tokens_per_second"
             ] = 99.0
         result = controls_summary.aggregate(
-            [text_run(index) for index in range(1, 6)],
             pairs,
             CONTROL_SPECS,
             self.candidate,
@@ -170,10 +177,9 @@ class VlTextDecodeControlsTest(unittest.TestCase):
         )
 
     def test_service_contract_drift_marks_result_incomplete(self) -> None:
-        pairs = [g4_pair(index) for index in range(1, 6)]
+        pairs = [paired_run(index) for index in range(1, 6)]
         pairs[-1]["health_contract"] = {"context_capacity": 8192}
         result = controls_summary.aggregate(
-            [text_run(index) for index in range(1, 6)],
             pairs,
             CONTROL_SPECS,
             self.candidate,

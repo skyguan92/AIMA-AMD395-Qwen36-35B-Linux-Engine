@@ -1,9 +1,9 @@
 {
   "schema": "aima-amd395-qwen36/vl-text-decode-control-manifest/v1",
   "complete": true,
-  "scope": "same-native-service HTTP/SSE text controls for the three G4 VL decode cells",
+  "scope": "adjacent same-process HTTP/SSE text/VL controls for the three G4 decode cells",
   "protocol": {
-    "candidate_process": "fresh native VL service with the G4 candidate launcher",
+    "candidate_process": "one fresh native VL service per paired run",
     "context_tokens": 262143,
     "cache_capacity": 262144,
     "media_cache": "disabled",
@@ -11,7 +11,9 @@
     "symmetric_warmup": "one non-streaming text token before controls",
     "timing_boundary": "perf_counter_ns immediately before HTTP open through SSE stream EOF; TTFT ends at the first semantic delta; decode throughput is (completion_tokens - 1) / (total_seconds - ttft_seconds)",
     "minimum_fresh_processes": 5,
-    "request_order": "forward for odd process indices; reverse for even process indices"
+    "request_order": "control order is forward for odd process indices and reverse for even process indices",
+    "pair_order": "text then VL for odd process indices; VL then text for even process indices",
+    "pairing": "each text/VL control pair is adjacent on one server PID with consecutive native request indices"
   },
   "token_padding": {
     "unit": " x",
@@ -72,6 +74,6 @@
   ],
   "integrity": {
     "algorithm": "sha256",
-    "canonical_payload_sha256": "0ae2837552c29a9cff1c6a05b9b35f3b0935ceb2ed292bc6adf420fafe735771"
+    "canonical_payload_sha256": "7fce5e752b2f9b18562307bae8184edf10bb4097a970f5970c0e744a283834ff"
   }
 }

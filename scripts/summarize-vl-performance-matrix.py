@@ -268,19 +268,23 @@ def apply_text_decode_retention(
     ):
         raise ValueError("same-boundary text controls do not bind G4 identity")
     raw_runs = text_control.get("raw_runs")
-    if not isinstance(raw_runs, list) or len(raw_runs) != len(pair_records):
+    control_pair_count = text_control.get("pair_count")
+    if (
+        not isinstance(raw_runs, list)
+        or not isinstance(control_pair_count, int)
+        or isinstance(control_pair_count, bool)
+        or control_pair_count < 5
+        or len(raw_runs) != control_pair_count
+    ):
         raise ValueError("same-boundary text-control pair ledger is incomplete")
-    expected_summaries = {
-        int(pair["pair_index"]): pair["summary_sha256"]
-        for pair in pair_records
-    }
     if any(
         not isinstance(run, Mapping)
-        or run.get("g4_summary_sha256")
-        != expected_summaries.get(run.get("run_index"))
-        for run in raw_runs
+        or run.get("run_index") != index
+        or not isinstance(run.get("paired_control_dir"), str)
+        or not run.get("paired_control_dir")
+        for index, run in enumerate(raw_runs, start=1)
     ):
-        raise ValueError("same-boundary text controls bind different G4 pairs")
+        raise ValueError("same-boundary paired-control ledger is not consecutive")
     control_cells = text_control.get("cells")
     if not isinstance(control_cells, list):
         raise ValueError("same-boundary text controls contain no cells")

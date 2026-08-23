@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Qualify G4 VL decode retention against same-boundary text controls."""
+"""Qualify G4 VL decode retention with adjacent same-process text controls."""
 
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2026 Approaching AI Authors
@@ -31,6 +31,7 @@ from aima_engine.vl_reference import (  # noqa: E402
 
 SCHEMA = "aima-amd395-qwen36/vl-text-decode-retention/v1"
 MANIFEST_SCHEMA = "aima-amd395-qwen36/vl-text-decode-control-manifest/v1"
+MATRIX_SCHEMA = "aima-amd395-qwen36/vl-performance-comparable-matrix/v1"
 TEXT_SAMPLE_SCHEMA = "aima-amd395-qwen36/vl-text-decode-control-sample/v1"
 VL_SAMPLE_SCHEMA = "aima-amd395-qwen36/vl-performance-request-sample/v1"
 TIMING_BOUNDARY = (
@@ -38,8 +39,14 @@ TIMING_BOUNDARY = (
     "TTFT ends at the first semantic delta; decode throughput is "
     "(completion_tokens - 1) / (total_seconds - ttft_seconds)"
 )
-BENCHMARK_ID = re.compile(
+TEXT_BENCHMARK_ID = re.compile(
     r"^(text_q[0-9]+_output[0-9]+)\.control-([1-9][0-9]*)$"
+)
+VL_BENCHMARK_ID = re.compile(r"^(.+)\.vl-control-([1-9][0-9]*)$")
+SHA256 = re.compile(r"^[0-9a-f]{64}$")
+MATRIX_PATH = (
+    ROOT
+    / "benchmarks/fixtures/vl-performance-v0.1.0/comparable-matrix.json"
 )
 
 
@@ -146,12 +153,24 @@ def validate_health(health: Mapping[str, Any], label: str) -> None:
 def manifest_controls(
     manifest: Mapping[str, Any], manifest_path: Path
 ) -> dict[str, Mapping[str, Any]]:
-    if (
-        manifest.get("schema") != MANIFEST_SCHEMA
-        or manifest.get("complete") is not True
-        or verify_manifest_integrity(manifest)
-        or manifest.get("protocol", {}).get("timing_boundary")
-        != TIMING_BOUNDARY
+    protocol = manifest.get("protocol")
+    if not (
+        manifest.get("schema") == MANIFEST_SCHEMA
+        and manifest.get("complete") is True
+        and not verify_manifest_integrity(manifest)
+        and isinstance(protocol, Mapping)
+        and protocol.get("timing_boundary") == TIMING_BOUNDARY
+        and protocol.get("minimum_fresh_processes") == 5
+        and protocol.get("pair_order")
+        == (
+            "text then VL for odd process indices; VL then text for even "
+            "process indices"
+        )
+        and protocol.get("pairing")
+        == (
+            "each text/VL control pair is adjacent on one server PID with "
+            "consecutive native request indices"
+        )
     ):
         raise ValueError("text-control manifest is incomplete or corrupt")
     padding_contract = manifest.get("token_padding")
@@ -181,8 +200,7 @@ def manifest_controls(
             or not isinstance(request, Mapping)
             or not isinstance(padding_tokens, int)
             or isinstance(padding_tokens, bool)
-            or control.get("expected_prompt_tokens")
-            != 50 + padding_tokens
+            or control.get("expected_prompt_tokens") != 50 + padding_tokens
         ):
             raise ValueError("text-control IDs, requests and padding must be exact")
         request_path = ROOT / str(request.get("path"))
@@ -194,12 +212,12 @@ def manifest_controls(
             raise ValueError(f"text-control request binding failed: {control_id}")
         indexed[control_id] = control
     orders = manifest.get("balanced_orders")
-    if (
-        not isinstance(orders, list)
-        or len(orders) != 2
-        or any(not isinstance(order, list) for order in orders)
-        or any(set(order) != set(indexed) for order in orders)
-        or orders[1] != list(reversed(orders[0]))
+    if not (
+        isinstance(orders, list)
+        and len(orders) == 2
+        and all(isinstance(order, list) for order in orders)
+        and all(set(order) == set(indexed) for order in orders)
+        and orders[1] == list(reversed(orders[0]))
     ):
         raise ValueError("text-control balanced orders are invalid")
     if not manifest_path.is_file():
@@ -207,19 +225,36 @@ def manifest_controls(
     return indexed
 
 
+def matrix_cells(matrix: Mapping[str, Any]) -> dict[str, Mapping[str, Any]]:
+    cells = matrix.get("cells")
+    if not (
+        matrix.get("schema") == MATRIX_SCHEMA
+        and matrix.get("complete") is True
+        and not verify_manifest_integrity(matrix)
+        and isinstance(cells, list)
+    ):
+        raise ValueError("G4 comparable matrix is incomplete or corrupt")
+    indexed: dict[str, Mapping[str, Any]] = {}
+    for cell in cells:
+        if not isinstance(cell, Mapping) or not isinstance(cell.get("cell_id"), str):
+            raise ValueError("G4 comparable matrix contains a malformed cell")
+        cell_id = str(cell["cell_id"])
+        if cell_id in indexed:
+            raise ValueError("G4 comparable matrix cell IDs are not unique")
+        indexed[cell_id] = cell
+    return indexed
+
+
 def validate_text_sample(
     sample: Mapping[str, Any], control: Mapping[str, Any], run_index: int
 ) -> dict[str, Any]:
     control_id = str(control["control_id"])
-    match = BENCHMARK_ID.fullmatch(str(sample.get("benchmark_id", "")))
+    match = TEXT_BENCHMARK_ID.fullmatch(str(sample.get("benchmark_id", "")))
     request = sample.get("request")
     response = sample.get("response")
     timings = sample.get("timings")
     native = sample.get("native_metrics")
-    if not all(
-        isinstance(value, Mapping)
-        for value in (request, response, timings, native)
-    ):
+    if not all(isinstance(value, Mapping) for value in (request, response, timings, native)):
         raise ValueError(f"text control {control_id} has incomplete sections")
     assert isinstance(request, Mapping)
     assert isinstance(response, Mapping)
@@ -242,8 +277,7 @@ def validate_text_sample(
         and match.group(1) == control_id
         and int(match.group(2)) == run_index
         and request.get("path") == control.get("request", {}).get("path")
-        and request.get("template_sha256")
-        == control.get("request", {}).get("sha256")
+        and request.get("template_sha256") == control.get("request", {}).get("sha256")
         and isinstance(summary, Mapping)
         and summary.get("image_count") == 0
         and summary.get("video_count") == 0
@@ -257,7 +291,7 @@ def validate_text_sample(
         and usage.get("total_tokens") == expected_prompt + expected_completion
         and native.get("prompt_tokens") == expected_prompt
         and native.get("completion_tokens") == expected_completion
-        and native.get("runtime", "").startswith("native-resident")
+        and str(native.get("runtime", "")).startswith("native-resident")
         and native.get("model_loads") == 1
         and isinstance(prefix, Mapping)
         and prefix.get("lookup") == "disabled"
@@ -277,81 +311,27 @@ def validate_text_sample(
         ),
         "content_sha256": response.get("content_sha256"),
         "output_token_ids_sha256": native.get("output_token_ids_sha256"),
+        "request_index": native.get("request_index"),
         "server_pid": sample.get("server_pid"),
         "host": sample.get("host", {}).get("hostname"),
     }
 
 
-def text_run_record(
-    directory: Path,
-    manifest: Mapping[str, Any],
-    controls: Mapping[str, Mapping[str, Any]],
-    manifest_sha256: str,
-) -> dict[str, Any]:
-    run_index = read_index(directory / "run-index.txt", "text-control run index")
-    copied_manifest = directory / "manifest.json"
-    if sha256_file(copied_manifest) != manifest_sha256:
-        raise ValueError(f"text-control run {run_index} manifest drifted")
-    orders = manifest["balanced_orders"]
-    expected_order = orders[0 if run_index % 2 else 1]
-    actual_order = (directory / "request-order.txt").read_text(
-        encoding="utf-8"
-    ).splitlines()
-    if actual_order != expected_order:
-        raise ValueError(f"text-control run {run_index} order drifted")
-    health_path = directory / "health.json"
-    health = load_object(health_path)
-    validate_health(health, f"text-control run {run_index} health")
-    samples: dict[str, dict[str, Any]] = {}
-    pids: set[int] = set()
-    request_indices: list[int] = []
-    for control_id in actual_order:
-        raw_path = directory / "requests" / f"{control_id}.json"
-        raw = load_object(raw_path)
-        samples[control_id] = {
-            **validate_text_sample(raw, controls[control_id], run_index),
-            "raw_sha256": sha256_file(raw_path),
-        }
-        pid = samples[control_id]["server_pid"]
-        if isinstance(pid, int):
-            pids.add(pid)
-        native = raw.get("native_metrics", {})
-        request_index = native.get("request_index")
-        if isinstance(request_index, int):
-            request_indices.append(request_index)
-    if len(pids) != 1 or request_indices != [2, 3, 4]:
-        raise ValueError(
-            f"text-control run {run_index} was not one fresh warmed process"
-        )
-    binary_sha = (directory / "candidate-binary.sha256").read_text(
-        encoding="ascii"
-    ).strip()
-    return {
-        "run_index": run_index,
-        "directory": directory.name,
-        "manifest_sha256": manifest_sha256,
-        "health_sha256": sha256_file(health_path),
-        "health_contract": health_contract(health),
-        "candidate_binary_sha256": binary_sha,
-        "server_pid": next(iter(pids)),
-        "host": next(iter(samples.values()))["host"],
-        "request_order": actual_order,
-        "samples": samples,
-    }
-
-
 def validate_vl_sample(
-    sample: Mapping[str, Any], control: Mapping[str, Any], pair_index: int
+    sample: Mapping[str, Any],
+    control: Mapping[str, Any],
+    cell: Mapping[str, Any],
+    run_index: int,
 ) -> dict[str, Any]:
+    control_id = str(control["control_id"])
+    cell_id = str(control["g4_cell_id"])
+    match = VL_BENCHMARK_ID.fullmatch(str(sample.get("benchmark_id", "")))
     request = sample.get("request")
     response = sample.get("response")
     timings = sample.get("timings")
     native = sample.get("native_metrics")
-    if not all(
-        isinstance(value, Mapping)
-        for value in (request, response, timings, native)
-    ):
-        raise ValueError(f"G4 pair {pair_index} VL sample is incomplete")
+    if not all(isinstance(value, Mapping) for value in (request, response, timings, native)):
+        raise ValueError(f"paired run {run_index} VL sample is incomplete")
     assert isinstance(request, Mapping)
     assert isinstance(response, Mapping)
     assert isinstance(timings, Mapping)
@@ -363,19 +343,26 @@ def validate_vl_sample(
     prefix = native.get("prefix_cache")
     expected_prompt = control.get("expected_prompt_tokens")
     expected_completion = control.get("expected_completion_tokens")
+    cell_request = cell.get("request")
     if not (
         sample.get("schema") == VL_SAMPLE_SCHEMA
         and sample.get("complete") is True
         and sample.get("engine_role") == "candidate"
+        and sample.get("timing_boundary") == TIMING_BOUNDARY
+        and match is not None
+        and match.group(1) == cell_id
+        and int(match.group(2)) == run_index
+        and isinstance(cell_request, Mapping)
+        and request.get("template_sha256") == cell_request.get("sha256")
         and isinstance(usage, Mapping)
         and usage.get("prompt_tokens") == expected_prompt
         and usage.get("completion_tokens") == expected_completion
         and usage.get("total_tokens") == expected_prompt + expected_completion
         and isinstance(media, list)
-        and media
+        and bool(media)
         and native.get("prompt_tokens") == expected_prompt
         and native.get("completion_tokens") == expected_completion
-        and native.get("runtime", "").startswith("native-resident")
+        and str(native.get("runtime", "")).startswith("native-resident")
         and native.get("model_loads") == 1
         and isinstance(prefix, Mapping)
         and prefix.get("lookup") == "disabled"
@@ -384,148 +371,176 @@ def validate_vl_sample(
         and isinstance(mrope, Mapping)
         and mrope.get("enabled") is True
     ):
-        raise ValueError(f"G4 pair {pair_index} VL decode shape/path drifted")
+        raise ValueError(f"paired run {run_index} {control_id} VL path drifted")
     return {
         "client_decode_tokens_per_second": positive_float(
             timings.get("decode_tokens_per_second"),
-            f"G4 pair {pair_index} VL client decode throughput",
+            f"paired run {run_index} VL client decode throughput",
         ),
         "engine_decode_tokens_per_second": positive_float(
             native.get("decode_tokens_per_second"),
-            f"G4 pair {pair_index} VL engine decode throughput",
+            f"paired run {run_index} VL engine decode throughput",
         ),
         "content_sha256": response.get("content_sha256"),
         "output_token_ids_sha256": native.get("output_token_ids_sha256"),
+        "request_index": native.get("request_index"),
         "server_pid": sample.get("server_pid"),
         "host": sample.get("host", {}).get("hostname"),
     }
 
 
-def g4_pair_record(
-    directory: Path, controls: Mapping[str, Mapping[str, Any]]
+def paired_control_record(
+    directory: Path,
+    manifest: Mapping[str, Any],
+    controls: Mapping[str, Mapping[str, Any]],
+    manifest_sha256: str,
+    matrix: Mapping[str, Any],
+    cells: Mapping[str, Mapping[str, Any]],
+    matrix_sha256: str,
 ) -> dict[str, Any]:
-    summary_path = directory / "summary.json"
-    summary = load_object(summary_path)
-    pair_index = summary.get("pair_index")
-    if not isinstance(pair_index, int) or pair_index <= 0:
-        raise ValueError(f"G4 pair index is invalid: {directory}")
-    if summary.get("complete") is not True:
-        raise ValueError(f"G4 pair {pair_index} is incomplete")
-    health_path = directory / "disabled" / "candidate" / "health.json"
+    run_index = read_index(directory / "run-index.txt", "paired-control run index")
+    if sha256_file(directory / "manifest.json") != manifest_sha256:
+        raise ValueError(f"paired-control run {run_index} manifest drifted")
+    if sha256_file(directory / "matrix.json") != matrix_sha256:
+        raise ValueError(f"paired-control run {run_index} matrix drifted")
+    if matrix.get("schema") != MATRIX_SCHEMA:
+        raise ValueError("paired-control matrix identity drifted")
+    expected_order = manifest["balanced_orders"][0 if run_index % 2 else 1]
+    actual_order = (directory / "request-order.txt").read_text(
+        encoding="utf-8"
+    ).splitlines()
+    if actual_order != expected_order:
+        raise ValueError(f"paired-control run {run_index} control order drifted")
+    expected_pair_order = ["text", "vl"] if run_index % 2 else ["vl", "text"]
+    pair_order = (directory / "pair-order.txt").read_text(
+        encoding="ascii"
+    ).split()
+    if pair_order != expected_pair_order:
+        raise ValueError(f"paired-control run {run_index} pair order drifted")
+    health_path = directory / "health.json"
     health = load_object(health_path)
-    validate_health(health, f"G4 pair {pair_index} health")
-    cells = summary.get("cells")
-    if not isinstance(cells, list):
-        raise ValueError(f"G4 pair {pair_index} has no cell ledger")
+    validate_health(health, f"paired-control run {run_index} health")
     samples: dict[str, dict[str, Any]] = {}
     pids: set[int] = set()
-    for control_id, control in controls.items():
-        cell_id = control.get("g4_cell_id")
-        matching = [
-            cell
-            for cell in cells
-            if isinstance(cell, Mapping) and cell.get("cell_id") == cell_id
-        ]
-        if len(matching) != 1 or matching[0].get("process_group") != "disabled":
-            raise ValueError(f"G4 pair {pair_index} is missing {cell_id}")
-        raw_path = (
-            directory
-            / "disabled"
-            / "candidate"
-            / "requests"
-            / f"{cell_id}.json"
-        )
-        raw = load_object(raw_path)
-        samples[control_id] = {
-            **validate_vl_sample(raw, control, pair_index),
-            "raw_sha256": sha256_file(raw_path),
+    hosts: set[str] = set()
+    observed_indices: list[int] = []
+    expected_index = 2
+    for control_id in actual_order:
+        control = controls[control_id]
+        cell_id = str(control["g4_cell_id"])
+        if cell_id not in cells:
+            raise ValueError(f"paired-control G4 cell is missing: {cell_id}")
+        text_path = directory / "text/requests" / f"{control_id}.json"
+        vl_path = directory / "vl/requests" / f"{control_id}.json"
+        text_sample = {
+            **validate_text_sample(load_object(text_path), control, run_index),
+            "raw_sha256": sha256_file(text_path),
         }
-        pid = samples[control_id]["server_pid"]
-        if isinstance(pid, int):
-            pids.add(pid)
-    if len(pids) != 1:
-        raise ValueError(f"G4 pair {pair_index} decode cells changed process")
+        vl_sample = {
+            **validate_vl_sample(
+                load_object(vl_path), control, cells[cell_id], run_index
+            ),
+            "raw_sha256": sha256_file(vl_path),
+        }
+        role_samples = {"text": text_sample, "vl": vl_sample}
+        for role in pair_order:
+            sample = role_samples[role]
+            if sample["request_index"] != expected_index:
+                raise ValueError(
+                    f"paired-control run {run_index} requests are not adjacent"
+                )
+            observed_indices.append(expected_index)
+            expected_index += 1
+        for sample in role_samples.values():
+            if isinstance(sample["server_pid"], int):
+                pids.add(sample["server_pid"])
+            if isinstance(sample["host"], str):
+                hosts.add(sample["host"])
+        samples[control_id] = role_samples
+    if len(pids) != 1 or len(hosts) != 1 or observed_indices != list(range(2, 8)):
+        raise ValueError(
+            f"paired-control run {run_index} was not one fresh warmed process"
+        )
+    binary_sha = (directory / "candidate-binary.sha256").read_text(
+        encoding="ascii"
+    ).strip()
+    if SHA256.fullmatch(binary_sha) is None:
+        raise ValueError(f"paired-control run {run_index} binary hash is invalid")
     return {
-        "pair_index": pair_index,
+        "run_index": run_index,
         "directory": directory.name,
-        "summary_sha256": sha256_file(summary_path),
+        "manifest_sha256": manifest_sha256,
+        "matrix_sha256": matrix_sha256,
         "health_sha256": sha256_file(health_path),
         "health_contract": health_contract(health),
+        "candidate_binary_sha256": binary_sha,
         "server_pid": next(iter(pids)),
-        "host": next(iter(samples.values()))["host"],
-        "execution_order": summary.get("execution_order"),
+        "host": next(iter(hosts)),
+        "request_order": actual_order,
+        "pair_order": pair_order,
         "samples": samples,
     }
 
 
 def aggregate(
-    text_runs: Sequence[Mapping[str, Any]],
-    g4_pairs: Sequence[Mapping[str, Any]],
+    paired_runs: Sequence[Mapping[str, Any]],
     controls: Mapping[str, Mapping[str, Any]],
     candidate_identity: Mapping[str, Any],
     minimum_pairs: int = 5,
 ) -> dict[str, Any]:
-    ordered_text = sorted(text_runs, key=lambda item: int(item["run_index"]))
-    ordered_g4 = sorted(g4_pairs, key=lambda item: int(item["pair_index"]))
-    text_indices = [int(item["run_index"]) for item in ordered_text]
-    g4_indices = [int(item["pair_index"]) for item in ordered_g4]
-    expected_indices = list(range(1, len(ordered_text) + 1))
+    ordered = sorted(paired_runs, key=lambda item: int(item["run_index"]))
+    indices = [int(item["run_index"]) for item in ordered]
     candidate_files = candidate_identity.get("files")
     engine_files = (
         [
             item
             for item in candidate_files
-            if isinstance(item, Mapping)
-            and item.get("path") == "aima-engine-native"
+            if isinstance(item, Mapping) and item.get("path") == "aima-engine-native"
         ]
         if isinstance(candidate_files, list)
         else []
     )
     engine_sha = engine_files[0].get("sha256") if len(engine_files) == 1 else None
-    hosts = {
-        item.get("host") for item in [*ordered_text, *ordered_g4]
-    }
-    health_contracts = [
-        item.get("health_contract") for item in [*ordered_text, *ordered_g4]
-    ]
+    hosts = {item.get("host") for item in ordered}
+    health_contracts = [item.get("health_contract") for item in ordered]
     checks = {
-        "minimum_five_fresh_text_processes": len(ordered_text) >= minimum_pairs,
-        "text_and_g4_pair_counts_exact": (
-            len(ordered_text) == len(ordered_g4)
-            and text_indices == g4_indices == expected_indices
-        ),
+        "minimum_five_fresh_paired_processes": len(ordered) >= minimum_pairs,
+        "paired_run_indices_consecutive": indices == list(range(1, len(ordered) + 1)),
         "candidate_binary_exact": (
             isinstance(engine_sha, str)
-            and all(
-                item.get("candidate_binary_sha256") == engine_sha
-                for item in ordered_text
-            )
+            and all(item.get("candidate_binary_sha256") == engine_sha for item in ordered)
         ),
         "one_host_exact": len(hosts) == 1 and None not in hosts,
         "same_native_service_contract": (
             bool(health_contracts)
             and all(value == health_contracts[0] for value in health_contracts)
         ),
-        "fresh_text_process_directories_distinct": (
-            len({item.get("directory") for item in ordered_text})
-            == len(ordered_text)
+        "fresh_process_directories_distinct": (
+            len({item.get("directory") for item in ordered}) == len(ordered)
         ),
-        "g4_pair_directories_distinct": (
-            len({item.get("directory") for item in ordered_g4})
-            == len(ordered_g4)
+        "control_order_alternates": all(
+            item.get("request_order")
+            == (list(controls) if index % 2 else list(reversed(controls)))
+            for index, item in enumerate(ordered, start=1)
         ),
-        "g4_role_order_alternates": all(
-            item.get("execution_order")
-            == ("reference candidate" if index % 2 else "candidate reference")
-            for index, item in enumerate(ordered_g4, start=1)
+        "text_vl_pair_order_alternates": all(
+            item.get("pair_order") == (["text", "vl"] if index % 2 else ["vl", "text"])
+            for index, item in enumerate(ordered, start=1)
+        ),
+        "pair_orders_balanced": (
+            abs(
+                sum(item.get("pair_order") == ["text", "vl"] for item in ordered)
+                - sum(item.get("pair_order") == ["vl", "text"] for item in ordered)
+            )
+            <= 1
         ),
     }
     cells: list[dict[str, Any]] = []
     for control_id, control in controls.items():
         pairs: list[dict[str, Any]] = []
-        for text_run, g4_pair in zip(ordered_text, ordered_g4, strict=True):
-            text_sample = text_run["samples"][control_id]
-            vl_sample = g4_pair["samples"][control_id]
+        for run in ordered:
+            text_sample = run["samples"][control_id]["text"]
+            vl_sample = run["samples"][control_id]["vl"]
             client_ratio = (
                 vl_sample["client_decode_tokens_per_second"]
                 / text_sample["client_decode_tokens_per_second"]
@@ -536,7 +551,11 @@ def aggregate(
             )
             pairs.append(
                 {
-                    "pair_index": text_run["run_index"],
+                    "pair_index": run["run_index"],
+                    "pair_order": " ".join(run["pair_order"]),
+                    "server_pid": run["server_pid"],
+                    "text_request_index": text_sample["request_index"],
+                    "vl_request_index": vl_sample["request_index"],
                     "text_client_decode_tokens_per_second": text_sample[
                         "client_decode_tokens_per_second"
                     ],
@@ -565,9 +584,12 @@ def aggregate(
                     },
                 }
             )
-        median_ratio = float(
+        client_median = float(
+            statistics.median(pair["vl_over_text_client_decode"] for pair in pairs)
+        )
+        engine_median = float(
             statistics.median(
-                pair["vl_over_text_client_decode"] for pair in pairs
+                pair["vl_over_text_engine_decode_diagnostic"] for pair in pairs
             )
         )
         cells.append(
@@ -575,13 +597,12 @@ def aggregate(
                 "control_id": control_id,
                 "g4_cell_id": control.get("g4_cell_id"),
                 "prompt_tokens": control.get("expected_prompt_tokens"),
-                "completion_tokens": control.get(
-                    "expected_completion_tokens"
-                ),
+                "completion_tokens": control.get("expected_completion_tokens"),
                 "pair_count": len(pairs),
                 "pairs": pairs,
-                "paired_median_vl_over_text_client_decode": median_ratio,
-                "qualified": len(pairs) >= minimum_pairs and median_ratio >= 1.0,
+                "paired_median_vl_over_text_client_decode": client_median,
+                "paired_median_vl_over_text_engine_decode_diagnostic": engine_median,
+                "qualified": len(pairs) >= minimum_pairs and client_median >= 1.0,
             }
         )
     complete = all(checks.values()) and len(cells) == len(controls)
@@ -592,49 +613,44 @@ def aggregate(
         "qualified": qualified,
         "scope": (
             "three G4 VL decode cells against exact-shape text-only controls "
-            "on the same native service configuration and HTTP/SSE boundary"
+            "captured as adjacent requests in the same fresh native process"
         ),
         "protocol": {
             "minimum_pairs": minimum_pairs,
-            "pairing": "G4 pair index matched to fresh text-control process index",
-            "text_request_order": (
-                "forward for odd process indices; reverse for even process indices"
-            ),
-            "g4_role_order": (
-                "reference,candidate for odd pairs; candidate,reference for even pairs"
-            ),
+            "pairing": "adjacent text/VL requests on one fresh server PID",
+            "control_order": "forward for odd runs; reverse for even runs",
+            "pair_order": "text,VL for odd runs; VL,text for even runs",
             "timing_boundary": TIMING_BOUNDARY,
             "blocking_gate": "median paired VL/text client decode ratio >= 1.000",
             "engine_decode_ratio": "diagnostic only",
             "aggregate_cannot_mask_cell_failure": True,
         },
-        "pair_count": len(ordered_text),
+        "pair_count": len(ordered),
         "checks": checks,
-        "gates": {
-            "every_vl_decode_cell_gte_same_boundary_text_control": qualified
-        },
+        "gates": {"every_vl_decode_cell_gte_same_boundary_text_control": qualified},
         "host": {"hostname": next(iter(hosts)) if len(hosts) == 1 else None},
         "artifact_identity": {"candidate": dict(candidate_identity)},
         "cells": cells,
         "raw_runs": [
             {
-                "run_index": text_run["run_index"],
-                "text_control_dir": text_run["directory"],
-                "text_manifest_sha256": text_run["manifest_sha256"],
-                "text_health_sha256": text_run["health_sha256"],
-                "g4_pair_dir": g4_pair["directory"],
-                "g4_summary_sha256": g4_pair["summary_sha256"],
-                "g4_health_sha256": g4_pair["health_sha256"],
+                "run_index": run["run_index"],
+                "paired_control_dir": run["directory"],
+                "manifest_sha256": run["manifest_sha256"],
+                "matrix_sha256": run["matrix_sha256"],
+                "health_sha256": run["health_sha256"],
+                "candidate_binary_sha256": run["candidate_binary_sha256"],
+                "pair_order": " ".join(run["pair_order"]),
             }
-            for text_run, g4_pair in zip(ordered_text, ordered_g4, strict=True)
+            for run in ordered
         ],
     }
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--control-dir", action="append", type=Path, required=True)
-    parser.add_argument("--g4-pair-dir", action="append", type=Path, required=True)
+    parser.add_argument(
+        "--paired-control-dir", action="append", type=Path, required=True
+    )
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--candidate-binary", type=Path, required=True)
     parser.add_argument("--candidate-source-commit", required=True)
@@ -649,22 +665,35 @@ def main() -> int:
     manifest = load_object(manifest_path)
     controls = manifest_controls(manifest, manifest_path)
     manifest_sha = sha256_file(manifest_path)
-    text_runs = [
-        text_run_record(path.resolve(), manifest, controls, manifest_sha)
-        for path in args.control_dir
-    ]
-    g4_pairs = [
-        g4_pair_record(path.resolve(), controls) for path in args.g4_pair_dir
+    matrix_path = MATRIX_PATH.resolve()
+    matrix = load_object(matrix_path)
+    cells = matrix_cells(matrix)
+    matrix_sha = sha256_file(matrix_path)
+    runs = [
+        paired_control_record(
+            path.resolve(),
+            manifest,
+            controls,
+            manifest_sha,
+            matrix,
+            cells,
+            matrix_sha,
+        )
+        for path in args.paired_control_dir
     ]
     helper = paired_identity_module()
     candidate = helper.candidate_identity(
         args.candidate_binary.resolve(), args.candidate_source_commit
     )
-    result = aggregate(text_runs, g4_pairs, controls, candidate)
+    result = aggregate(runs, controls, candidate)
     result["bindings"] = {
         "manifest": file_component(
             manifest_path,
             "benchmarks/fixtures/vl-text-decode-control-v0.1.0/manifest.json",
+        ),
+        "matrix": file_component(
+            matrix_path,
+            "benchmarks/fixtures/vl-performance-v0.1.0/comparable-matrix.json",
         ),
         "vl_request_capture": file_component(
             ROOT / "scripts/capture-vl-performance-request.py",
@@ -678,9 +707,9 @@ def main() -> int:
             ROOT / "scripts/run-native-vl-performance-candidate.sh",
             "scripts/run-native-vl-performance-candidate.sh",
         ),
-        "text_control_runner": file_component(
-            ROOT / "scripts/run-vl-text-decode-control.sh",
-            "scripts/run-vl-text-decode-control.sh",
+        "paired_control_runner": file_component(
+            ROOT / "scripts/run-vl-decode-control.sh",
+            "scripts/run-vl-decode-control.sh",
         ),
         "summarizer": file_component(
             Path(__file__).resolve(),
@@ -689,8 +718,7 @@ def main() -> int:
     }
     result["command_template"] = (
         "python3 scripts/summarize-vl-text-decode-controls.py "
-        "--control-dir <control-1> ... --control-dir <control-5> "
-        "--g4-pair-dir <pair-1> ... --g4-pair-dir <pair-5> "
+        "--paired-control-dir <pair-1> ... --paired-control-dir <pair-5> "
         "--manifest benchmarks/fixtures/vl-text-decode-control-v0.1.0/manifest.json "
         "--candidate-binary <exact-native-binary> "
         "--candidate-source-commit <embedded-source-commit> --output <result>"

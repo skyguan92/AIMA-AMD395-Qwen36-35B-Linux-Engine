@@ -12,6 +12,7 @@ VLLM_ENTRYPOINT = ROOT / "scripts/aima_vllm_vl_performance_server.py"
 NATIVE_HTTP = ROOT / "native/src/native_http_server.cpp"
 MATRIX_RUNNER = ROOT / "scripts/run-vl-performance-matrix-pair.sh"
 TEXT_CONTROL_RUNNER = ROOT / "scripts/run-vl-text-decode-control.sh"
+VL_DECODE_CONTROL_RUNNER = ROOT / "scripts/run-vl-decode-control.sh"
 DIAGNOSTIC_REQUEST = (
     ROOT
     / "benchmarks/fixtures/vl-performance-v0.1.0/requests/"
@@ -122,6 +123,8 @@ class VlPerformanceLauncherTest(unittest.TestCase):
         self.assertIn('--prompt-nonce "${prompt_nonce}"', source)
         self.assertIn("--expected-completion-tokens", source)
         self.assertIn("summarize-vl-performance-matrix-pair.py", source)
+        self.assertIn("require_gpu_idle", source)
+        self.assertIn("fuser /dev/kfd", source)
 
     def test_text_controls_match_the_candidate_service_boundary(self) -> None:
         source = TEXT_CONTROL_RUNNER.read_text(encoding="utf-8")
@@ -137,6 +140,31 @@ class VlPerformanceLauncherTest(unittest.TestCase):
         self.assertIn("--expected-prompt-tokens", source)
         self.assertIn("--expected-completion-tokens", source)
         self.assertIn('pgrep -g "${active_pid}"', source)
+        self.assertIn("require_gpu_idle", source)
+        self.assertIn("fuser /dev/kfd", source)
+        self.assertNotIn("0.0.0.0", source)
+
+    def test_vl_decode_controls_use_the_exact_g4_cells_and_boundary(self) -> None:
+        source = VL_DECODE_CONTROL_RUNNER.read_text(encoding="utf-8")
+        self.assertIn("RUN_INDEX % 2", source)
+        self.assertIn('pair_order="text vl"', source)
+        self.assertIn('pair_order="vl text"', source)
+        self.assertIn("balanced_orders", source)
+        self.assertIn("comparable-matrix.json", source)
+        self.assertIn(".g4_cell_id", source)
+        self.assertIn(".request.path", source)
+        self.assertIn(".text_padding_tokens", source)
+        self.assertIn(".prompt_nonce", source)
+        self.assertIn("capture-vl-performance-request.py", source)
+        self.assertIn("capture-vl-text-decode-control.py", source)
+        self.assertIn('"capture_${role}"', source)
+        self.assertIn("AIMA_VL_CACHE_MODE=disabled", source)
+        self.assertIn("AIMA_VL_PREFIX_CACHE_MODE=disabled", source)
+        self.assertIn("AIMA_VL_CONTEXT_TOKENS=262143", source)
+        self.assertIn("AIMA_VL_CACHE_CAPACITY=262144", source)
+        self.assertIn("symmetric warmup", source)
+        self.assertIn("require_gpu_idle", source)
+        self.assertIn("fuser /dev/kfd", source)
         self.assertNotIn("0.0.0.0", source)
 
 

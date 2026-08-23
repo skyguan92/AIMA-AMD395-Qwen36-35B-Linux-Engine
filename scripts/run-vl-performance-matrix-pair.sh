@@ -39,6 +39,13 @@ active_pid=""
 active_role=""
 active_port=""
 
+require_gpu_idle() {
+  if fuser /dev/kfd >/dev/null 2>&1; then
+    fuser -v /dev/kfd 2>&1
+    return 75
+  fi
+}
+
 stop_active() {
   if [[ -z "${active_pid}" ]] || \
      ! pgrep -g "${active_pid}" >/dev/null 2>&1; then
@@ -208,6 +215,7 @@ run_process_group() {
   local endpoint
   local model
   mkdir -p "${run_dir}"
+  require_gpu_idle
   if [[ "${role}" == "reference" ]]; then
     port="${REFERENCE_PORT}"
     model="qwen36-vl-reference"

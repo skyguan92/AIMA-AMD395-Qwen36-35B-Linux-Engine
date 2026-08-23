@@ -26,6 +26,11 @@ import urllib.request
 
 SCHEMA = "aima-amd395-qwen36/vl-performance-request-sample/v1"
 BENCHMARK_HEADER = "x-aima-vl-benchmark-id"
+TIMING_BOUNDARY = (
+    "perf_counter_ns immediately before HTTP open through SSE stream EOF; "
+    "TTFT ends at the first semantic delta; decode throughput is "
+    "(completion_tokens - 1) / (total_seconds - ttft_seconds)"
+)
 MEDIA_ROOT_PLACEHOLDER = "${AIMA_VL_MEDIA_ROOT}"
 PROMPT_NONCE_PLACEHOLDER = "${AIMA_VL_PROMPT_NONCE}"
 TEXT_PADDING_UNIT = " x"
@@ -769,6 +774,7 @@ def main() -> int:
         "endpoint": "${AIMA_LOOPBACK_ENDPOINT}",
         "server_pid": args.server_pid,
         "host": {"hostname": socket.gethostname()},
+        "timing_boundary": TIMING_BOUNDARY,
         "request": {
             "path": str(args.request),
             "template_sha256": sha256_bytes(request_template),

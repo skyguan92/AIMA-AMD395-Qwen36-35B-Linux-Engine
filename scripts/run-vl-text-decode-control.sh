@@ -45,6 +45,13 @@ mkdir -p "${OUTPUT_DIR}/requests"
 cp "${MANIFEST_PATH}" "${OUTPUT_DIR}/manifest.json"
 active_pid=""
 
+require_gpu_idle() {
+  if fuser /dev/kfd >/dev/null 2>&1; then
+    fuser -v /dev/kfd 2>&1
+    return 75
+  fi
+}
+
 stop_active() {
   if [[ -z "${active_pid}" ]] || \
      ! pgrep -g "${active_pid}" >/dev/null 2>&1; then
@@ -97,6 +104,7 @@ wait_ready() {
 }
 
 endpoint="http://127.0.0.1:${PORT}"
+require_gpu_idle
 AIMA_VL_RUN_DIR="${OUTPUT_DIR}" \
 AIMA_VL_PORT="${PORT}" \
 AIMA_VL_CACHE_MODE=disabled \

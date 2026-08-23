@@ -127,12 +127,13 @@ class VlPerformanceMatrixSummaryTest(unittest.TestCase):
             "schema": summary.TEXT_CONTROL_SCHEMA,
             "complete": True,
             "qualified": True,
+            "pair_count": 5,
             "artifact_identity": {"candidate": self.identity["candidate"]},
             "host": {"hostname": "test-host"},
             "raw_runs": [
                 {
                     "run_index": index,
-                    "g4_summary_sha256": "c" * 64,
+                    "paired_control_dir": f"pair-{index}",
                 }
                 for index in range(1, 6)
             ],
