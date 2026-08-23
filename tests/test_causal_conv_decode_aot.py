@@ -99,6 +99,22 @@ class CausalConvDecodeAotTests(unittest.TestCase):
         self.assertIn("in_proj_a.weight", runtime)
         self.assertIn("in_proj_b.weight", runtime)
         self.assertNotIn("executor.launch(launches[base + 1]", runtime)
+        self.assertNotIn("hipMemcpyAsync native causal-conv state", runtime)
+        self.assertIn(
+            "launch_current_causal_conv(projected_qkv, conv_weight.device_pointer,\n"
+            "                             conv_state_before",
+            runtime,
+        )
+
+        runner = (ROOT / "native/src/native_decode_runner.hip.cpp").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(
+            "if (!use_mrope) {\n"
+            "    metrics.resident_state_pointer_swaps =\n"
+            "        invocations.swap_linear_decode_conv_state_buffers();",
+            runner,
+        )
         for m in (8192, 4096, 32):
             self.assertIn(f"probe_case({m}, 2048, cu_count)", provider)
             self.assertIn(f"({m}, 2048)", parity)

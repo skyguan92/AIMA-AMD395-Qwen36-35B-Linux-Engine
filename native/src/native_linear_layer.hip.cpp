@@ -475,18 +475,17 @@ NativeLinearLayerMetrics run_native_linear_layer(
   observe_boundary(observer, "b_projection", b_projection,
                    kLinearGate * sizeof(__hip_bfloat16),
                    DecodeTensorDtype::kBfloat16);
-  check_hip(hipMemcpyAsync(
-                conv_state_after, conv_state_before,
-                kLinearQkv * 3ULL * sizeof(__hip_bfloat16),
-                hipMemcpyDeviceToDevice, stream),
-            "hipMemcpyAsync native causal-conv state");
+  // The current causal-conv kernel updates its state in place. The frozen
+  // text schedule needs alternating state_in/state_out buffers, but the VL
+  // path does not consume the old state after this boundary. Updating
+  // state_in directly removes one 48 KiB device copy from every linear layer.
   launch_current_causal_conv(projected_qkv, conv_weight.device_pointer,
-                             conv_state_after, direct_conv_state_index,
+                             conv_state_before, direct_conv_state_index,
                              executor, stream);
   observe_boundary(observer, "post_conv_mixed_qkv", projected_qkv,
                    kLinearQkv * sizeof(__hip_bfloat16),
                    DecodeTensorDtype::kBfloat16);
-  observe_boundary(observer, "conv_state_after", conv_state_after,
+  observe_boundary(observer, "conv_state_after", conv_state_before,
                    kLinearQkv * 3ULL * sizeof(__hip_bfloat16),
                    DecodeTensorDtype::kBfloat16);
   observe_boundary(observer, "recurrent_state_before", recurrent_state,

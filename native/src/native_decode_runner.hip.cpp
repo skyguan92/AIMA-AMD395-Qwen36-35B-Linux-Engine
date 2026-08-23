@@ -328,9 +328,9 @@ NativeDecodeRunMetrics run_native_decode_token(
       std::chrono::duration<double, std::milli>(
           std::chrono::steady_clock::now() - started)
           .count();
-  metrics.resident_state_pointer_swaps =
-      invocations.swap_linear_decode_conv_state_buffers();
   if (!use_mrope) {
+    metrics.resident_state_pointer_swaps =
+        invocations.swap_linear_decode_conv_state_buffers();
     metrics.resident_state_pointer_swaps +=
         invocations.swap_linear_decode_recurrent_state_buffers();
   }
