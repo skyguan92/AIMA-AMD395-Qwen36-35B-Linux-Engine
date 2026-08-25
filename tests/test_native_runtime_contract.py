@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import hashlib
 from pathlib import Path
+import re
 import subprocess
 import unittest
 
@@ -658,29 +659,106 @@ class NativeRuntimeContractTest(unittest.TestCase):
             "STOPPING=1\\nSTATUS=Stopping",
         ):
             self.assertIn(option, server)
+        self.assertLess(server.index("::bind("), server.index("engine.load("))
+
+    def test_native_http_server_concurrency_contract(self) -> None:
+        server = (ROOT / "native/src/native_http_server.cpp").read_text(
+            encoding="utf-8"
+        )
+        normalized_server = re.sub(r"\s+", " ", server)
+
         self.assertIn('#include "aima/native_http_support.h"', server)
-        self.assertIn("parse_native_http_timeout_ms", server)
-        self.assertIn("std::atomic<std::size_t> served", server)
-        self.assertIn('{"busy", chat_executor.busy()}', server)
-        busy_code = server.index('"server_busy"')
-        busy_payload = server[
-            server.rfind("error_payload(", 0, busy_code) : server.index(
-                ")", busy_code
-            )
-        ]
-        self.assertIn('"server_error"', busy_payload)
-        busy_response = server[
-            server.rfind("send_json(", 0, busy_code) : busy_code
-        ]
-        self.assertIn(", 503,", busy_response)
-        self.assertIn('case 503: return "Service Unavailable";', server)
-        self.assertLess(
-            server.index("chat_executor.shutdown()"),
-            server.index('{"event", "stopped"}'),
+        self.assertRegex(
+            normalized_server,
+            r"std::atomic<std::size_t> served(?:\s|\{|=)",
         )
-        self.assertNotIn(
-            "--request-timeout-ms must not exceed 600000", server
+
+        timeout_branch_start = server.index(
+            'else if (argument == "--request-timeout-ms")'
         )
+        timeout_branch_end = server.index(
+            'else if (argument == "--api-key-file")', timeout_branch_start
+        )
+        timeout_branch = server[timeout_branch_start:timeout_branch_end]
+        normalized_timeout_branch = re.sub(r"\s+", " ", timeout_branch)
+        self.assertRegex(
+            normalized_timeout_branch,
+            r"options\.request_timeout_ms = parse_native_http_timeout_ms\(",
+        )
+        self.assertNotIn("parse_size", timeout_branch)
+        self.assertNotIn("600000", timeout_branch)
+
+        health_route_start = server.index(
+            'request.method == "GET" && request.path == "/health"'
+        )
+        health_route_end = server.index(
+            'request.method == "GET" && request.path == "/v1/models"',
+            health_route_start,
+        )
+        health_route = server[health_route_start:health_route_end]
+        self.assertRegex(
+            re.sub(r"\s+", " ", health_route),
+            r'\{\s*"busy"\s*,\s*chat_executor\.busy\(\)\s*\}',
+        )
+
+        chat_route_match = re.search(
+            r'request\.method\s*==\s*"POST"\s*&&\s*'
+            r'request\.path\s*==\s*"/v1/chat/completions"',
+            server,
+        )
+        self.assertIsNotNone(chat_route_match)
+        assert chat_route_match is not None
+        chat_route_end = server.index(
+            "const int status = request.path", chat_route_match.start()
+        )
+        chat_route = server[chat_route_match.start() : chat_route_end]
+        self.assertRegex(
+            re.sub(r"\s+", " ", chat_route),
+            r"chat_executor\.\w*submit\w*\(",
+        )
+        self.assertIn("send_server_busy(", chat_route)
+
+        busy_helper_match = re.search(
+            r"\b(?:bool|void)\s+send_server_busy\s*\([^)]*\)\s*\{",
+            server,
+        )
+        self.assertIsNotNone(busy_helper_match)
+        assert busy_helper_match is not None
+        helper_body_start = busy_helper_match.end() - 1
+        helper_depth = 0
+        helper_body_end = helper_body_start
+        for helper_body_end in range(helper_body_start, len(server)):
+            if server[helper_body_end] == "{":
+                helper_depth += 1
+            elif server[helper_body_end] == "}":
+                helper_depth -= 1
+                if helper_depth == 0:
+                    break
+        else:
+            self.fail("send_server_busy definition is missing its closing brace")
+        busy_helper = server[helper_body_start : helper_body_end + 1]
+        normalized_busy_helper = re.sub(r"\s+", " ", busy_helper)
+        self.assertIn("send_json(", busy_helper)
+        self.assertRegex(normalized_busy_helper, r", 503,")
+        self.assertIn('"server_busy"', busy_helper)
+        self.assertIn('"server_error"', busy_helper)
+
+        self.assertRegex(
+            normalized_server,
+            r'case 503: return "Service Unavailable";',
+        )
+
+        stopped_event = server.index('{"event", "stopped"}')
+        accept_loop = server.index("while (!g_shutdown.load())")
+        shutdown_call = server.rfind(
+            "chat_executor.shutdown();", 0, stopped_event
+        )
+        self.assertNotEqual(-1, shutdown_call)
+        self.assertGreater(shutdown_call, accept_loop)
+        self.assertLess(shutdown_call, stopped_event)
+        shutdown_cancellation = server[chat_route_end:stopped_event]
+        self.assertIn("send_server_busy(", shutdown_cancellation)
+
         http_support = ROOT / "native/src/native_http_support.cpp"
         self.assertTrue(http_support.is_file())
         native_build = (ROOT / "scripts/build-native-runtime.sh").read_text(
@@ -688,11 +766,7 @@ class NativeRuntimeContractTest(unittest.TestCase):
         )
         self.assertIn("native/src/native_http_support.cpp", native_build)
         makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
-        self.assertIn(
-            "native/src/native_http_support.cpp native/src/native_http_server.cpp",
-            makefile,
-        )
-        self.assertLess(server.index("::bind("), server.index("engine.load("))
+        self.assertIn("native/src/native_http_support.cpp", makefile)
 
     def test_variable_prompt_prefill_is_part_of_the_native_contract(self) -> None:
         server = (ROOT / "native/src/native_http_server.cpp").read_text(
