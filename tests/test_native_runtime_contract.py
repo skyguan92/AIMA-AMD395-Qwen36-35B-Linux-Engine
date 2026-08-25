@@ -658,6 +658,40 @@ class NativeRuntimeContractTest(unittest.TestCase):
             "STOPPING=1\\nSTATUS=Stopping",
         ):
             self.assertIn(option, server)
+        self.assertIn('#include "aima/native_http_support.h"', server)
+        self.assertIn("parse_native_http_timeout_ms", server)
+        self.assertIn("std::atomic<std::size_t> served", server)
+        self.assertIn('{"busy", chat_executor.busy()}', server)
+        busy_code = server.index('"server_busy"')
+        busy_payload = server[
+            server.rfind("error_payload(", 0, busy_code) : server.index(
+                ")", busy_code
+            )
+        ]
+        self.assertIn('"server_error"', busy_payload)
+        busy_response = server[
+            server.rfind("send_json(", 0, busy_code) : busy_code
+        ]
+        self.assertIn(", 503,", busy_response)
+        self.assertIn('case 503: return "Service Unavailable";', server)
+        self.assertLess(
+            server.index("chat_executor.shutdown()"),
+            server.index('{"event", "stopped"}'),
+        )
+        self.assertNotIn(
+            "--request-timeout-ms must not exceed 600000", server
+        )
+        http_support = ROOT / "native/src/native_http_support.cpp"
+        self.assertTrue(http_support.is_file())
+        native_build = (ROOT / "scripts/build-native-runtime.sh").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("native/src/native_http_support.cpp", native_build)
+        makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
+        self.assertIn(
+            "native/src/native_http_support.cpp native/src/native_http_server.cpp",
+            makefile,
+        )
         self.assertLess(server.index("::bind("), server.index("engine.load("))
 
     def test_variable_prompt_prefill_is_part_of_the_native_contract(self) -> None:
