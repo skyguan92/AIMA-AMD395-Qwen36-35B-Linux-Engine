@@ -12,6 +12,7 @@
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <nlohmann/json.hpp>
+#include <poll.h>
 #include <pthread.h>
 #include <signal.h>
 #include <sys/socket.h>
@@ -53,6 +54,8 @@ constexpr const char* kModelId = "aima-amd395-qwen36-35b";
 constexpr std::size_t kMaximumRequestBytes = 1024 * 1024;
 constexpr std::size_t kMaximumPendingChatRequests = 16;
 std::atomic<bool> g_shutdown{false};
+volatile sig_atomic_t g_signal_shutdown = 0;
+volatile sig_atomic_t g_signal_wakeup_fd = -1;
 
 double elapsed_ms(std::chrono::steady_clock::time_point start) {
   return std::chrono::duration<double, std::milli>(
@@ -60,7 +63,16 @@ double elapsed_ms(std::chrono::steady_clock::time_point start) {
       .count();
 }
 
-void signal_handler(int) { g_shutdown.store(true); }
+void signal_handler(int) {
+  const int saved_errno = errno;
+  g_signal_shutdown = 1;
+  const sig_atomic_t wake_fd = g_signal_wakeup_fd;
+  if (wake_fd >= 0) {
+    const unsigned char byte = 1;
+    (void)::write(static_cast<int>(wake_fd), &byte, sizeof(byte));
+  }
+  errno = saved_errno;
+}
 
 class FileDescriptor {
  public:
@@ -84,6 +96,41 @@ class FileDescriptor {
  private:
   int value_ = -1;
 };
+
+class SignalWakePipe {
+ public:
+  SignalWakePipe() {
+    int descriptors[2] = {-1, -1};
+    if (::pipe2(descriptors, O_NONBLOCK | O_CLOEXEC) != 0) {
+      throw std::runtime_error("failed to create shutdown signal pipe");
+    }
+    read_descriptor_.reset(descriptors[0]);
+    write_descriptor_.reset(descriptors[1]);
+    g_signal_wakeup_fd = write_descriptor_.get();
+  }
+
+  ~SignalWakePipe() { g_signal_wakeup_fd = -1; }
+
+  SignalWakePipe(const SignalWakePipe&) = delete;
+  SignalWakePipe& operator=(const SignalWakePipe&) = delete;
+
+  int read_fd() const noexcept { return read_descriptor_.get(); }
+
+ private:
+  FileDescriptor read_descriptor_;
+  FileDescriptor write_descriptor_;
+};
+
+void synchronize_signal_shutdown(int wake_read_fd) noexcept {
+  if (g_signal_shutdown != 0) g_shutdown.store(true);
+  unsigned char buffer[128];
+  while (true) {
+    const ssize_t count = ::read(wake_read_fd, buffer, sizeof(buffer));
+    if (count > 0) continue;
+    if (count < 0 && errno == EINTR) continue;
+    break;
+  }
+}
 
 class ActiveClientReadTracker {
  public:
@@ -272,34 +319,51 @@ void send_server_busy(int fd, std::string_view message) {
                                 "server_error"));
 }
 
-ssize_t receive_before(int fd, void* buffer, std::size_t size,
+int poll_timeout_before(
+    const std::optional<std::chrono::steady_clock::time_point>& deadline,
+    const char* timeout_message) {
+  if (!deadline.has_value()) return -1;
+  const auto now = std::chrono::steady_clock::now();
+  if (now >= *deadline) {
+    throw std::system_error(std::make_error_code(std::errc::timed_out),
+                            timeout_message);
+  }
+  const auto remaining = *deadline - now;
+  auto remaining_ms =
+      std::chrono::duration_cast<std::chrono::milliseconds>(remaining);
+  if (remaining_ms < remaining) remaining_ms += std::chrono::milliseconds(1);
+  const auto maximum = std::numeric_limits<int>::max();
+  if (remaining_ms.count() > maximum) return maximum;
+  return static_cast<int>(std::max<std::int64_t>(1, remaining_ms.count()));
+}
+
+ssize_t receive_before(int fd, int wake_read_fd, void* buffer,
+                       std::size_t size,
                        const std::optional<
                            std::chrono::steady_clock::time_point>& deadline,
                        const char* timeout_message) {
   while (true) {
-    if (deadline.has_value()) {
-      const auto now = std::chrono::steady_clock::now();
-      if (now >= *deadline) {
-        throw std::system_error(std::make_error_code(std::errc::timed_out),
-                                timeout_message);
-      }
-      const auto remaining = *deadline - now;
-      const auto seconds =
-          std::chrono::duration_cast<std::chrono::seconds>(remaining);
-      const auto fractional =
-          remaining - std::chrono::duration_cast<
-                          std::chrono::steady_clock::duration>(seconds);
-      const auto microseconds =
-          std::chrono::duration_cast<std::chrono::microseconds>(fractional);
-      timeval timeout{};
-      timeout.tv_sec = static_cast<time_t>(seconds.count());
-      timeout.tv_usec = static_cast<suseconds_t>(microseconds.count());
-      if (timeout.tv_sec == 0 && timeout.tv_usec == 0) {
-        timeout.tv_usec = 1;
-      }
-      if (::setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout,
-                       sizeof(timeout)) != 0) {
-        throw std::runtime_error("failed to configure request read deadline");
+    pollfd wait_fds[2]{};
+    wait_fds[0].fd = fd;
+    wait_fds[0].events = POLLIN;
+    wait_fds[1].fd = wake_read_fd;
+    wait_fds[1].events = POLLIN;
+    const int poll_result =
+        ::poll(wait_fds, 2, poll_timeout_before(deadline, timeout_message));
+    if (poll_result < 0 && errno == EINTR) continue;
+    if (poll_result < 0) {
+      throw std::runtime_error("failed to poll HTTP request socket");
+    }
+    if (poll_result == 0) {
+      throw std::system_error(std::make_error_code(std::errc::timed_out),
+                              timeout_message);
+    }
+
+    if ((wait_fds[1].revents &
+         (POLLIN | POLLHUP | POLLERR | POLLNVAL)) != 0) {
+      synchronize_signal_shutdown(wake_read_fd);
+      if ((wait_fds[1].revents & POLLNVAL) != 0) {
+        throw std::runtime_error("shutdown signal pipe is invalid");
       }
     }
     if (g_shutdown.load()) {
@@ -307,29 +371,20 @@ ssize_t receive_before(int fd, void* buffer, std::size_t size,
           std::make_error_code(std::errc::operation_canceled),
           "HTTP request cancelled");
     }
-    const ssize_t count = ::recv(fd, buffer, size, 0);
-    if (count < 0 && errno == EINTR) {
-      if (g_shutdown.load()) {
-        throw std::system_error(
-            std::make_error_code(std::errc::operation_canceled),
-            "HTTP request cancelled");
-      }
-      continue;
+    if ((wait_fds[0].revents & POLLNVAL) != 0) {
+      throw std::runtime_error("HTTP request socket is invalid");
     }
-    if (count <= 0 && g_shutdown.load()) {
-      throw std::system_error(
-          std::make_error_code(std::errc::operation_canceled),
-          "HTTP request cancelled");
-    }
-    if (count < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-      throw std::system_error(std::make_error_code(std::errc::timed_out),
-                              timeout_message);
-    }
+    if ((wait_fds[0].revents & (POLLIN | POLLHUP | POLLERR)) == 0) continue;
+
+    const ssize_t count = ::recv(fd, buffer, size, MSG_DONTWAIT);
+    if (count < 0 && errno == EINTR) continue;
+    if (count < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) continue;
     return count;
   }
 }
 
-HttpRequest read_request(int fd, std::size_t timeout_ms) {
+HttpRequest read_request(int fd, int wake_read_fd,
+                         std::size_t timeout_ms) {
   std::optional<std::chrono::steady_clock::time_point> deadline;
   if (timeout_ms != 0) {
     using Clock = std::chrono::steady_clock;
@@ -352,7 +407,8 @@ HttpRequest read_request(int fd, std::size_t timeout_ms) {
   while (header_end == std::string::npos) {
     char buffer[8192];
     const ssize_t count = receive_before(
-        fd, buffer, sizeof(buffer), deadline, "HTTP request header timed out");
+        fd, wake_read_fd, buffer, sizeof(buffer), deadline,
+        "HTTP request header timed out");
     if (count <= 0) throw std::runtime_error("incomplete HTTP request");
     wire.append(buffer, static_cast<std::size_t>(count));
     if (wire.size() > 65536) {
@@ -418,7 +474,7 @@ HttpRequest read_request(int fd, std::size_t timeout_ms) {
     const std::size_t remaining =
         content_length - (wire.size() - body_begin);
     const ssize_t count = receive_before(
-        fd, buffer, std::min(sizeof(buffer), remaining), deadline,
+        fd, wake_read_fd, buffer, std::min(sizeof(buffer), remaining), deadline,
         "HTTP request body timed out");
     if (count <= 0) throw std::runtime_error("incomplete HTTP request body");
     wire.append(buffer, static_cast<std::size_t>(count));
@@ -1108,10 +1164,14 @@ int run_native_http_server(int argc, char** argv) {
 
   const ServerOptions options = parse_options(argc, argv);
   g_shutdown.store(false);
+  g_signal_shutdown = 0;
+  g_signal_wakeup_fd = -1;
   const auto process_started = std::chrono::steady_clock::now();
 
-  FileDescriptor server(::socket(AF_INET, SOCK_STREAM | SOCK_CLOEXEC, 0));
+  FileDescriptor server(::socket(
+      AF_INET, SOCK_STREAM | SOCK_CLOEXEC | SOCK_NONBLOCK, 0));
   if (server.get() < 0) throw std::runtime_error("socket creation failed");
+  SignalWakePipe signal_wakeup;
   int reuse = 1;
   if (::setsockopt(server.get(), SOL_SOCKET, SO_REUSEADDR, &reuse,
                    sizeof(reuse)) != 0) {
@@ -1191,6 +1251,31 @@ int run_native_http_server(int argc, char** argv) {
             << std::endl;
 
   while (!g_shutdown.load()) {
+    pollfd accept_fds[2]{};
+    accept_fds[0].fd = server.get();
+    accept_fds[0].events = POLLIN;
+    accept_fds[1].fd = signal_wakeup.read_fd();
+    accept_fds[1].events = POLLIN;
+    const int poll_result = ::poll(accept_fds, 2, -1);
+    if (poll_result < 0 && errno == EINTR) continue;
+    if (poll_result < 0) {
+      throw std::runtime_error("failed to poll native HTTP listener");
+    }
+    if ((accept_fds[1].revents &
+         (POLLIN | POLLHUP | POLLERR | POLLNVAL)) != 0) {
+      synchronize_signal_shutdown(signal_wakeup.read_fd());
+      if ((accept_fds[1].revents & POLLNVAL) != 0) {
+        throw std::runtime_error("shutdown signal pipe is invalid");
+      }
+    }
+    if (g_shutdown.load()) break;
+    if ((accept_fds[0].revents & POLLNVAL) != 0) {
+      throw std::runtime_error("native HTTP listener is invalid");
+    }
+    if ((accept_fds[0].revents & (POLLIN | POLLHUP | POLLERR)) == 0) {
+      continue;
+    }
+
     sockaddr_in peer{};
     socklen_t peer_size = sizeof(peer);
     const int accepted = ::accept4(server.get(),
@@ -1199,6 +1284,7 @@ int run_native_http_server(int argc, char** argv) {
     if (accepted < 0) {
       if (g_shutdown.load()) break;
       if (errno == EINTR) continue;
+      if (errno == EAGAIN || errno == EWOULDBLOCK) continue;
       throw std::runtime_error("accept failed");
     }
     FileDescriptor client(accepted);
@@ -1208,7 +1294,8 @@ int run_native_http_server(int argc, char** argv) {
       {
         ActiveClientReadTracker::Registration active_read_registration(
             active_client_reads, client.get());
-        request = read_request(client.get(), options.request_timeout_ms);
+        request = read_request(client.get(), signal_wakeup.read_fd(),
+                               options.request_timeout_ms);
       }
       if (requires_authentication(request, options) &&
           !authorized(request, options.api_key)) {
@@ -1356,6 +1443,7 @@ int run_native_http_server(int argc, char** argv) {
                      {"model_loads", 1}})
                    .dump()
             << std::endl;
+  g_signal_wakeup_fd = -1;
   return 0;
 }
 

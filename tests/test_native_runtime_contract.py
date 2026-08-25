@@ -763,23 +763,80 @@ class NativeRuntimeContractTest(unittest.TestCase):
         normalized_server = re.sub(r"\s+", " ", server)
 
         self.assertIn('#include "aima/native_http_support.h"', server)
+        self.assertIn("#include <poll.h>", server)
         self.assertIn("#include <pthread.h>", server)
         self.assertRegex(
             normalized_server,
             r"std::atomic<std::size_t> served(?:\s|\{|=)",
         )
+        self.assertRegex(
+            normalized_server,
+            r"volatile sig_atomic_t\s+g_signal_shutdown\s*=\s*0\s*;",
+        )
+        self.assertRegex(
+            normalized_server,
+            r"volatile sig_atomic_t\s+g_signal_wakeup_fd\s*=\s*-1\s*;",
+        )
+
+        signal_handler_body = cpp_free_function_body(server, "signal_handler")
+        self.assertIsNotNone(signal_handler_body)
+        assert signal_handler_body is not None
+        normalized_signal_handler = re.sub(r"\s+", " ", signal_handler_body)
+        saved_errno = normalized_signal_handler.index("saved_errno = errno")
+        signal_flag = normalized_signal_handler.index("g_signal_shutdown = 1")
+        signal_write = re.search(r"::write\s*\(", normalized_signal_handler)
+        self.assertIsNotNone(signal_write)
+        assert signal_write is not None
+        restored_errno = normalized_signal_handler.rindex("errno = saved_errno")
+        self.assertLess(saved_errno, signal_flag)
+        self.assertLess(signal_flag, signal_write.start())
+        self.assertLess(signal_write.start(), restored_errno)
+        self.assertNotIn("g_shutdown", normalized_signal_handler)
 
         receive_body = cpp_free_function_body(server, "receive_before")
         self.assertIsNotNone(receive_body)
         assert receive_body is not None
-        pre_receive_shutdown = re.search(
-            r"if\s*\(\s*g_shutdown\.load\(\)\s*\)", receive_body
+        normalized_receive = re.sub(r"\s+", " ", receive_body)
+        receive_poll_fds = re.search(
+            r"pollfd\s+(?P<name>[A-Za-z_]\w*)\s*\[\s*2\s*\]",
+            normalized_receive,
         )
-        self.assertIsNotNone(pre_receive_shutdown)
-        assert pre_receive_shutdown is not None
-        self.assertLess(
-            pre_receive_shutdown.start(), receive_body.index("::recv(")
+        self.assertIsNotNone(receive_poll_fds)
+        assert receive_poll_fds is not None
+        receive_poll_name = receive_poll_fds.group("name")
+        self.assertIn(f"{receive_poll_name}[0].fd = fd", normalized_receive)
+        self.assertIn(
+            f"{receive_poll_name}[1].fd = wake_read_fd", normalized_receive
         )
+        receive_poll = re.search(
+            rf"::poll\s*\(\s*{receive_poll_name}\s*,\s*2\s*,",
+            normalized_receive,
+        )
+        receive_recv = re.search(
+            r"::recv\s*\(\s*fd\s*,\s*buffer\s*,\s*size\s*,"
+            r"\s*MSG_DONTWAIT\s*\)",
+            normalized_receive,
+        )
+        self.assertIsNotNone(receive_poll)
+        self.assertIsNotNone(receive_recv)
+        assert receive_poll is not None
+        assert receive_recv is not None
+        self.assertLess(receive_poll.start(), receive_recv.start())
+        self.assertIn("synchronize_signal_shutdown(wake_read_fd)", receive_body)
+
+        read_request_body = cpp_free_function_body(server, "read_request")
+        self.assertIsNotNone(read_request_body)
+        assert read_request_body is not None
+        self.assertIn("wake_read_fd", read_request_body)
+
+        synchronize_body = cpp_free_function_body(
+            server, "synchronize_signal_shutdown"
+        )
+        self.assertIsNotNone(synchronize_body)
+        assert synchronize_body is not None
+        self.assertIn("g_signal_shutdown", synchronize_body)
+        self.assertIn("g_shutdown.store(true)", synchronize_body)
+        self.assertRegex(synchronize_body, r"::read\s*\(")
 
         timeout_branch_start = server.index(
             'else if (argument == "--request-timeout-ms")'
@@ -912,6 +969,61 @@ class NativeRuntimeContractTest(unittest.TestCase):
         self.assertGreater(unblock_signals.start(), signal_handler_install)
         self.assertNotIn("SIG_SETMASK", normalized_run_server)
 
+        wake_pipe_start = server.index("class SignalWakePipe")
+        wake_pipe_opening = server.index("{", wake_pipe_start)
+        wake_pipe_body = server[
+            wake_pipe_opening
+            : cpp_matching_brace(server, wake_pipe_opening) + 1
+        ]
+        normalized_wake_pipe = re.sub(r"\s+", " ", wake_pipe_body)
+        self.assertIn("::pipe2(", normalized_wake_pipe)
+        self.assertIn("O_NONBLOCK", normalized_wake_pipe)
+        self.assertIn("O_CLOEXEC", normalized_wake_pipe)
+        self.assertGreaterEqual(normalized_wake_pipe.count("FileDescriptor"), 2)
+        wake_pipe_destructor = normalized_wake_pipe.index("~SignalWakePipe()")
+        self.assertIn(
+            "g_signal_wakeup_fd = -1",
+            normalized_wake_pipe[wake_pipe_destructor:],
+        )
+
+        wake_pipe_instance = normalized_run_server.index(
+            "SignalWakePipe signal_wakeup"
+        )
+        self.assertLess(wake_pipe_instance, signal_handler_install)
+        self.assertLess(wake_pipe_instance, unblock_signals.start())
+        self.assertRegex(
+            normalized_run_server,
+            r"::socket\([^;]*SOCK_NONBLOCK[^;]*\)",
+        )
+
+        accept_loop_region = run_server[
+            run_server.index("while (!g_shutdown.load())") :
+        ]
+        normalized_accept_loop = re.sub(r"\s+", " ", accept_loop_region)
+        accept_poll_fds = re.search(
+            r"pollfd\s+(?P<name>[A-Za-z_]\w*)\s*\[\s*2\s*\]",
+            normalized_accept_loop,
+        )
+        self.assertIsNotNone(accept_poll_fds)
+        assert accept_poll_fds is not None
+        accept_poll_name = accept_poll_fds.group("name")
+        self.assertIn(
+            f"{accept_poll_name}[0].fd = server.get()", normalized_accept_loop
+        )
+        self.assertIn(
+            f"{accept_poll_name}[1].fd = signal_wakeup.read_fd()",
+            normalized_accept_loop,
+        )
+        accept_poll = re.search(
+            rf"::poll\s*\(\s*{accept_poll_name}\s*,\s*2\s*,",
+            normalized_accept_loop,
+        )
+        self.assertIsNotNone(accept_poll)
+        assert accept_poll is not None
+        self.assertLess(
+            accept_poll.start(), normalized_accept_loop.index("::accept4(")
+        )
+
         tracker_start = server.index("class ActiveClientReadTracker")
         tracker_opening = server.index("{", tracker_start)
         tracker_body = server[
@@ -932,9 +1044,6 @@ class NativeRuntimeContractTest(unittest.TestCase):
         )
         self.assertLess(interrupt_lock, interrupt_shutdown)
 
-        accept_loop_region = run_server[
-            run_server.index("while (!g_shutdown.load())") :
-        ]
         registration = re.search(
             r"ActiveClientReadTracker::Registration\s+\w+\s*\(",
             accept_loop_region,
@@ -983,6 +1092,13 @@ class NativeRuntimeContractTest(unittest.TestCase):
             "interrupt_server_io(",
             run_server[shutdown_route_start:shutdown_route_end],
         )
+
+        server_return = run_server.index("return 0;")
+        wake_fd_clear = run_server.rfind(
+            "g_signal_wakeup_fd = -1", 0, server_return
+        )
+        self.assertNotEqual(-1, wake_fd_clear)
+        self.assertLess(wake_fd_clear, server_return)
 
         stopped_event = run_server.index('{"event", "stopped"}')
         accept_loop = run_server.index("while (!g_shutdown.load())")
