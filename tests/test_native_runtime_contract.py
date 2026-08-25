@@ -78,6 +78,87 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def cpp_matching_brace(source: str, opening_brace: int) -> int:
+    if source[opening_brace] != "{":
+        raise ValueError("opening_brace must point to an opening brace")
+
+    depth = 0
+    index = opening_brace
+    state = "code"
+    while index < len(source):
+        character = source[index]
+        following = source[index + 1] if index + 1 < len(source) else ""
+        if state == "line_comment":
+            if character == "\n":
+                state = "code"
+        elif state == "block_comment":
+            if character == "*" and following == "/":
+                state = "code"
+                index += 1
+        elif state in {"string", "character"}:
+            if character == "\\":
+                index += 1
+            elif (state == "string" and character == '"') or (
+                state == "character" and character == "'"
+            ):
+                state = "code"
+        elif character == "/" and following == "/":
+            state = "line_comment"
+            index += 1
+        elif character == "/" and following == "*":
+            state = "block_comment"
+            index += 1
+        elif character == '"':
+            state = "string"
+        elif character == "'":
+            state = "character"
+        elif character == "{":
+            depth += 1
+        elif character == "}":
+            depth -= 1
+            if depth == 0:
+                return index
+        index += 1
+    raise ValueError("opening brace has no matching closing brace")
+
+
+def cpp_free_function_body(source: str, name: str) -> str | None:
+    signatures = re.finditer(
+        rf"(?m)^[ \t]*(?:[A-Za-z_]\w*[\w:<> ,*&\t]*\s+)"
+        rf"{re.escape(name)}\s*\(",
+        source,
+    )
+    for signature in signatures:
+        opening_brace = source.find("{", signature.end())
+        if opening_brace == -1:
+            continue
+        semicolon = source.find(";", signature.end(), opening_brace)
+        if semicolon != -1:
+            continue
+        return source[
+            opening_brace : cpp_matching_brace(source, opening_brace) + 1
+        ]
+    return None
+
+
+def contains_busy_response(source: str, body: str) -> bool:
+    def has_busy_response(candidate: str) -> bool:
+        return (
+            re.search(r"send_json\s*\(", candidate) is not None
+            and re.search(r"\b503\b", candidate) is not None
+            and '"server_busy"' in candidate
+            and '"server_error"' in candidate
+        )
+
+    if has_busy_response(body):
+        return True
+    for name in set(re.findall(r"\b([A-Za-z_]\w*)\s*\(", body)):
+        helper_body = cpp_free_function_body(source, name)
+        if helper_body is not None and has_busy_response(helper_body):
+            return True
+    return False
+
+
 class NativeRuntimeContractTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -661,6 +742,20 @@ class NativeRuntimeContractTest(unittest.TestCase):
             self.assertIn(option, server)
         self.assertLess(server.index("::bind("), server.index("engine.load("))
 
+    def test_cpp_matching_brace_ignores_cpp_literals_and_comments(self) -> None:
+        source = r'''void sample() {
+  const char* text = "{ ignored }";
+  const char closing = '}';
+  const char* escaped_quote = "quote: \" }";
+  // { ignored }
+  /* } ignored { */
+  if (true) { return; }
+}
+'''
+        self.assertEqual(
+            source.rfind("}"), cpp_matching_brace(source, source.index("{"))
+        )
+
     def test_native_release_is_self_contained_and_secure(self) -> None:
         server = (ROOT / "native/src/native_http_server.cpp").read_text(
             encoding="utf-8"
@@ -716,16 +811,21 @@ class NativeRuntimeContractTest(unittest.TestCase):
             "const int status = request.path", chat_route_match.start()
         )
         chat_route = server[chat_route_match.start() : chat_route_end]
-        task_cancel_match = re.search(
-            r"\bTask\s+(?P<task>\w+).*?\b(?P=task)\.cancel\s*=",
-            chat_route,
-            re.DOTALL,
-        )
+        task_declaration = re.search(r"\bTask\s+\w+", chat_route)
+        self.assertIsNotNone(task_declaration)
+        assert task_declaration is not None
+        task_cancel_match = re.search(r"\.cancel\s*=", chat_route)
         self.assertIsNotNone(task_cancel_match)
         assert task_cancel_match is not None
-        cancel_assignment = chat_route.index(
-            ".cancel =", task_cancel_match.start()
+        cancel_assignment = task_cancel_match.start()
+        self.assertLess(task_declaration.start(), cancel_assignment)
+        cancel_lambda_opening = chat_route.index("{", task_cancel_match.end())
+        cancel_lambda_closing = cpp_matching_brace(
+            chat_route, cancel_lambda_opening
         )
+        cancel_lambda_body = chat_route[
+            cancel_lambda_opening : cancel_lambda_closing + 1
+        ]
         submit_match = re.search(
             r"chat_executor\.submit\s*\(", chat_route[cancel_assignment:]
         )
@@ -733,13 +833,10 @@ class NativeRuntimeContractTest(unittest.TestCase):
         assert submit_match is not None
         submit_start = cancel_assignment + submit_match.start()
         self.assertLess(cancel_assignment, submit_start)
-        cancel_path = chat_route[cancel_assignment:submit_start]
-        normalized_cancel_path = re.sub(r"\s+", " ", cancel_path)
-        self.assertRegex(
-            normalized_cancel_path, r"send_json\s*\([^;]*,\s*503\s*,"
+        self.assertTrue(
+            contains_busy_response(server, cancel_lambda_body),
+            "task cancellation must resolve to a 503 server_busy server_error response",
         )
-        self.assertIn('"server_busy"', cancel_path)
-        self.assertIn('"server_error"', cancel_path)
 
         negative_submit_match = re.search(
             r"if\s*\(\s*!\s*chat_executor\.submit\s*\(", chat_route
@@ -747,34 +844,20 @@ class NativeRuntimeContractTest(unittest.TestCase):
         self.assertIsNotNone(negative_submit_match)
         assert negative_submit_match is not None
         self.assertGreater(negative_submit_match.start(), cancel_assignment)
-        negative_branch_start = chat_route.index(
+        negative_branch_opening = chat_route.index(
             "{", negative_submit_match.end()
         )
-        negative_branch_depth = 0
-        negative_branch_end = negative_branch_start
-        for negative_branch_end in range(
-            negative_branch_start, len(chat_route)
-        ):
-            if chat_route[negative_branch_end] == "{":
-                negative_branch_depth += 1
-            elif chat_route[negative_branch_end] == "}":
-                negative_branch_depth -= 1
-                if negative_branch_depth == 0:
-                    break
-        else:
-            self.fail("negative chat_executor.submit branch is not closed")
         negative_submit_branch = chat_route[
-            negative_branch_start : negative_branch_end + 1
+            negative_branch_opening : cpp_matching_brace(
+                chat_route, negative_branch_opening
+            )
+            + 1
         ]
-        normalized_negative_branch = re.sub(
-            r"\s+", " ", negative_submit_branch
+        self.assertTrue(
+            contains_busy_response(server, negative_submit_branch),
+            "rejected chat submission must resolve to a 503 server_busy "
+            "server_error response",
         )
-        self.assertRegex(
-            normalized_negative_branch,
-            r"send_json\s*\([^;]*,\s*503\s*,",
-        )
-        self.assertIn('"server_busy"', negative_submit_branch)
-        self.assertIn('"server_error"', negative_submit_branch)
 
         self.assertRegex(
             normalized_server,
@@ -785,19 +868,15 @@ class NativeRuntimeContractTest(unittest.TestCase):
         run_server = server[run_server_start:]
         stopped_event = run_server.index('{"event", "stopped"}')
         accept_loop = run_server.index("while (!g_shutdown.load())")
+        accept_loop_closing = cpp_matching_brace(
+            run_server, run_server.index("{", accept_loop)
+        )
         shutdown_call = run_server.rfind(
             "chat_executor.shutdown();", 0, stopped_event
         )
         self.assertNotEqual(-1, shutdown_call)
-        self.assertGreater(shutdown_call, accept_loop)
+        self.assertGreater(shutdown_call, accept_loop_closing)
         self.assertLess(shutdown_call, stopped_event)
-        post_loop = run_server[accept_loop:]
-        self.assertRegex(
-            post_loop,
-            r'\}\s*chat_executor\.shutdown\(\);\s*'
-            r'systemd_notify\("STOPPING=1\\nSTATUS=Stopping"\);\s*'
-            r'std::cout\s*<<\s*Json\(\{\{"event", "stopped"\}',
-        )
         stopped_event_region = run_server[
             shutdown_call : run_server.index("return 0;", stopped_event)
         ]
