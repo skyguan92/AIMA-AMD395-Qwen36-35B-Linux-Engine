@@ -12,6 +12,7 @@
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <nlohmann/json.hpp>
+#include <pthread.h>
 #include <signal.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -33,6 +34,7 @@
 #include <iomanip>
 #include <limits>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <sstream>
 #include <stdexcept>
@@ -82,6 +84,53 @@ class FileDescriptor {
  private:
   int value_ = -1;
 };
+
+class ActiveClientReadTracker {
+ public:
+  class Registration {
+   public:
+    Registration(ActiveClientReadTracker& tracker, int fd)
+        : tracker_(&tracker), fd_(fd) {
+      tracker_->register_read(fd_);
+    }
+    ~Registration() { tracker_->clear(fd_); }
+
+    Registration(const Registration&) = delete;
+    Registration& operator=(const Registration&) = delete;
+
+   private:
+    ActiveClientReadTracker* tracker_;
+    int fd_;
+  };
+
+  void interrupt() noexcept {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (tracked_fd_ >= 0) (void)::shutdown(tracked_fd_, SHUT_RDWR);
+  }
+
+ private:
+  void register_read(int fd) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (tracked_fd_ >= 0) {
+      throw std::logic_error("a client read is already active");
+    }
+    tracked_fd_ = fd;
+  }
+
+  void clear(int fd) noexcept {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (tracked_fd_ == fd) tracked_fd_ = -1;
+  }
+
+  std::mutex mutex_;
+  int tracked_fd_ = -1;
+};
+
+void interrupt_server_io(
+    int listener_fd, ActiveClientReadTracker& active_client_reads) noexcept {
+  (void)::shutdown(listener_fd, SHUT_RDWR);
+  active_client_reads.interrupt();
+}
 
 void systemd_notify(std::string_view state) noexcept {
   const char* value = std::getenv("NOTIFY_SOCKET");
@@ -253,6 +302,11 @@ ssize_t receive_before(int fd, void* buffer, std::size_t size,
         throw std::runtime_error("failed to configure request read deadline");
       }
     }
+    if (g_shutdown.load()) {
+      throw std::system_error(
+          std::make_error_code(std::errc::operation_canceled),
+          "HTTP request cancelled");
+    }
     const ssize_t count = ::recv(fd, buffer, size, 0);
     if (count < 0 && errno == EINTR) {
       if (g_shutdown.load()) {
@@ -261,6 +315,11 @@ ssize_t receive_before(int fd, void* buffer, std::size_t size,
             "HTTP request cancelled");
       }
       continue;
+    }
+    if (count <= 0 && g_shutdown.load()) {
+      throw std::system_error(
+          std::make_error_code(std::errc::operation_canceled),
+          "HTTP request cancelled");
     }
     if (count < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
       throw std::system_error(std::make_error_code(std::errc::timed_out),
@@ -1033,6 +1092,20 @@ bool stream_chat_completion(
 }  // namespace
 
 int run_native_http_server(int argc, char** argv) {
+  sigset_t shutdown_signals{};
+  if (::sigemptyset(&shutdown_signals) != 0 ||
+      ::sigaddset(&shutdown_signals, SIGINT) != 0 ||
+      ::sigaddset(&shutdown_signals, SIGTERM) != 0) {
+    throw std::runtime_error("failed to construct shutdown signal mask");
+  }
+  const int block_signals_error =
+      ::pthread_sigmask(SIG_BLOCK, &shutdown_signals, nullptr);
+  if (block_signals_error != 0) {
+    throw std::runtime_error(
+        "failed to block shutdown signals: " +
+        std::string(std::strerror(block_signals_error)));
+  }
+
   const ServerOptions options = parse_options(argc, argv);
   g_shutdown.store(false);
   const auto process_started = std::chrono::steady_clock::now();
@@ -1055,6 +1128,7 @@ int run_native_http_server(int argc, char** argv) {
     throw std::runtime_error("bind failed: " +
                              std::string(std::strerror(errno)));
   }
+  ActiveClientReadTracker active_client_reads;
 
   systemd_notify("STATUS=Loading tokenizer and model");
   NativeTokenizer tokenizer;
@@ -1075,6 +1149,13 @@ int run_native_http_server(int argc, char** argv) {
   if (::sigaction(SIGINT, &action, nullptr) != 0 ||
       ::sigaction(SIGTERM, &action, nullptr) != 0) {
     throw std::runtime_error("failed to install shutdown signal handlers");
+  }
+  const int unblock_signals_error =
+      ::pthread_sigmask(SIG_UNBLOCK, &shutdown_signals, nullptr);
+  if (unblock_signals_error != 0) {
+    throw std::runtime_error(
+        "failed to unblock shutdown signals: " +
+        std::string(std::strerror(unblock_signals_error)));
   }
   systemd_notify("READY=1\nSTATUS=Ready");
   const double command_to_ready_ms = elapsed_ms(process_started);
@@ -1123,8 +1204,12 @@ int run_native_http_server(int argc, char** argv) {
     FileDescriptor client(accepted);
     try {
       configure_client_timeout(client.get(), options.request_timeout_ms);
-      HttpRequest request =
-          read_request(client.get(), options.request_timeout_ms);
+      HttpRequest request;
+      {
+        ActiveClientReadTracker::Registration active_read_registration(
+            active_client_reads, client.get());
+        request = read_request(client.get(), options.request_timeout_ms);
+      }
       if (requires_authentication(request, options) &&
           !authorized(request, options.api_key)) {
         (void)send_json(
@@ -1169,7 +1254,7 @@ int run_native_http_server(int argc, char** argv) {
                  options.http_shutdown) {
         (void)send_json(client.get(), 200, {{"status", "shutting_down"}});
         g_shutdown.store(true);
-        (void)::shutdown(server.get(), SHUT_RDWR);
+        interrupt_server_io(server.get(), active_client_reads);
       } else if (request.method == "POST" &&
                  request.path == "/v1/chat/completions") {
         const auto http_started = std::chrono::steady_clock::now();
@@ -1179,7 +1264,7 @@ int run_native_http_server(int argc, char** argv) {
 
         NativeSerialExecutor::Task chat_task;
         chat_task.run = [queued_request, &engine, &tokenizer, &served, &server,
-                         &chat_executor,
+                         &active_client_reads, &chat_executor,
                          maximum_requests = options.maximum_requests]() {
           try {
             Json body = Json::parse(queued_request->request.body);
@@ -1203,7 +1288,7 @@ int run_native_http_server(int argc, char** argv) {
             const std::size_t completed = served.fetch_add(1) + 1;
             if (maximum_requests != 0 && completed >= maximum_requests) {
               g_shutdown.store(true);
-              (void)::shutdown(server.get(), SHUT_RDWR);
+              interrupt_server_io(server.get(), active_client_reads);
               chat_executor.shutdown();
             }
           } catch (const std::invalid_argument& error) {
@@ -1263,6 +1348,7 @@ int run_native_http_server(int argc, char** argv) {
                 error_payload(error.what(), "bad_request"));
     }
   }
+  interrupt_server_io(server.get(), active_client_reads);
   chat_executor.shutdown();
   systemd_notify("STOPPING=1\nSTATUS=Stopping");
   std::cout << Json({{"event", "stopped"},

@@ -763,9 +763,22 @@ class NativeRuntimeContractTest(unittest.TestCase):
         normalized_server = re.sub(r"\s+", " ", server)
 
         self.assertIn('#include "aima/native_http_support.h"', server)
+        self.assertIn("#include <pthread.h>", server)
         self.assertRegex(
             normalized_server,
             r"std::atomic<std::size_t> served(?:\s|\{|=)",
+        )
+
+        receive_body = cpp_free_function_body(server, "receive_before")
+        self.assertIsNotNone(receive_body)
+        assert receive_body is not None
+        pre_receive_shutdown = re.search(
+            r"if\s*\(\s*g_shutdown\.load\(\)\s*\)", receive_body
+        )
+        self.assertIsNotNone(pre_receive_shutdown)
+        assert pre_receive_shutdown is not None
+        self.assertLess(
+            pre_receive_shutdown.start(), receive_body.index("::recv(")
         )
 
         timeout_branch_start = server.index(
@@ -866,6 +879,111 @@ class NativeRuntimeContractTest(unittest.TestCase):
 
         run_server_start = server.index("int run_native_http_server")
         run_server = server[run_server_start:]
+        normalized_run_server = re.sub(r"\s+", " ", run_server)
+        block_signals = re.search(
+            r"pthread_sigmask\(\s*SIG_BLOCK\s*,\s*&shutdown_signals\s*,"
+            r"\s*nullptr\s*\)",
+            normalized_run_server,
+        )
+        self.assertIsNotNone(block_signals)
+        assert block_signals is not None
+        for thread_source in (
+            "NativeTokenizer tokenizer",
+            "NativeResidentEngine engine",
+            "NativeSerialExecutor chat_executor",
+        ):
+            self.assertLess(
+                block_signals.start(), normalized_run_server.index(thread_source)
+            )
+        signal_handler_install = normalized_run_server.index(
+            "::sigaction(SIGTERM"
+        )
+        unblock_signals = re.search(
+            r"pthread_sigmask\(\s*SIG_UNBLOCK\s*,\s*&shutdown_signals\s*,"
+            r"\s*nullptr\s*\)",
+            normalized_run_server,
+        )
+        self.assertIsNotNone(unblock_signals)
+        assert unblock_signals is not None
+        self.assertGreater(
+            signal_handler_install,
+            normalized_run_server.index("NativeSerialExecutor chat_executor"),
+        )
+        self.assertGreater(unblock_signals.start(), signal_handler_install)
+        self.assertNotIn("SIG_SETMASK", normalized_run_server)
+
+        tracker_start = server.index("class ActiveClientReadTracker")
+        tracker_opening = server.index("{", tracker_start)
+        tracker_body = server[
+            tracker_opening : cpp_matching_brace(server, tracker_opening) + 1
+        ]
+        interrupt_start = tracker_body.index("void interrupt()")
+        interrupt_opening = tracker_body.index("{", interrupt_start)
+        interrupt_body = tracker_body[
+            interrupt_opening
+            : cpp_matching_brace(tracker_body, interrupt_opening) + 1
+        ]
+        normalized_interrupt = re.sub(r"\s+", " ", interrupt_body)
+        interrupt_lock = normalized_interrupt.index(
+            "std::lock_guard<std::mutex> lock(mutex_)"
+        )
+        interrupt_shutdown = normalized_interrupt.index(
+            "::shutdown(tracked_fd_, SHUT_RDWR)"
+        )
+        self.assertLess(interrupt_lock, interrupt_shutdown)
+
+        accept_loop_region = run_server[
+            run_server.index("while (!g_shutdown.load())") :
+        ]
+        registration = re.search(
+            r"ActiveClientReadTracker::Registration\s+\w+\s*\(",
+            accept_loop_region,
+        )
+        self.assertIsNotNone(registration)
+        assert registration is not None
+        registration_scope_opening = accept_loop_region.rfind(
+            "{", 0, registration.start()
+        )
+        registration_scope_closing = cpp_matching_brace(
+            accept_loop_region, registration_scope_opening
+        )
+        read_call = accept_loop_region.index(
+            "read_request(", registration.start()
+        )
+        authentication = accept_loop_region.index(
+            "requires_authentication", read_call
+        )
+        self.assertLess(registration.start(), read_call)
+        self.assertLess(read_call, registration_scope_closing)
+        self.assertLess(registration_scope_closing, authentication)
+
+        wake_body = cpp_free_function_body(server, "interrupt_server_io")
+        self.assertIsNotNone(wake_body)
+        assert wake_body is not None
+        self.assertIn("::shutdown(listener_fd, SHUT_RDWR)", wake_body)
+        self.assertIn("active_client_reads.interrupt()", wake_body)
+
+        maximum_requests = run_server.index("if (maximum_requests != 0")
+        maximum_requests_opening = run_server.index("{", maximum_requests)
+        maximum_requests_body = run_server[
+            maximum_requests_opening
+            : cpp_matching_brace(run_server, maximum_requests_opening) + 1
+        ]
+        self.assertLess(
+            maximum_requests_body.index("g_shutdown.store(true)"),
+            maximum_requests_body.index("interrupt_server_io("),
+        )
+        shutdown_route_start = run_server.index(
+            'request.method == "POST" && request.path == "/shutdown"'
+        )
+        shutdown_route_end = run_server.index(
+            'request.path == "/v1/chat/completions"', shutdown_route_start
+        )
+        self.assertIn(
+            "interrupt_server_io(",
+            run_server[shutdown_route_start:shutdown_route_end],
+        )
+
         stopped_event = run_server.index('{"event", "stopped"}')
         accept_loop = run_server.index("while (!g_shutdown.load())")
         accept_loop_closing = cpp_matching_brace(
