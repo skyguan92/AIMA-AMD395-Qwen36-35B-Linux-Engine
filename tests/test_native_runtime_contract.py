@@ -824,6 +824,31 @@ class NativeRuntimeContractTest(unittest.TestCase):
         self.assertLess(receive_poll.start(), receive_recv.start())
         self.assertIn("synchronize_signal_shutdown(wake_read_fd)", receive_body)
 
+        poll_timeout_match = re.search(
+            r"if\s*\(\s*poll_result\s*==\s*0\s*\)", receive_body
+        )
+        self.assertIsNotNone(poll_timeout_match)
+        assert poll_timeout_match is not None
+        poll_timeout_opening = receive_body.index(
+            "{", poll_timeout_match.end()
+        )
+        poll_timeout_body = receive_body[
+            poll_timeout_opening
+            : cpp_matching_brace(receive_body, poll_timeout_opening) + 1
+        ]
+        normalized_poll_timeout = re.sub(r"\s+", " ", poll_timeout_body)
+        absolute_deadline_recheck = re.search(
+            r"deadline\.has_value\(\)\s*&&\s*"
+            r"std::chrono::steady_clock::now\(\)\s*>=\s*\*deadline",
+            normalized_poll_timeout,
+        )
+        self.assertIsNotNone(absolute_deadline_recheck)
+        assert absolute_deadline_recheck is not None
+        timeout_throw = normalized_poll_timeout.index("std::errc::timed_out")
+        retry_poll = normalized_poll_timeout.rindex("continue;")
+        self.assertLess(absolute_deadline_recheck.start(), timeout_throw)
+        self.assertLess(timeout_throw, retry_poll)
+
         read_request_body = cpp_free_function_body(server, "read_request")
         self.assertIsNotNone(read_request_body)
         assert read_request_body is not None

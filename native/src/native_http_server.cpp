@@ -355,8 +355,12 @@ ssize_t receive_before(int fd, int wake_read_fd, void* buffer,
       throw std::runtime_error("failed to poll HTTP request socket");
     }
     if (poll_result == 0) {
-      throw std::system_error(std::make_error_code(std::errc::timed_out),
-                              timeout_message);
+      if (deadline.has_value() &&
+          std::chrono::steady_clock::now() >= *deadline) {
+        throw std::system_error(std::make_error_code(std::errc::timed_out),
+                                timeout_message);
+      }
+      continue;
     }
 
     if ((wait_fds[1].revents &
