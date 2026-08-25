@@ -59,6 +59,17 @@ class NativeSurfacesQualificationTest(unittest.TestCase):
                 "--model-dir",
                 str(model),
             ],
+            "candidate_provider": str(
+                engine.parent / "libaima-fmha-ck.so"
+            ),
+            "baseline_provider": str(
+                baseline.parent / "libaima-fmha-aotriton.so"
+            ),
+            "baseline_bundle_provider": str(
+                baseline.parent.parent
+                / "lib"
+                / "libaima-fmha-aotriton.so"
+            ),
             "report": str(output / "raw" / "run.json"),
         }
         self.assertEqual(
@@ -76,6 +87,16 @@ class NativeSurfacesQualificationTest(unittest.TestCase):
                     "--model-dir",
                     "${AIMA_MODEL_DIR}",
                 ],
+                "candidate_provider": (
+                    "${AIMA_ENGINE_DIR}/libaima-fmha-ck.so"
+                ),
+                "baseline_provider": (
+                    "${AIMA_BASELINE_ENGINE_DIR}/libaima-fmha-aotriton.so"
+                ),
+                "baseline_bundle_provider": (
+                    "${AIMA_BASELINE_BUNDLE_ROOT}/lib/"
+                    "libaima-fmha-aotriton.so"
+                ),
                 "report": "${AIMA_OUTPUT_DIR}/raw/run.json",
             },
         )

@@ -1,7 +1,8 @@
 # Native CLI and HTTP API
 
-This page documents the v1.5.1 native CLI and HTTP API. Earlier binaries do
-not include every command and hardening control described here.
+This page documents the v1.5.1-native-vl.1 native CLI and HTTP API. Earlier
+binaries do not include every command, multimodal surface and hardening control
+described here.
 
 ## CLI
 
@@ -39,6 +40,7 @@ required check passes.
 bin/aima-engine serve \
   --model-dir /srv/models/Qwen3.6-35B-A3B \
   --context-tokens 8192 \
+  --allowed-local-media-path /srv/aima-media \
   --host 127.0.0.1 \
   --port 8000
 ```
@@ -60,6 +62,12 @@ Options:
 | `--api-key-file PATH` | read one bearer token from a non-symlink file with mode `0640` or stricter | disabled on loopback |
 | `--disable-http-shutdown` | remove the HTTP shutdown route | false |
 | `--allow-insecure-remote` | explicitly permit a non-loopback bind without a token | false |
+| `--allowed-local-media-path PATH` | repeatable root for descriptor-relative `file:` media | none |
+| `--allowed-media-domain HOST` | repeatable exact HTTP/HTTPS media hostname | none |
+| `--allowed-private-media-domain HOST` | permit an already-allowlisted hostname to resolve privately | none |
+| `--remote-tls-ca-bundle PATH` | explicit CA bundle for remote HTTPS media | bundle CA; libcurl default in source builds |
+| `--media-cache-capacity-bytes N` | decoded-media LRU byte capacity, at most 4 GiB | 4 GiB |
+| `--disable-media-cache` | disable decoded-media reuse | false |
 | `--fmha-provider PATH` | qualification-only provider override | automatic |
 
 The process stays in the foreground and handles `SIGINT` / `SIGTERM`.
@@ -97,8 +105,9 @@ the release.
 
 ## HTTP lifecycle
 
-The server writes one readiness JSON object to stdout after all resident state
-is initialized. It writes a final stopped object when exiting.
+The server writes one readiness JSON object to stdout only after all 693
+language and 333 visual tensors, resident state and both vision-attention
+warmups are complete. It writes a final stopped object when exiting.
 
 ### `GET /health`
 
@@ -109,6 +118,8 @@ Returns:
 - successful request count and uptime;
 - total context capacity and selected static AOT prefill specialization;
 - selected FMHA provider;
+- native-VL readiness, vision warmup, media-cache capacity/residency and visual
+  tensor counts;
 - command-to-ready time.
 
 ### `GET /v1/models`
@@ -138,8 +149,12 @@ Supported request fields:
   `video_url` content parts; assistant `tool_calls` and matching tool
   responses are accepted;
 - `max_tokens` or `max_completion_tokens`: positive integer;
-- `temperature`: exactly `0`;
-- `top_p`: exactly `1`;
+- `temperature`: finite number in `[0,2]`; `0` selects certified greedy
+  top-1, and a positive value selects stochastic generation;
+- `top_p`: exactly `1` for greedy generation, or a finite number in `(0,1]`
+  when `temperature` is positive;
+- `seed`: optional non-negative integer. It controls the positive-temperature
+  PRNG; when omitted the response metrics expose the generated effective seed;
 - `n`: exactly `1`;
 - `stream`: boolean;
 - `stream_options.include_usage`: boolean when `stream` is true;
@@ -160,7 +175,6 @@ Not supported:
 - custom stop values;
 - audio message parts;
 - deprecated `functions` or structured response formats;
-- stochastic sampling;
 - unqualified media-I/O fields such as `video.frame_recovery` and
   `video.max_duration`, or video backends other than OpenCV;
 - batching or concurrent execution.
@@ -170,6 +184,15 @@ disabled for the frozen text product path and retained for VL requests to
 match the frozen multimodal processor oracle. Its native renderer is
 byte-for-byte and token-for-token checked against the checkpoint template for
 plain, tool, assistant/tool-history and multimodal fixtures.
+
+Positive-temperature requests compute a raw-weight BF16 LM-head projection for
+all 248,320 tokens, then apply temperature scaling and nucleus sampling with a
+stable SplitMix64 stream. This path is separate from the certified greedy
+shortlist, so `temperature:0` performs no full-vocabulary transfer or sampling
+work. `aima_amd395.sampling` reports the mode, logits source, effective seed,
+selection count, transfer bytes and wall time. An explicit seed produces the
+same tokens for text/VL and SSE/non-stream execution; it does not promise token
+identity with another engine's implementation-specific PRNG.
 
 Media admission is fail-closed. `data:` URIs are bounded by media type. Local
 `file:` URLs require one or more `--allowed-local-media-path` roots and are

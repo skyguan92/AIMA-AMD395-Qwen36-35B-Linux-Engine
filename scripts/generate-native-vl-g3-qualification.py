@@ -31,27 +31,27 @@ ARTIFACT_PATHS = {
     "goal": ROOT / "docs/NATIVE_VL_GOAL.md",
     "correctness": (
         ROOT
-        / "benchmarks/runs/native-correctness-20260821-50289f1/correctness.json"
+        / "benchmarks/runs/native-correctness-20260824-bd01287-final/correctness.json"
     ),
     "doctor": (
         ROOT
-        / "benchmarks/runs/native-doctor-20260821-50289f1/doctor.json"
+        / "benchmarks/runs/native-doctor-20260824-bd01287-final/doctor.json"
     ),
     "openai_features": (
         ROOT
         / (
-            "benchmarks/runs/native-openai-features-20260821-50289f1/"
+            "benchmarks/runs/native-openai-features-20260824-bd01287-final/"
             "features.json"
         )
     ),
     "mmlu256": (
         ROOT
-        / "benchmarks/runs/native-mmlu256-eval-20260821-50289f1/mmlu256.json"
+        / "benchmarks/runs/native-mmlu256-eval-20260824-bd01287-final/mmlu256.json"
     ),
     "product_surfaces": (
         ROOT
         / (
-            "benchmarks/runs/native-product-surfaces-20260821-50289f1/"
+            "benchmarks/runs/native-product-surfaces-20260824-bd01287-final/"
             "surfaces.json"
         )
     ),
@@ -59,7 +59,7 @@ ARTIFACT_PATHS = {
         ROOT
         / (
             "benchmarks/runs/"
-            "native-paired-text-matrix-20260821-50289f1-balanced6/"
+            "native-paired-text-matrix-20260824-bd01287-final-balanced6/"
             "matrix.json"
         )
     ),
@@ -80,10 +80,11 @@ EXPECTED_CONTEXTS = (
     131072,
     261632,
 )
+MINIMUM_PAIRED_MATRIX_PAIRS = 6
 EXPECTED_BINARY_SHA256 = (
-    "4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0"
+    "fb5cae0ca5ffaa4bc3d418d5fb1630d822eae9d60f639ba6cc143e427c0cd1e9"
 )
-EXPECTED_SOURCE_COMMIT = "50289f1cbae150997ca82bbc054635932a2721c3"
+EXPECTED_SOURCE_COMMIT = "bd012874027defa528279a357609b713e9069df4"
 EXPECTED_BASELINE_SHA256 = (
     "a9f18771175757af080c8a1d8d7e3fb3906c9aa41b43a496686103b626f80262"
 )
@@ -329,6 +330,45 @@ def check_product_surfaces(
     return checks, summary
 
 
+def paired_matrix_cell_is_strict(cell: Mapping[str, Any]) -> bool:
+    pair_count = cell.get("pair_count")
+    required_pair_count = cell.get("required_pair_count")
+    pairs = cell.get("pairs")
+    if (
+        isinstance(pair_count, bool)
+        or not isinstance(pair_count, int)
+        or isinstance(required_pair_count, bool)
+        or not isinstance(required_pair_count, int)
+        or pair_count < MINIMUM_PAIRED_MATRIX_PAIRS
+        or required_pair_count != pair_count
+        or not isinstance(pairs, list)
+        or len(pairs) != pair_count
+    ):
+        return False
+    expected_execution_orders = [
+        ["baseline", "candidate"]
+        if pair_index % 2
+        else ["candidate", "baseline"]
+        for pair_index in range(1, pair_count + 1)
+    ]
+    return (
+        cell.get("complete") is True
+        and cell.get("qualified") is True
+        and [pair.get("execution_order") for pair in pairs]
+        == expected_execution_orders
+        and all(
+            require_mapping(
+                cell.get("paired_checks"), "matrix.paired_checks"
+            ).values()
+        )
+        and all(
+            require_mapping(
+                cell.get("legacy_floor_checks"), "matrix.legacy_checks"
+            ).values()
+        )
+    )
+
+
 def check_paired_matrix(
     payload: dict[str, Any],
 ) -> tuple[dict[str, bool], dict[str, Any]]:
@@ -354,32 +394,10 @@ def check_paired_matrix(
     observed_cells = {
         (cell.get("input_tokens"), cell.get("output_tokens")) for cell in cells
     }
-    expected_execution_orders = [
-        ["baseline", "candidate"] if pair_index % 2 else ["candidate", "baseline"]
-        for pair_index in range(1, 7)
-    ]
     all_cells_strict = (
         len(cells) == len(expected_cells)
         and observed_cells == expected_cells
-        and all(
-            cell.get("complete") is True
-            and cell.get("qualified") is True
-            and int(cell.get("pair_count", 0)) == 6
-            and cell.get("required_pair_count") == 6
-            and [pair.get("execution_order") for pair in cell.get("pairs", [])]
-            == expected_execution_orders
-            and all(
-                require_mapping(
-                    cell.get("paired_checks"), "matrix.paired_checks"
-                ).values()
-            )
-            and all(
-                require_mapping(
-                    cell.get("legacy_floor_checks"), "matrix.legacy_checks"
-                ).values()
-            )
-            for cell in cells
-        )
+        and all(paired_matrix_cell_is_strict(cell) for cell in cells)
     )
     candidate_build = require_mapping(
         candidate.get("build_info"), "paired_text_matrix.candidate.build_info"
@@ -405,9 +423,11 @@ def check_paired_matrix(
             and len(cells) == 19
             and observed_cells == expected_cells
         ),
-        "all_cells_six_pair_order_balanced_strict_no_regression": (
+        "all_cells_minimum_six_pair_order_balanced_strict_no_regression": (
             payload.get("all_cells_pass") is True
-            and protocol.get("pair_count") == 6
+            and protocol.get("pair_count") == MINIMUM_PAIRED_MATRIX_PAIRS
+            and protocol.get("minimum_observed_pair_count")
+            == MINIMUM_PAIRED_MATRIX_PAIRS
             and all_cells_strict
         ),
         "q8192_startup_qualified": (
@@ -513,7 +533,7 @@ def check_doctor(payload: dict[str, Any]) -> tuple[dict[str, bool], dict[str, An
 
 def build_payload(
     artifact_paths: dict[str, Path] | None = None,
-    recorded_on: str = "2026-08-21",
+    recorded_on: str = "2026-08-24",
 ) -> dict[str, Any]:
     paths = ARTIFACT_PATHS if artifact_paths is None else artifact_paths
     payloads = {
@@ -637,7 +657,7 @@ def main() -> int:
     parser.add_argument(
         "--candidate-binary-sha256", default=EXPECTED_BINARY_SHA256
     )
-    parser.add_argument("--recorded-on", default="2026-08-21")
+    parser.add_argument("--recorded-on", default="2026-08-24")
     for name in (
         "correctness",
         "doctor",

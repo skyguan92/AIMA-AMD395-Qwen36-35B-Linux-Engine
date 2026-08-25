@@ -17,6 +17,7 @@ import selectors
 import shutil
 import statistics
 import subprocess
+import sys
 import time
 from typing import Any
 
@@ -43,6 +44,27 @@ FROZEN_V151_PREFIX_OBSERVATION = {
 # no-regression is stricter: paired candidate/release medians must be >= 1.0.
 MINIMUM_PREFIX_TTFT_SPEEDUP = 110.11994260509346
 MINIMUM_PREFIX_DECODE_RETENTION = 0.999653457424567
+GPU_PERFORMANCE_LEVEL_PATH = Path(
+    "/sys/class/drm/card0/device/power_dpm_force_performance_level"
+)
+
+
+def require_gpu_idle() -> None:
+    """Refuse to start a fresh GPU process while another owner has /dev/kfd."""
+    occupied = subprocess.run(
+        ["fuser", "/dev/kfd"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=False,
+    )
+    if occupied.returncode != 0:
+        return
+    subprocess.run(["fuser", "-v", "/dev/kfd"], check=False)
+    print(
+        "native surface qualification paused because /dev/kfd is owned externally",
+        file=sys.stderr,
+    )
+    raise SystemExit(75)
 
 
 def sha256(path: Path) -> str:
@@ -58,6 +80,14 @@ def load_json(path: Path) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise RuntimeError(f"expected JSON object: {path}")
     return value
+
+
+def optional_text(path: Path) -> str | None:
+    try:
+        value = path.read_text(encoding="utf-8").strip()
+    except OSError:
+        return None
+    return value or None
 
 
 def atomic_json(path: Path, value: dict[str, Any]) -> None:
@@ -81,11 +111,20 @@ def publicize(
     if isinstance(value, str):
         result = value
         if baseline_engine is not None:
-            result = result.replace(
-                str(baseline_engine), "${AIMA_BASELINE_ENGINE}"
+            result = (
+                result.replace(
+                    str(baseline_engine), "${AIMA_BASELINE_ENGINE}"
+                ).replace(
+                    str(baseline_engine.parent),
+                    "${AIMA_BASELINE_ENGINE_DIR}",
+                ).replace(
+                    str(baseline_engine.parent.parent),
+                    "${AIMA_BASELINE_BUNDLE_ROOT}",
+                )
             )
         result = (
             result.replace(str(engine), "${AIMA_ENGINE}")
+            .replace(str(engine.parent), "${AIMA_ENGINE_DIR}")
             .replace(str(model_dir), "${AIMA_MODEL_DIR}")
             .replace(str(output_dir), "${AIMA_OUTPUT_DIR}")
             .replace(str(ROOT), "${AIMA_REPO_ROOT}")
@@ -355,6 +394,7 @@ def run_prefix_cache(
         json.dumps({"event": "prefix_cache_run_start"}, sort_keys=True),
         flush=True,
     )
+    require_gpu_idle()
     completed = subprocess.run(
         command,
         stdout=subprocess.PIPE,
@@ -629,7 +669,13 @@ def run_paired_prefix_report(
 ) -> Path:
     report = paired_prefix_report_path(output_dir, pair_index, role)
     if report.is_file():
-        existing = load_json(report)
+        existing = publicize(
+            load_json(report),
+            engine=candidate_engine,
+            baseline_engine=baseline_engine,
+            model_dir=model_dir,
+            output_dir=output_dir,
+        )
         if paired_prefix_report_valid(
             existing,
             role=role,
@@ -639,6 +685,7 @@ def run_paired_prefix_report(
             cpu_list=cpu_list,
             taskset_sha256=taskset_sha256,
         ) and paired_prefix_artifacts_valid(report, existing):
+            atomic_json(report, existing)
             return report
     report.parent.mkdir(parents=True, exist_ok=True)
     load_report = report.with_suffix(".load.json")
@@ -677,6 +724,7 @@ def run_paired_prefix_report(
         ),
         flush=True,
     )
+    require_gpu_idle()
     completed = subprocess.run(
         command,
         stdout=subprocess.PIPE,
@@ -987,6 +1035,7 @@ def run_server(
         flush=True,
     )
     report.parent.mkdir(parents=True, exist_ok=True)
+    require_gpu_idle()
     with stderr_path.open("w", encoding="utf-8") as stderr:
         process = subprocess.Popen(
             command,
@@ -1267,6 +1316,9 @@ def main() -> None:
             "sysname": os.uname().sysname,
             "release": os.uname().release,
             "machine": os.uname().machine,
+            "gpu_performance_level": optional_text(
+                GPU_PERFORMANCE_LEVEL_PATH
+            ),
         },
         "prefix_cache": prefix_result,
         "startup": {
@@ -1334,7 +1386,7 @@ def main() -> None:
             {
                 "complete": result["complete"],
                 "qualified": result["qualified"],
-                "output": str(output_dir / "surfaces.json"),
+                "output": "${AIMA_OUTPUT_DIR}/surfaces.json",
             },
             sort_keys=True,
         )

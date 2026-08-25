@@ -7,9 +7,54 @@ import json
 from pathlib import Path
 from typing import Any
 
+from aima_engine.vl_reference import verify_manifest_integrity
+
 
 DEFAULT_RELEASE = "1.5.0"
+NATIVE_VL_RELEASE = "1.5.1-native-vl.1"
+NATIVE_VL_RAW_IMMUTABLE_KEYS = {
+    "g1",
+    "g2",
+    "g3",
+    "g4",
+    "envelope",
+    "temperature_sampling",
+}
 RELEASE_RECORDS: dict[str, dict[str, Path]] = {
+    NATIVE_VL_RELEASE: {
+        "product_result": Path(
+            "benchmarks/results/native-vl-g5-release-v1.5.1-native-vl.1.json"
+        ),
+        "bundle_result": Path(
+            "benchmarks/results/"
+            "native-portable-bundle-v1.5.1-native-vl.1.json"
+        ),
+        "provenance": Path(
+            "benchmarks/results/"
+            "native-release-provenance-v1.5.1-native-vl.1.json"
+        ),
+        "product_contract": Path(
+            "native/product-contract-v1.5.1-native-vl.1.json"
+        ),
+        "package_input": Path(
+            "benchmarks/results/"
+            "native-portable-product-v1.5.1-native-vl.1.json"
+        ),
+        "g1": Path(
+            "benchmarks/results/native-vl-g1-coverage-audit-v0.1.0.json"
+        ),
+        "g2": Path("benchmarks/results/vl-correctness-v0.1.0.json"),
+        "g3": Path(
+            "benchmarks/results/text-v151-nonregression-v0.1.0.json"
+        ),
+        "g4": Path("benchmarks/results/vl-performance-v0.1.0.json"),
+        "envelope": Path(
+            "benchmarks/results/native-vl-envelope-v0.1.0.json"
+        ),
+        "temperature_sampling": Path(
+            "benchmarks/results/native-temperature-sampling-v0.1.0.json"
+        ),
+    },
     "1.5.0": {
         "product_result": Path(
             "benchmarks/results/native-portable-product-v1.5.0.json"
@@ -67,9 +112,28 @@ CORE_PRODUCT_EVIDENCE_KEYS = {
     "openai_features",
 }
 PRODUCT_EVIDENCE_KEYS = {
+    "1.5.1-native-vl.1": {
+        "primary_bundle",
+        "second_bundle",
+        "resident_soak",
+        "rollback",
+        "release_gates",
+    },
     "1.5.0": CORE_PRODUCT_EVIDENCE_KEYS | {"capability_eval"},
 }
 STANDALONE_EVIDENCE_KEYS = {
+    "1.5.1-native-vl.1": {
+        "g1_g2",
+        "g1_generation_raw",
+        "g3_correctness",
+        "g3_doctor",
+        "g3_mmlu",
+        "g3_openai_features",
+        "g3_product_surfaces",
+        "g3_text_matrix",
+        "g4_reference_availability_raw",
+        "g4_vl_performance",
+    },
     "1.5.0": {"portable_bundle", "second_host_compat"},
 }
 
@@ -142,6 +206,37 @@ def _resolve_recorded_path(root: Path, owner: Path, value: str) -> Path | None:
     return owner.parent / value
 
 
+def _is_public_artifact_path(value: str) -> bool:
+    return bool(
+        value.startswith(("raw/", "output/", "${AIMA_OUTPUT_DIR}/"))
+        or "-raw/" in value
+        or "benchmarks/runs/" in value
+    )
+
+
+def _recorded_artifact_paths(root: Path, owner: Path, value: Any) -> list[Path]:
+    paths: list[Path] = []
+    if isinstance(value, list):
+        for item in value:
+            paths.extend(_recorded_artifact_paths(root, owner, item))
+        return paths
+    if not isinstance(value, dict):
+        return paths
+    recorded_path = value.get("path")
+    digest = value.get("sha256")
+    if (
+        isinstance(recorded_path, str)
+        and isinstance(digest, str)
+        and _is_public_artifact_path(recorded_path)
+    ):
+        resolved = _resolve_recorded_path(root, owner, recorded_path)
+        if resolved is not None:
+            paths.append(resolved)
+    for nested in value.values():
+        paths.extend(_recorded_artifact_paths(root, owner, nested))
+    return paths
+
+
 def _verify_recorded_artifacts(root: Path, owner: Path, value: Any) -> list[str]:
     errors: list[str] = []
     if isinstance(value, list):
@@ -151,11 +246,26 @@ def _verify_recorded_artifacts(root: Path, owner: Path, value: Any) -> list[str]
     if not isinstance(value, dict):
         return errors
 
+    recorded_path = value.get("path")
+    component_digest = value.get("sha256")
+    if (
+        isinstance(recorded_path, str)
+        and isinstance(component_digest, str)
+        and _is_public_artifact_path(recorded_path)
+    ):
+        path = _resolve_recorded_path(root, owner, recorded_path)
+        if path is not None:
+            if not path.is_file():
+                errors.append(f"missing evidence artifact: {path.relative_to(root)}")
+            elif sha256(path) != component_digest:
+                errors.append(f"evidence hash mismatch: {path.relative_to(root)}")
+
     pairs = (
         ("report", "report_sha256"),
         ("reports", "report_sha256"),
         ("server_reports", "server_report_sha256"),
         ("load_report", "load_report_sha256"),
+        ("response", "response_sha256"),
     )
     for path_key, digest_key in pairs:
         paths = value.get(path_key)
@@ -206,6 +316,38 @@ def verify_release_evidence(
     provenance = _load(root / release_record["provenance"])
     errors: list[str] = []
 
+    if release == NATIVE_VL_RELEASE:
+        for label, value in (
+            ("product result", public_result),
+            ("portable bundle result", bundle_result),
+            ("release provenance", provenance),
+        ):
+            for error in verify_manifest_integrity(value):
+                errors.append(f"{label} integrity failed: {error}")
+        sealed_paths = [
+            release_record["product_result"],
+            release_record["bundle_result"],
+            release_record["provenance"],
+            release_record["package_input"],
+            release_record["g1"],
+            release_record["g2"],
+            release_record["g3"],
+            release_record["g4"],
+            release_record["envelope"],
+            release_record["temperature_sampling"],
+        ]
+        for relative in sealed_paths:
+            path = root / relative
+            sidecar = path.with_name(path.name + ".sha256")
+            expected = f"{sha256(path)}  {path.name}\n" if path.is_file() else ""
+            if not sidecar.is_file() or sidecar.read_text(
+                encoding="utf-8"
+            ) != expected:
+                errors.append(f"sealed record sidecar differs: {relative}")
+            if path.is_file():
+                for error in verify_manifest_integrity(_load(path)):
+                    errors.append(f"sealed record integrity failed: {relative}: {error}")
+
     for label, value in (
         ("product result", public_result),
         ("portable bundle result", bundle_result),
@@ -225,10 +367,23 @@ def verify_release_evidence(
         "portable_bundle_result": release_record["bundle_result"],
         "product_contract": release_record["product_contract"],
     }
+    if "package_input" in release_record:
+        expected_immutable["package_input_qualification"] = release_record[
+            "package_input"
+        ]
+    for gate in ("g1", "g2", "g3", "g4", "envelope"):
+        if gate in release_record:
+            expected_immutable[gate] = release_record[gate]
+    if "temperature_sampling" in release_record:
+        expected_immutable["temperature_sampling"] = release_record[
+            "temperature_sampling"
+        ]
     immutable_records = provenance.get("immutable_records")
     if not isinstance(immutable_records, dict):
         errors.append("immutable release records are missing")
     else:
+        if set(immutable_records) != set(expected_immutable):
+            errors.append("immutable release records are incomplete or unexpected")
         for key, expected_path in expected_immutable.items():
             record = immutable_records.get(key)
             if not isinstance(record, dict):
@@ -242,6 +397,13 @@ def verify_release_evidence(
                 errors.append(f"missing immutable release record: {expected_path}")
             elif sha256(path) != record.get("sha256"):
                 errors.append(f"immutable release record changed: {expected_path}")
+            elif (
+                release == NATIVE_VL_RELEASE
+                and key in NATIVE_VL_RAW_IMMUTABLE_KEYS
+            ):
+                errors.extend(
+                    _verify_recorded_artifacts(root, path, _load(path))
+                )
 
     public_evidence = provenance.get("public_evidence")
     product_evidence_keys = PRODUCT_EVIDENCE_KEYS.get(
@@ -294,7 +456,12 @@ def verify_release_evidence(
         path = root / record["path"]
         if path.is_file():
             errors.extend(_verify_recorded_artifacts(root, path, _load(path)))
-        directory = path.parent
+        tree_path = record.get("tree_path")
+        directory = (
+            root / tree_path
+            if isinstance(tree_path, str)
+            else path.parent
+        )
         if directory.is_dir():
             for raw_json in sorted(directory.rglob("*.json")):
                 errors.extend(_verify_recorded_artifacts(root, raw_json, _load(raw_json)))
@@ -306,7 +473,12 @@ def verify_release_evidence(
         for key, record in public_evidence.items():
             if not isinstance(record, dict) or not isinstance(record.get("path"), str):
                 continue
-            directory = (root / record["path"]).parent
+            tree_path = record.get("tree_path")
+            directory = (
+                root / tree_path
+                if isinstance(tree_path, str)
+                else (root / record["path"]).parent
+            )
             actual = evidence_tree(directory)
             actual["path"] = directory.relative_to(root).as_posix()
             if tree_records.get(key) != actual:
@@ -319,10 +491,38 @@ def evidence_paths(root: Path, release: str = DEFAULT_RELEASE) -> list[Path]:
     release_record = _release_record(release)
     if release_record is None:
         raise ValueError(f"unsupported release evidence: {release}")
-    provenance = _load(root / release_record["provenance"])
-    paths = [root / release_record["provenance"]]
-    for record in provenance["immutable_records"].values():
-        paths.append(root / record["path"])
+    provenance_path = root / release_record["provenance"]
+    provenance = _load(provenance_path)
+    paths = [provenance_path]
+    if release == NATIVE_VL_RELEASE:
+        provenance_sidecar = provenance_path.with_name(
+            provenance_path.name + ".sha256"
+        )
+        if provenance_sidecar.is_file():
+            paths.append(provenance_sidecar)
+    for key, record in provenance["immutable_records"].items():
+        path = root / record["path"]
+        paths.append(path)
+        if release == NATIVE_VL_RELEASE:
+            sidecar = path.with_name(path.name + ".sha256")
+            if sidecar.is_file():
+                paths.append(sidecar)
+            if key in NATIVE_VL_RAW_IMMUTABLE_KEYS and path.is_file():
+                paths.extend(_recorded_artifact_paths(root, path, _load(path)))
     for record in provenance["public_evidence"].values():
-        paths.append((root / record["path"]).parent)
+        summary = root / record["path"]
+        tree_path = record.get("tree_path")
+        tree = (
+            root / tree_path
+            if isinstance(tree_path, str)
+            else summary.parent
+        )
+        paths.append(tree)
+        try:
+            summary.relative_to(tree)
+        except ValueError:
+            paths.append(summary)
+            sidecar = summary.with_name(summary.name + ".sha256")
+            if sidecar.is_file():
+                paths.append(sidecar)
     return list(dict.fromkeys(paths))

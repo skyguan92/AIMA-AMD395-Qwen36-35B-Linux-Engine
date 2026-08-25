@@ -6,9 +6,9 @@
 >
 > Current phase: Phase 2 — resident serving and product qualification
 >
-> Formal native candidate: `50289f1cbae150997ca82bbc054635932a2721c3`,
+> Formal native candidate: `bd012874027defa528279a357609b713e9069df4`,
 > binary SHA-256
-> `4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0`
+> `fb5cae0ca5ffaa4bc3d418d5fb1630d822eae9d60f639ba6cc143e427c0cd1e9`
 
 This file is a live requirement-to-evidence index. A status of `in progress`
 or `implemented` is not a release claim. Only evidence that satisfies every
@@ -18,20 +18,20 @@ blocking condition in the governing goal can move a gate to `passed`.
 
 | Gate | Current state | Evidence required to pass | Next blocking action |
 |---|---|---|---|
-| G1 full VL functional parity | **passed** on the single formal candidate: all `14/14` requirement groups are covered, with no partial or missing group; the sealed audit binds the complete VL surface plus the passed G2 and G3 product-preservation records | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results plus product preservation | none; preserve the sealed G1–G3 evidence while completing G4–G5 |
-| G2 VL correctness parity | **passed** on the formal candidate: five visual cases pass block 0/13/26 plus merger (`6,856,704/6,856,704` exact), and five private plus five independently rendered HTTP language cases pass `84/84` full-vocabulary rows with top-1 exact, KLD `0`, `20,858,880` selected logits exact and `2,420,736` final-norm elements exact | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | none; preserve the sealed evidence while completing G4–G5 |
-| G3 text product no regression | **passed** on the exact formal `50289f1` candidate against the retained portable `v1.5.1` baseline: all 19 frozen cells pass six balanced pairs, startup passes, and correctness, MMLU-256, OpenAI, cache/product and doctor/memory requalification all pass | paired 19-cell, maximum-window, correctness, MMLU, API, cache, startup and memory requalification | none; preserve the sealed G1–G3 evidence while completing G4–G5 |
-| G4 native VL performance | the 23-cell native execution envelope now records per-request stage timings, but it is a single candidate qualification rather than paired performance evidence | paired per-cell stage timings and memory records against the fixed VL-enabled vLLM | run the same frozen cells with the alternating paired vLLM/candidate timing protocol |
+| G1 full VL functional parity | **passed** on the single formal candidate: all `14/14` requirement groups are covered, with no partial or missing group; the sealed audit binds the complete VL surface plus the passed G2 and G3 product-preservation records | complete image/video/mixed/conversation/API/tools/transport/residency native conformance results plus product preservation | none; preserve the sealed G1–G4 evidence while completing G5 |
+| G2 VL correctness parity | **passed** on the formal candidate: five visual cases pass block 0/13/26 plus merger (`6,856,704/6,856,704` exact), and five private plus five independently rendered HTTP language cases pass `84/84` full-vocabulary rows with top-1 exact, KLD `0`, `20,858,880` selected logits exact and `2,420,736` final-norm elements exact | processor, vision/language boundary, full-vocabulary logits, deterministic generation, task quality and error results | none; preserve the sealed evidence while completing G5 |
+| G3 text product no regression | **passed** on the exact formal `bd01287` candidate against the retained portable `v1.5.1` baseline: all 19 frozen cells pass at least six balanced pairs, with 12 pairs at q262143/output1; startup, correctness, MMLU-256, OpenAI, cache/product and doctor/memory requalification all pass | paired 19-cell, maximum-window, correctness, MMLU, API, cache, startup and memory requalification | none; preserve the sealed G1–G4 evidence while completing G5 |
+| G4 native VL performance | **passed** on the formal candidate: all 20 fixed-reference-available cells pass ten alternating pairs for every applicable TTFT, total-latency, vision, prefill and decode gate; three fixed-reference-unavailable cells remain explicit non-passing capability records, and cache-enabled/disabled startup medians are `36.03 s`/`36.75 s` | sealed 23-cell coverage accounting, paired per-cell stage/memory records, same-process text decode controls and explicit reference-unavailable evidence | none; preserve the sealed G4 evidence while completing G5 |
 | G5 native release product | the full runtime includes all qualified vision sources, loads the 333 visual tensors in one resident native process and survives the complete execution envelope; the general vision-attention code object remains an external hash-checked package artifact and the dense-image variant is hash-checked inside the embedded AOT registry, but final package qualification has not run | native-only package, security, isolated bundle, second-host, soak and rollback evidence | generate a clean product qualification containing both bound vision variants, then run isolated bundle, second-host, soak and rollback gates |
 
-## Formal G1/G2/G3 requalification (2026-08-21)
+## Formal G1/G2/G3 requalification (2026-08-24)
 
 Every current promotion artifact binds clean source commit
-`50289f1cbae150997ca82bbc054635932a2721c3` and native binary SHA-256
-`4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0`.
+`bd012874027defa528279a357609b713e9069df4` and native binary SHA-256
+`fb5cae0ca5ffaa4bc3d418d5fb1630d822eae9d60f639ba6cc143e427c0cd1e9`.
 The consolidated G2 record is
 `benchmarks/results/vl-correctness-v0.1.0.json`, SHA-256
-`e390093a62d2de50dfb04e1cbb1afb3c6ccf282d123a2caa1cd98dce5040ff6c`.
+`970fddd4eb0a91defd4398d863e38b31e4f3a8827df3ef2983d6523092207dbd`.
 It passes every processor/envelope, vision, layer-0, independent layer-3,
 private-language, HTTP-language, deep-router, generation, task-quality and
 error-parity check without threshold widening.
@@ -39,7 +39,7 @@ error-parity check without threshold widening.
 The current visual record is
 `benchmarks/results/native-vision-pipeline-current-head-v0.2.0.json`,
 SHA-256
-`4533048a5c6e6c078ebe5278f795b03460a663f2f22fbbf0d1753ed439602f20`.
+`49d090b58e42d372089e1374a4f6b12229f5298b2c45752f20d21e5c6afbad8e`.
 Across the five frozen image/video/mixed shapes, block 0, block 13, block 26
 and merger form 20 qualified boundaries. All `6,856,704` BF16 boundary
 elements are finite and bit-exact, all repeats are deterministic, all 27
@@ -55,11 +55,11 @@ jointly pass `84/84` selected full-vocabulary rows, top-1 equality, KLD `0`,
 passes 89 tensor comparisons, 40 router-layer sets and `5,240/5,240` router
 rows.
 
-## G1 coverage audit (2026-08-21)
+## G1 coverage audit (2026-08-24)
 
 The first requirement-to-evidence audit is sealed at
 `benchmarks/results/native-vl-g1-coverage-audit-v0.1.0.json`, SHA-256
-`15f8d99b01198a1fd9a859e51c808922ccd93a24c93541d888d6b8fafbf1ee72`.
+`47ec49546628a16cbb7a1d63962b26c595f301850bf2949dd4e1ff4caca038ee`.
 It binds the governing goal, frozen reference surface, native 30-case surface,
 23-cell execution result, resident-serving/cache evidence, visual pipeline,
 language boundary, the new mixed/conversation reference/native pair,
@@ -78,7 +78,7 @@ This replaces the ambiguous instruction to “add more coverage” with named
 cases and preserves every existing passing observation as evidence rather
 than rerunning it without closing a gap.
 
-## G3 paired text qualification (2026-08-21)
+## G3 paired text qualification (2026-08-24)
 
 `scripts/qualify-native-paired-text-matrix.py` converts the G3 performance
 language into an executable fail-closed protocol. It binds both executables by
@@ -125,24 +125,25 @@ the same engine binary but a different provider selection.
 
 The sealed decision is
 `benchmarks/results/text-v151-nonregression-v0.1.0.json`, SHA-256
-`96346a7cbc55dc7609eceaca84606eb2706a8ede3a27ca5f57a66b0ce0626784`.
+`29051b6b8d2b77b53897bfa9f9e3a47f74603d037d3855c2fcfce64c5af2b0e7`.
 It binds candidate source
-`50289f1cbae150997ca82bbc054635932a2721c3` and binary SHA-256
-`4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0`
+`bd012874027defa528279a357609b713e9069df4` and binary SHA-256
+`fb5cae0ca5ffaa4bc3d418d5fb1630d822eae9d60f639ba6cc143e427c0cd1e9`
 against the retained `v1.5.1` baseline source
 `65c198415709dad6d046c247acab3dc9df2a95a0` and binary SHA-256
 `a9f18771175757af080c8a1d8d7e3fb3906c9aa41b43a496686103b626f80262`.
 All four cross-evidence identity/host checks and all 45 blocking checks pass.
 
-The paired matrix covers all 19 frozen cells with six alternating adjacent
-pairs per cell. Every per-cell paired and historical-floor check passes. The
-worst aggregate boundaries are `1.0100010533x` minimum prefill throughput,
-`1.0111656074x` minimum decode throughput and `0.9878987332x` maximum
-candidate/baseline total wall time. The q8192 candidate startup median is
-`38,359.501107 ms`, below the fixed `44,900 ms` ceiling. All 132 unique role
-reports have continuous execution sequence numbers, empty stderr and a valid
-report/load/stderr hash chain; the retained tree contains no private machine
-paths.
+The paired matrix covers all 19 frozen cells with at least six alternating
+adjacent pairs per cell; q262143/output1 uses 12 pairs because its early
+observations exposed larger order/clock noise. Every per-cell paired and
+historical-floor check passes. The worst aggregate boundaries are
+`1.0055095990x` minimum prefill throughput, `1.0256446969x` minimum decode
+throughput and `0.9907389240x` maximum candidate/baseline total wall time. The
+q8192 candidate startup median is `34,765.892 ms`, below the fixed `44,900 ms`
+ceiling. All 144 unique role reports have continuous execution sequence
+numbers, empty driver stderr and a valid report/load/stderr hash chain; the
+retained tree contains no private machine paths.
 
 The five companion gates also pass: nine-context correctness has top-1 exact
 at every context, maximum KLD `0.0021737683` and an exact 128-token q8192
@@ -150,8 +151,31 @@ completion; MMLU-256 scores `218/256` versus the frozen reference's `216/256`
 with zero invalid answers and `256/256` prompt hashes; the OpenAI feature run
 serves all 14 requests in one model load with every text path idle; product
 surfaces pass 12 prefix pairs, startup, memory and cache checks; and doctor
-passes all `13/13` required checks. G3 is therefore passed, and G4 is the next
-blocking gate.
+passes all `13/13` required checks. G3 is therefore passed; the subsequent
+formal record closes G4 independently.
+
+### Formal G4 result
+
+The sealed paired result is
+`benchmarks/results/vl-performance-v0.1.0.json`, SHA-256
+`b3eeffb723a22a83f749e188c07c044da1bb1dfa1386e65718a6729dd4cfcf8a`.
+It accounts for all 23 frozen cells and uses ten adjacent alternating
+vLLM/candidate pairs for every one of the 20 fixed-reference-available cells.
+Every applicable TTFT, total-latency, vision, prefill and decode gate passes.
+The remaining three cells are retained as explicit
+`reference_unavailable`/non-candidate-pass records rather than being removed or
+counted as native wins: multi-image q128k, sampled-video q128k and multi-image
+near the 262,144-token window.
+
+Cache-enabled and cache-disabled candidate startup medians are
+`36.028104836 s` and `36.7549729775 s`, both below `44.90 s`. The separately
+sealed same-process text controls are
+`benchmarks/results/vl-text-decode-retention-v0.1.0.json`, SHA-256
+`0294e1c1ee8ed94027f80cfd417e89188b9ad0a34cb59f9ed83ae2ce2c8b745f`.
+The three decode-bearing VL cells retain `1.0041781642x`, `1.0043523415x` and
+`1.0043810954x` of the adjacent exact-shape text controls. G4 is therefore
+passed without treating aggregate performance as a substitute for a failed
+cell.
 
 ### Text/VL arithmetic isolation
 
@@ -517,11 +541,11 @@ full encoder-budget cell with a dedicated 16-batch visual-tower probe. It also
 requires one resident model load, contiguous accepted-request indices, exact
 media/token/patch/batch metrics, native-only runtime markers and no oracle
 reads. The server retains its frozen 600-second request-read/write timeout;
-the qualification client has a separate 7,200-second response wait so a legal
-full-window multi-batch compute cell is not mistaken for a socket-policy
-failure. The original 3,600-second client bound expired while the target was
-still actively computing the 245,760-token image cell, with empty server
-stderr, so it is not used as a native execution limit. Resident
+the formal qualification client uses an explicit 2,400-second response wait so
+a legal full-window multi-batch compute cell is not mistaken for a
+socket-policy failure. A prior 7,200-second diagnostic established a safe upper
+bound, but it is not the promoted record; release evidence is rerun and sealed
+with the tighter 2,400-second value. Resident
 vision plans retain a four-entry LRU surface but are also bounded to one
 65,536-patch execution batch in aggregate. Plans at or above one fourth of
 that budget are exclusive because each shape also owns fixed HIPBLASLt plan
@@ -531,9 +555,9 @@ this avoids the transient double allocations exposed by both the
 small/small/small/maximum-image and small/small/maximum-video target
 sequences. Smaller shapes retain the four-entry LRU behavior.
 
-The formal clean commit `50289f1cbae150997ca82bbc054635932a2721c3`
+The formal clean commit `bd012874027defa528279a357609b713e9069df4`
 and native binary SHA-256
-`4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0`
+`fb5cae0ca5ffaa4bc3d418d5fb1630d822eae9d60f639ba6cc143e427c0cd1e9`
 passed the full execution qualifier on `amd395`. All 23 HTTP
 observations qualified: 17 accepted requests returned HTTP 200, six rejected
 boundaries returned HTTP 400, and the accepted request indexes were
@@ -929,7 +953,7 @@ bind the plan, layers 0 through 3 must be composed in one request, and layer-3
 causal attention, output projection, residual and MoE must pass before moving
 to the remaining language layers, final norm, lm_head and logits. At that
 checkpoint G3 paired text qualification and G4 serving performance were also
-blocking; the formal evidence now closes G1–G3, while G4 remains current.
+blocking; the formal evidence now closes G1–G4, while G5 remains current.
 
 `native_media_test` and `native_chat_protocol_test` both compile with strict
 warnings and pass on `amd395`. This is implementation progress, not G1 or G2
@@ -973,8 +997,8 @@ not post-generation repair. Unsupported schemas return HTTP 400 before model
 execution.
 
 The formal runtime was most recently requalified from clean commit
-`50289f1cbae150997ca82bbc054635932a2721c3`, native binary SHA-256
-`4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0`.
+`bd012874027defa528279a357609b713e9069df4`, native binary SHA-256
+`fb5cae0ca5ffaa4bc3d418d5fb1630d822eae9d60f639ba6cc143e427c0cd1e9`.
 In one resident run, all 20 successful API cases returned HTTP 200, all 10
 invalid cases returned compatible HTTP 400, status matched `30/30`, finish
 reason matched `20/20`, both tool and both SSE cases were complete, and every
@@ -1018,9 +1042,9 @@ language-boundary evidence rather than G4 serving timing. The hash-bound record
 is `benchmarks/results/native-vl-language-full-v0.2.0.json`, SHA-256
 `6de4f46b10a659c358350b1c42dec6e1d361f81c01926bf628b44b892fffb636`.
 
-Clean commit `50289f1cbae150997ca82bbc054635932a2721c3` rebuilt the
+Clean commit `bd012874027defa528279a357609b713e9069df4` rebuilt the
 formal resident runtime with binary SHA-256
-`4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0`.
+`fb5cae0ca5ffaa4bc3d418d5fb1630d822eae9d60f639ba6cc143e427c0cd1e9`.
 One resident process matched all five real-HTTP prompt vectors and preserved
 all five frozen private-oracle 8-token outputs, output text, finish reasons,
 vision shapes and M-RoPE deltas. Before those oracle requests, the same process
@@ -1047,7 +1071,7 @@ sealed reference is
 `e769446684c4f69b7a29dde163d050a541449ffddf0996ecbb48510a0c493451`.
 
 The formal candidate binary SHA-256
-`4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0`
+`fb5cae0ca5ffaa4bc3d418d5fb1630d822eae9d60f639ba6cc143e427c0cd1e9`
 then replayed all five cases in one resident model load. Every HTTP status,
 prompt-token count and hash, ordered image/video count, M-RoPE boundary,
 generated text, finish reason and usage signature matched the reference; mixed
@@ -1088,7 +1112,7 @@ was actually trusted. This keeps the reference behavior hash-bound without
 making qualification depend on an expired or retained private credential.
 
 The formal candidate binary SHA-256
-`4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0`
+`fb5cae0ca5ffaa4bc3d418d5fb1630d822eae9d60f639ba6cc143e427c0cd1e9`
 replayed 17 cache-enabled and 11 cache-disabled observations in two resident
 model loads. Every observation matched reference status, request contract,
 render prompt, generated content, finish reason and usage. The enabled run
@@ -1133,7 +1157,7 @@ capture commit. The native result separately binds its own exact source commit
 and binary hash.
 
 The formal candidate binary SHA-256
-`4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0`
+`fb5cae0ca5ffaa4bc3d418d5fb1630d822eae9d60f639ba6cc143e427c0cd1e9`
 then replayed 13 observations in one resident model load. All eight accepted
 requests were HTTP 200 and reference-exact for request/render/usage; all five
 invalid external-media requests preserved the existing v1.5.1 fail-closed HTTP
@@ -1193,9 +1217,8 @@ manifest. These records close the frozen API/render,
 deterministic-resident-serving and min/typical/max execution-envelope slices.
 The task-quality and deterministic-generation slices are closed by the
 12-case and current-candidate results below. Complete text no-regression is now
-sealed. Paired VL performance, portable-package, second-host, soak and
-rollback qualifications remain blocking. G1 through G3 are passed; G4 and G5
-remain false.
+sealed. Portable-package, second-host, soak and rollback qualifications remain
+blocking. G1 through G4 are passed; G5 remains false.
 
 Generation attribution now binds time as well as tensor identity. Each layer
 capture writes the full-vocabulary FP32 rows for both its target output index
@@ -1268,8 +1291,8 @@ the fixed-vLLM reference SHA-256 is
 `51b3d95e3ce420584d765350bfe6b73f76d5786a8d9d629cf7c3e69ac11b8bce`.
 
 The formal native runtime built from clean commit
-`50289f1cbae150997ca82bbc054635932a2721c3`, binary SHA-256
-`4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0`,
+`bd012874027defa528279a357609b713e9069df4`, binary SHA-256
+`fb5cae0ca5ffaa4bc3d418d5fb1630d822eae9d60f639ba6cc143e427c0cd1e9`,
 served all 12 cases in one resident model load with empty stderr and no Python,
 Torch, vLLM or Triton runtime. All blocking per-case checks passed. Native and
 reference aggregate scores are identical: image `1.000000`, video `0.947368`.
@@ -1296,8 +1319,8 @@ All referenced binary components are committed under `benchmarks/oracles` and
 revalidate without errors.
 
 The formal native binary built from clean commit
-`50289f1cbae150997ca82bbc054635932a2721c3`, SHA-256
-`4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0`,
+`bd012874027defa528279a357609b713e9069df4`, SHA-256
+`fb5cae0ca5ffaa4bc3d418d5fb1630d822eae9d60f639ba6cc143e427c0cd1e9`,
 ran both cases in one resident model load. All 62 qualification checks passed:
 both shared prompt prefixes; 120 prefill-state tensors; 82 whole-layer rows;
 26 linear-attention, 30 routed-tail and 12 full-attention internal boundaries;
@@ -1312,4 +1335,27 @@ The sealed result is
 It sets `g1_generation_closed=true` for the two frozen tool divergences and
 closes the audit's current-HEAD model-semantics gap. The separate long-greedy
 task-quality replay is also `12/12` exact. The formal product-preservation
-record now closes G3 and G1; G4 is the next blocking gate.
+record closes G3 and G1, and the formal paired performance record closes G4;
+G5 is the next blocking gate.
+
+## Positive-temperature product extension (2026-08-23)
+
+The G1-G5 promotion fixtures remain greedy exactly as frozen by
+`NATIVE_VL_GOAL.md`. After that boundary, the product also admits finite
+`temperature` values in `(0,2]`, `top_p` in `(0,1]`, and an optional
+non-negative seed. `temperature=0` retains the certified top-1 implementation
+without a sampling launch or logits transfer.
+
+The stochastic path evaluates the raw BF16 LM-head weights against the final
+normalized hidden row for all 248,320 vocabulary entries with the same native
+wvSplitK arithmetic used by the exact certificate candidates. It reuses dead
+candidate scratch, copies the 496,640-byte BF16 distribution to the resident
+host owner, and applies temperature/nucleus selection with a specified
+SplitMix64 upper-53-bit stream. The effective seed and byte/time counters are
+published per request.
+
+The dedicated qualification replays identical seeds for text, VL and SSE,
+requires a changed sequence for an adjacent seed, verifies five fail-closed
+parameter boundaries, rechecks the zero-temperature fast path, and requires a
+single model load plus empty stderr. This extension does not change the greedy
+correctness or G4 performance protocol.

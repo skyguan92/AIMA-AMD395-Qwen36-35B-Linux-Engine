@@ -1,5 +1,37 @@
 # Release provenance and procedure
 
+## v1.5.1-native-vl.1 boundary
+
+The immutable `v1.5.1-native-vl.1` tag is the first portable native release
+that includes the fixed model's complete image, video and mixed-media product
+surface. It retains batch size one and the 262,144-token total window, preserves
+the certified greedy path, and adds seeded positive-temperature full-vocabulary
+BF16/top-p generation. One resident native process performs media admission
+and decode, processor transforms, the 27-block vision stack, merger, M-RoPE
+media injection, language prefill/decode, SSE and tools. Model weights remain
+an external pinned Hugging Face Safetensors input.
+
+The qualified engine embeds native source commit
+`bd012874027defa528279a357609b713e9069df4` and has SHA-256
+`fb5cae0ca5ffaa4bc3d418d5fb1630d822eae9d60f639ba6cc143e427c0cd1e9`.
+The release-only source/tag commit is recorded by
+`native-release-provenance-v1.5.1-native-vl.1.json`; it does not rebuild or
+substitute the qualified executable. The product contract is
+[`product-contract-v1.5.1-native-vl.1.json`](../native/product-contract-v1.5.1-native-vl.1.json).
+
+Promotion requires all five gates in `NATIVE_VL_GOAL.md`: complete frozen VL
+capability, processor/boundary/logits/generation/task/error correctness, strict
+v1.5.1 text no-regression, strict paired VL performance against the pinned
+vLLM reference, and the native product/release boundary. The final G5 record
+binds the exact archive, recursive manifest, package-input qualification,
+primary and independent-host isolated bundle runs, at least one hour and 240
+requests of resident text/image/video/mixed traffic, exact v1.5.1 rollback,
+`make check`, `make security-scan` and `make verify-evidence`.
+
+Raw evidence is added after the immutable source tag without moving it. The
+additive provenance record binds G1-G5 summaries, every raw evidence tree and
+checksum sidecar so an extra, missing or modified file fails verification.
+
 ## v1.5.1 boundary
 
 The personal upstream owns the immutable `v1.5.1` patch tag and downloadable
@@ -132,7 +164,44 @@ commit.
    evidence may be added to `main` in a later commit without changing the
    immutable release tag; use an additive erratum for any later clarification.
 
-## Portable native release boundary
+For `v1.5.1-native-vl.1`, steps 3-5 are stricter: generate the package-input
+qualification from a clean checkout of the intended tag, package those exact
+bytes, run the same archive in isolated environments on two distinct AMD395
+hosts, complete the primary-host one-hour resident soak, shut it down cleanly,
+and prove rollback with the checksum-identical v1.5.1 archive. Run the static
+release gates and final G5 aggregator from the same clean tagged checkout.
+Only then copy the sealed outputs into an additive evidence commit and switch
+the default evidence record to the new release.
+
+## v1.5.1-native-vl.1 portable native release boundary
+
+The archive contains the static launcher, qualified engine, all three language
+attention providers, AOTriton runtime/image, both general and dense
+vision-attention variants, minimal pinned FFmpeg and curl/c-ares stacks,
+complete ROCm/system userspace closure, licenses, product contract,
+qualification and public evidence. It loads all 693 language and 333 visual
+tensors and completes both vision warmups before `READY=1`.
+
+| Component | SHA-256 |
+|---|---|
+| native engine | `fb5cae0ca5ffaa4bc3d418d5fb1630d822eae9d60f639ba6cc143e427c0cd1e9` |
+| static launcher | `d913b44ff33ad3903470817793e5bf095bc3cc6fe5eda00fc1562ed818323a43` |
+| AOTriton adapter | `e5336b2d66b36c5f17aeb07ab780fa8f60a6092910f9b01b3ebf4bc31f766bb4` |
+| CK-Tile adapter | `0145e819869d3ea5b25661f8f11279f5e6bd3484b29e8c7910a8b30c927baa93` |
+| q16384 packed-GQA/CK hybrid | `e6b8c50e76c3c7d49b8c208275234d7f4607faff250019826866f86e37fedd29` |
+| AOTriton 0.11.1 library | `e0638806efa5d35cef04fd7fb02c62cd038b3a38727ecb5d87a49045aa1b9aa5` |
+| selected gfx1151 AOTriton image | `0f3a6a2f9dee6620443ee2145ee1f8257bde65a378589952840d99bf3d485c10` |
+| general vision-attention image | `8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e` |
+| embedded dense vision-attention image | `e8757f4464fdb39f5505241a1ffd0f40b74f18704318280e070015bd4302d71c` |
+
+The package runs with only the Linux AMDGPU/KFD kernel interface from the
+host. Python, PyTorch, vLLM, Triton, Transformers and host ROCm userspace remain
+absent. Local and remote media are fail-closed behind explicit allowlists and
+bounded I/O/decode policies. The recursive manifest and final archive hash are
+recorded only after packaging; they are never predicted in this source
+document.
+
+## v1.5.1 portable native release boundary
 
 The current v1.5.1 deployment unit is the deterministic
 `aima-engine-native-portable-*.tar.zst` archive produced by

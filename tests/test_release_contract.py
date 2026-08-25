@@ -17,6 +17,8 @@ from aima_engine.package_qualification import (
     verify_package_qualification,
 )
 from aima_engine.public_hygiene import scan_bytes, scan_public_tree
+from aima_engine import release_evidence
+from aima_engine.vl_reference import seal_manifest
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -53,7 +55,7 @@ class ReleaseContractTest(unittest.TestCase):
         self.assertTrue(all(item["passed"] for item in checks), checks)
         self.assertEqual(
             self.config["engine"]["sha256"],
-            "79b5f070a30176af2a7a87a473fe578a15abd5177fb39b2ab9e188f66572fe0e",
+            "0d740895a9f88ea269b945e2339c97ca2afc904a6877b159621238e1c14a9d6a",
         )
 
     def test_package_inputs_are_bound_to_qualification(self) -> None:
@@ -111,6 +113,88 @@ class ReleaseContractTest(unittest.TestCase):
             component_paths["native_engine"].write_bytes(b"changed")
             errors = verify_package_qualification(qualification, **arguments)
             self.assertIn("qualification SHA-256 mismatch: native_engine", errors)
+
+    def test_native_vl_package_inputs_require_a_sealed_clean_record(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            component_paths: dict[str, Path] = {}
+            component_records: dict[str, object] = {
+                "source": {
+                    "release_tag": "v1.5.1-native-vl.1",
+                    "release_commit": "a" * 40,
+                    "native_source_commit": "b" * 40,
+                    "native_source_dirty": False,
+                }
+            }
+            for index, name in enumerate(REQUIRED_COMPONENTS):
+                payload = f"native-vl-component-{index}\n".encode()
+                path = root / name
+                path.write_bytes(payload)
+                component_paths[name] = path
+                component_records[name] = {
+                    "bytes": len(payload),
+                    "sha256": hashlib.sha256(payload).hexdigest(),
+                }
+            qualification = root / "qualification.json"
+            sealed = seal_manifest(
+                {
+                    "schema": (
+                        "aima-amd395-qwen36/"
+                        "native-vl-product-qualification/v1"
+                    ),
+                    "release": "1.5.1-native-vl.1",
+                    "complete": True,
+                    "qualified": True,
+                    "components": component_records,
+                }
+            )
+            qualification.write_text(json.dumps(sealed), encoding="utf-8")
+            arguments = {
+                "release": "1.5.1-native-vl.1",
+                "release_tag": "v1.5.1-native-vl.1",
+                "source_commit": "a" * 40,
+                "native_source_commit": "b" * 40,
+                "components": component_paths,
+            }
+            self.assertEqual(
+                verify_package_qualification(qualification, **arguments), []
+            )
+
+            sealed["components"]["source"]["native_source_dirty"] = True
+            qualification.write_text(json.dumps(sealed), encoding="utf-8")
+            errors = verify_package_qualification(qualification, **arguments)
+            self.assertIn("qualification native source is not clean", errors)
+            self.assertTrue(
+                any(error.startswith("qualification integrity failed:") for error in errors)
+            )
+
+    def test_native_vl_evidence_archive_includes_provenance_sidecar(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            provenance = root / "provenance.json"
+            provenance.write_text(
+                json.dumps(
+                    {"immutable_records": {}, "public_evidence": {}}
+                ),
+                encoding="utf-8",
+            )
+            sidecar = provenance.with_name(provenance.name + ".sha256")
+            sidecar.write_text(
+                f"{hashlib.sha256(provenance.read_bytes()).hexdigest()}  "
+                f"{provenance.name}\n",
+                encoding="utf-8",
+            )
+            release = release_evidence.NATIVE_VL_RELEASE
+            original = release_evidence.RELEASE_RECORDS[release]
+            release_evidence.RELEASE_RECORDS[release] = {
+                "provenance": Path(provenance.name)
+            }
+            try:
+                paths = release_evidence.evidence_paths(root, release)
+            finally:
+                release_evidence.RELEASE_RECORDS[release] = original
+            self.assertIn(provenance.resolve(), paths)
+            self.assertIn(sidecar.resolve(), paths)
 
     def test_portable_qualifier_preserves_release_provenance(self) -> None:
         scripts = str(ROOT / "scripts")
@@ -564,6 +648,10 @@ class ReleaseContractTest(unittest.TestCase):
         self.assertIn("--port ${AIMA_PORT}", service)
         self.assertIn("--api-key-file ${AIMA_API_KEY_FILE}", service)
         self.assertIn("--request-timeout-ms ${AIMA_REQUEST_TIMEOUT_MS}", service)
+        self.assertIn(
+            "--allowed-local-media-path ${AIMA_ALLOWED_LOCAL_MEDIA_PATH}",
+            service,
+        )
         self.assertIn("--disable-http-shutdown", service)
         self.assertIn("Type=notify", service)
         self.assertIn("NotifyAccess=main", service)
@@ -572,6 +660,9 @@ class ReleaseContractTest(unittest.TestCase):
         self.assertIn("AIMA_CONTEXT_TOKENS=8192", environment)
         self.assertIn("AIMA_API_KEY_FILE=/etc/aima-qwen36/api-key", environment)
         self.assertIn("AIMA_REQUEST_TIMEOUT_MS=15000", environment)
+        self.assertIn(
+            "AIMA_ALLOWED_LOCAL_MEDIA_PATH=/srv/aima-media", environment
+        )
         self.assertNotIn("AIMA_LOAD_MODE=", environment)
         self.assertNotIn("AIMA_IMAGE_MANIFEST=", environment)
 

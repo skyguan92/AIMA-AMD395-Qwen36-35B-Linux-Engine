@@ -45,6 +45,7 @@ def text_metrics() -> dict[str, object]:
             "media_decode_wall_ms": 0.0,
             "processor_wall_ms": 0.0,
             "vision_plan_build_wall_ms": 0.0,
+            "vision_input_upload_wall_ms": 0.0,
             "vision_encode_wall_ms": 0.0,
             "embedding_injection_wall_ms": 0.0,
         },

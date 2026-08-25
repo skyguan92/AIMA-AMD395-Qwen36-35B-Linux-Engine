@@ -33,9 +33,9 @@ PREFILL_STATE = RESULTS / "vl-prefill-state-oracle-v0.1.0.json"
 PREFILL_STATE_ROOT = ORACLES / "vl-prefill-state-v0.1.0"
 NATIVE = RESULTS / "native-vl-generation-current-head-v0.1.0.json"
 NATIVE_RAW = RESULTS / "native-vl-generation-current-head-v0.1.0-raw"
-QUALIFIED_COMMIT = "50289f1cbae150997ca82bbc054635932a2721c3"
+QUALIFIED_COMMIT = "bd012874027defa528279a357609b713e9069df4"
 QUALIFIED_BINARY_SHA256 = (
-    "4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0"
+    "fb5cae0ca5ffaa4bc3d418d5fb1630d822eae9d60f639ba6cc143e427c0cd1e9"
 )
 EXPECTED_SHA256 = {
     GENERATION: "954c6e55389cd90390cb517224df14719f2556555ce7bf44571cae1ad1812888",
@@ -43,7 +43,7 @@ EXPECTED_SHA256 = {
     PREFILL_STATE: (
         "ec4d23bef4058dd5f0189f703214caeb006159d3c4937b7e9ea14ba9bfc82782"
     ),
-    NATIVE: "e6f79c105ba669f9a2c1d5c037bbe06d106d66235254c7ebb45282d9d5b74c8b",
+    NATIVE: "dd3e185d6b49c5c2c81ce53d886d46f74b44db3fce8cb163a9a3ab3e27f783d2",
 }
 
 

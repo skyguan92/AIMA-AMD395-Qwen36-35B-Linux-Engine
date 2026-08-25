@@ -280,6 +280,11 @@ def build_summary(
         if isinstance(native_vl, Mapping)
         else None
     )
+    candidate_upload_seconds = seconds_from_milliseconds(
+        native_vl.get("vision_input_upload_wall_ms")
+        if isinstance(native_vl, Mapping)
+        else None
+    )
     candidate_cold_vision_seconds = add_nonnegative(
         candidate_plan_seconds, candidate_encoder_seconds
     )
@@ -634,6 +639,7 @@ def build_summary(
                     else None
                 ),
                 "vision_plan_build_seconds": candidate_plan_seconds,
+                "vision_input_upload_seconds": candidate_upload_seconds,
                 "vision_encode_seconds": candidate_encoder_seconds,
                 "vision_encoder_executed": candidate_encoder_executed,
                 "vision_embedding_cache_hit": (

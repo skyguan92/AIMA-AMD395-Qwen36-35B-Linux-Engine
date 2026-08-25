@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
+import subprocess
 import unittest
 
 from aima_engine.vl_serving_render import (
@@ -57,10 +58,21 @@ class VlServingRenderEvidenceTest(unittest.TestCase):
         self.assertEqual(self.result["source"]["commit"], SOURCE_COMMIT)
         self.assertFalse(self.result["source"]["dirty"])
         for component in self.result["source"]["files"]:
-            path = ROOT / component["path"]
-            self.assertEqual(path.stat().st_size, component["bytes"])
+            completed = subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    str(ROOT),
+                    "show",
+                    f"{SOURCE_COMMIT}:{component['path']}",
+                ],
+                capture_output=True,
+                check=True,
+            )
+            payload = completed.stdout
+            self.assertEqual(len(payload), component["bytes"])
             self.assertEqual(
-                hashlib.sha256(path.read_bytes()).hexdigest(),
+                hashlib.sha256(payload).hexdigest(),
                 component["sha256"],
             )
         for component in self.result["bindings"].values():

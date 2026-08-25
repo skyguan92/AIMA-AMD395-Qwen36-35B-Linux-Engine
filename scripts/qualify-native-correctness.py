@@ -12,6 +12,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import sys
 from typing import Any
 
 from aima_engine.aotriton_closure import require_aotriton_closure
@@ -52,6 +53,24 @@ PRODUCTION_TOKEN_PERIOD = (
     220,
 )
 CORRECTNESS_SCHEMA = "aima-amd395-qwen36/native-correctness-qualification/v1"
+
+
+def require_gpu_idle() -> None:
+    """Refuse to start a fresh GPU process while another owner has /dev/kfd."""
+    occupied = subprocess.run(
+        ["fuser", "/dev/kfd"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=False,
+    )
+    if occupied.returncode != 0:
+        return
+    subprocess.run(["fuser", "-v", "/dev/kfd"], check=False)
+    print(
+        "native correctness paused because /dev/kfd is owned externally",
+        file=sys.stderr,
+    )
+    raise SystemExit(75)
 
 
 def sha256(path: Path) -> str:
@@ -417,12 +436,13 @@ def run_case(
             {
                 "event": "correctness_run_start",
                 "context_tokens": context,
-                "oracle": str(oracle),
+                "oracle": f"${{AIMA_ORACLE_Q{context}}}",
             },
             sort_keys=True,
         ),
         flush=True,
     )
+    require_gpu_idle()
     completed = subprocess.run(
         command,
         stdout=subprocess.PIPE,
@@ -455,6 +475,7 @@ def run_case(
     replacements = (
         (str(oracle), f"${{AIMA_ORACLE_Q{context}}}"),
         (str(engine), "${AIMA_CANDIDATE_ENGINE}"),
+        (str(engine.parent), "${AIMA_CANDIDATE_ENGINE_DIR}"),
         (str(output_dir), "${AIMA_QUALIFICATION_DIR}"),
     )
     payload = publicize(payload, model_dir, replacements)
@@ -594,6 +615,7 @@ def run_exact_completion(
         ),
         flush=True,
     )
+    require_gpu_idle()
     completed = subprocess.run(
         command,
         stdout=subprocess.PIPE,
@@ -618,6 +640,7 @@ def run_exact_completion(
     }
     replacements = (
         (str(engine), "${AIMA_CANDIDATE_ENGINE}"),
+        (str(engine.parent), "${AIMA_CANDIDATE_ENGINE_DIR}"),
         (str(output_dir), "${AIMA_QUALIFICATION_DIR}"),
     )
     payload = publicize(payload, model_dir, replacements)
@@ -871,7 +894,7 @@ def main() -> None:
                 "complete": True,
                 "qualified": all_pass,
                 "case_count": len(rows),
-                "output": str(output_dir / "correctness.json"),
+                "output": "${AIMA_QUALIFICATION_DIR}/correctness.json",
             },
             sort_keys=True,
         )

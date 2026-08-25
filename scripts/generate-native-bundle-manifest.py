@@ -12,7 +12,12 @@ import json
 from pathlib import Path
 import re
 import subprocess
+import sys
 
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from aima_engine.vl_reference import verify_manifest_integrity
 from native_bundle_closure import audit_bundle
 
 
@@ -91,6 +96,106 @@ def main() -> int:
     if missing:
         raise RuntimeError(f"native product payload is incomplete: {missing}")
 
+    qualification_path = bundle / "share/aima/qualification.json"
+    if not qualification_path.is_file():
+        raise RuntimeError("native product qualification is missing")
+    qualification = json.loads(qualification_path.read_text(encoding="utf-8"))
+    if not isinstance(qualification, dict):
+        raise RuntimeError("native product qualification root is not an object")
+    native_vl = (
+        qualification.get("schema")
+        == "aima-amd395-qwen36/native-vl-product-qualification/v1"
+    )
+    native_vl_record: dict[str, object] = {"enabled": False}
+    if native_vl:
+        integrity_errors = verify_manifest_integrity(qualification)
+        source = qualification.get("components", {}).get("source", {})
+        if (
+            integrity_errors
+            or qualification.get("complete") is not True
+            or qualification.get("qualified") is not True
+            or qualification.get("release") != args.release
+            or not isinstance(source, dict)
+            or source.get("release_tag") != args.release_tag
+            or source.get("release_commit") != args.source_commit
+            or source.get("native_source_commit")
+            != args.native_source_commit
+            or source.get("native_source_dirty") is not False
+            or args.source_dirty
+        ):
+            raise RuntimeError(
+                "native VL qualification integrity or source identity differs"
+            )
+        components = qualification.get("components", {})
+        external = components.get("vision_attention_image", {})
+        dense = components.get("embedded_dense_vision_attention", {})
+        external_image = bundle / "lib/aima-vision-attention.hsaco"
+        component_paths = {
+            "native_engine": bundle / "libexec/aima-engine.real",
+            "static_launcher": bundle / "bin/aima-engine",
+            "aotriton_fmha_provider": (
+                bundle / "lib/libaima-fmha-aotriton.so"
+            ),
+            "ck_fmha_provider": bundle / "lib/libaima-fmha-ck.so",
+            "q16384_hybrid_fmha_provider": (
+                bundle / "lib/libaima-fmha-q16384-hybrid.so"
+            ),
+            "aotriton_runtime": bundle / "lib/libaotriton_v2.so.0.11.1",
+            "aotriton_gfx1151_image": (
+                bundle
+                / "lib/aotriton.images/amd-gfx11xx/flash/attn_fwd/"
+                "FONLY__＊bf16@16_256_F_F_3_0___gfx11xx.aks2"
+            ),
+            "vision_attention_image": external_image,
+        }
+        component_closure_exact = all(
+            isinstance(components.get(name), dict)
+            and components[name].get("bytes") == path.stat().st_size
+            and components[name].get("sha256") == sha256_file(path)
+            for name, path in component_paths.items()
+        )
+        if (
+            not component_closure_exact
+            or not isinstance(external, dict)
+            or external.get("sha256") != sha256_file(external_image)
+            or not isinstance(dense, dict)
+            or dense.get("sha256")
+            != "e8757f4464fdb39f5505241a1ffd0f40b74f18704318280e070015bd4302d71c"
+            or dense.get("kernel_hash")
+            != "2bb5125141eea1b811395f9833de3077de68893bfebbbf1950ca26832db6bb52"
+        ):
+            raise RuntimeError("native VL vision image closure is incomplete")
+        product_contract = json.loads(
+            (bundle / "share/aima/product-contract.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        if (
+            not isinstance(product_contract, dict)
+            or product_contract.get("schema")
+            != "aima-amd395-qwen36/native-vl-product-contract/v1"
+            or product_contract.get("release") != args.release
+            or product_contract.get("release_tag") != args.release_tag
+        ):
+            raise RuntimeError("native VL product contract differs")
+        native_vl_record = {
+            "enabled": True,
+            "single_resident_process": True,
+            "ready_includes_language_and_vision": True,
+            "language_tensor_count": 693,
+            "visual_tensor_count": 333,
+            "model_tensor_count": 1026,
+            "general_vision_attention": {
+                "path": "lib/aima-vision-attention.hsaco",
+                "sha256": external["sha256"],
+            },
+            "dense_vision_attention": {
+                "embedded_in": "libexec/aima-engine.real",
+                "sha256": dense["sha256"],
+                "kernel_hash": dense["kernel_hash"],
+            },
+        }
+
     needed, runpath = dynamic_contract(binary)
     elf_closure = audit_bundle(bundle)
     markdown_link_count = validate_local_markdown_links(bundle)
@@ -136,6 +241,7 @@ def main() -> int:
         "runtime_transformers": False,
         "native_tokenizer": True,
         "native_inference_engine": True,
+        "native_vl": native_vl_record,
         "model_weights_included": False,
         "attention_providers": {
             "1024": "lib/libaima-fmha-aotriton.so",

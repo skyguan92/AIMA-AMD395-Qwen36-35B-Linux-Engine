@@ -14,9 +14,9 @@ RESULT_SIDECAR = RESULT.with_name(RESULT.name + ".sha256")
 ENVELOPE = ROOT / "benchmarks/results/vl-capability-envelope-v0.1.0.json"
 FIXTURE_ROOT = ROOT / "benchmarks/fixtures/vl-envelope-v0.1.0"
 FIXTURE_MANIFEST = FIXTURE_ROOT / "fixtures-manifest.json"
-QUALIFIED_COMMIT = "50289f1cbae150997ca82bbc054635932a2721c3"
+QUALIFIED_COMMIT = "bd012874027defa528279a357609b713e9069df4"
 QUALIFIED_BINARY_SHA256 = (
-    "4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0"
+    "fb5cae0ca5ffaa4bc3d418d5fb1630d822eae9d60f639ba6cc143e427c0cd1e9"
 )
 
 

@@ -407,6 +407,11 @@ def cell_record(
                 if isinstance(native_vl, Mapping)
                 else None
             ),
+            "vision_input_upload_wall_ms": (
+                native_vl.get("vision_input_upload_wall_ms")
+                if isinstance(native_vl, Mapping)
+                else None
+            ),
             "vision_embedding_cache_hit": (
                 native_vl.get("vision_embedding_cache_hit")
                 if isinstance(native_vl, Mapping)

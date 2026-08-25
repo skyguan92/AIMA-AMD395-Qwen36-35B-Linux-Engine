@@ -17,6 +17,7 @@ import selectors
 import socket
 import struct
 import subprocess
+import sys
 import time
 from typing import Any
 
@@ -26,6 +27,24 @@ from native_text_metrics import text_path_idle_checks
 MODEL_ID = "aima-amd395-qwen36-35b"
 ROOT = Path(__file__).resolve().parents[1]
 QUALIFIED_CONTEXT_TOKENS = 8192
+
+
+def require_gpu_idle() -> None:
+    """Refuse to start a fresh GPU process while another owner has /dev/kfd."""
+    occupied = subprocess.run(
+        ["fuser", "/dev/kfd"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=False,
+    )
+    if occupied.returncode != 0:
+        return
+    subprocess.run(["fuser", "-v", "/dev/kfd"], check=False)
+    print(
+        "OpenAI feature qualification paused because /dev/kfd is owned externally",
+        file=sys.stderr,
+    )
+    raise SystemExit(75)
 
 
 def require_qualified_context(context_tokens: int) -> None:
@@ -51,6 +70,7 @@ def publicize(
     if isinstance(value, str):
         return (
             value.replace(str(engine), "${AIMA_ENGINE}")
+            .replace(str(engine.parent), "${AIMA_ENGINE_DIR}")
             .replace(str(model_dir), "${AIMA_MODEL_DIR}")
             .replace(str(output_dir), "${AIMA_OUTPUT_DIR}")
             .replace(str(ROOT), "${AIMA_REPO_ROOT}")
@@ -416,6 +436,7 @@ def main() -> None:
         "--report",
         str(load_report),
     ]
+    require_gpu_idle()
     with stderr_path.open("w", encoding="utf-8") as stderr:
         process = subprocess.Popen(
             command,
@@ -951,7 +972,7 @@ def main() -> None:
             {
                 "complete": True,
                 "qualified": result["qualified"],
-                "output": str(output),
+                "output": f"${{AIMA_OUTPUT_DIR}}/{output.name}",
             },
             sort_keys=True,
         )

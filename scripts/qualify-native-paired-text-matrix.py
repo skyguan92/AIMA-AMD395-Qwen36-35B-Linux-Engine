@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 import statistics
 import subprocess
+import sys
 from typing import Any, Iterable
 
 from aima_engine.aotriton_closure import require_aotriton_closure
@@ -35,6 +36,9 @@ FMHA_CK_FILENAME = "libaima-fmha-ck.so"
 FMHA_Q16384_HYBRID_FILENAME = "libaima-fmha-q16384-hybrid.so"
 VISION_ATTENTION_FILENAME = "aima-vision-attention.hsaco"
 CANDIDATE_RUNTIME_POLICY = "automatic-context-provider/v1"
+GPU_PERFORMANCE_LEVEL_PATH = Path(
+    "/sys/class/drm/card0/device/power_dpm_force_performance_level"
+)
 
 # Frozen public values in docs/NATIVE_VL_GOAL.md.  These remain an independent
 # safety floor; the paired v1.5.1 process is the stricter no-regression gate.
@@ -76,11 +80,37 @@ def json_sha256(value: Any) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
+def require_gpu_idle() -> None:
+    """Refuse to start a fresh GPU process while another owner has /dev/kfd."""
+    occupied = subprocess.run(
+        ["fuser", "/dev/kfd"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=False,
+    )
+    if occupied.returncode != 0:
+        return
+    subprocess.run(["fuser", "-v", "/dev/kfd"], check=False)
+    print(
+        "paired text matrix paused because /dev/kfd is owned externally",
+        file=sys.stderr,
+    )
+    raise SystemExit(75)
+
+
 def load_json(path: Path) -> dict[str, Any]:
     value = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(value, dict):
         raise RuntimeError(f"expected JSON object: {path}")
     return value
+
+
+def optional_text(path: Path) -> str | None:
+    try:
+        value = path.read_text(encoding="utf-8").strip()
+    except OSError:
+        return None
+    return value or None
 
 
 def atomic_json(path: Path, value: dict[str, Any]) -> None:
@@ -526,6 +556,7 @@ def run_report(
         ),
         flush=True,
     )
+    require_gpu_idle()
     completed = subprocess.run(
         command,
         stdout=subprocess.PIPE,
@@ -900,6 +931,9 @@ def build_result(
             "sysname": os.uname().sysname,
             "release": os.uname().release,
             "machine": os.uname().machine,
+            "gpu_performance_level": optional_text(
+                GPU_PERFORMANCE_LEVEL_PATH
+            ),
         },
         "engines": identities,
         "model_dir": "${AIMA_MODEL_DIR}",

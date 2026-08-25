@@ -23,7 +23,7 @@
   },
   "engine": {
     "path": "benchmarks/shape-lab/four_layer_mini_engine.py",
-    "sha256": "79b5f070a30176af2a7a87a473fe578a15abd5177fb39b2ab9e188f66572fe0e"
+    "sha256": "0d740895a9f88ea269b945e2339c97ca2afc904a6877b159621238e1c14a9d6a"
   },
   "shape_manifest": {
     "path": "doc/reference/amd395-qwen36-35b-a3b-bf16/qwen36-shape-manifest.json",

@@ -2,17 +2,22 @@
 
 ## Product boundary
 
-The v1.5 runtime specializes one model, one GPU architecture and batch size one.
-It is a native resident engine, not a Python wrapper around the v1.1 stack.
+The v1.5.1-native-vl.1 runtime specializes one model, one GPU architecture and
+batch size one. It is a native resident multimodal engine, not a Python wrapper
+around the v1.1 stack.
 
 ```text
 static bin/aima-engine launcher
         |
 bundled glibc loader + BUNDLE/lib
         |
-native HTTP / tokenizer / resident engine
-        |
-40-layer parameterized loop
+native HTTP / tokenizer / media admission + decode / resident engine
+        |-- native image/video processor + M-RoPE construction
+        |-- parameterized 27-block vision stack + merger
+        |   |-- external general gfx1151 attention image
+        |   `-- embedded dense-image gfx1151 attention image
+        |-- media embedding injection
+        `-- 40-layer parameterized loop
         |-- embedded captured gfx1151 AOT code objects
         |-- native HIP pointwise, state and cache kernels
         |-- native gfx1151 wvSplitK decode projections
@@ -23,7 +28,7 @@ native HTTP / tokenizer / resident engine
         |
 native Safetensors O_DIRECT scatter
         |
-693 resident model tensors + derived layouts + LM head
+693 language + 333 visual resident tensors + derived layouts + LM head
 ```
 
 No Python interpreter, PyTorch dispatcher/tensor owner, vLLM operator registry,
@@ -31,19 +36,19 @@ Triton JIT or Transformers tokenizer exists in the runtime process.
 
 ## Startup and ownership
 
-The engine validates the checkpoint index, allocates 693 independent final HIP
-device tensors, and scatters only the active language-model ranges from the 26
-Safetensors shards. Reader workers use page-aligned pinned buffers, O_DIRECT
-when supported, asynchronous H2D copies and a buffered fallback for filesystems
-that reject direct I/O.
+The engine validates the checkpoint index, allocates 1,026 independent final
+HIP device tensors, and scatters the 693 active language plus 333 visual ranges
+from the 26 Safetensors shards. Reader workers use page-aligned pinned buffers,
+O_DIRECT when supported, asynchronous H2D copies and a buffered fallback for
+filesystems that reject direct I/O.
 
-Before readiness it verifies the complete 69,321,221,376-byte GPU payload,
+Before readiness it verifies the complete 70,214,363,872-byte GPU payload,
 builds the shared derived weight layouts and int8 LM head, resolves every AOT
-weight binding, loads code objects, prepares hipBLASLt plans, allocates
-the configured endpoint plus smaller resident prefill workspaces, and creates
-up to four prefix-cache owners. Long-window profiles reduce the entry count so
-snapshots remain inside the 96 GiB GTT contract. Nothing performs a second
-full-weight copy.
+weight binding, loads language and vision code objects, runs both required
+vision warmups, prepares hipBLASLt plans, allocates the configured endpoint plus
+smaller resident prefill workspaces, and creates up to four prefix-cache
+owners. Long-window profiles reduce the entry count so snapshots remain inside
+the 96 GiB GTT contract. Nothing performs a second full-weight copy.
 
 All owners live for the process lifetime. Normal request execution performs no
 checkpoint or oracle reads.
@@ -181,10 +186,12 @@ only when the source runtime configuration is present.
 ## Portable userspace
 
 The archive includes a fully static launcher and a complete x86-64 dynamic
-closure for the real engine and all three FMHA providers. The launcher invokes the
-colocated glibc loader with `--inhibit-cache`; all RUNPATH entries are
-`$ORIGIN`-relative. The engine points HIP device libraries and hipBLASLt
-assets at its own bundle.
+closure for the real engine, all three language FMHA providers, general vision
+attention, minimal FFmpeg media decode and curl/c-ares remote fetch. The dense
+vision-attention image is hash-checked inside the embedded AOT registry. The
+launcher invokes the colocated glibc loader with `--inhibit-cache`; all RUNPATH
+entries are `$ORIGIN`-relative. The engine points HIP device libraries and
+hipBLASLt assets at its own bundle.
 
 This removes host ROCm/glibc/C++ version coupling. It cannot remove the Linux
 kernel ABI, AMDGPU/KFD driver, device nodes, CPU architecture or `gfx1151`
@@ -192,8 +199,11 @@ hardware contract.
 
 ## Evidence separation
 
-The full-envelope portable decision is embedded in each archive and mirrored
-after release as `benchmarks/results/native-portable-product-v1.5.1.json`.
-The v1.1 complete-context matrix remains the frozen per-cell floor. A
-bundle-closure pass, a correctness pass and a performance pass are independent
+The package-input decision is embedded in each archive as
+`share/aima/qualification.json`; the final cross-host/soak/rollback decision is
+mirrored after release as
+`benchmarks/results/native-vl-g5-release-v1.5.1-native-vl.1.json`. The exact
+v1.5.1 executable remains the paired text floor and the pinned VL-enabled vLLM
+remains the per-cell multimodal floor. Bundle closure, correctness, text
+performance, VL performance, security, residency and rollback are independent
 gates; none is used as a proxy for another.

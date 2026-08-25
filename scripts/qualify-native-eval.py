@@ -16,11 +16,16 @@ import json
 from pathlib import Path
 import re
 import subprocess
+import sys
 import time
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
 
 from native_text_metrics import text_path_idle_checks
 

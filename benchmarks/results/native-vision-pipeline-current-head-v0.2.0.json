@@ -1,6 +1,6 @@
 {
   "attention_image_sha256": "8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e",
-  "candidate_binary_sha256": "4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0",
+  "candidate_binary_sha256": "fb5cae0ca5ffaa4bc3d418d5fb1630d822eae9d60f639ba6cc143e427c0cd1e9",
   "cases": [
     {
       "boundaries": [
@@ -45,7 +45,7 @@
         }
       ],
       "library_workspace_bytes": 5308424,
-      "median_ms": 14.763934135437012,
+      "median_ms": 14.992759704589844,
       "merged_tokens": 64,
       "metadata_resident_bytes": 36864,
       "passed": true,
@@ -98,7 +98,7 @@
         }
       ],
       "library_workspace_bytes": 3538960,
-      "median_ms": 12.036127090454102,
+      "median_ms": 12.154497146606445,
       "merged_tokens": 32,
       "metadata_resident_bytes": 18432,
       "passed": true,
@@ -151,7 +151,7 @@
         }
       ],
       "library_workspace_bytes": 12386320,
-      "median_ms": 34.70438766479492,
+      "median_ms": 35.69516372680664,
       "merged_tokens": 160,
       "metadata_resident_bytes": 92160,
       "passed": true,
@@ -206,7 +206,7 @@
         }
       ],
       "library_workspace_bytes": 7077920,
-      "median_ms": 19.58995246887207,
+      "median_ms": 19.893808364868164,
       "merged_tokens": 80,
       "metadata_resident_bytes": 46080,
       "passed": true,
@@ -269,7 +269,7 @@
         }
       ],
       "library_workspace_bytes": 8847384,
-      "median_ms": 27.02373504638672,
+      "median_ms": 27.61075210571289,
       "merged_tokens": 96,
       "metadata_resident_bytes": 55296,
       "passed": true,
@@ -375,45 +375,45 @@
   "inputs": {
     "image_local_png": {
       "bytes": 2805,
-      "path": "benchmarks/runs/native-vl-g1-g2-20260821-50289f1/g2/g2-v2-vision-image_local_png-run.json",
-      "sha256": "7a548f4e8edb9e41b8f02c82d82ff5cc2f8365cf68ec124793fbeea3bcdc180b"
+      "path": "benchmarks/runs/native-vl-g1-g2-20260824-bd01287-final/g2/vision/image_local_png/run.json",
+      "sha256": "3a82000f9d8dd46fb311e7ed4319c9f7467c04ed0d4c7016b989305d4eea496b"
     },
     "mixed_image_video": {
       "bytes": 3038,
-      "path": "benchmarks/runs/native-vl-g1-g2-20260821-50289f1/g2/g2-v2-vision-mixed_image_video-run.json",
-      "sha256": "b9d3e371160b6c01c947927ccea9a971b22f7d70d6096d26b668cd4a020645e2"
+      "path": "benchmarks/runs/native-vl-g1-g2-20260824-bd01287-final/g2/vision/mixed_image_video/run.json",
+      "sha256": "9ea305fbd890d9c7fc420ab2d0df2b33b6761cdfa0070ddaa109b04fb8924ea7"
     },
     "multi_image": {
       "bytes": 2813,
-      "path": "benchmarks/runs/native-vl-g1-g2-20260821-50289f1/g2/g2-v2-vision-multi_image-run.json",
-      "sha256": "407e607cc91cdccd3183195ca1f9f1b5d1bcc01897b2043cc9ca07a169ecd6f9"
+      "path": "benchmarks/runs/native-vl-g1-g2-20260824-bd01287-final/g2/vision/multi_image/run.json",
+      "sha256": "c3164148af30b771bd3a01c5237deb761f5ff90133e43d9fe8c8782074e5abf7"
     },
     "multi_video": {
       "bytes": 2816,
-      "path": "benchmarks/runs/native-vl-g1-g2-20260821-50289f1/g2/g2-v2-vision-multi_video-run.json",
-      "sha256": "d65446fc2d92f521621d7d7dde6200cfe4d77973fab3e2877c925521263a435f"
+      "path": "benchmarks/runs/native-vl-g1-g2-20260824-bd01287-final/g2/vision/multi_video/run.json",
+      "sha256": "ff702b8cb97ac889b539cbc319ac2ad4fbd115fe9f8681d169ac14fc7558633f"
     },
     "video_local_mp4": {
       "bytes": 2805,
-      "path": "benchmarks/runs/native-vl-g1-g2-20260821-50289f1/g2/g2-v2-vision-video_local_mp4-run.json",
-      "sha256": "4e0a9ece7a3b38c6452a1b41d32ec2ee7f9f280c80e0f91fb0d76643a68d74fa"
+      "path": "benchmarks/runs/native-vl-g1-g2-20260824-bd01287-final/g2/vision/video_local_mp4/run.json",
+      "sha256": "062113076efa86c98532b16c075bb1d9f62450eca51fa9f3b213a519b8507906"
     }
   },
   "integrity": {
     "algorithm": "sha256",
-    "canonical_payload_sha256": "53450115f2bc54379b28512da5b70efd070d047df079c39faa8b4f5e3102cd3b"
+    "canonical_payload_sha256": "b505f5924191193d1148b670d0a8f438714dbf31fd3c92c4404514d79fb2787e"
   },
   "probe_binary": {
-    "bytes": 483432,
+    "bytes": 483440,
     "path": "${AIMA_BUILD_DIR}/native-vision-pipeline-probe",
     "runtime_python": false,
     "runtime_torch": false,
     "runtime_triton": false,
     "runtime_vllm": false,
-    "sha256": "ff92f6f899dff35115114da0ba7ad8294b764f3cc081c737650ebd8c0d29b48f"
+    "sha256": "6381dbd4fffbfc3f5881715f53cdabe279eb80e3420d2ace2084d8362c848295"
   },
   "qualification_tool": {
-    "commit": "8bc38561c400aea2658cecb73909469c230269a3",
+    "commit": "bd012874027defa528279a357609b713e9069df4",
     "files": [
       {
         "bytes": 20599,
@@ -433,11 +433,11 @@
     ]
   },
   "qualified": true,
-  "recorded_on": "2026-08-21",
+  "recorded_on": "2026-08-24",
   "schema": "aima-amd395-qwen36/native-vision-pipeline-qualification/v2",
   "source": {
     "clean": true,
-    "commit": "50289f1cbae150997ca82bbc054635932a2721c3",
+    "commit": "bd012874027defa528279a357609b713e9069df4",
     "files": [
       {
         "bytes": 4171,

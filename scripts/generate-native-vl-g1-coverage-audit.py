@@ -124,9 +124,9 @@ PREFILL_STATE_ORACLE_ROOT = (
     ROOT / "benchmarks/oracles/vl-prefill-state-v0.1.0"
 )
 EXPECTED_CANDIDATE = {
-    "source_commit": "50289f1cbae150997ca82bbc054635932a2721c3",
+    "source_commit": "bd012874027defa528279a357609b713e9069df4",
     "binary_sha256": (
-        "4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0"
+        "fb5cae0ca5ffaa4bc3d418d5fb1630d822eae9d60f639ba6cc143e427c0cd1e9"
     ),
 }
 EXPECTED_BASELINE = {

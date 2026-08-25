@@ -24,6 +24,31 @@ class NativeOpenaiFeaturesQualificationTest(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "requires.*8192"):
                     features.require_qualified_context(context_tokens)
 
+    def test_public_paths_hide_engine_sibling_runtime_dependencies(self) -> None:
+        engine = Path("/tmp/candidate/build/aima-engine-native")
+        model = Path("/srv/private/model")
+        output = Path("/tmp/evidence/features.json")
+        value = {
+            "engine": str(engine),
+            "provider": str(engine.parent / "libaima-fmha-ck.so"),
+            "model": str(model),
+            "report": str(output),
+        }
+        self.assertEqual(
+            features.publicize(
+                value,
+                engine=engine,
+                model_dir=model,
+                output_dir=output.parent,
+            ),
+            {
+                "engine": "${AIMA_ENGINE}",
+                "provider": "${AIMA_ENGINE_DIR}/libaima-fmha-ck.so",
+                "model": "${AIMA_MODEL_DIR}",
+                "report": "${AIMA_OUTPUT_DIR}/features.json",
+            },
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

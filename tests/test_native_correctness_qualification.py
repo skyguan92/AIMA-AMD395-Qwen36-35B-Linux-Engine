@@ -192,7 +192,8 @@ class NativeCorrectnessQualificationTest(unittest.TestCase):
                 "/private/oracle.bin",
                 "--report",
                 "/tmp/qualification/raw/report.json",
-            ]
+            ],
+            "provider": "/tmp/candidate/libaima-fmha-ck.so",
         }
         replaced = correctness.publicize(
             payload,
@@ -202,6 +203,10 @@ class NativeCorrectnessQualificationTest(unittest.TestCase):
                 (
                     "/tmp/candidate/aima-engine-native",
                     "${AIMA_CANDIDATE_ENGINE}",
+                ),
+                (
+                    "/tmp/candidate",
+                    "${AIMA_CANDIDATE_ENGINE_DIR}",
                 ),
                 ("/tmp/qualification", "${AIMA_QUALIFICATION_DIR}"),
             ),
@@ -217,6 +222,10 @@ class NativeCorrectnessQualificationTest(unittest.TestCase):
                 "--report",
                 "${AIMA_QUALIFICATION_DIR}/raw/report.json",
             ],
+        )
+        self.assertEqual(
+            replaced["provider"],
+            "${AIMA_CANDIDATE_ENGINE_DIR}/libaima-fmha-ck.so",
         )
 
     def test_runtime_identity_arguments_are_part_of_the_runner_contract(self) -> None:

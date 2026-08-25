@@ -7,9 +7,11 @@
 | Latest minor release | Yes |
 | Earlier/private research versions | No |
 
-The hardening documented below is included in v1.4.0. The v1.3.0 server has no
-built-in bearer authentication or socket timeout and must remain on loopback
-or behind a trusted authenticated gateway.
+The transport hardening documented below is included from v1.4.0. The
+v1.5.1-native-vl.1 release additionally applies fail-closed local and remote
+media admission. The v1.3.0 server has no built-in bearer authentication or
+socket timeout and must remain on loopback or behind a trusted authenticated
+gateway.
 
 ## Reporting a vulnerability
 
@@ -50,6 +52,31 @@ The built-in server is an inference transport, not an internet-facing gateway:
   it disconnects or generation ends;
 - model weights and startup images are memory-mapped/read by a privileged local
   process.
+
+Multimodal media is untrusted input:
+
+- local `file:` URLs are disabled unless the operator supplies one or more
+  `--allowed-local-media-path` roots; resolution is descriptor-relative,
+  rejects traversal and symlinks, requires a stable regular file and enforces
+  byte limits;
+- remote HTTP/HTTPS is disabled unless every hop's hostname is present in an
+  exact `--allowed-media-domain` list; DNS results are checked and private,
+  loopback or link-local addresses require a separate
+  `--allowed-private-media-domain` opt-in;
+- URL credentials, proxy inheritance, unsafe schemes, TLS downgrade, excess
+  redirects, response bytes and request/decode deadlines are rejected;
+- image dimensions, decoded pixels, video source/selected frames and aggregate
+  media-token use are bounded before execution;
+- cache keys bind the media byte digest, kind and effective processor options,
+  so changing content behind the same pathname or URL cannot reuse stale
+  embeddings;
+- public qualification records and service logs must not contain media bytes,
+  credentials or private filesystem paths.
+
+The packaged systemd unit allowlists `/srv/aima-media` for local content and
+does not enable remote domains. Keep that directory non-writable by the service
+account. Add remote domains only through an audited unit override and keep the
+engine behind the same authenticated gateway as text requests.
 
 The default bind address is `127.0.0.1`. For remote access, configure the API
 key and place the service behind a TLS proxy, restrict network reachability,

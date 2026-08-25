@@ -7,6 +7,8 @@ import json
 from pathlib import Path
 from typing import Mapping
 
+from aima_engine.vl_reference import verify_manifest_integrity
+
 
 REQUIRED_COMPONENTS = (
     "native_engine",
@@ -50,6 +52,15 @@ def verify_package_qualification(
         errors.append("qualification record is not qualified")
     if qualification.get("release") != release:
         errors.append("qualification release does not match package release")
+    native_vl_qualification = (
+        qualification.get("schema")
+        == "aima-amd395-qwen36/native-vl-product-qualification/v1"
+    )
+    if native_vl_qualification:
+        errors.extend(
+            f"qualification integrity failed: {error}"
+            for error in verify_manifest_integrity(qualification)
+        )
 
     records = qualification.get("components")
     if not isinstance(records, dict):
@@ -86,6 +97,11 @@ def verify_package_qualification(
             errors.append(
                 "qualification native source commit does not match executable"
             )
+        if (
+            native_vl_qualification
+            and source.get("native_source_dirty") is not False
+        ):
+            errors.append("qualification native source is not clean")
     elif release != "1.3.0":
         errors.append("qualification source provenance is missing")
     return errors

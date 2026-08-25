@@ -553,9 +553,9 @@
       "sha256": "55e61d9060e67d8a67c7eea72480b7b66cc1466c7da393c45507b1591cb99028"
     },
     "error_limits_native": {
-      "bytes": 85506,
+      "bytes": 88803,
       "path": "benchmarks/results/native-vl-error-limits-v0.1.0.json",
-      "sha256": "daddd7ca67985d19744fc0409b4ae2ada5b8cd7c9f6c93b803d1e47b4dd29814"
+      "sha256": "04b94dca3d956b16abd8724c3ff3a41026a7d2d0a5eceadf6b5d7d93281df7d6"
     },
     "error_limits_reference": {
       "bytes": 43853,
@@ -563,9 +563,9 @@
       "sha256": "36ca8fe48ce785a52a8123d72be2d9271e3a29731222672bc30989250f2e56f1"
     },
     "execution_envelope": {
-      "bytes": 202544,
+      "bytes": 209529,
       "path": "benchmarks/results/native-vl-envelope-v0.1.0.json",
-      "sha256": "8585411f5d2178d6bd627f84143b041c3951e4e1eaf073e0294484572d7e67b3"
+      "sha256": "cb9104e3bb2ed5e756fc33a238f6f1ea4e6b24cfd4af098725e27a913c94325f"
     },
     "generation_layer_oracle": {
       "bytes": 150190,
@@ -573,9 +573,9 @@
       "sha256": "70cec2c7884b5e641884037212a34f6ffc6ac1944af08d59c19dc90353915188"
     },
     "generation_native": {
-      "bytes": 214213,
+      "bytes": 215008,
       "path": "benchmarks/results/native-vl-generation-current-head-v0.1.0.json",
-      "sha256": "e6f79c105ba669f9a2c1d5c037bbe06d106d66235254c7ebb45282d9d5b74c8b"
+      "sha256": "dd3e185d6b49c5c2c81ce53d886d46f74b44db3fce8cb163a9a3ab3e27f783d2"
     },
     "generation_oracle": {
       "bytes": 26545,
@@ -585,7 +585,7 @@
     "generator": {
       "bytes": 47807,
       "path": "scripts/generate-native-vl-g1-coverage-audit.py",
-      "sha256": "6e608191015da47731711b750ff47ffdcceea8dcc4ebe8ec3a201bf750991c0d"
+      "sha256": "f9e4adddb54ffcf16d7e4a28946b9e5e68838fdebde95c91d1f137f33d9e3572"
     },
     "goal": {
       "bytes": 18354,
@@ -593,9 +593,9 @@
       "sha256": "4884803ea4c74a3082d949646ad31684536e672a39e229da796589009b0d212c"
     },
     "language_boundary": {
-      "bytes": 12721,
+      "bytes": 12702,
       "path": "benchmarks/results/vl-correctness-v0.1.0.json",
-      "sha256": "e390093a62d2de50dfb04e1cbb1afb3c6ccf282d123a2caa1cd98dce5040ff6c"
+      "sha256": "970fddd4eb0a91defd4398d863e38b31e4f3a8827df3ef2983d6523092207dbd"
     },
     "media_io_reference": {
       "bytes": 2395,
@@ -603,9 +603,9 @@
       "sha256": "56dff264132bdb49a470bd0af863df6ddca0e22f83da43143ad85267c0a30e98"
     },
     "mixed_conversation_native": {
-      "bytes": 49165,
+      "bytes": 51208,
       "path": "benchmarks/results/native-vl-g1-extension-v0.1.0.json",
-      "sha256": "47cb7322a5d72e48137fa9ecee68db92edf091636151d28642bf9fb4609d284d"
+      "sha256": "f678584b52297b67b01468b77b1a9d21caf9ef386c0a76979f11318f4dc2c7a5"
     },
     "mixed_conversation_reference": {
       "bytes": 46417,
@@ -613,9 +613,9 @@
       "sha256": "e769446684c4f69b7a29dde163d050a541449ffddf0996ecbb48510a0c493451"
     },
     "native_capability": {
-      "bytes": 185857,
+      "bytes": 194268,
       "path": "benchmarks/results/native-vl-capability-v0.1.0.json",
-      "sha256": "ca16fe64b912623b0528ccfcb086d4757e6c0a5d8907b18316dec39dc27b4290"
+      "sha256": "fc0b9eb693e353b72f5a02533d1827060891071f8696ec2a27a98fce11452e55"
     },
     "prefill_state_oracle": {
       "bytes": 57689,
@@ -628,14 +628,14 @@
       "sha256": "72e64b8d5cb0c1de8a355617676c46c98c1e0f05cec7a6e3a7df79dd36560d7a"
     },
     "resident_serving": {
-      "bytes": 58564,
+      "bytes": 61020,
       "path": "benchmarks/results/native-vl-serving-v0.1.0.json",
-      "sha256": "c3fe421f72ac8f47d6860ad63ab374e45bbeb82879a20a33f57c10d196d6d554"
+      "sha256": "cc2f1e4b66333df313726186f23f16bd30ab9ffbd7f2fe54fd322eed9f5c48f7"
     },
     "task_quality_native": {
-      "bytes": 128168,
+      "bytes": 133169,
       "path": "benchmarks/results/native-vl-task-quality-v0.1.0.json",
-      "sha256": "f1ffdff8e0c5f9000e2bb1fae576bf6dd3a158f2a169732c7ffb5d07bef4c8e3"
+      "sha256": "02849e24939519b250c1c596011e33dd64af8dbfdbea4715a749c520a763b14b"
     },
     "task_quality_reference": {
       "bytes": 186682,
@@ -643,14 +643,14 @@
       "sha256": "51b3d95e3ce420584d765350bfe6b73f76d5786a8d9d629cf7c3e69ac11b8bce"
     },
     "text_v151_nonregression": {
-      "bytes": 6586,
+      "bytes": 6628,
       "path": "benchmarks/results/text-v151-nonregression-v0.1.0.json",
-      "sha256": "96346a7cbc55dc7609eceaca84606eb2706a8ede3a27ca5f57a66b0ce0626784"
+      "sha256": "29051b6b8d2b77b53897bfa9f9e3a47f74603d037d3855c2fcfce64c5af2b0e7"
     },
     "transport_cache_native": {
-      "bytes": 233971,
+      "bytes": 245409,
       "path": "benchmarks/results/native-vl-transport-cache-v0.1.0.json",
-      "sha256": "d7a9d9eb4109282259246fe70caafd90abee53c5cc7580d7eacb83c5655f7cfb"
+      "sha256": "94600f4ea22a1c13bc23f595b36b32acd0e4d20b3dacb8653895dc71e8786e54"
     },
     "transport_cache_reference": {
       "bytes": 58936,
@@ -658,14 +658,14 @@
       "sha256": "d98433b1be1cd8264947c116073c88287d8181a0ad8a7e60cce868238b48607a"
     },
     "vision_pipeline": {
-      "bytes": 15115,
+      "bytes": 15116,
       "path": "benchmarks/results/native-vision-pipeline-current-head-v0.2.0.json",
-      "sha256": "4533048a5c6e6c078ebe5278f795b03460a663f2f22fbbf0d1753ed439602f20"
+      "sha256": "49d090b58e42d372089e1374a4f6b12229f5298b2c45752f20d21e5c6afbad8e"
     }
   },
   "integrity": {
     "algorithm": "sha256",
-    "canonical_payload_sha256": "101f5f631634ef99d6d26e313ee195b6eb9248a11a5fc74b25471af77cf7081b"
+    "canonical_payload_sha256": "6e62f44e4978c08a9d126bbc7dccf1d891c4dc0d9dd8cae407d697bf8778f54e"
   },
   "next_evidence": [],
   "qualified": true,

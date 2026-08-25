@@ -1,14 +1,14 @@
 {
   "binary": {
-    "bytes": 39692960,
+    "bytes": 39773952,
     "path": "build/native/aima-engine-native",
-    "sha256": "4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0"
+    "sha256": "fb5cae0ca5ffaa4bc3d418d5fb1630d822eae9d60f639ba6cc143e427c0cd1e9"
   },
   "build_info": {
-    "source_commit": "50289f1cbae150997ca82bbc054635932a2721c3",
+    "source_commit": "bd012874027defa528279a357609b713e9069df4",
     "version": "1.5.1-native"
   },
-  "captured_at": "2026-08-21T00:26:06+00:00",
+  "captured_at": "2026-08-24T00:21:12+00:00",
   "checks": {
     "case_order_exact": true,
     "probe_attribution_qualified": true,
@@ -138,7 +138,7 @@
   },
   "integrity": {
     "algorithm": "sha256",
-    "canonical_payload_sha256": "5292d25dd8b88dc1f81f25823d2a667d857fdb3001e420b71dbdd1b866bf4405"
+    "canonical_payload_sha256": "02568e53eb9a49127cf36e814083266fecd83b103cbfc664bcac7237a10a6f18"
   },
   "launch": {
     "command": [
@@ -2411,7 +2411,7 @@
           "cold_prompt_decode_tokens": 0,
           "cold_prompt_decode_wall_ms": 0.0,
           "completion_tokens": 15,
-          "decode_tokens_per_second": 23.279888838929875,
+          "decode_tokens_per_second": 30.987482829863428,
           "model_loads": 1,
           "mrope": {
             "decode_steps": 14,
@@ -2426,7 +2426,7 @@
           "output_token_ids_canonical_sha256": "1a267e3f026aa329637ce18e7ff67a13481ca66074de3ae18ec7c202a2c03960",
           "output_token_ids_sha256": "c52e75b27e09862c4d3c0b359b4e3b99a826c11c33bf5a50f9d366dafecf5dbb",
           "padded_prefill_tokens": 675,
-          "prefill_tokens_per_second": 395.6692860649859,
+          "prefill_tokens_per_second": 393.60985564792753,
           "prefix_cache": {
             "active_kv_reused": false,
             "hits": 0,
@@ -2447,20 +2447,31 @@
           "prompt_token_ids_sha256": "c00ccaf4063b7a0eb5f30ca053d3484cd2658aac57d1ef7ee79d38287d940566",
           "prompt_tokens": 349,
           "request_index": 1,
-          "request_wall_ms": 1543.862509,
+          "request_wall_ms": 1401.44924,
           "runtime": "native-resident-q349",
+          "sampling": {
+            "logits_device_to_host_bytes": 0,
+            "logits_source": "certified-top1",
+            "mode": "argmax",
+            "seed": null,
+            "seed_provided": false,
+            "temperature": 0.0,
+            "token_selections": 0,
+            "top_p": 1.0,
+            "wall_ms": 0.0
+          },
           "structured_decoding": {
             "enabled": true,
             "token_mask_upload_bytes": 3724800,
             "token_selections": 15
           },
-          "ttft_ms": 882.049763,
+          "ttft_ms": 886.66479,
           "vl": {
-            "embedding_injection_wall_ms": 1.45905,
+            "embedding_injection_wall_ms": 1.378228,
             "enabled": true,
             "host_to_device_bytes": 788340,
             "image_count": 1,
-            "logical_projection_plan_build_wall_ms": 2.86627,
+            "logical_projection_plan_build_wall_ms": 2.600531,
             "logical_projection_plan_count": 9,
             "logical_projection_plan_reused": false,
             "logical_projection_tokens": 349,
@@ -2470,10 +2481,10 @@
             "media_cache_misses": 1,
             "media_cache_resident_bytes": 786863,
             "media_count": 1,
-            "media_decode_wall_ms": 0.605023,
-            "media_load_decode_wall_ms": 0.663951,
-            "media_load_wall_ms": 0.058928,
-            "processor_wall_ms": 0.439168,
+            "media_decode_wall_ms": 0.602782,
+            "media_load_decode_wall_ms": 0.6607700000000001,
+            "media_load_wall_ms": 0.057988,
+            "processor_wall_ms": 0.439307,
             "source_bytes": 5467,
             "video_count": 0,
             "vision_attention_image_sha256s": [
@@ -2484,11 +2495,12 @@
             "vision_embedding_cache_entries": 1,
             "vision_embedding_cache_hit": false,
             "vision_embedding_cache_resident_bytes": 262144,
-            "vision_encode_wall_ms": 16.001006,
+            "vision_encode_wall_ms": 15.982065,
+            "vision_input_upload_wall_ms": 0.076888,
             "vision_max_batch_patches": 256,
             "vision_max_batch_tokens": 64,
             "vision_patches": 256,
-            "vision_plan_build_wall_ms": 8.453635,
+            "vision_plan_build_wall_ms": 9.367006,
             "vision_plan_cache_entries": 3,
             "vision_plan_cache_hit": false,
             "visual_tokens": 64
@@ -4901,7 +4913,7 @@
           "cold_prompt_decode_tokens": 0,
           "cold_prompt_decode_wall_ms": 0.0,
           "completion_tokens": 94,
-          "decode_tokens_per_second": 24.928198552481742,
+          "decode_tokens_per_second": 34.71583154883196,
           "model_loads": 1,
           "mrope": {
             "decode_steps": 93,
@@ -4916,7 +4928,7 @@
           "output_token_ids_canonical_sha256": "b273e74f9b00682deb03748e5a383e6e810a58bc9d473ec23f4e2d9571f0a311",
           "output_token_ids_sha256": "e28506f05dd5b7de8f19295ec68d763b3b9d6f24eeb760635630100ef0c9411f",
           "padded_prefill_tokens": 672,
-          "prefill_tokens_per_second": 413.32672254815776,
+          "prefill_tokens_per_second": 412.43502666141706,
           "prefix_cache": {
             "active_kv_reused": false,
             "hits": 0,
@@ -4937,20 +4949,31 @@
           "prompt_token_ids_sha256": "36946ec2e298a02ef43f7c7d33f01d04a26479a2944ef8b0b55148838f77867b",
           "prompt_tokens": 352,
           "request_index": 2,
-          "request_wall_ms": 4582.841984,
+          "request_wall_ms": 3532.571073,
           "runtime": "native-resident-q352",
+          "sampling": {
+            "logits_device_to_host_bytes": 0,
+            "logits_source": "certified-top1",
+            "mode": "argmax",
+            "seed": null,
+            "seed_provided": false,
+            "temperature": 0.0,
+            "token_selections": 0,
+            "top_p": 1.0,
+            "wall_ms": 0.0
+          },
           "structured_decoding": {
             "enabled": false,
             "token_mask_upload_bytes": 0,
             "token_selections": 0
           },
-          "ttft_ms": 851.626524,
+          "ttft_ms": 853.467764,
           "vl": {
-            "embedding_injection_wall_ms": 0.055098,
+            "embedding_injection_wall_ms": 0.074398,
             "enabled": true,
             "host_to_device_bytes": 1920,
             "image_count": 1,
-            "logical_projection_plan_build_wall_ms": 2.926949,
+            "logical_projection_plan_build_wall_ms": 2.891892,
             "logical_projection_plan_count": 9,
             "logical_projection_plan_reused": false,
             "logical_projection_tokens": 352,
@@ -4961,8 +4984,8 @@
             "media_cache_resident_bytes": 786863,
             "media_count": 1,
             "media_decode_wall_ms": 0.0,
-            "media_load_decode_wall_ms": 0.042239,
-            "media_load_wall_ms": 0.042239,
+            "media_load_decode_wall_ms": 0.043599,
+            "media_load_wall_ms": 0.043599,
             "processor_wall_ms": 0.0,
             "source_bytes": 5467,
             "video_count": 0,
@@ -4973,6 +4996,7 @@
             "vision_embedding_cache_hit": true,
             "vision_embedding_cache_resident_bytes": 262144,
             "vision_encode_wall_ms": 0.0,
+            "vision_input_upload_wall_ms": 0.0,
             "vision_max_batch_patches": 256,
             "vision_max_batch_tokens": 64,
             "vision_patches": 256,
@@ -5011,20 +5035,20 @@
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     "stdout": {
-      "bytes": 137168,
+      "bytes": 137637,
       "path": "native-vl-generation-current-head-v0.1.0-raw/probe.stdout.json",
-      "sha256": "b88476574929cfc43dfa143ed3fa3b04fe67e02df5be8217af22dc5b2c351eb1"
+      "sha256": "e9c20f2b56bd9bce6cd6613818f94b8c2ce9449534e09b40595124bee31c696a"
     },
     "weight_load": {
-      "bytes": 3019,
+      "bytes": 3011,
       "path": "native-vl-generation-current-head-v0.1.0-raw/native-weight-load.json",
-      "sha256": "2ae49ef464a262e3793c1e7d22b5e646841fcd065b5cdd529c9d88153cb4bbd5"
+      "sha256": "e6a23fc45af694bc6ddf8004883108710d01898a59b9475d11188c583de22bec"
     }
   },
   "schema": "aima-amd395-qwen36/native-vl-generation-qualification/v1",
   "scope": "current-head-two-vl-tool-generation-logits-layers-and-prefill-state",
   "source": {
-    "commit": "50289f1cbae150997ca82bbc054635932a2721c3",
+    "commit": "bd012874027defa528279a357609b713e9069df4",
     "dirty": false,
     "files": [
       {
@@ -5043,19 +5067,19 @@
         "sha256": "0c91757b4b523dd6c1eb811685532e56815aec8e1970099bca00de3c07315398"
       },
       {
-        "bytes": 4605,
+        "bytes": 5287,
         "path": "native/include/aima/native_decode_runner.h",
-        "sha256": "8a8533505d6317c186a130a8afa6b1f1e4dc8901180f633e28b3225a37764dd7"
+        "sha256": "29382c604b1c4347e2bcab9c44406742918a10c6089549cae4e2b3dd7686a389"
       },
       {
-        "bytes": 2738,
+        "bytes": 2965,
         "path": "native/include/aima/native_full_layer.h",
-        "sha256": "62721889ba1520b2fe1e8b553aa83b629d89a634d2e8cdf531738f92ccae1ce0"
+        "sha256": "02a718a7e5a8b1d2dc580995ad86f01dabe74ca4f1484a039cdfa3af31a4b734"
       },
       {
-        "bytes": 1849,
+        "bytes": 1988,
         "path": "native/include/aima/native_linear_layer.h",
-        "sha256": "d87fab7c64f6fd53b92106203694f0f8fb4159de4f80d96c5a097cbb5369b1be"
+        "sha256": "ef35520f7ecc22479b14991d2ff74839f203b42d8e75931549876943667c08cb"
       },
       {
         "bytes": 9589,
@@ -5068,19 +5092,19 @@
         "sha256": "214d8ea080abdef0cce97718389c4a78f0acd3cd6d3880396816c60fe4cd61f4"
       },
       {
-        "bytes": 13250,
+        "bytes": 18226,
         "path": "native/src/native_decode_runner.hip.cpp",
-        "sha256": "5698dfdc509b9364795697557da2f4c9510056a7c4697cf54d4178e23ff64b53"
+        "sha256": "e3e5a2d004365219f72054e493c808df20fa1e77354e7beea6f4e10182906a02"
       },
       {
-        "bytes": 129891,
+        "bytes": 135069,
         "path": "native/src/native_resident_engine.hip.cpp",
-        "sha256": "b1e940a029ec1b679648e3edab8b9367789a3b4dc1c1d0838da265d2ef2d8e8b"
+        "sha256": "b1cb278179339adb12fb3275adb98c6078188adb91b781529571e21f498dddda"
       },
       {
-        "bytes": 113024,
+        "bytes": 115509,
         "path": "native/src/native_http_server.cpp",
-        "sha256": "e9e07ff3dea2bb7e2e70ba1779cf8ee572f471f900f7c22f5da649877ca49892"
+        "sha256": "7b6d39301ab5c4f0f96d5c42d385ef65a637d4d2383aafff6f04eebcd0ecd68e"
       },
       {
         "bytes": 47428,
@@ -5088,9 +5112,9 @@
         "sha256": "bd88355afcad716b09f82ccdf51588616d1333904331236436c502890cf396a4"
       },
       {
-        "bytes": 23811,
+        "bytes": 24725,
         "path": "native/src/native_tokenizer.cpp",
-        "sha256": "8e1c670d75d9078f751b287f585aa0f8e209f65fc2cce8672c9bcf557e0db152"
+        "sha256": "8b73d3e3d8f5b005be56cf6917a62f167f432e0deb0ca0ee58790ead55b276b1"
       },
       {
         "bytes": 17382,
@@ -5098,19 +5122,19 @@
         "sha256": "0140130226e404f9604086e0db3a6e1328661ba7bf84b750ec9dd1925d8a2720"
       },
       {
-        "bytes": 19391,
+        "bytes": 21645,
         "path": "native/src/native_full_layer.hip.cpp",
-        "sha256": "cd9196da53cbc325bbd077c0935857e800508b9e1e13f4c8ee68c460b5ffa84d"
+        "sha256": "5c6f620304afd0401896419f64c6ff572ec88da611bd27c9ee7a8d8f2197dc0c"
       },
       {
-        "bytes": 31001,
+        "bytes": 32958,
         "path": "native/src/native_linear_layer.hip.cpp",
-        "sha256": "512820285da893a1a479e4bc5e8ca6fe2f9443ad236846b73560216c5c19efb7"
+        "sha256": "42ddf602c7ac8e96d20a4751fc7591038868015bae7b8ef86d06fdc84b233350"
       },
       {
-        "bytes": 61117,
+        "bytes": 71004,
         "path": "native/src/native_pointwise.hip.cpp",
-        "sha256": "439cf41f088681efb28d2688a2095b6a77b487670df914d59f885fcd971537b5"
+        "sha256": "07ecadc1b95543b209c92675c2cf3b75af40f6682c60185cef70cf6042368a38"
       },
       {
         "bytes": 243120,

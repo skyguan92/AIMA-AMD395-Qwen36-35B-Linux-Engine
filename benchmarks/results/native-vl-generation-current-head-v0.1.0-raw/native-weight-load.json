@@ -12,8 +12,8 @@
   "gpu_payload_checksum_equal": true,
   "destination_freed_by_native": false,
   "cleanup_complete": true,
-  "language_report_sha256": "9b4728cec55772963b6376c9081d5204fcdfcfacc87caa969bb27cf4b3c873dd",
-  "visual_report_sha256": "4283f6473e46de5cb0142cb76ba089bf9e64a8680c33ef0ac39d9b7851f4cf18",
+  "language_report_sha256": "93ebff2a329fd066f96c87dba4791e198fb2a6f2aa750b5ae920d6941c6b1416",
+  "visual_report_sha256": "7fcd1555449b5dd863367d972cd6a791b9ff67aa68aaf5536117a63875772ce1",
   "language": {
   "schema": "aima-amd395-qwen36/direct-safetensors-scatter/v1",
   "complete": true,
@@ -32,14 +32,14 @@
   "buffered_shards": 0,
   "host_alignment_mod_4096": [0, 0],
   "workers": [
-    {"worker": 0, "elapsed_ms": 26959.918320000001, "shards": 26, "chunks": 536, "bytes_read": 69321260648, "payload_scheduled": 69321221376}
+    {"worker": 0, "elapsed_ms": 30134.487175999999, "shards": 26, "chunks": 536, "bytes_read": 69321260648, "payload_scheduled": 69321221376}
   ],
-  "aggregate_ms": 26960.118135000001,
-  "payload_gib_s": 2.3946637787010521,
+  "aggregate_ms": 30134.682078999998,
+  "payload_gib_s": 2.1423958679284087,
   "all_pointer_types_device": true,
   "all_device_pointers_match": true,
   "checksum_tasks": 8725,
-  "checksum_ms": 296.63721700000002,
+  "checksum_ms": 296.239441,
   "expected_xor": "0xca1d71472d45fd86",
   "gpu_payload_xor": "0xca1d71472d45fd86",
   "expected_sum": "0xce0f5e958964415e",
@@ -67,14 +67,14 @@
   "buffered_shards": 0,
   "host_alignment_mod_4096": [0, 0],
   "workers": [
-    {"worker": 0, "elapsed_ms": 485.93998800000003, "shards": 2, "chunks": 8, "bytes_read": 893148624, "payload_scheduled": 893142496}
+    {"worker": 0, "elapsed_ms": 647.29649600000005, "shards": 2, "chunks": 8, "bytes_read": 893148624, "payload_scheduled": 893142496}
   ],
-  "aggregate_ms": 485.99099799999999,
-  "payload_gib_s": 1.7115620912657619,
+  "aggregate_ms": 647.35201300000006,
+  "payload_gib_s": 1.2849326983914311,
   "all_pointer_types_device": true,
   "all_device_pointers_match": true,
   "checksum_tasks": 394,
-  "checksum_ms": 4.2023130000000002,
+  "checksum_ms": 4.2377510000000003,
   "expected_xor": "0xedae72382a609c99",
   "gpu_payload_xor": "0xedae72382a609c99",
   "expected_sum": "0xcbf21fe7cde36cdf",

@@ -51,6 +51,8 @@ release_metadata=(
   "${ROOT}/docs/MEMORY.zh-CN.md"
   "${ROOT}/docs/PERFORMANCE.md"
   "${ROOT}/docs/RELEASE.md"
+  "${ROOT}/docs/NATIVE_VL_GOAL.md"
+  "${ROOT}/docs/NATIVE_VL_IMPLEMENTATION.md"
   "${ROOT}/packaging/systemd/aima-engine.service"
   "${ROOT}/packaging/systemd/aima-engine.env.example"
   "${ROOT}/benchmarks/results/v1.0.0.json"
@@ -58,8 +60,16 @@ release_metadata=(
   "${ROOT}/benchmarks/results/native-foundation-v0.1.0.json"
   "${QUALIFICATION_RECORD}"
 )
-release_results=("${ROOT}"/benchmarks/results/*.json)
+release_results=(
+  "${ROOT}"/benchmarks/results/*.json
+  "${ROOT}"/benchmarks/results/*.json.sha256
+)
 release_contracts=("${ROOT}"/native/product-contract-v*.json)
+release_result_evidence_dirs=(
+  "${ROOT}/benchmarks/results/native-vl-envelope-v0.1.0-raw"
+  "${ROOT}/benchmarks/results/native-vl-generation-current-head-v0.1.0-raw"
+  "${ROOT}/benchmarks/results/native-vl-performance-reference-availability-v0.1.0-raw"
+)
 release_assets=(
   "${ROOT}/assets/demos/amd395-three-engine-comparison.gif"
   "${ROOT}/assets/demos/amd395-three-engine-comparison.mp4"
@@ -82,6 +92,14 @@ release_evidence_dirs=(
   "${ROOT}/benchmarks/runs/native-portable-baiying-compat-20260805-v150-release"
   "${ROOT}/benchmarks/runs/native-portable-bundle-20260805-v150-release"
   "${ROOT}/benchmarks/runs/native-product-surfaces-20260805-v150-release"
+  "${ROOT}/benchmarks/runs/native-vl-g1-g2-20260824-bd01287-final"
+  "${ROOT}/benchmarks/runs/native-correctness-20260824-bd01287-final"
+  "${ROOT}/benchmarks/runs/native-doctor-20260824-bd01287-final"
+  "${ROOT}/benchmarks/runs/native-mmlu256-eval-20260824-bd01287-final"
+  "${ROOT}/benchmarks/runs/native-openai-features-20260824-bd01287-final"
+  "${ROOT}/benchmarks/runs/native-product-surfaces-20260824-bd01287-final"
+  "${ROOT}/benchmarks/runs/native-paired-text-matrix-20260824-bd01287-final-balanced6"
+  "${ROOT}/benchmarks/runs/native-vl-performance-20260824-bd01287-final"
 )
 release_metadata+=(
   "${release_results[@]}"
@@ -89,6 +107,11 @@ release_metadata+=(
   "${release_assets[@]}"
 )
 for evidence_dir in "${release_evidence_dirs[@]}"; do
+  while IFS= read -r -d '' evidence_file; do
+    release_metadata+=("${evidence_file}")
+  done < <(find "${evidence_dir}" -type f -print0 | sort -z)
+done
+for evidence_dir in "${release_result_evidence_dirs[@]}"; do
   while IFS= read -r -d '' evidence_file; do
     release_metadata+=("${evidence_file}")
   done < <(find "${evidence_dir}" -type f -print0 | sort -z)
@@ -409,7 +432,7 @@ for asset in "${release_assets[@]}"; do
   install -Dm644 "${asset}" \
     "${STAGING}/assets/demos/$(basename "${asset}")"
 done
-for document in INSTALL API ARCHITECTURE MEMORY MEMORY.zh-CN PERFORMANCE RELEASE; do
+for document in INSTALL API ARCHITECTURE MEMORY MEMORY.zh-CN PERFORMANCE RELEASE NATIVE_VL_GOAL NATIVE_VL_IMPLEMENTATION; do
   install -Dm644 "${ROOT}/docs/${document}.md" \
     "${STAGING}/docs/${document}.md"
 done
@@ -428,6 +451,9 @@ install -Dm644 "${QUALIFICATION_RECORD}" \
 for result in "${release_results[@]}"; do
   install -Dm644 "${result}" \
     "${STAGING}/benchmarks/results/$(basename "${result}")"
+done
+for evidence_dir in "${release_result_evidence_dirs[@]}"; do
+  cp -a "${evidence_dir}" "${STAGING}/benchmarks/results/"
 done
 mkdir -p "${STAGING}/benchmarks/runs"
 for evidence_dir in "${release_evidence_dirs[@]}"; do

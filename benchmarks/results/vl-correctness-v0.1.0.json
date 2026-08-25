@@ -8,8 +8,8 @@
     "prompt_identities": 2
   },
   "candidate": {
-    "binary_sha256": "4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0",
-    "source_commit": "50289f1cbae150997ca82bbc054635932a2721c3"
+    "binary_sha256": "fb5cae0ca5ffaa4bc3d418d5fb1630d822eae9d60f639ba6cc143e427c0cd1e9",
+    "source_commit": "bd012874027defa528279a357609b713e9069df4"
   },
   "complete": true,
   "decision": {
@@ -217,34 +217,34 @@
   },
   "inputs": {
     "envelope": {
-      "bytes": 202544,
+      "bytes": 209529,
       "path": "benchmarks/results/native-vl-envelope-v0.1.0.json",
-      "sha256": "8585411f5d2178d6bd627f84143b041c3951e4e1eaf073e0294484572d7e67b3"
+      "sha256": "cb9104e3bb2ed5e756fc33a238f6f1ea4e6b24cfd4af098725e27a913c94325f"
     },
     "error_limits": {
-      "bytes": 85506,
+      "bytes": 88803,
       "path": "benchmarks/results/native-vl-error-limits-v0.1.0.json",
-      "sha256": "daddd7ca67985d19744fc0409b4ae2ada5b8cd7c9f6c93b803d1e47b4dd29814"
+      "sha256": "04b94dca3d956b16abd8724c3ff3a41026a7d2d0a5eceadf6b5d7d93281df7d6"
     },
     "full_http": {
-      "bytes": 41049,
-      "path": "benchmarks/runs/native-vl-g1-g2-20260821-50289f1/g2/g2-final-full-http-run.json",
-      "sha256": "711cecbca29938117ac81afbfaff3374924179c54fc0f52236ab9b55ec926630"
+      "bytes": 41050,
+      "path": "benchmarks/runs/native-vl-g1-g2-20260824-bd01287-final/g2/full-http/run.json",
+      "sha256": "b5b155f2f9f0c6b84a4f17df1db4638f3af626f602433571b1a6b7bbc6367b71"
     },
     "full_http_deep": {
-      "bytes": 59928,
-      "path": "benchmarks/runs/native-vl-g1-g2-20260821-50289f1/g2/g2-final-full-http-deep-multi-video-run.json",
-      "sha256": "502edae45918d3838176eefa3b95357e6e3f1b7d2cc918b109f9af7425b8b960"
+      "bytes": 59929,
+      "path": "benchmarks/runs/native-vl-g1-g2-20260824-bd01287-final/g2/full-http-deep/run.json",
+      "sha256": "6da0b7587c5cbad4a29516ba47de2a46391459cb2478f1742347191db906117d"
     },
     "full_private": {
-      "bytes": 41077,
-      "path": "benchmarks/runs/native-vl-g1-g2-20260821-50289f1/g2/g2-final-full-private-run.json",
-      "sha256": "272ab3b1fd235f3ec8284c6600699b928afb84c74d71d0b156cc288e7c5bb103"
+      "bytes": 41088,
+      "path": "benchmarks/runs/native-vl-g1-g2-20260824-bd01287-final/g2/full-private/run.json",
+      "sha256": "b4706eeec4085db49b0aebfef4a7784bf3d15f1d8216016efc021ea3d3c2ff43"
     },
     "generation": {
-      "bytes": 214213,
+      "bytes": 215008,
       "path": "benchmarks/results/native-vl-generation-current-head-v0.1.0.json",
-      "sha256": "e6f79c105ba669f9a2c1d5c037bbe06d106d66235254c7ebb45282d9d5b74c8b"
+      "sha256": "dd3e185d6b49c5c2c81ce53d886d46f74b44db3fce8cb163a9a3ab3e27f783d2"
     },
     "generator": {
       "bytes": 29955,
@@ -257,34 +257,34 @@
       "sha256": "4884803ea4c74a3082d949646ad31684536e672a39e229da796589009b0d212c"
     },
     "layer0": {
-      "bytes": 93279,
-      "path": "benchmarks/runs/native-vl-g1-g2-20260821-50289f1/g2/g2-final-layer0-run.json",
-      "sha256": "23184138c718b758b8b5a632cad1d4db54295d462d974fdfb9124d7a56f03236"
+      "bytes": 93276,
+      "path": "benchmarks/runs/native-vl-g1-g2-20260824-bd01287-final/g2/layer0-diagnostic/run.json",
+      "sha256": "0332c06e3f0840082395d7986d0161e3046825695bb62789eed4d84ca4ebc696"
     },
     "layer3_a": {
-      "bytes": 19495,
-      "path": "benchmarks/runs/native-vl-g1-g2-20260821-50289f1/g2/g2-final-layer3-a-run.json",
-      "sha256": "16d002d2948c7351b8881c308dcb0d65d7bd69b7b16527495585a6e15f36637d"
+      "bytes": 19497,
+      "path": "benchmarks/runs/native-vl-g1-g2-20260824-bd01287-final/g2/layer3-a/run.json",
+      "sha256": "0b646b432500abca4ae12796c4fa6d3eb61721a81ca0850814952425a6b5d33d"
     },
     "layer3_b": {
-      "bytes": 19497,
-      "path": "benchmarks/runs/native-vl-g1-g2-20260821-50289f1/g2/g2-final-layer3-b-run.json",
-      "sha256": "0037d44e78cfc75eae4c5e81529782fc950125025716ca3fc5d9a61c11cb9d99"
+      "bytes": 19491,
+      "path": "benchmarks/runs/native-vl-g1-g2-20260824-bd01287-final/g2/layer3-b/run.json",
+      "sha256": "bb21c9a4cbc774408c4610865bad67d47549dd797b27cb86f98ea1665f574d16"
     },
     "task_quality": {
-      "bytes": 128168,
+      "bytes": 133169,
       "path": "benchmarks/results/native-vl-task-quality-v0.1.0.json",
-      "sha256": "f1ffdff8e0c5f9000e2bb1fae576bf6dd3a158f2a169732c7ffb5d07bef4c8e3"
+      "sha256": "02849e24939519b250c1c596011e33dd64af8dbfdbea4715a749c520a763b14b"
     },
     "vision_pipeline": {
-      "bytes": 15115,
+      "bytes": 15116,
       "path": "benchmarks/results/native-vision-pipeline-current-head-v0.2.0.json",
-      "sha256": "4533048a5c6e6c078ebe5278f795b03460a663f2f22fbbf0d1753ed439602f20"
+      "sha256": "49d090b58e42d372089e1374a4f6b12229f5298b2c45752f20d21e5c6afbad8e"
     }
   },
   "integrity": {
     "algorithm": "sha256",
-    "canonical_payload_sha256": "eafd8757ecacab55fa448c1d7ed2d9a7cf03f96bad4c65e216b398dc9e55835b"
+    "canonical_payload_sha256": "beedbcde1db1d50db20ad407199a0848cefea44fd3435ebf83659bdd90d558cb"
   },
   "qualification": {
     "files": [
@@ -326,34 +326,34 @@
     ],
     "probe_binaries": {
       "full_language": {
-        "bytes": 2531512,
+        "bytes": 2536328,
         "runtime_python": false,
         "runtime_torch": false,
         "runtime_triton": false,
         "runtime_vllm": false,
-        "sha256": "85e084c663ab536b5371bd40f504848f09bd4b77548542c7059c05374f782fdb"
+        "sha256": "b5996a09fd7485aa914f6a72bfaf62ef2c6ef569fb6606eb8dac52c6e292011a"
       },
       "layer0": {
-        "bytes": 2271000,
+        "bytes": 2275816,
         "runtime_python": false,
         "runtime_torch": false,
         "runtime_triton": false,
         "runtime_vllm": false,
-        "sha256": "92b155750571ba4669a95c6f897ed149f466a887da39f6d52db74a619c2084df"
+        "sha256": "f627f485895740ec037d87c19cb986fec766b0a8dd16ca5174d17771ca919da0"
       },
       "layer3": {
-        "bytes": 527672,
+        "bytes": 532872,
         "runtime_python": false,
         "runtime_torch": false,
         "runtime_triton": false,
         "runtime_vllm": false,
-        "sha256": "48c672e008ed452c81668af95f148c2297d20fbda68187a1181be7d9e03c4c5b"
+        "sha256": "55c9155111f49528ef17926785445d008f150d9349a988c2a94526d5c0b213f0"
       }
     },
-    "source_commit": "5671c1767d0dea025386ab04f93ec69b96ae95bd"
+    "source_commit": "bd012874027defa528279a357609b713e9069df4"
   },
   "qualified": true,
-  "recorded_on": "2026-08-21",
+  "recorded_on": "2026-08-24",
   "schema": "aima-amd395-qwen36/native-vl-g2-qualification/v1",
   "scope": "processor-through-task-quality-exact-binary-vl-correctness",
   "thresholds": {

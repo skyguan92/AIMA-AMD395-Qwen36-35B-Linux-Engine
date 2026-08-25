@@ -1,5 +1,54 @@
 # Performance and correctness
 
+## v1.5.1-native-vl.1 paired qualification
+
+The native VL release binds source commit
+`bd012874027defa528279a357609b713e9069df4` and engine SHA-256
+`fb5cae0ca5ffaa4bc3d418d5fb1630d822eae9d60f639ba6cc143e427c0cd1e9`.
+It is not promoted from a single favorable run: text uses six adjacent
+release/candidate pairs with alternating order, and VL performance uses at
+least five adjacent vLLM/candidate pairs with alternating order on the same
+AMD395. Every throughput median must be at least `1.000x` its fixed reference;
+every TTFT/component/total-latency median must be at most `1.000x`. The older
+`0.97x` text floor remains a second safety check, not a regression allowance.
+
+Text requalification covers all sixteen standard input/output cells, the three
+262,144-token-window endpoints, nine full-vocabulary correctness contexts,
+exact q8192 output identity, command-to-ready, four-entry prefix LRU and A/B/A,
+native HTTP/SSE/tools/disconnect behavior, MMLU-256 and explicit proof that a
+text request allocates or executes no media/vision request path. The sealed
+decision and all paired raw runs are published as
+`benchmarks/results/text-v151-nonregression-v0.1.0.json` and
+`benchmarks/runs/native-paired-text-matrix-20260824-bd01287-final-balanced6/`.
+
+VL performance uses the 23-cell capability-derived matrix with the same media,
+processor output, effective context, output length, cache state, warmup and
+timing boundary on both engines. Twenty fixed-reference-available cells are
+decided independently across TTFT, total latency and applicable vision,
+prefill and decode throughput. Three cells that the fixed vLLM reference cannot
+execute remain an explicit `reference_unavailable` ledger: they preserve native
+product capability but are not counted as performance wins. Candidate startup
+is measured with the media cache both enabled and disabled and must remain at
+or below `44.90 s`. The sealed matrix is
+`benchmarks/results/vl-performance-v0.1.0.json`; paired records are under
+`benchmarks/runs/native-vl-performance-20260824-bd01287-final/`.
+
+Correctness is independently blocked before performance promotion. Five
+image/video/mixed shapes pass visual blocks 0/13/26 and merger with
+`6,856,704/6,856,704` BF16 elements exact. Private processor-to-logits and
+independently rendered HTTP corpora jointly pass `84/84` selected
+full-vocabulary rows, top-1 equality, KLD `0`,
+`20,858,880/20,858,880` selected logits and
+`2,420,736/2,420,736` final-norm elements. Processor boundaries,
+deterministic generation, task quality and error parity are part of the same
+sealed `benchmarks/results/vl-correctness-v0.1.0.json` decision.
+
+Host RSS and peak GTT are recorded per VL cell. Final release qualification
+also requires the exact archive on two distinct AMD395 hosts, a one-hour
+single-process text/image/video/mixed workload with at least 240 requests and
+no more than 1 GiB post-warm peak RSS growth, followed by rollback to the exact
+v1.5.1 archive.
+
 ## v1.5.1 portable native full envelope
 
 The v1.5 portable runtime covers the complete published batch-1 matrix without

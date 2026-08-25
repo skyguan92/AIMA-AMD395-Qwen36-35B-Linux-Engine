@@ -19,9 +19,9 @@ MEDIA_IO = RESULTS / "vl-media-io-reference-v0.1.0.json"
 REFERENCE = RESULTS / "vl-error-limits-reference-v0.1.0.json"
 NATIVE = RESULTS / "native-vl-error-limits-v0.1.0.json"
 QUALIFIED_COMMIT = "7642995e772fbdc8ae763bcffb90f2da852987f0"
-NATIVE_QUALIFIED_COMMIT = "50289f1cbae150997ca82bbc054635932a2721c3"
+NATIVE_QUALIFIED_COMMIT = "bd012874027defa528279a357609b713e9069df4"
 QUALIFIED_BINARY_SHA256 = (
-    "4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0"
+    "fb5cae0ca5ffaa4bc3d418d5fb1630d822eae9d60f639ba6cc143e427c0cd1e9"
 )
 MEDIA_IO_CASES = {
     "default_white": (

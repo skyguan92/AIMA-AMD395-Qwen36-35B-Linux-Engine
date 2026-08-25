@@ -15,11 +15,11 @@ RESULT = ROOT / "benchmarks/results/text-v151-nonregression-v0.1.0.json"
 RESULT_SIDECAR = RESULT.with_name(RESULT.name + ".sha256")
 PAIRED_MATRIX_ROOT = (
     ROOT
-    / "benchmarks/runs/native-paired-text-matrix-20260821-50289f1-balanced6"
+    / "benchmarks/runs/native-paired-text-matrix-20260824-bd01287-final-balanced6"
 )
-QUALIFIED_COMMIT = "50289f1cbae150997ca82bbc054635932a2721c3"
+QUALIFIED_COMMIT = "bd012874027defa528279a357609b713e9069df4"
 QUALIFIED_BINARY_SHA256 = (
-    "4bf377135bafe4dd0d449dc2c8563fa727ed47414eb4c7c7221ecb7e631711d0"
+    "fb5cae0ca5ffaa4bc3d418d5fb1630d822eae9d60f639ba6cc143e427c0cd1e9"
 )
 BASELINE_COMMIT = "65c198415709dad6d046c247acab3dc9df2a95a0"
 BASELINE_BINARY_SHA256 = (
@@ -79,9 +79,34 @@ class NativeVlG3QualificationLogicTest(unittest.TestCase):
         )
         self.assertFalse(checks["exactly_nineteen_frozen_cells"])
         self.assertFalse(
-            checks["all_cells_six_pair_order_balanced_strict_no_regression"]
+            checks[
+                "all_cells_minimum_six_pair_order_balanced_strict_no_regression"
+            ]
         )
         self.assertEqual(summary["cell_count"], 0)
+
+    def test_strict_matrix_cell_accepts_additional_balanced_pairs(self) -> None:
+        generator = load_generator_module()
+        pair_count = 12
+        cell = {
+            "complete": True,
+            "qualified": True,
+            "pair_count": pair_count,
+            "required_pair_count": pair_count,
+            "pairs": [
+                {
+                    "execution_order": ["baseline", "candidate"]
+                    if pair_index % 2
+                    else ["candidate", "baseline"]
+                }
+                for pair_index in range(1, pair_count + 1)
+            ],
+            "paired_checks": {"prefill_tps": True},
+            "legacy_floor_checks": {"prefill_tps": True},
+        }
+        self.assertTrue(generator.paired_matrix_cell_is_strict(cell))
+        cell["pairs"][-1]["execution_order"] = ["baseline", "candidate"]
+        self.assertFalse(generator.paired_matrix_cell_is_strict(cell))
 
 
 class NativeVlG3QualificationTest(unittest.TestCase):

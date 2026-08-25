@@ -2,14 +2,15 @@
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![CI](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/actions/workflows/ci.yml/badge.svg)](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/release-v1.5.1-green.svg)](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.5.1)
+[![Release](https://img.shields.io/badge/release-v1.5.1--native--vl.1-green.svg)](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.5.1-native-vl.1)
 [![Hardware](https://img.shields.io/badge/GPU-gfx1151-orange.svg)](docs/INSTALL.md)
 
 这是一个面向 AMD Ryzen AI Max+ 395 / Radeon 8060S 的 batch-1
 `Qwen3.6-35B-A3B-BF16` 专用推理引擎。
 
-v1.5.1 提供真正的 SSE 流式输出与 OpenAI function tools，同时保持可搬移原生
-运行包：运行时不加载 Python、PyTorch、vLLM、
+v1.5.1-native-vl.1 在可搬移原生包内补齐固定模型的图片、视频、混合媒体和多轮
+多模态对话能力。同一个常驻进程完成媒体处理、27 层视觉塔与语言模型，并保留真正
+的 SSE 流式输出和 OpenAI function tools。运行时不加载 Python、PyTorch、vLLM、
 Triton、Transformers，也不依赖宿主机安装 ROCm userspace。发布包内含静态
 启动器、原生引擎、固定版本的 ROCm/AOTriton/CK 动态库、glibc loader、许可证
 和资格验证记录。模型权重不随项目分发。
@@ -18,7 +19,9 @@ Triton、Transformers，也不依赖宿主机安装 ROCm userspace。发布包�
 > 超时和加固后的 systemd 模板；v1.4.1 新增变长 cold prompt 与普通多轮
 > cache miss 回退；v1.5.0 新增常驻 q1024/q2048/q4096/q8192 prefill 调度与
 > 容量受限的多条目 prefix LRU；v1.5.1 用可组合的常驻 AOT prefill 取代串行
-> 逐 token 尾部，并在真实 prompt 边界修复填充后的递归状态。
+> 逐 token 尾部，并在真实 prompt 边界修复填充后的递归状态；
+> v1.5.1-native-vl.1 在 ready 前完成全部视觉权重与两个视觉 attention 路径的
+> warmup，并通过严格配对门槛保留这份文本产品能力。
 
 English: [README.md](README.md)
 
@@ -38,7 +41,7 @@ Python 包元数据和引用文件使用同一个、可由 GitHub 识别的个�
 
 ## 先看清楚支持边界
 
-原生便携版本已通过完整 batch-1 发布矩阵：
+原生便携版本已通过完整 batch-1 文本发布矩阵：
 
 | 输入 token | 输出 token | 状态 |
 |---:|---:|---|
@@ -61,7 +64,14 @@ q1024/q2048/q4096/q8192 调度，并选择能够覆盖真实 prompt 的最小 bu
 只影响时延，不再决定请求能否执行。绝对窗口上限仍为 262,144 token。原生版本
 现已替代 v1.1 的公开性能矩阵；Python 版本仅保留为兼容与来源参考。
 机器可读边界见
-[native/product-contract.json](native/product-contract.json)。
+[native/product-contract-v1.5.1-native-vl.1.json](native/product-contract-v1.5.1-native-vl.1.json)。
+
+同一进程支持单图/多图、单视频/多视频、图片与视频混合、文本和媒体任意合法顺序
+交错、多轮媒体复用与替换、tools，以及流式/非流式请求。冻结能力边界覆盖格式、
+长宽比、透明度、动态图片分辨率、视频容器/fps/帧采样和明确的错误上限。贪心解码
+继续使用认证 top-1 路径；正 `temperature` 为文本和 VL 提供可设 seed 的全词表
+BF16/top-p 采样，并保证流式与非流式一致。音频、batching 与并发执行仍不属于本版
+本范围。
 
 ## 运行环境
 
@@ -73,7 +83,7 @@ q1024/q2048/q4096/q8192 调度，并选择能够覆盖真实 prompt 的最小 bu
 - 用户自行取得且哈希匹配的 26-shard BF16 Safetensors 模型。
 
 不需要系统 ROCm 和 Python 虚拟环境。跨软件版本兼容来自随包 loader 与动态库；
-解压后约 369 MiB，`.tar.zst` 压缩包约 101 MiB。Linux 内核驱动和 GPU
+压缩包校验文件和递归 manifest 记录精确体积与全部文件。Linux 内核驱动和 GPU
 架构本身无法打包进去。
 
 加载模型前先完成内存设置：
@@ -81,7 +91,7 @@ q1024/q2048/q4096/q8192 调度，并选择能够覆盖真实 prompt 的最小 bu
 
 ## 快速启动
 
-先从[个人上游 v1.5.1 Release](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.5.1)
+先从[个人上游 v1.5.1-native-vl.1 Release](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.5.1-native-vl.1)
 下载运行包与校验文件：
 
 ```bash
@@ -93,12 +103,14 @@ cd aima-engine-native-portable-*
 ./bin/aima-engine serve \
   --model-dir /srv/models/Qwen3.6-35B-A3B \
   --context-tokens 8192 \
+  --allowed-local-media-path /srv/aima-media \
   --host 127.0.0.1 \
   --port 8000
 ```
 
-进程启动时只装载一次模型，校验 69,321,221,376 字节有效权重，并让权重、执行计划、
-KV/递归状态和 prefix cache 一直常驻。ready 时会输出一行 JSON。
+进程启动时只装载一次模型，校验全部 1,026 个 tensor 和 70,214,363,872 字节
+payload，warmup 两个视觉 attention 路径，并让权重、执行计划、KV/递归状态和
+prefix cache 一直常驻。语言与视觉路径都能服务后才会输出 ready JSON。
 
 另开终端检查：
 
@@ -121,6 +133,10 @@ curl -fsS http://127.0.0.1:8000/v1/chat/completions \
   }'
 ```
 
+随机生成可将 `temperature` 设为 `(0,2]`、`top_p` 设为 `(0,1]`，并可提供非负
+`seed`。实际 seed 和采样开销记录在 `aima_amd395.sampling`；显式 seed 在流式和
+非流式请求中复现同一 token 序列。
+
 真正的逐 token SSE 流式输出：
 
 ```bash
@@ -141,6 +157,25 @@ curl -N http://127.0.0.1:8000/v1/chat/completions \
 `parallel_tool_calls`、assistant 工具调用历史以及 tool 响应。完整请求与返回示例、
 变长 prompt 执行规则见 [docs/API.md](docs/API.md)。
 
+图片请求使用同一个接口和有序 OpenAI content parts：
+
+```bash
+curl -fsS http://127.0.0.1:8000/v1/chat/completions \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "model":"aima-amd395-qwen36-35b",
+    "messages":[{"role":"user","content":[
+      {"type":"text","text":"请描述这张图片。"},
+      {"type":"image_url","image_url":{"url":"file:///srv/aima-media/example.jpg"}}
+    ]}],
+    "temperature":0,
+    "max_tokens":128
+  }'
+```
+
+视频使用 `video_url`，同一请求可重复并交错图片、视频和文本。读取本地文件必须配置
+明确根目录，远程媒体必须配置精确域名 allowlist，也支持受字节上限约束的 data URI。
+
 前台运行时可用 `Ctrl-C` 或 `SIGTERM` 关闭，也可以：
 
 ```bash
@@ -152,7 +187,7 @@ curl -fsS -X POST http://127.0.0.1:8000/shutdown
 
 ## 原生 CLI
 
-已发布的 v1.5.1 CLI 提供：
+已发布的 v1.5.1-native-vl.1 CLI 提供：
 
 ```text
 aima-engine --build-info
@@ -185,8 +220,8 @@ aima-engine chat --messages-json conversation.json --tools-json tools.json
 
 ## 原生成品性能
 
-下表来自最终原生二进制在 AMD395 目标机上的结果。协议为同配置三次取中位数；
-昂贵 cell 若前两次差异不超过 3%，两次即可。
+下表是冻结的 v1.5.1 文本基线。原生 VL candidate 只有在每个 cell 通过六组相邻、
+交替顺序配对并达到基线时才会晋级；历史 97% 安全下限不能用于掩盖配对回退。
 
 | 输入 | output512 prefill | output512 decode | output1024 prefill | output1024 decode |
 |---:|---:|---:|---:|---:|
@@ -223,9 +258,10 @@ aima-engine chat --messages-json conversation.json --tools-json tools.json
   A/B/A 请求序列验证了 4 条目 LRU 的复用。
 
 完整精度、每次测量值和组件哈希见
-`benchmarks/results/native-portable-product-v1.5.1.json`，同时随包保存为
-`share/aima/qualification.json`。同一份压缩包会在发布前于第二台 AMD395 上检查，
-脱敏结果在发布后镜像到仓库。
+`benchmarks/results/native-vl-g5-release-v1.5.1-native-vl.1.json`，package-input
+qualification 同时随包保存为 `share/aima/qualification.json`。同一份压缩包会在
+两台不同 AMD395 上检查，完成一小时单进程 text/image/video/mixed soak，并在发布前
+回滚验证精确的 v1.5.1 基线包。
 
 ## 从源码构建
 
@@ -270,7 +306,9 @@ aima_engine/                 保留的 v1.1 兼容控制面
 
 HTTP 服务默认只监听 `127.0.0.1`，支持从 `--api-key-file` 读取 bearer
 token；默认拒绝未鉴权的非 loopback 监听，并可通过
-`--disable-http-shutdown` 移除停服接口。TLS、限流和多用户授权仍应由网关提供。
+`--disable-http-shutdown` 移除停服接口。本地媒体只在明确根目录内以 descriptor
+relative、禁止 symlink 的方式读取；远程媒体逐跳检查域名与地址，并限制重定向、
+TLS 降级、字节数和 deadline。TLS、限流和多用户授权仍应由网关提供。
 
 AIMA 项目代码采用 [Apache License 2.0](LICENSE)。随包第三方组件继续遵循各自
 许可证，见 [NOTICE](NOTICE)、[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)

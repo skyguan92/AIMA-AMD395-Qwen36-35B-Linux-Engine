@@ -5,6 +5,34 @@ Versioning.
 
 ## Unreleased
 
+## 1.5.1-native-vl.1 - 2026-08-24
+
+- Added the complete fixed `Qwen3.6-35B-A3B-BF16` native image, video,
+  mixed-media, multimodal conversation, tools and OpenAI stream/non-stream
+  surface in the existing single resident process.
+- Added the native processor, dynamic image and sampled-video pipeline,
+  27-block visual tower, merger, media-embedding injection and M-RoPE/KV
+  continuation without a Python, PyTorch, vLLM, Triton or Transformers runtime.
+- Loaded and verified all 693 language plus 333 visual tensors before
+  readiness, and warmed both hash-locked gfx1151 vision-attention variants.
+- Added content-bound media and vision-embedding caches with A/B/A correctness,
+  explicit local/remote allowlists, traversal/symlink/SSRF defenses and bounded
+  download, decode, frame, pixel, redirect and deadline policies.
+- Qualified processor, vision/language boundaries, full-vocabulary logits,
+  deterministic generation, task quality and error behavior against the
+  pinned vLLM/processor reference.
+- Requalified the complete v1.5.1 text product with six alternating paired
+  runs per 19-cell/maximum-window cell, plus correctness, MMLU, API, cache,
+  startup and memory gates.
+- Qualified every fixed-reference-available VL performance cell with five or
+  more alternating pairs; reference-unavailable capability cells remain an
+  explicit non-passing ledger rather than being counted as candidate wins.
+- Added a native-VL product contract, recursive portable bundle evidence,
+  two-host qualification, one-hour resident mixed-workload soak, exact v1.5.1
+  rollback and immutable release provenance.
+- Added positive `temperature` and `top_p` generation for text and VL using an
+  exact full-vocabulary BF16 LM-head projection, stable optional seeds and
+  stream/non-stream replay qualification; the greedy path remains unchanged.
 - Reduced the default direct-checkpoint read chunk from 512 MiB to 128 MiB.
   Balanced AMD395 measurements cut median language-weight load time by about
   15% while retaining the single-reader policy that avoids same-device

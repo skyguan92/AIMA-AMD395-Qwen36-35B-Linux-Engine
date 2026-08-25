@@ -125,10 +125,12 @@ The native process owns all 693 checkpoint tensors, derived layouts, AOT
 modules, hipBLASLt plans, KV/recurrent state, scratch and a capacity-bounded
 prefix LRU. A normal q8192 service retains four exact request-prefix snapshots;
 long-window profiles reduce that count to preserve the 96 GiB GTT contract.
-The engine implements cold prefill, resident greedy decode, exact-prefix
-restore and one-token-or-longer prefix extension. On a hit it restores the
-cached state and executes only the suffix through the native decode path;
-cold-prefill launch count is zero for an exact hit.
+The engine implements cold prefill, resident certified greedy decode, seeded
+positive-temperature full-vocabulary BF16/top-p sampling, exact-prefix restore
+and one-token-or-longer prefix extension. On a hit it restores the cached state
+and executes only the suffix through the native decode path; cold-prefill
+launch count is zero for an exact hit. Stochastic sampling reuses dead
+certificate scratch and leaves the temperature-zero launch path unchanged.
 
 The final v1.5.1 qualification established:
 
