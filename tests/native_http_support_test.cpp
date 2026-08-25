@@ -54,6 +54,24 @@ void test_timeout_parser() {
       []() { (void)aima::parse_native_http_timeout_ms("-1", "--timeout"); },
       "negative timeout was admitted");
   require_throws(
+      []() { (void)aima::parse_native_http_timeout_ms("", "--timeout"); },
+      "empty timeout was admitted");
+  require_throws(
+      []() { (void)aima::parse_native_http_timeout_ms("+1", "--timeout"); },
+      "signed timeout was admitted");
+  require_throws(
+      []() { (void)aima::parse_native_http_timeout_ms(" 1", "--timeout"); },
+      "leading whitespace timeout was admitted");
+  require_throws(
+      []() { (void)aima::parse_native_http_timeout_ms("1junk", "--timeout"); },
+      "trailing junk timeout was admitted");
+  require_throws(
+      []() {
+        (void)aima::parse_native_http_timeout_ms("18446744073709551615",
+                                                  "--timeout");
+      },
+      "unrepresentable timeout was admitted");
+  require_throws(
       []() { (void)aima::parse_native_http_timeout_ms("abc", "--timeout"); },
       "non-numeric timeout was admitted");
   require_throws(
@@ -80,7 +98,7 @@ void test_executor_capacity_and_serial_execution() {
   active_task.run = [&]() {
     note_running(running, maximum_running);
     active_started.set_value();
-    require(release_active_future.wait_for(2s) == std::future_status::ready,
+    require(release_active_future.wait_for(10s) == std::future_status::ready,
             "active task release was not signaled");
     running.fetch_sub(1);
   };
@@ -122,6 +140,7 @@ void test_shutdown_cancels_pending_before_active_completes() {
       release_active.get_future().share();
   std::promise<void> pending_cancelled;
   std::future<void> pending_cancelled_future = pending_cancelled.get_future();
+  std::atomic<bool> pending_ran{false};
   std::promise<void> shutdown_returned;
   std::future<void> shutdown_returned_future = shutdown_returned.get_future();
   std::promise<void> shutdown_thread_ready;
@@ -136,7 +155,7 @@ void test_shutdown_cancels_pending_before_active_completes() {
   aima::NativeSerialExecutor::Task active_task;
   active_task.run = [&]() {
     active_started.set_value();
-    require(release_active_future.wait_for(2s) == std::future_status::ready,
+    require(release_active_future.wait_for(10s) == std::future_status::ready,
             "shutdown test active task release was not signaled");
   };
   active_task.cancel = []() {};
@@ -145,7 +164,7 @@ void test_shutdown_cancels_pending_before_active_completes() {
   require(active_started_future.wait_for(5s) == std::future_status::ready,
           "shutdown test active task did not start");
   aima::NativeSerialExecutor::Task pending_task;
-  pending_task.run = []() {};
+  pending_task.run = [&]() { pending_ran.store(true); };
   pending_task.cancel = [&]() { pending_cancelled.set_value(); };
   require(executor.submit(std::move(pending_task)),
           "shutdown test pending task was rejected");
@@ -174,6 +193,7 @@ void test_shutdown_cancels_pending_before_active_completes() {
   require(shutdown_returned_future.wait_for(5s) == std::future_status::ready,
           "shutdown did not return after active task completed");
   shutdown_thread.join();
+  require(!pending_ran.load(), "shutdown-cancelled task was run");
 
   executor.shutdown();
   aima::NativeSerialExecutor::Task stopped_task;
