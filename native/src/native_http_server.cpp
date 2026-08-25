@@ -4,6 +4,7 @@
 #include "aima/native_http_server.h"
 
 #include "aima/native_chat_protocol.h"
+#include "aima/native_http_support.h"
 #include "aima/native_resident_engine.h"
 #include "aima/native_tokenizer.h"
 
@@ -31,6 +32,8 @@
 #include <iostream>
 #include <iomanip>
 #include <limits>
+#include <memory>
+#include <optional>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -46,6 +49,7 @@ namespace {
 using Json = NativeOrderedJson;
 constexpr const char* kModelId = "aima-amd395-qwen36-35b";
 constexpr std::size_t kMaximumRequestBytes = 1024 * 1024;
+constexpr std::size_t kMaximumPendingChatRequests = 16;
 std::atomic<bool> g_shutdown{false};
 
 double elapsed_ms(std::chrono::steady_clock::time_point start) {
@@ -69,6 +73,10 @@ class FileDescriptor {
     const int value = value_;
     value_ = -1;
     return value;
+  }
+  void reset(int value = -1) noexcept {
+    if (value_ >= 0) (void)::close(value_);
+    value_ = value;
   }
 
  private:
@@ -108,6 +116,16 @@ struct HttpRequest {
   std::string path;
   std::unordered_map<std::string, std::string> headers;
   std::string body;
+};
+
+struct QueuedChatRequest {
+  QueuedChatRequest(HttpRequest request_value,
+                    std::chrono::steady_clock::time_point started_value)
+      : request(std::move(request_value)), started(started_value) {}
+
+  FileDescriptor client;
+  HttpRequest request;
+  std::chrono::steady_clock::time_point started;
 };
 
 std::string lower_ascii(std::string value) {
@@ -172,6 +190,7 @@ std::string status_text(int status) {
     case 404: return "Not Found";
     case 405: return "Method Not Allowed";
     case 413: return "Payload Too Large";
+    case 503: return "Service Unavailable";
     case 500: return "Internal Server Error";
     default: return "Error";
   }
@@ -198,27 +217,51 @@ Json error_payload(const std::string& message, const std::string& code,
                       {"code", code}}}};
 }
 
+void send_server_busy(int fd, std::string_view message) {
+  (void)send_json(fd, 503,
+                  error_payload(std::string(message), "server_busy",
+                                "server_error"));
+}
+
 ssize_t receive_before(int fd, void* buffer, std::size_t size,
-                       std::chrono::steady_clock::time_point deadline,
+                       const std::optional<
+                           std::chrono::steady_clock::time_point>& deadline,
                        const char* timeout_message) {
   while (true) {
-    const auto now = std::chrono::steady_clock::now();
-    if (now >= deadline) {
-      throw std::system_error(std::make_error_code(std::errc::timed_out),
-                              timeout_message);
-    }
-    const auto remaining =
-        std::chrono::duration_cast<std::chrono::microseconds>(deadline - now);
-    timeval timeout{};
-    timeout.tv_sec = static_cast<time_t>(remaining.count() / 1000000);
-    timeout.tv_usec =
-        static_cast<suseconds_t>(std::max<std::int64_t>(1, remaining.count() % 1000000));
-    if (::setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout,
-                     sizeof(timeout)) != 0) {
-      throw std::runtime_error("failed to configure request read deadline");
+    if (deadline.has_value()) {
+      const auto now = std::chrono::steady_clock::now();
+      if (now >= *deadline) {
+        throw std::system_error(std::make_error_code(std::errc::timed_out),
+                                timeout_message);
+      }
+      const auto remaining = *deadline - now;
+      const auto seconds =
+          std::chrono::duration_cast<std::chrono::seconds>(remaining);
+      const auto fractional =
+          remaining - std::chrono::duration_cast<
+                          std::chrono::steady_clock::duration>(seconds);
+      const auto microseconds =
+          std::chrono::duration_cast<std::chrono::microseconds>(fractional);
+      timeval timeout{};
+      timeout.tv_sec = static_cast<time_t>(seconds.count());
+      timeout.tv_usec = static_cast<suseconds_t>(microseconds.count());
+      if (timeout.tv_sec == 0 && timeout.tv_usec == 0) {
+        timeout.tv_usec = 1;
+      }
+      if (::setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout,
+                       sizeof(timeout)) != 0) {
+        throw std::runtime_error("failed to configure request read deadline");
+      }
     }
     const ssize_t count = ::recv(fd, buffer, size, 0);
-    if (count < 0 && errno == EINTR) continue;
+    if (count < 0 && errno == EINTR) {
+      if (g_shutdown.load()) {
+        throw std::system_error(
+            std::make_error_code(std::errc::operation_canceled),
+            "HTTP request cancelled");
+      }
+      continue;
+    }
     if (count < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
       throw std::system_error(std::make_error_code(std::errc::timed_out),
                               timeout_message);
@@ -228,8 +271,22 @@ ssize_t receive_before(int fd, void* buffer, std::size_t size,
 }
 
 HttpRequest read_request(int fd, std::size_t timeout_ms) {
-  const auto deadline = std::chrono::steady_clock::now() +
-                        std::chrono::milliseconds(timeout_ms);
+  std::optional<std::chrono::steady_clock::time_point> deadline;
+  if (timeout_ms != 0) {
+    using Clock = std::chrono::steady_clock;
+    Clock::duration requested = std::chrono::duration_cast<Clock::duration>(
+        std::chrono::milliseconds(timeout_ms));
+    if (requested <= Clock::duration::zero()) requested = Clock::duration(1);
+    const Clock::time_point now = Clock::now();
+    const auto maximum_count = Clock::time_point::max()
+                                   .time_since_epoch()
+                                   .count();
+    if (now.time_since_epoch().count() > maximum_count - requested.count()) {
+      deadline = Clock::time_point::max();
+    } else {
+      deadline = now + requested;
+    }
+  }
   std::string wire;
   wire.reserve(8192);
   std::size_t header_end = std::string::npos;
@@ -428,6 +485,7 @@ bool authorized(const HttpRequest& request, const std::string& api_key) {
 }
 
 void configure_client_timeout(int fd, std::size_t milliseconds) {
+  if (milliseconds == 0) return;
   timeval timeout{};
   timeout.tv_sec = static_cast<time_t>(milliseconds / 1000);
   timeout.tv_usec = static_cast<suseconds_t>((milliseconds % 1000) * 1000);
@@ -496,12 +554,8 @@ ServerOptions parse_options(int argc, char** argv) {
       options.maximum_requests =
           parse_size(next("--max-requests"), "--max-requests");
     } else if (argument == "--request-timeout-ms") {
-      options.request_timeout_ms =
-          parse_size(next("--request-timeout-ms"), "--request-timeout-ms");
-      if (options.request_timeout_ms > 600000) {
-        throw std::runtime_error(
-            "--request-timeout-ms must not exceed 600000");
-      }
+      options.request_timeout_ms = parse_native_http_timeout_ms(
+          next("--request-timeout-ms"), "--request-timeout-ms");
     } else if (argument == "--api-key-file") {
       api_key_file = std::filesystem::absolute(next("--api-key-file"));
     } else if (argument == "--disable-http-shutdown") {
@@ -1007,6 +1061,9 @@ int run_native_http_server(int argc, char** argv) {
   tokenizer.load(options.engine.weights.model_dir);
   NativeResidentEngine engine;
   const NativeResidentLoadMetrics load = engine.load(options.engine);
+  const bool model_loaded = engine.loaded();
+  std::atomic<std::size_t> served{0};
+  NativeSerialExecutor chat_executor(kMaximumPendingChatRequests);
 
   if (::listen(server.get(), 16) != 0) {
     throw std::runtime_error("listen failed");
@@ -1052,7 +1109,6 @@ int run_native_http_server(int argc, char** argv) {
                    .dump()
             << std::endl;
 
-  std::size_t served = 0;
   while (!g_shutdown.load()) {
     sockaddr_in peer{};
     socklen_t peer_size = sizeof(peer);
@@ -1060,13 +1116,14 @@ int run_native_http_server(int argc, char** argv) {
                                    reinterpret_cast<sockaddr*>(&peer),
                                    &peer_size, SOCK_CLOEXEC);
     if (accepted < 0) {
+      if (g_shutdown.load()) break;
       if (errno == EINTR) continue;
       throw std::runtime_error("accept failed");
     }
     FileDescriptor client(accepted);
     try {
       configure_client_timeout(client.get(), options.request_timeout_ms);
-      const HttpRequest request =
+      HttpRequest request =
           read_request(client.get(), options.request_timeout_ms);
       if (requires_authentication(request, options) &&
           !authorized(request, options.api_key)) {
@@ -1080,9 +1137,10 @@ int run_native_http_server(int argc, char** argv) {
         (void)send_json(client.get(), 200,
                   {{"status", "ok"},
                    {"model", kModelId},
-                   {"model_loaded", engine.loaded()},
+                   {"model_loaded", model_loaded},
                    {"resident", true},
-                   {"served", served},
+                   {"busy", chat_executor.busy()},
+                   {"served", served.load()},
                    {"uptime_ms", elapsed_ms(process_started)},
                    {"command_to_ready_wall_ms", command_to_ready_ms},
                    {"runtime", "native"},
@@ -1111,36 +1169,67 @@ int run_native_http_server(int argc, char** argv) {
                  options.http_shutdown) {
         (void)send_json(client.get(), 200, {{"status", "shutting_down"}});
         g_shutdown.store(true);
+        (void)::shutdown(server.get(), SHUT_RDWR);
       } else if (request.method == "POST" &&
                  request.path == "/v1/chat/completions") {
-        Json body;
-        try {
-          body = Json::parse(request.body);
-          const auto started = std::chrono::steady_clock::now();
-          ParsedCompletionRequest parsed =
-              parse_completion_request(tokenizer, body);
-          if (parsed.stream) {
-            if (stream_chat_completion(client.get(), engine, tokenizer,
-                                       std::move(parsed), started)) {
-              ++served;
+        const auto http_started = std::chrono::steady_clock::now();
+        auto queued_request = std::make_shared<QueuedChatRequest>(
+            std::move(request), http_started);
+        queued_request->client.reset(client.release());
+
+        NativeSerialExecutor::Task chat_task;
+        chat_task.run = [queued_request, &engine, &tokenizer, &served, &server,
+                         &chat_executor,
+                         maximum_requests = options.maximum_requests]() {
+          try {
+            Json body = Json::parse(queued_request->request.body);
+            ParsedCompletionRequest parsed =
+                parse_completion_request(tokenizer, body);
+            bool response_complete = false;
+            if (parsed.stream) {
+              response_complete = stream_chat_completion(
+                  queued_request->client.get(), engine, tokenizer,
+                  std::move(parsed), queued_request->started);
+            } else {
+              Json response =
+                  chat_completion(engine, tokenizer, std::move(parsed));
+              response["aima_amd395"]["http_request_wall_ms"] =
+                  elapsed_ms(queued_request->started);
+              response_complete =
+                  send_json(queued_request->client.get(), 200, response);
             }
-          } else {
-            Json response =
-                chat_completion(engine, tokenizer, std::move(parsed));
-            response["aima_amd395"]["http_request_wall_ms"] =
-                elapsed_ms(started);
-            if (send_json(client.get(), 200, response)) ++served;
+            if (!response_complete) return;
+
+            const std::size_t completed = served.fetch_add(1) + 1;
+            if (maximum_requests != 0 && completed >= maximum_requests) {
+              g_shutdown.store(true);
+              (void)::shutdown(server.get(), SHUT_RDWR);
+              chat_executor.shutdown();
+            }
+          } catch (const std::invalid_argument& error) {
+            (void)send_json(queued_request->client.get(), 400,
+                            error_payload(error.what(), "bad_request"));
+          } catch (const Json::exception& error) {
+            (void)send_json(queued_request->client.get(), 400,
+                            error_payload(error.what(), "invalid_json"));
+          } catch (const std::exception& error) {
+            (void)send_json(
+                queued_request->client.get(), 500,
+                error_payload(error.what(), "native_engine_error",
+                              "server_error"));
           }
-        } catch (const std::invalid_argument& error) {
-          (void)send_json(client.get(), 400,
-                    error_payload(error.what(), "bad_request"));
-        } catch (const Json::exception& error) {
-          (void)send_json(client.get(), 400,
-                    error_payload(error.what(), "invalid_json"));
-        } catch (const std::exception& error) {
-          (void)send_json(client.get(), 500,
-                    error_payload(error.what(), "native_engine_error",
-                                  "server_error"));
+        };
+        chat_task.cancel = [queued_request]() {
+          send_server_busy(queued_request->client.get(),
+                           "server is shutting down");
+        };
+        if (g_shutdown.load()) {
+          send_server_busy(queued_request->client.get(),
+                           "server is shutting down");
+        } else if (!chat_executor.submit(std::move(chat_task))) {
+          send_server_busy(queued_request->client.get(),
+                           g_shutdown.load() ? "server is shutting down"
+                                             : "server is busy");
         }
       } else {
         const int status = request.path == "/health" ||
@@ -1161,21 +1250,23 @@ int run_native_http_server(int argc, char** argv) {
     } catch (const std::system_error& error) {
       const bool timed_out =
           error.code() == std::make_error_code(std::errc::timed_out);
-      (void)send_json(client.get(), timed_out ? 408 : 400,
-                      error_payload(error.what(),
-                                    timed_out ? "request_timeout"
-                                              : "bad_request"));
+      const bool cancelled =
+          error.code() == std::make_error_code(std::errc::operation_canceled);
+      if (!cancelled) {
+        (void)send_json(client.get(), timed_out ? 408 : 400,
+                        error_payload(error.what(),
+                                      timed_out ? "request_timeout"
+                                                : "bad_request"));
+      }
     } catch (const std::exception& error) {
       (void)send_json(client.get(), 400,
                 error_payload(error.what(), "bad_request"));
     }
-    if (options.maximum_requests != 0 && served >= options.maximum_requests) {
-      g_shutdown.store(true);
-    }
   }
+  chat_executor.shutdown();
   systemd_notify("STOPPING=1\nSTATUS=Stopping");
   std::cout << Json({{"event", "stopped"},
-                     {"served", served},
+                     {"served", served.load()},
                      {"model_loads", 1}})
                    .dump()
             << std::endl;
