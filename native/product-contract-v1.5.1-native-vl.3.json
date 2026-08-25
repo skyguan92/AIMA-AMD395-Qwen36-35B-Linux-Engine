@@ -1,0 +1,128 @@
+{
+  "schema": "aima-amd395-qwen36/native-vl-product-contract/v1",
+  "release": "1.5.1-native-vl.3",
+  "release_tag": "v1.5.1-native-vl.3",
+  "engine_version": "1.5.1-native",
+  "status": "g1_g4_qualified_package_candidate",
+  "frozen_baseline": {
+    "release": "v1.5.1",
+    "release_commit": "6f3e669ac897eaabfeceb7f193a5e02708a4d95e",
+    "native_source_commit": "65c198415709dad6d046c247acab3dc9df2a95a0",
+    "native_engine_sha256": "a9f18771175757af080c8a1d8d7e3fb3906c9aa41b43a496686103b626f80262"
+  },
+  "candidate": {
+    "native_source_commit": "bd012874027defa528279a357609b713e9069df4",
+    "native_engine_sha256": "fb5cae0ca5ffaa4bc3d418d5fb1630d822eae9d60f639ba6cc143e427c0cd1e9",
+    "qualification": "share/aima/qualification.json",
+    "single_resident_process": true,
+    "ready_includes_language_and_vision": true
+  },
+  "target": {
+    "artifact": "one relocatable archive containing the static launcher, native engine, complete pinned userspace, language and vision kernels, licenses, contracts and qualification evidence",
+    "executable": "bin/aima-engine",
+    "platform": "Linux x86_64 with amdgpu/KFD and AMD gfx1151",
+    "model_format": "external standard Hugging Face Safetensors",
+    "model_weights_in_archive": false,
+    "maximum_resident_memory_bytes": 103079215104,
+    "forbidden_runtime_dependencies": [
+      "Python",
+      "PyTorch",
+      "vLLM",
+      "Triton JIT",
+      "Transformers",
+      "host ROCm userspace"
+    ]
+  },
+  "model": {
+    "id": "Qwen/Qwen3.6-35B-A3B",
+    "revision": "995ad96eacd98c81ed38be0c5b274b04031597b0",
+    "dtype": "BF16",
+    "config_sha256": "93a4693fa9d8392fbfccd4b3c9873f4bfdcb14fdede978b123d07d19675efe99",
+    "checkpoint_index_sha256": "41b9356101ebf8e7519e150dc811f80c4226e727301fbb032b890f006ed0be83",
+    "tokenizer_sha256": "5f9e4d4901a92b997e463c1f46055088b6cca5ca61a6522d1b9f64c4bb81cb42",
+    "tokenizer_config_sha256": "5186f0defcd7f232382c7f0aebcd2252d073bb921ab240e407b7ae8745d2b29b",
+    "checkpoint_shards": 26,
+    "language_tensor_count": 693,
+    "language_payload_bytes": 69321221376,
+    "visual_tensor_count": 333,
+    "visual_payload_bytes": 893142496,
+    "total_tensor_count": 1026,
+    "total_payload_bytes": 70214363872
+  },
+  "capability": {
+    "maximum_total_tokens": 262144,
+    "image": "single and multiple images across the frozen format, aspect, orientation, transparency, dynamic-resolution and count envelope",
+    "video": "single and multiple videos across the frozen container, fps, duration, frame, sampling and count envelope",
+    "mixed_media": true,
+    "multiturn_media_conversation": true,
+    "openai_chat_completions_stream_and_nonstream": true,
+    "tools_and_tool_history": true,
+    "sampling": {
+      "greedy": "temperature=0 retains certified top-1 selection",
+      "stochastic": "temperature in (0,2], top_p in (0,1], optional non-negative seed",
+      "logits": "exact full-vocabulary BF16 projection from raw LM-head weights",
+      "seeded_text_vl_stream_replay": true
+    },
+    "transport": [
+      "bounded data URI",
+      "allowlisted local file",
+      "allowlisted HTTP/HTTPS URL"
+    ],
+    "text_product_preserved": true
+  },
+  "runtime": {
+    "runtime_python": false,
+    "runtime_torch": false,
+    "runtime_vllm": false,
+    "runtime_triton": false,
+    "runtime_transformers": false,
+    "host_rocm_userspace_required": false,
+    "bundled_glibc_loader": true,
+    "static_launcher": true,
+    "source_architecture": "one parameterized 27-block vision stack and one parameterized 40-layer language loop; no per-layer runtime source generation",
+    "vision_attention": {
+      "general_external_image_sha256": "8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e",
+      "dense_embedded_image_sha256": "e8757f4464fdb39f5505241a1ffd0f40b74f18704318280e070015bd4302d71c"
+    }
+  },
+  "promotion_gates": {
+    "g1": "benchmarks/results/native-vl-g1-coverage-audit-v0.1.0.json",
+    "g2": "benchmarks/results/vl-correctness-v0.1.0.json",
+    "g3": "benchmarks/results/text-v151-nonregression-v0.1.0.json",
+    "g4": "benchmarks/results/vl-performance-v0.1.0.json",
+    "g5_package_input": "benchmarks/results/native-portable-product-v1.5.1-native-vl.3.json",
+    "g5_required": [
+      "make check",
+      "make security-scan",
+      "make verify-evidence",
+      "isolated portable bundle",
+      "second AMD395 host",
+      "long resident mixed-workload soak",
+      "rollback to the exact v1.5.1 portable baseline"
+    ]
+  },
+  "post_g5_extension_gates": {
+    "temperature_sampling": "benchmarks/results/native-temperature-sampling-v0.1.0.json",
+    "ordering": "qualified only after the complete native VL G5 release boundary"
+  },
+  "performance": {
+    "text": "every frozen v1.5.1 cell uses at least six alternating pairs and strict 1.000x no-regression",
+    "vl": "every fixed-reference-available cell uses at least five alternating pairs; TTFT and total latency must be no higher and all applicable throughput must be no lower than fixed vLLM",
+    "reference_unavailable": "explicit non-passing capability ledger; never counted as candidate performance pass"
+  },
+  "security": {
+    "local_media": "explicit roots, descriptor-relative traversal, O_NOFOLLOW, regular-file and stable-metadata checks, byte limits",
+    "remote_media": "per-hop hostname allowlist, DNS address checks, redirect/deadline/byte limits, HTTPS downgrade and credential rejection, no proxy inheritance",
+    "authentication": "bearer authentication and fail-closed remote bind retained",
+    "logging": "media payloads and credentials are excluded from public evidence and service logs"
+  },
+  "artifact_integrity": {
+    "qualification_required": true,
+    "clean_checkout_required": true,
+    "embedded_native_source_commit_must_match": true,
+    "recursive_bundle_manifest": "manifest.json",
+    "archive_checksum_sidecar_required": true,
+    "immutable_release_tag_required": true,
+    "release_evidence_archive_required": true
+  }
+}

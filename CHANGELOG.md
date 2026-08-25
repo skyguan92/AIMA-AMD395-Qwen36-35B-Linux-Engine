@@ -5,7 +5,7 @@ Versioning.
 
 ## Unreleased
 
-## 1.5.1-native-vl.2 - 2026-08-25
+## 1.5.1-native-vl.3 - 2026-08-25
 
 - Added the complete fixed `Qwen3.6-35B-A3B-BF16` native image, video,
   mixed-media, multimodal conversation, tools and OpenAI stream/non-stream
@@ -37,6 +37,12 @@ Versioning.
   Balanced AMD395 measurements cut median language-weight load time by about
   15% while retaining the single-reader policy that avoids same-device
   contention.
+
+## 1.5.1-native-vl.2 - 2026-08-25
+
+- Tagged but not promoted after the pre-soak audit found the same invalid
+  server cache-capacity argument in the one-hour resident-soak gate. The
+  immutable candidate is superseded by `v1.5.1-native-vl.3`.
 
 ## 1.5.1-native-vl.1 - 2026-08-25
 

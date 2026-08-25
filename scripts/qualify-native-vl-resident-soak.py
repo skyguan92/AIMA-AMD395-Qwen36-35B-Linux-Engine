@@ -365,7 +365,7 @@ def main() -> int:
             "--context-tokens",
             "16384",
             "--cache-capacity",
-            "16384",
+            "17408",
             "--allowed-local-media-path",
             str(media_root),
             "--host",

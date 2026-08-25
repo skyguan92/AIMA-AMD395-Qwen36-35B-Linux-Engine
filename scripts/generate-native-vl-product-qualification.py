@@ -28,8 +28,8 @@ from aima_engine.vl_reference import (  # noqa: E402
 
 
 SCHEMA = "aima-amd395-qwen36/native-vl-product-qualification/v1"
-RELEASE = "1.5.1-native-vl.2"
-RELEASE_TAG = "v1.5.1-native-vl.2"
+RELEASE = "1.5.1-native-vl.3"
+RELEASE_TAG = "v1.5.1-native-vl.3"
 NATIVE_SOURCE_COMMIT = "bd012874027defa528279a357609b713e9069df4"
 ENGINE_SHA256 = (
     "fb5cae0ca5ffaa4bc3d418d5fb1630d822eae9d60f639ba6cc143e427c0cd1e9"
@@ -80,7 +80,7 @@ DEFAULT_INPUTS = {
     "media_source": ROOT / "native/src/native_media.cpp",
     "remote_media_source": ROOT / "native/src/native_remote_media.cpp",
     "product_contract": (
-        ROOT / "native/product-contract-v1.5.1-native-vl.2.json"
+        ROOT / "native/product-contract-v1.5.1-native-vl.3.json"
     ),
     "product_qualification_generator": Path(__file__).resolve(),
     "package_script": ROOT / "scripts/package-native-foundation.sh",
@@ -119,7 +119,7 @@ DEFAULT_INPUTS = {
 }
 DEFAULT_OUTPUT = (
     ROOT
-    / "benchmarks/results/native-portable-product-v1.5.1-native-vl.2.json"
+    / "benchmarks/results/native-portable-product-v1.5.1-native-vl.3.json"
 )
 
 

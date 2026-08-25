@@ -1,8 +1,8 @@
 # Release provenance and procedure
 
-## v1.5.1-native-vl.2 boundary
+## v1.5.1-native-vl.3 boundary
 
-The immutable `v1.5.1-native-vl.2` tag is the first portable native release
+The immutable `v1.5.1-native-vl.3` tag is the first portable native release
 that includes the fixed model's complete image, video and mixed-media product
 surface. It retains batch size one and the 262,144-token total window, preserves
 the certified greedy path, and adds seeded positive-temperature full-vocabulary
@@ -15,9 +15,9 @@ The qualified engine embeds native source commit
 `bd012874027defa528279a357609b713e9069df4` and has SHA-256
 `fb5cae0ca5ffaa4bc3d418d5fb1630d822eae9d60f639ba6cc143e427c0cd1e9`.
 The release-only source/tag commit is recorded by
-`native-release-provenance-v1.5.1-native-vl.2.json`; it does not rebuild or
+`native-release-provenance-v1.5.1-native-vl.3.json`; it does not rebuild or
 substitute the qualified executable. The product contract is
-[`product-contract-v1.5.1-native-vl.2.json`](../native/product-contract-v1.5.1-native-vl.2.json).
+[`product-contract-v1.5.1-native-vl.3.json`](../native/product-contract-v1.5.1-native-vl.3.json).
 
 Promotion requires all five gates in `NATIVE_VL_GOAL.md`: complete frozen VL
 capability, processor/boundary/logits/generation/task/error correctness, strict
@@ -164,7 +164,7 @@ commit.
    evidence may be added to `main` in a later commit without changing the
    immutable release tag; use an additive erratum for any later clarification.
 
-For `v1.5.1-native-vl.2`, steps 3-5 are stricter: generate the package-input
+For `v1.5.1-native-vl.3`, steps 3-5 are stricter: generate the package-input
 qualification from a clean checkout of the intended tag, package those exact
 bytes, run the same archive in isolated environments on two distinct AMD395
 hosts, complete the primary-host one-hour resident soak, shut it down cleanly,
@@ -173,7 +173,7 @@ release gates and final G5 aggregator from the same clean tagged checkout.
 Only then copy the sealed outputs into an additive evidence commit and switch
 the default evidence record to the new release.
 
-## v1.5.1-native-vl.2 portable native release boundary
+## v1.5.1-native-vl.3 portable native release boundary
 
 The archive contains the static launcher, qualified engine, all three language
 attention providers, AOTriton runtime/image, both general and dense
