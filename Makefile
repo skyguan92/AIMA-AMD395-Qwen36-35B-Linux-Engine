@@ -30,6 +30,8 @@ check-native-syntax:
 	./build/native_chat_protocol_test
 	g++ -std=c++17 -O2 -I native/include tests/native_prompt_plan_test.cpp -o build/native_prompt_plan_test
 	./build/native_prompt_plan_test
+	g++ -std=c++17 -O2 -pthread -I native/include tests/native_http_support_test.cpp native/src/native_http_support.cpp -o build/native_http_support_test
+	./build/native_http_support_test
 	g++ -std=c++17 -D__HIP_PLATFORM_AMD__ -DU_STATIC_IMPLEMENTATION -I /opt/rocm/include -I native/include -I native/generated -fsyntax-only native/src/main.cpp native/src/decode_schedule_probe.cpp native/src/sha256.cpp native/src/native_tokenizer.cpp native/src/native_chat_protocol.cpp native/src/native_doctor.cpp native/src/native_http_server.cpp
 
 test:
