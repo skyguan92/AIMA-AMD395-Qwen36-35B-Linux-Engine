@@ -121,7 +121,7 @@ class ReleaseContractTest(unittest.TestCase):
             component_paths: dict[str, Path] = {}
             component_records: dict[str, object] = {
                 "source": {
-                    "release_tag": "v1.5.1-native-vl.3",
+                    "release_tag": "v1.5.1-native-vl.4",
                     "release_commit": "a" * 40,
                     "native_source_commit": "b" * 40,
                     "native_source_dirty": False,
@@ -143,7 +143,7 @@ class ReleaseContractTest(unittest.TestCase):
                         "aima-amd395-qwen36/"
                         "native-vl-product-qualification/v1"
                     ),
-                    "release": "1.5.1-native-vl.3",
+                    "release": "1.5.1-native-vl.4",
                     "complete": True,
                     "qualified": True,
                     "components": component_records,
@@ -151,8 +151,8 @@ class ReleaseContractTest(unittest.TestCase):
             )
             qualification.write_text(json.dumps(sealed), encoding="utf-8")
             arguments = {
-                "release": "1.5.1-native-vl.3",
-                "release_tag": "v1.5.1-native-vl.3",
+                "release": "1.5.1-native-vl.4",
+                "release_tag": "v1.5.1-native-vl.4",
                 "source_commit": "a" * 40,
                 "native_source_commit": "b" * 40,
                 "components": component_paths,

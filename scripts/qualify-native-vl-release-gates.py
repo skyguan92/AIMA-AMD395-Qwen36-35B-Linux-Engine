@@ -72,8 +72,10 @@ def run_gate(
             check=False,
         )
     elapsed = time.monotonic() - started
-    text = log_path.read_text(encoding="utf-8", errors="replace").replace(
-        str(ROOT), "${AIMA_REPO_ROOT}"
+    text = (
+        log_path.read_text(encoding="utf-8", errors="replace")
+        .replace(str(ROOT), "${AIMA_REPO_ROOT}")
+        .replace(str(Path.home()), "${AIMA_HOME}")
     )
     log_path.write_text(text, encoding="utf-8")
     findings = scan_bytes(f"raw/{log_path.name}", text.encode("utf-8"))

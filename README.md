@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![CI](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/actions/workflows/ci.yml/badge.svg)](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/release-v1.5.1--native--vl.3-green.svg)](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.5.1-native-vl.3)
+[![Release](https://img.shields.io/badge/release-v1.5.1--native--vl.4-green.svg)](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.5.1-native-vl.4)
 [![Hardware](https://img.shields.io/badge/GPU-gfx1151-orange.svg)](docs/INSTALL.md)
 
 A batch-1 BF16 inference engine specialized for
@@ -21,7 +21,7 @@ cross-request cache disabled, and real SSE arrival timing.
 This recording is a visual comparison; the versioned performance and
 qualification evidence below remain authoritative.
 
-Version 1.5.1-native-vl.3 adds the complete fixed-model image, video, mixed-media
+Version 1.5.1-native-vl.4 adds the complete fixed-model image, video, mixed-media
 and multimodal conversation surface to the relocatable native package. One
 resident process performs media processing, the 27-block vision tower and the
 language model while retaining live SSE streaming and OpenAI function tools.
@@ -37,7 +37,7 @@ weights are not redistributed.
 > v1.5.0 adds resident q1024/q2048/q4096/q8192 prefill dispatch and a
 > capacity-bounded multi-entry prefix LRU. v1.5.1 replaces its serial
 > unmatched-prompt tail with composed resident AOT prefill and repairs padded
-> recurrent state at the logical prompt boundary. v1.5.1-native-vl.3 loads and
+> recurrent state at the logical prompt boundary. v1.5.1-native-vl.4 loads and
 > warms the complete visual stack before readiness and preserves that exact
 > text product under strict paired no-regression gates.
 
@@ -87,7 +87,7 @@ never an admission requirement. Input plus generated tokens may not exceed
 262,144. The native runtime now replaces the published v1.1 performance
 envelope; the Python implementation remains only as a compatibility and
 provenance reference. See
-[native/product-contract-v1.5.1-native-vl.3.json](native/product-contract-v1.5.1-native-vl.3.json).
+[native/product-contract-v1.5.1-native-vl.4.json](native/product-contract-v1.5.1-native-vl.4.json).
 
 The same process accepts single/multiple images, single/multiple videos,
 image-video mixtures, ordered text/media interleaving, multi-turn media reuse
@@ -120,7 +120,7 @@ Configure memory before loading the model:
 ## Quick start
 
 Download the archive and checksum from the
-[upstream v1.5.1-native-vl.3 release](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.5.1-native-vl.3),
+[upstream v1.5.1-native-vl.4 release](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.5.1-native-vl.4),
 then extract it anywhere:
 
 ```bash
@@ -220,7 +220,7 @@ then `systemctl start|status|stop aima-engine` provides the lifecycle.
 
 ## Native CLI
 
-The published v1.5.1-native-vl.3 CLI provides:
+The published v1.5.1-native-vl.4 CLI provides:
 
 ```text
 aima-engine --build-info
@@ -300,7 +300,7 @@ Other gates:
   AOT buckets, and an A/B/A request sequence proved four-entry LRU reuse.
 
 The auditable source of truth is mirrored after release at
-`benchmarks/results/native-vl-g5-release-v1.5.1-native-vl.3.json`; its package
+`benchmarks/results/native-vl-g5-release-v1.5.1-native-vl.4.json`; its package
 input qualification is embedded in the archive as
 `share/aima/qualification.json`. The checksum-identical archive is checked on
 two distinct AMD395 hosts, survives a one-hour single-process

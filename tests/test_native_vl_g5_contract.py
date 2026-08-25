@@ -9,7 +9,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 GENERATOR = ROOT / "scripts/generate-native-vl-product-qualification.py"
-CONTRACT = ROOT / "native/product-contract-v1.5.1-native-vl.3.json"
+CONTRACT = ROOT / "native/product-contract-v1.5.1-native-vl.4.json"
 
 
 def load_generator():
@@ -39,8 +39,8 @@ class NativeVlG5ContractTest(unittest.TestCase):
             contract["schema"],
             "aima-amd395-qwen36/native-vl-product-contract/v1",
         )
-        self.assertEqual(contract["release"], "1.5.1-native-vl.3")
-        self.assertEqual(contract["release_tag"], "v1.5.1-native-vl.3")
+        self.assertEqual(contract["release"], "1.5.1-native-vl.4")
+        self.assertEqual(contract["release_tag"], "v1.5.1-native-vl.4")
         self.assertEqual(contract["engine_version"], "1.5.1-native")
         self.assertFalse(contract["target"]["model_weights_in_archive"])
         self.assertEqual(
@@ -131,6 +131,12 @@ class NativeVlG5ContractTest(unittest.TestCase):
         self.assertIn("qualify-native-vl-release-gates.py", makefile)
         self.assertIn("generate-native-vl-g5-qualification.py", makefile)
         self.assertIn("generate-native-vl-release-provenance.py", makefile)
+        self.assertIn(
+            '.replace(str(Path.home()), "${AIMA_HOME}")',
+            (
+                ROOT / "scripts/qualify-native-vl-release-gates.py"
+            ).read_text(encoding="utf-8"),
+        )
         self.assertIn("--media-root", qualifier)
         self.assertIn('"image_a_restored"', qualifier)
         self.assertIn('"a_b_a_cache_reuse_observed"', qualifier)

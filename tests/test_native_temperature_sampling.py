@@ -75,7 +75,7 @@ class NativeTemperatureSamplingTest(unittest.TestCase):
     def test_documented_contract_exposes_seeded_text_and_vl_sampling(self) -> None:
         api = (ROOT / "docs/API.md").read_text(encoding="utf-8")
         contract = (
-            ROOT / "native/product-contract-v1.5.1-native-vl.3.json"
+            ROOT / "native/product-contract-v1.5.1-native-vl.4.json"
         ).read_text(encoding="utf-8")
         self.assertIn("Positive-temperature requests", api)
         self.assertIn("raw-weight BF16 LM-head projection", api)
