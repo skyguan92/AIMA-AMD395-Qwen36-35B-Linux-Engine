@@ -687,6 +687,9 @@ class NativeRuntimeContractTest(unittest.TestCase):
         )
         self.assertNotIn("parse_size", timeout_branch)
         self.assertNotIn("600000", timeout_branch)
+        self.assertNotIn(
+            "--request-timeout-ms must not exceed 600000", server
+        )
 
         health_route_start = server.index(
             'request.method == "GET" && request.path == "/health"'
@@ -766,7 +769,17 @@ class NativeRuntimeContractTest(unittest.TestCase):
         )
         self.assertIn("native/src/native_http_support.cpp", native_build)
         makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
-        self.assertIn("native/src/native_http_support.cpp", makefile)
+        syntax_recipe_start = makefile.index("check-native-syntax:")
+        syntax_recipe_end = makefile.index("\n\n", syntax_recipe_start)
+        syntax_recipe = makefile[syntax_recipe_start:syntax_recipe_end]
+        syntax_command_match = re.search(
+            r"^\tg\+\+.*-fsyntax-only.*$", syntax_recipe, re.MULTILINE
+        )
+        self.assertIsNotNone(syntax_command_match)
+        assert syntax_command_match is not None
+        syntax_command = syntax_command_match.group(0)
+        self.assertIn("native/src/native_http_support.cpp", syntax_command)
+        self.assertIn("native/src/native_http_server.cpp", syntax_command)
 
     def test_variable_prompt_prefill_is_part_of_the_native_contract(self) -> None:
         server = (ROOT / "native/src/native_http_server.cpp").read_text(
