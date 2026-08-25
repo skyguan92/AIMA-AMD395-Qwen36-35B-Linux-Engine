@@ -28,8 +28,8 @@ from aima_engine.vl_reference import (  # noqa: E402
 
 
 SCHEMA = "aima-amd395-qwen36/native-vl-g5-release-qualification/v1"
-RELEASE = "1.5.1-native-vl.1"
-RELEASE_TAG = "v1.5.1-native-vl.1"
+RELEASE = "1.5.1-native-vl.2"
+RELEASE_TAG = "v1.5.1-native-vl.2"
 NATIVE_SOURCE_COMMIT = "bd012874027defa528279a357609b713e9069df4"
 ENGINE_SHA256 = (
     "fb5cae0ca5ffaa4bc3d418d5fb1630d822eae9d60f639ba6cc143e427c0cd1e9"
@@ -41,7 +41,7 @@ BASELINE_ARCHIVE_SHA256 = (
 DEFAULTS = {
     "product_result": (
         ROOT
-        / "benchmarks/results/native-portable-product-v1.5.1-native-vl.1.json"
+        / "benchmarks/results/native-portable-product-v1.5.1-native-vl.2.json"
     ),
     "primary_bundle": (
         ROOT
@@ -69,13 +69,13 @@ DEFAULTS = {
         "release-gates.json"
     ),
     "product_contract": (
-        ROOT / "native/product-contract-v1.5.1-native-vl.1.json"
+        ROOT / "native/product-contract-v1.5.1-native-vl.2.json"
     ),
 }
 DEFAULT_OUTPUT = (
     ROOT
     / "benchmarks/results/"
-    "native-vl-g5-release-v1.5.1-native-vl.1.json"
+    "native-vl-g5-release-v1.5.1-native-vl.2.json"
 )
 SCHEMAS = {
     "product_result": (
@@ -431,7 +431,7 @@ def build_payload(
                     "package_input",
                     paths["product_result"],
                     "benchmarks/results/"
-                    "native-portable-product-v1.5.1-native-vl.1.json",
+                    "native-portable-product-v1.5.1-native-vl.2.json",
                 ),
                 (
                     "primary_bundle",
@@ -466,7 +466,7 @@ def build_payload(
                 (
                     "product_contract",
                     paths["product_contract"],
-                    "native/product-contract-v1.5.1-native-vl.1.json",
+                    "native/product-contract-v1.5.1-native-vl.2.json",
                 ),
             )
         },

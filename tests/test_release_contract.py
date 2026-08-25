@@ -9,6 +9,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 from aima_engine import __version__
 from aima_engine import cli
@@ -120,7 +121,7 @@ class ReleaseContractTest(unittest.TestCase):
             component_paths: dict[str, Path] = {}
             component_records: dict[str, object] = {
                 "source": {
-                    "release_tag": "v1.5.1-native-vl.1",
+                    "release_tag": "v1.5.1-native-vl.2",
                     "release_commit": "a" * 40,
                     "native_source_commit": "b" * 40,
                     "native_source_dirty": False,
@@ -142,7 +143,7 @@ class ReleaseContractTest(unittest.TestCase):
                         "aima-amd395-qwen36/"
                         "native-vl-product-qualification/v1"
                     ),
-                    "release": "1.5.1-native-vl.1",
+                    "release": "1.5.1-native-vl.2",
                     "complete": True,
                     "qualified": True,
                     "components": component_records,
@@ -150,8 +151,8 @@ class ReleaseContractTest(unittest.TestCase):
             )
             qualification.write_text(json.dumps(sealed), encoding="utf-8")
             arguments = {
-                "release": "1.5.1-native-vl.1",
-                "release_tag": "v1.5.1-native-vl.1",
+                "release": "1.5.1-native-vl.2",
+                "release_tag": "v1.5.1-native-vl.2",
                 "source_commit": "a" * 40,
                 "native_source_commit": "b" * 40,
                 "components": component_paths,
@@ -243,6 +244,35 @@ class ReleaseContractTest(unittest.TestCase):
             verified = qualifier.verify_manifest(bundle)
             self.assertEqual(verified["release"], "2.0.0")
             self.assertEqual(verified["source"], source)
+
+    def test_portable_host_fingerprint_tolerates_unreadable_dmi_uuid(
+        self,
+    ) -> None:
+        scripts = str(ROOT / "scripts")
+        sys.path.insert(0, scripts)
+        try:
+            qualifier = load_module(
+                "portable_fingerprint_test", PORTABLE_QUALIFIER_PATH
+            )
+        finally:
+            sys.path.remove(scripts)
+
+        def identity_bytes(path: Path) -> bytes:
+            if path == Path("/etc/machine-id"):
+                return b"synthetic-machine-id\n"
+            raise PermissionError(path)
+
+        with mock.patch.object(
+            qualifier.Path, "is_file", autospec=True, return_value=True
+        ), mock.patch.object(
+            qualifier.Path, "read_bytes", autospec=True, side_effect=identity_bytes
+        ):
+            actual = qualifier.host_fingerprint_sha256()
+        expected = hashlib.sha256(
+            b"aima/native-vl/host-fingerprint/v1\0"
+            b"machine-id\0synthetic-machine-id"
+        ).hexdigest()
+        self.assertEqual(actual, expected)
 
     def test_eval_reference_comparison_is_prompt_hash_bound(self) -> None:
         qualifier = load_module(

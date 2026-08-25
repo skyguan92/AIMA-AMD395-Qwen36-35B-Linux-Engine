@@ -9,7 +9,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 GENERATOR = ROOT / "scripts/generate-native-vl-product-qualification.py"
-CONTRACT = ROOT / "native/product-contract-v1.5.1-native-vl.1.json"
+CONTRACT = ROOT / "native/product-contract-v1.5.1-native-vl.2.json"
 
 
 def load_generator():
@@ -39,8 +39,8 @@ class NativeVlG5ContractTest(unittest.TestCase):
             contract["schema"],
             "aima-amd395-qwen36/native-vl-product-contract/v1",
         )
-        self.assertEqual(contract["release"], "1.5.1-native-vl.1")
-        self.assertEqual(contract["release_tag"], "v1.5.1-native-vl.1")
+        self.assertEqual(contract["release"], "1.5.1-native-vl.2")
+        self.assertEqual(contract["release_tag"], "v1.5.1-native-vl.2")
         self.assertEqual(contract["engine_version"], "1.5.1-native")
         self.assertFalse(contract["target"]["model_weights_in_archive"])
         self.assertEqual(
@@ -144,6 +144,10 @@ class NativeVlG5ContractTest(unittest.TestCase):
         self.assertIn(
             '"--context-tokens",\n        "16384",', qualifier
         )
+        self.assertIn(
+            '"--cache-capacity",\n        "17408",', qualifier
+        )
+        self.assertIn("except OSError:", qualifier)
 
         soak = (ROOT / "scripts/qualify-native-vl-resident-soak.py").read_text(
             encoding="utf-8"

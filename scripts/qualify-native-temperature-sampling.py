@@ -32,7 +32,7 @@ from aima_engine.vl_reference import (  # noqa: E402
 MODEL_ID = "aima-amd395-qwen36-35b"
 SCHEMA = "aima-amd395-qwen36/native-temperature-sampling/v1"
 G5_SCHEMA = "aima-amd395-qwen36/native-vl-g5-release-qualification/v1"
-RELEASE = "1.5.1-native-vl.1"
+RELEASE = "1.5.1-native-vl.2"
 VOCABULARY_SIZE = 248_320
 BF16_LOGIT_BYTES = VOCABULARY_SIZE * 2
 
@@ -591,7 +591,7 @@ def main() -> int:
                 "g5_result": file_component(
                     g5_result_path,
                     "benchmarks/results/"
-                    "native-vl-g5-release-v1.5.1-native-vl.1.json",
+                    "native-vl-g5-release-v1.5.1-native-vl.2.json",
                 ),
                 "g5_recorded_at": g5_result["recorded_at"],
                 "ordering_proof": (

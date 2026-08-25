@@ -8,7 +8,7 @@
 | Earlier/private research versions | No |
 
 The transport hardening documented below is included from v1.4.0. The
-v1.5.1-native-vl.1 release additionally applies fail-closed local and remote
+v1.5.1-native-vl.2 release additionally applies fail-closed local and remote
 media admission. The v1.3.0 server has no built-in bearer authentication or
 socket timeout and must remain on loopback or behind a trusted authenticated
 gateway.

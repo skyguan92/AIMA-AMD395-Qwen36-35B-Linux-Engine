@@ -26,30 +26,30 @@ from aima_engine.vl_reference import (  # noqa: E402
 )
 
 
-RELEASE = "1.5.1-native-vl.1"
-RELEASE_TAG = "v1.5.1-native-vl.1"
+RELEASE = "1.5.1-native-vl.2"
+RELEASE_TAG = "v1.5.1-native-vl.2"
 DEFAULT_OUTPUT = (
     ROOT
     / "benchmarks/results/"
-    "native-release-provenance-v1.5.1-native-vl.1.json"
+    "native-release-provenance-v1.5.1-native-vl.2.json"
 )
 IMMUTABLE_PATHS = {
     "product_result": (
         ROOT
-        / "benchmarks/results/native-vl-g5-release-v1.5.1-native-vl.1.json"
+        / "benchmarks/results/native-vl-g5-release-v1.5.1-native-vl.2.json"
     ),
     "portable_bundle_result": (
         ROOT
         / "benchmarks/results/"
-        "native-portable-bundle-v1.5.1-native-vl.1.json"
+        "native-portable-bundle-v1.5.1-native-vl.2.json"
     ),
     "product_contract": (
-        ROOT / "native/product-contract-v1.5.1-native-vl.1.json"
+        ROOT / "native/product-contract-v1.5.1-native-vl.2.json"
     ),
     "package_input_qualification": (
         ROOT
         / "benchmarks/results/"
-        "native-portable-product-v1.5.1-native-vl.1.json"
+        "native-portable-product-v1.5.1-native-vl.2.json"
     ),
     "g1": (
         ROOT / "benchmarks/results/native-vl-g1-coverage-audit-v0.1.0.json"

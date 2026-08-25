@@ -11,7 +11,7 @@ from aima_engine.vl_reference import verify_manifest_integrity
 
 
 DEFAULT_RELEASE = "1.5.0"
-NATIVE_VL_RELEASE = "1.5.1-native-vl.1"
+NATIVE_VL_RELEASE = "1.5.1-native-vl.2"
 NATIVE_VL_RAW_IMMUTABLE_KEYS = {
     "g1",
     "g2",
@@ -23,22 +23,22 @@ NATIVE_VL_RAW_IMMUTABLE_KEYS = {
 RELEASE_RECORDS: dict[str, dict[str, Path]] = {
     NATIVE_VL_RELEASE: {
         "product_result": Path(
-            "benchmarks/results/native-vl-g5-release-v1.5.1-native-vl.1.json"
+            "benchmarks/results/native-vl-g5-release-v1.5.1-native-vl.2.json"
         ),
         "bundle_result": Path(
             "benchmarks/results/"
-            "native-portable-bundle-v1.5.1-native-vl.1.json"
+            "native-portable-bundle-v1.5.1-native-vl.2.json"
         ),
         "provenance": Path(
             "benchmarks/results/"
-            "native-release-provenance-v1.5.1-native-vl.1.json"
+            "native-release-provenance-v1.5.1-native-vl.2.json"
         ),
         "product_contract": Path(
-            "native/product-contract-v1.5.1-native-vl.1.json"
+            "native/product-contract-v1.5.1-native-vl.2.json"
         ),
         "package_input": Path(
             "benchmarks/results/"
-            "native-portable-product-v1.5.1-native-vl.1.json"
+            "native-portable-product-v1.5.1-native-vl.2.json"
         ),
         "g1": Path(
             "benchmarks/results/native-vl-g1-coverage-audit-v0.1.0.json"
@@ -112,7 +112,7 @@ CORE_PRODUCT_EVIDENCE_KEYS = {
     "openai_features",
 }
 PRODUCT_EVIDENCE_KEYS = {
-    "1.5.1-native-vl.1": {
+    "1.5.1-native-vl.2": {
         "primary_bundle",
         "second_bundle",
         "resident_soak",
@@ -122,7 +122,7 @@ PRODUCT_EVIDENCE_KEYS = {
     "1.5.0": CORE_PRODUCT_EVIDENCE_KEYS | {"capability_eval"},
 }
 STANDALONE_EVIDENCE_KEYS = {
-    "1.5.1-native-vl.1": {
+    "1.5.1-native-vl.2": {
         "g1_g2",
         "g1_generation_raw",
         "g3_correctness",

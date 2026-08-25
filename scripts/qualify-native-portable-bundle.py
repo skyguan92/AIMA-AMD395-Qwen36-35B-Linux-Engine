@@ -298,7 +298,10 @@ def host_fingerprint_sha256() -> str:
     ):
         if not path.is_file():
             continue
-        value = path.read_bytes().strip().lower()
+        try:
+            value = path.read_bytes().strip().lower()
+        except OSError:
+            continue
         if value:
             components.append(label + b"\0" + value)
     if not components:
@@ -523,7 +526,7 @@ def run_vl_smoke(
         "--context-tokens",
         "16384",
         "--cache-capacity",
-        "16384",
+        "17408",
         "--allowed-local-media-path",
         str(media_root),
         "--host",

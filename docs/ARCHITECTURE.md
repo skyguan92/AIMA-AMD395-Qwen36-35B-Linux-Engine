@@ -2,7 +2,7 @@
 
 ## Product boundary
 
-The v1.5.1-native-vl.1 runtime specializes one model, one GPU architecture and
+The v1.5.1-native-vl.2 runtime specializes one model, one GPU architecture and
 batch size one. It is a native resident multimodal engine, not a Python wrapper
 around the v1.1 stack.
 
@@ -202,7 +202,7 @@ hardware contract.
 The package-input decision is embedded in each archive as
 `share/aima/qualification.json`; the final cross-host/soak/rollback decision is
 mirrored after release as
-`benchmarks/results/native-vl-g5-release-v1.5.1-native-vl.1.json`. The exact
+`benchmarks/results/native-vl-g5-release-v1.5.1-native-vl.2.json`. The exact
 v1.5.1 executable remains the paired text floor and the pinned VL-enabled vLLM
 remains the per-cell multimodal floor. Bundle closure, correctness, text
 performance, VL performance, security, residency and rollback are independent
