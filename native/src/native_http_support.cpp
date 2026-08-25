@@ -18,6 +18,13 @@ namespace {
                            ": invalid timeout in milliseconds");
 }
 
+std::size_t require_positive_capacity(std::size_t maximum_pending) {
+  if (maximum_pending == 0) {
+    throw std::invalid_argument("maximum_pending must be positive");
+  }
+  return maximum_pending;
+}
+
 }  // namespace
 
 std::size_t parse_native_http_timeout_ms(const std::string& value,
@@ -34,13 +41,8 @@ std::size_t parse_native_http_timeout_ms(const std::string& value,
     result = result * 10 + digit;
   }
 
-  using Milliseconds = std::chrono::milliseconds;
   using SteadyDuration = std::chrono::steady_clock::duration;
-  const auto maximum_steady_milliseconds =
-      std::chrono::duration_cast<Milliseconds>(SteadyDuration::max()).count();
-  if (maximum_steady_milliseconds < 0 ||
-      static_cast<std::uintmax_t>(result) >
-          static_cast<std::uintmax_t>(maximum_steady_milliseconds)) {
+  if (!native_http_detail::milliseconds_fit_duration<SteadyDuration>(result)) {
     throw_invalid_timeout(name);
   }
 
@@ -54,12 +56,9 @@ std::size_t parse_native_http_timeout_ms(const std::string& value,
 }
 
 NativeSerialExecutor::NativeSerialExecutor(std::size_t maximum_pending)
-    : maximum_pending_(maximum_pending) {
-  if (maximum_pending_ == 0) {
-    throw std::invalid_argument("maximum_pending must be positive");
-  }
-  worker_ = std::thread(&NativeSerialExecutor::worker_loop, this);
-}
+    : maximum_pending_(require_positive_capacity(maximum_pending)),
+      worker_(&NativeSerialExecutor::worker_loop, this),
+      worker_id_(worker_.get_id()) {}
 
 NativeSerialExecutor::~NativeSerialExecutor() { shutdown(); }
 
@@ -78,13 +77,13 @@ bool NativeSerialExecutor::busy() const noexcept {
 }
 
 void NativeSerialExecutor::shutdown() {
-  std::lock_guard<std::mutex> shutdown_lock(shutdown_mutex_);
   std::deque<Task> cancelled;
   {
     std::lock_guard<std::mutex> lock(mutex_);
     stopping_ = true;
     cancelled.swap(pending_);
   }
+  condition_.notify_all();
 
   for (Task& task : cancelled) {
     try {
@@ -93,8 +92,29 @@ void NativeSerialExecutor::shutdown() {
     }
   }
 
+  if (std::this_thread::get_id() == worker_id_) return;
+
+  std::unique_lock<std::mutex> lock(mutex_);
+  while (join_state_ == JoinState::kJoining) {
+    condition_.wait(lock,
+                    [this]() { return join_state_ != JoinState::kJoining; });
+  }
+  if (join_state_ == JoinState::kJoined) return;
+  join_state_ = JoinState::kJoining;
+  lock.unlock();
+  try {
+    worker_.join();
+  } catch (...) {
+    lock.lock();
+    join_state_ = JoinState::kUnclaimed;
+    lock.unlock();
+    condition_.notify_all();
+    throw;
+  }
+  lock.lock();
+  join_state_ = JoinState::kJoined;
+  lock.unlock();
   condition_.notify_all();
-  if (worker_.joinable()) worker_.join();
 }
 
 void NativeSerialExecutor::worker_loop() {
