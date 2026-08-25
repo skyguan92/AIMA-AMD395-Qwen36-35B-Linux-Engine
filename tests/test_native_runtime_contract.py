@@ -661,7 +661,7 @@ class NativeRuntimeContractTest(unittest.TestCase):
             self.assertIn(option, server)
         self.assertLess(server.index("::bind("), server.index("engine.load("))
 
-    def test_native_http_server_concurrency_contract(self) -> None:
+    def test_native_release_is_self_contained_and_secure(self) -> None:
         server = (ROOT / "native/src/native_http_server.cpp").read_text(
             encoding="utf-8"
         )
@@ -703,6 +703,7 @@ class NativeRuntimeContractTest(unittest.TestCase):
             re.sub(r"\s+", " ", health_route),
             r'\{\s*"busy"\s*,\s*chat_executor\.busy\(\)\s*\}',
         )
+        self.assertIn("served.load()", health_route)
 
         chat_route_match = re.search(
             r'request\.method\s*==\s*"POST"\s*&&\s*'
@@ -715,52 +716,92 @@ class NativeRuntimeContractTest(unittest.TestCase):
             "const int status = request.path", chat_route_match.start()
         )
         chat_route = server[chat_route_match.start() : chat_route_end]
+        task_cancel_match = re.search(
+            r"\bTask\s+(?P<task>\w+).*?\b(?P=task)\.cancel\s*=",
+            chat_route,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(task_cancel_match)
+        assert task_cancel_match is not None
+        cancel_assignment = chat_route.index(
+            ".cancel =", task_cancel_match.start()
+        )
+        submit_match = re.search(
+            r"chat_executor\.submit\s*\(", chat_route[cancel_assignment:]
+        )
+        self.assertIsNotNone(submit_match)
+        assert submit_match is not None
+        submit_start = cancel_assignment + submit_match.start()
+        self.assertLess(cancel_assignment, submit_start)
+        cancel_path = chat_route[cancel_assignment:submit_start]
+        normalized_cancel_path = re.sub(r"\s+", " ", cancel_path)
         self.assertRegex(
-            re.sub(r"\s+", " ", chat_route),
-            r"chat_executor\.\w*submit\w*\(",
+            normalized_cancel_path, r"send_json\s*\([^;]*,\s*503\s*,"
         )
-        self.assertIn("send_server_busy(", chat_route)
+        self.assertIn('"server_busy"', cancel_path)
+        self.assertIn('"server_error"', cancel_path)
 
-        busy_helper_match = re.search(
-            r"\b(?:bool|void)\s+send_server_busy\s*\([^)]*\)\s*\{",
-            server,
+        negative_submit_match = re.search(
+            r"if\s*\(\s*!\s*chat_executor\.submit\s*\(", chat_route
         )
-        self.assertIsNotNone(busy_helper_match)
-        assert busy_helper_match is not None
-        helper_body_start = busy_helper_match.end() - 1
-        helper_depth = 0
-        helper_body_end = helper_body_start
-        for helper_body_end in range(helper_body_start, len(server)):
-            if server[helper_body_end] == "{":
-                helper_depth += 1
-            elif server[helper_body_end] == "}":
-                helper_depth -= 1
-                if helper_depth == 0:
+        self.assertIsNotNone(negative_submit_match)
+        assert negative_submit_match is not None
+        self.assertGreater(negative_submit_match.start(), cancel_assignment)
+        negative_branch_start = chat_route.index(
+            "{", negative_submit_match.end()
+        )
+        negative_branch_depth = 0
+        negative_branch_end = negative_branch_start
+        for negative_branch_end in range(
+            negative_branch_start, len(chat_route)
+        ):
+            if chat_route[negative_branch_end] == "{":
+                negative_branch_depth += 1
+            elif chat_route[negative_branch_end] == "}":
+                negative_branch_depth -= 1
+                if negative_branch_depth == 0:
                     break
         else:
-            self.fail("send_server_busy definition is missing its closing brace")
-        busy_helper = server[helper_body_start : helper_body_end + 1]
-        normalized_busy_helper = re.sub(r"\s+", " ", busy_helper)
-        self.assertIn("send_json(", busy_helper)
-        self.assertRegex(normalized_busy_helper, r", 503,")
-        self.assertIn('"server_busy"', busy_helper)
-        self.assertIn('"server_error"', busy_helper)
+            self.fail("negative chat_executor.submit branch is not closed")
+        negative_submit_branch = chat_route[
+            negative_branch_start : negative_branch_end + 1
+        ]
+        normalized_negative_branch = re.sub(
+            r"\s+", " ", negative_submit_branch
+        )
+        self.assertRegex(
+            normalized_negative_branch,
+            r"send_json\s*\([^;]*,\s*503\s*,",
+        )
+        self.assertIn('"server_busy"', negative_submit_branch)
+        self.assertIn('"server_error"', negative_submit_branch)
 
         self.assertRegex(
             normalized_server,
             r'case 503: return "Service Unavailable";',
         )
 
-        stopped_event = server.index('{"event", "stopped"}')
-        accept_loop = server.index("while (!g_shutdown.load())")
-        shutdown_call = server.rfind(
+        run_server_start = server.index("int run_native_http_server")
+        run_server = server[run_server_start:]
+        stopped_event = run_server.index('{"event", "stopped"}')
+        accept_loop = run_server.index("while (!g_shutdown.load())")
+        shutdown_call = run_server.rfind(
             "chat_executor.shutdown();", 0, stopped_event
         )
         self.assertNotEqual(-1, shutdown_call)
         self.assertGreater(shutdown_call, accept_loop)
         self.assertLess(shutdown_call, stopped_event)
-        shutdown_cancellation = server[chat_route_end:stopped_event]
-        self.assertIn("send_server_busy(", shutdown_cancellation)
+        post_loop = run_server[accept_loop:]
+        self.assertRegex(
+            post_loop,
+            r'\}\s*chat_executor\.shutdown\(\);\s*'
+            r'systemd_notify\("STOPPING=1\\nSTATUS=Stopping"\);\s*'
+            r'std::cout\s*<<\s*Json\(\{\{"event", "stopped"\}',
+        )
+        stopped_event_region = run_server[
+            shutdown_call : run_server.index("return 0;", stopped_event)
+        ]
+        self.assertIn("served.load()", stopped_event_region)
 
         http_support = ROOT / "native/src/native_http_support.cpp"
         self.assertTrue(http_support.is_file())
@@ -769,11 +810,20 @@ class NativeRuntimeContractTest(unittest.TestCase):
         )
         self.assertIn("native/src/native_http_support.cpp", native_build)
         makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
-        syntax_recipe_start = makefile.index("check-native-syntax:")
-        syntax_recipe_end = makefile.index("\n\n", syntax_recipe_start)
-        syntax_recipe = makefile[syntax_recipe_start:syntax_recipe_end]
+        syntax_recipe_match = re.search(
+            r"^check-native-syntax:\n(?P<body>(?:\t.*\n?)*)",
+            makefile,
+            re.MULTILINE,
+        )
+        self.assertIsNotNone(syntax_recipe_match)
+        assert syntax_recipe_match is not None
+        syntax_recipe = re.sub(
+            r"\\\n[ \t]*", " ", syntax_recipe_match.group("body")
+        )
         syntax_command_match = re.search(
-            r"^\tg\+\+.*-fsyntax-only.*$", syntax_recipe, re.MULTILINE
+            r"^\s*(?:g\+\+|\$\(CXX\)).*-fsyntax-only.*$",
+            syntax_recipe,
+            re.MULTILINE,
         )
         self.assertIsNotNone(syntax_command_match)
         assert syntax_command_match is not None
