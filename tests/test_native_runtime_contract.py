@@ -1294,7 +1294,7 @@ class NativeRuntimeContractTest(unittest.TestCase):
         self.assertIn("native/src/native_http_support.cpp", native_build)
         makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
         syntax_recipe_match = re.search(
-            r"^check-native-syntax:\n(?P<body>(?:\t.*\n?)*)",
+            r"^check-native-syntax:[^\n]*\n(?P<body>(?:\t.*\n?)*)",
             makefile,
             re.MULTILINE,
         )

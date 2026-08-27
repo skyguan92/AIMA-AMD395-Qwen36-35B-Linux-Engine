@@ -1,4 +1,4 @@
-.PHONY: check check-cpu check-native-syntax check-python-package security-scan verify-evidence test verify native-layout-check native-chat-template-parity build-native build-direct-loader build-native-runtime package-native package-native-foundation package-evidence
+.PHONY: check check-cpu check-native-http-support check-native-syntax check-python-package security-scan verify-evidence test verify native-layout-check native-chat-template-parity build-native build-direct-loader build-native-runtime package-native package-native-foundation package-evidence
 
 check: check-cpu
 	@if test -f /opt/rocm/include/hip/hip_runtime_api.h && \
@@ -8,7 +8,7 @@ check: check-cpu
 		echo "native HIP/protocol syntax: SKIP (builder headers unavailable)"; \
 	fi
 
-check-cpu:
+check-cpu: check-native-http-support
 	python3 -m compileall -q aima_engine tools benchmarks/shape-lab tests
 	python3 -m py_compile scripts/capture-native-lm-head-reference.py scripts/check-native-wvsplitk-parity.py scripts/check-public-tree.py scripts/export-native-aot-closure.py scripts/generate-native-aot-registry.py scripts/generate-native-bundle-manifest.py scripts/generate-native-decode-registry.py scripts/generate-native-decode-schedule.py scripts/generate-native-product-result.py scripts/native_bundle_closure.py scripts/package-release-evidence.py scripts/qualify-native-correctness.py scripts/qualify-native-eval.py scripts/qualify-native-full-matrix.py scripts/qualify-native-openai-features.py scripts/qualify-native-portable-bundle.py scripts/qualify-native-surfaces.py scripts/verify-native-package-inputs.py scripts/verify-release-evidence.py scripts/native_aot_trace/sitecustomize.py
 	python3 scripts/check-public-tree.py
@@ -22,16 +22,18 @@ check-cpu:
 	./aima-engine verify
 	$(MAKE) check-python-package
 
+check-native-http-support:
+	mkdir -p build && g++ -std=c++17 -O2 -pthread -I native/include tests/native_http_support_test.cpp native/src/native_http_support.cpp -o build/native_http_support_test
+	./build/native_http_support_test
+
 check-python-package:
 	python3 -m pip wheel --no-deps --wheel-dir build/wheel .
 
-check-native-syntax:
+check-native-syntax: check-native-http-support
 	mkdir -p build && g++ -std=c++17 -O2 -I native/include tests/native_chat_protocol_test.cpp native/src/native_chat_protocol.cpp -o build/native_chat_protocol_test
 	./build/native_chat_protocol_test
 	g++ -std=c++17 -O2 -I native/include tests/native_prompt_plan_test.cpp -o build/native_prompt_plan_test
 	./build/native_prompt_plan_test
-	g++ -std=c++17 -O2 -pthread -I native/include tests/native_http_support_test.cpp native/src/native_http_support.cpp -o build/native_http_support_test
-	./build/native_http_support_test
 	g++ -std=c++17 -D__HIP_PLATFORM_AMD__ -DU_STATIC_IMPLEMENTATION -I /opt/rocm/include -I native/include -I native/generated -fsyntax-only native/src/main.cpp native/src/decode_schedule_probe.cpp native/src/sha256.cpp native/src/native_tokenizer.cpp native/src/native_chat_protocol.cpp native/src/native_doctor.cpp native/src/native_http_support.cpp native/src/native_http_server.cpp
 
 test:
