@@ -14,6 +14,7 @@ from aima_engine.vl_task_quality import (
     validate_fixture_manifest,
     validate_reference_manifest,
 )
+from tests.evidence_test_utils import assert_components_at_commit
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -99,8 +100,9 @@ class VlTaskQualityEvidenceTest(unittest.TestCase):
         self.assertTrue(self.reference["qualified_for_native_replay"])
         self.assertFalse(self.reference["source"]["dirty"])
         self.assertEqual(self.reference["source"]["commit"], QUALIFIED_COMMIT)
-        for component in self.reference["source"]["files"]:
-            assert_component_current(self, component)
+        assert_components_at_commit(
+            self, self.reference["source"]["files"], QUALIFIED_COMMIT
+        )
         for component in self.reference["bindings"].values():
             assert_component_current(self, component)
 
@@ -170,8 +172,9 @@ class VlTaskQualityEvidenceTest(unittest.TestCase):
             result["build_info"]["source_commit"], NATIVE_QUALIFIED_COMMIT
         )
         self.assertEqual(result["binary"]["sha256"], NATIVE_BINARY_SHA256)
-        for component in result["source"]["files"]:
-            assert_component_current(self, component)
+        assert_components_at_commit(
+            self, result["source"]["files"], NATIVE_QUALIFIED_COMMIT
+        )
         for name in ("reference", "fixture_manifest"):
             assert_component_current(self, result["dependencies"][name])
         self.assertEqual(

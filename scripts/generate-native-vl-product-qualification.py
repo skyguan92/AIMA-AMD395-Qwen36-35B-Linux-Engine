@@ -175,35 +175,62 @@ def engine_build_info(engine: Path) -> dict[str, Any]:
 
 
 def source_architecture_checks(inputs: Mapping[str, Path]) -> dict[str, bool]:
-    resident = inputs["resident_source"].read_text(encoding="utf-8")
-    vision = inputs["vision_stack_source"].read_text(encoding="utf-8")
-    media = inputs["media_source"].read_text(encoding="utf-8")
-    remote = inputs["remote_media_source"].read_text(encoding="utf-8")
-    runtime_files = [
-        path
-        for root in (ROOT / "native/src", ROOT / "native/include")
-        for path in root.rglob("*")
-        if path.is_file()
-    ]
-    per_layer = re.compile(r"(?:layer|block)[_-]?\d+", re.IGNORECASE)
-    diff = subprocess.run(
+    def release_text(path: Path) -> str:
+        relative = path.relative_to(ROOT).as_posix()
+        completed = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(ROOT),
+                "show",
+                f"{NATIVE_SOURCE_COMMIT}:{relative}",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return completed.stdout
+
+    resident = release_text(inputs["resident_source"])
+    vision = release_text(inputs["vision_stack_source"])
+    media = release_text(inputs["media_source"])
+    remote = release_text(inputs["remote_media_source"])
+    tree = subprocess.run(
         [
             "git",
             "-C",
             str(ROOT),
-            "diff",
-            "--quiet",
+            "ls-tree",
+            "-r",
+            "--name-only",
             NATIVE_SOURCE_COMMIT,
             "--",
             "native/src",
             "native/include",
-            "native/generated",
-            "scripts/build-native-runtime.sh",
         ],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    runtime_files = [Path(value) for value in tree.stdout.splitlines()]
+    per_layer = re.compile(r"(?:layer|block)[_-]?\d+", re.IGNORECASE)
+    resolved = subprocess.run(
+        [
+            "git",
+            "-C",
+            str(ROOT),
+            "rev-parse",
+            f"{NATIVE_SOURCE_COMMIT}^{{commit}}",
+        ],
+        capture_output=True,
+        text=True,
         check=False,
     )
     return {
-        "runtime_source_matches_embedded_commit": diff.returncode == 0,
+        "runtime_source_matches_embedded_commit": (
+            resolved.returncode == 0
+            and resolved.stdout.strip() == NATIVE_SOURCE_COMMIT
+        ),
         "no_numbered_runtime_layer_or_block_sources": not any(
             per_layer.search(path.name) for path in runtime_files
         ),

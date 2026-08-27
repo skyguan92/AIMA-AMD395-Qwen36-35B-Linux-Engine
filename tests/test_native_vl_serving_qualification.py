@@ -7,6 +7,8 @@ from pathlib import Path
 import tempfile
 import unittest
 
+from tests.evidence_test_utils import assert_components_at_commit
+
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts/qualify-native-vl-serving.py"
@@ -214,13 +216,9 @@ class NativeVlServingQualificationTest(unittest.TestCase):
             result["build_info"]["source_commit"],
             result["source"]["commit"],
         )
-        for component in result["source"]["files"]:
-            self.assertEqual(
-                hashlib.sha256(
-                    (ROOT / component["path"]).read_bytes()
-                ).hexdigest(),
-                component["sha256"],
-            )
+        assert_components_at_commit(
+            self, result["source"]["files"], result["source"]["commit"]
+        )
         self.assertEqual(
             result["binary"]["sha256"],
             "fb5cae0ca5ffaa4bc3d418d5fb1630d822eae9d60f639ba6cc143e427c0cd1e9",

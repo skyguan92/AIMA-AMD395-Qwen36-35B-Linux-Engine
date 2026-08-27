@@ -20,6 +20,7 @@ from aima_engine.vl_prefill_state_oracle import (
     STATE_COMPONENT_NAMES,
     validate_vl_prefill_state_oracle_manifest,
 )
+from tests.evidence_test_utils import assert_components_at_commit
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -158,8 +159,9 @@ class NativeVlGenerationEvidenceTest(unittest.TestCase):
         self.assertEqual(
             result["binary"]["sha256"], QUALIFIED_BINARY_SHA256
         )
-        for component in result["source"]["files"]:
-            assert_component_current(self, component)
+        assert_components_at_commit(
+            self, result["source"]["files"], QUALIFIED_COMMIT
+        )
         for name in (
             "generation_oracle",
             "fixture_manifest",

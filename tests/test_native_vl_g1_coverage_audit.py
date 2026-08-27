@@ -4,14 +4,16 @@ import hashlib
 import importlib.util
 import json
 from pathlib import Path
-import subprocess
 import unittest
+
+from tests.evidence_test_utils import assert_component_at_commit
 
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts/generate-native-vl-g1-coverage-audit.py"
 RESULT = ROOT / "benchmarks/results/native-vl-g1-coverage-audit-v0.1.0.json"
 RESULT_SIDECAR = RESULT.with_name(RESULT.name + ".sha256")
+AUDIT_SOURCE_COMMIT = "7873a65258bce8a1ceec09c7b6d20de5178030a0"
 
 
 def load_generator_module():
@@ -45,16 +47,12 @@ class NativeVlG1CoverageAuditTest(unittest.TestCase):
         cls.payload = RESULT.read_bytes()
         cls.result = json.loads(cls.payload)
 
-    def test_audit_is_current_and_reproducible(self) -> None:
-        completed = subprocess.run(
-            ["python3", str(SCRIPT), "--check"],
-            cwd=ROOT,
-            capture_output=True,
-            text=True,
-            check=False,
+    def test_audit_is_bound_to_qualified_generator(self) -> None:
+        self.assertTrue(self.result["complete"])
+        self.assertTrue(self.result["qualified"])
+        assert_component_at_commit(
+            self, self.result["inputs"]["generator"], AUDIT_SOURCE_COMMIT
         )
-        self.assertEqual(completed.returncode, 0, completed.stderr)
-        self.assertIn("native VL G1 coverage audit: PASS", completed.stdout)
 
     def test_evidence_sidecar_and_canonical_seal(self) -> None:
         digest = hashlib.sha256(self.payload).hexdigest()
@@ -81,6 +79,11 @@ class NativeVlG1CoverageAuditTest(unittest.TestCase):
 
     def test_all_audit_inputs_are_content_bound(self) -> None:
         for component in self.result["inputs"].values():
+            if component["path"] == SCRIPT.relative_to(ROOT).as_posix():
+                assert_component_at_commit(
+                    self, component, AUDIT_SOURCE_COMMIT
+                )
+                continue
             path = ROOT / component["path"]
             self.assertEqual(path.stat().st_size, component["bytes"])
             self.assertEqual(

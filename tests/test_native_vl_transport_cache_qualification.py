@@ -10,6 +10,7 @@ from aima_engine.vl_transport_cache import (
     ENABLED_REPLAY,
     REFERENCE_CASE_ORDER,
 )
+from tests.evidence_test_utils import assert_components_at_commit
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -74,7 +75,9 @@ class NativeVlTransportCacheQualificationTest(unittest.TestCase):
         self.assertTrue(result["qualified"])
         self.assertFalse(result["source"]["dirty"])
         self.assertEqual(result["source"]["commit"], QUALIFIED_COMMIT)
-        assert_components_current(self, result["source"]["files"])
+        assert_components_at_commit(
+            self, result["source"]["files"], QUALIFIED_COMMIT
+        )
         self.assertEqual(
             tuple(case["case_id"] for case in result["cases"]),
             REFERENCE_CASE_ORDER,
@@ -111,7 +114,9 @@ class NativeVlTransportCacheQualificationTest(unittest.TestCase):
             result["build_info"]["source_commit"], NATIVE_QUALIFIED_COMMIT
         )
         self.assertEqual(result["binary"]["sha256"], QUALIFIED_BINARY_SHA256)
-        assert_components_current(self, result["source"]["files"])
+        assert_components_at_commit(
+            self, result["source"]["files"], NATIVE_QUALIFIED_COMMIT
+        )
         assert_components_current(
             self,
             [

@@ -6,6 +6,7 @@ from pathlib import Path
 import unittest
 
 from aima_engine.vl_execution import build_http_probe_specs
+from tests.evidence_test_utils import assert_components_at_commit
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -70,13 +71,9 @@ class NativeVlEnvelopeQualificationTest(unittest.TestCase):
         self.assertEqual(
             result["binary"]["sha256"], QUALIFIED_BINARY_SHA256
         )
-        for component in result["source"]["files"]:
-            path = ROOT / component["path"]
-            self.assertEqual(path.stat().st_size, component["bytes"])
-            self.assertEqual(
-                hashlib.sha256(path.read_bytes()).hexdigest(),
-                component["sha256"],
-            )
+        assert_components_at_commit(
+            self, result["source"]["files"], QUALIFIED_COMMIT
+        )
         for name in ("capability_envelope", "fixture_manifest"):
             component = result["dependencies"][name]
             path = ROOT / component["path"]

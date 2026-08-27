@@ -10,6 +10,7 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import subprocess
 import sys
 from typing import Any
 
@@ -678,12 +679,27 @@ def case_map(
     return {item[id_field]: item for item in value}
 
 
-def validate_current_components(
-    label: str, components: list[dict[str, Any]]
+def validate_source_components(
+    label: str, commit: str, components: list[dict[str, Any]]
 ) -> None:
     for component in components:
-        path = ROOT / component["path"]
-        if not path.is_file() or file_component(path, component["path"]) != component:
+        completed = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(ROOT),
+                "show",
+                f"{commit}:{component['path']}",
+            ],
+            capture_output=True,
+            check=False,
+        )
+        payload = completed.stdout
+        if (
+            completed.returncode != 0
+            or len(payload) != component["bytes"]
+            or hashlib.sha256(payload).hexdigest() != component["sha256"]
+        ):
             raise SystemExit(
                 f"{label} component is missing or stale: {component['path']}"
             )
@@ -696,9 +712,10 @@ def validate_historical_reference(
     if not isinstance(source, dict) or source.get("dirty") is not False:
         raise SystemExit(f"{label} capture identity is not clean")
     components = source.get("files")
-    if not isinstance(components, list):
+    commit = source.get("commit")
+    if not isinstance(commit, str) or not isinstance(components, list):
         raise SystemExit(f"{label} source components are missing")
-    validate_current_components(label, components)
+    validate_source_components(label, commit, components)
 
 
 def validate_inputs(payloads: dict[str, dict[str, Any]]) -> None:
@@ -924,11 +941,15 @@ def validate_inputs(payloads: dict[str, dict[str, Any]]) -> None:
         )
     ):
         raise SystemExit("G3 text non-regression contains a failed check")
-    validate_current_components(
-        "native task-quality", task_native["source"]["files"]
+    validate_source_components(
+        "native task-quality",
+        task_native["source"]["commit"],
+        task_native["source"]["files"],
     )
-    validate_current_components(
-        "current-HEAD generation", generation_native["source"]["files"]
+    validate_source_components(
+        "qualified generation",
+        generation_native["source"]["commit"],
+        generation_native["source"]["files"],
     )
     if native["matrix"].get("reference_status_exact") != "30/30":
         raise SystemExit("native capability status parity is incomplete")

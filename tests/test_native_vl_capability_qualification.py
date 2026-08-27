@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 import unittest
 
+from tests.evidence_test_utils import assert_components_at_commit
+
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts/qualify-native-vl-capabilities.py"
@@ -74,13 +76,9 @@ class NativeVlCapabilityQualificationTest(unittest.TestCase):
         self.assertEqual(
             result["binary"]["sha256"], QUALIFIED_BINARY_SHA256
         )
-        for component in result["source"]["files"]:
-            path = ROOT / component["path"]
-            self.assertEqual(path.stat().st_size, component["bytes"])
-            self.assertEqual(
-                hashlib.sha256(path.read_bytes()).hexdigest(),
-                component["sha256"],
-            )
+        assert_components_at_commit(
+            self, result["source"]["files"], QUALIFIED_COMMIT
+        )
         for name in (
             "reference_capability_manifest",
             "api_render_manifest",

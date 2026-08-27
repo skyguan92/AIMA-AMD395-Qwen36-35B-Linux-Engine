@@ -11,6 +11,7 @@ from aima_engine.vl_error_limits import (
     REFERENCE_CASE_ORDER,
     REFERENCE_ERROR_CONTRACT,
 )
+from tests.evidence_test_utils import assert_components_at_commit
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -85,7 +86,9 @@ class NativeVlErrorLimitsQualificationTest(unittest.TestCase):
         self.assertTrue(result["qualified"])
         self.assertFalse(result["source"]["dirty"])
         self.assertEqual(result["source"]["commit"], QUALIFIED_COMMIT)
-        assert_components_current(self, result["source"]["files"])
+        assert_components_at_commit(
+            self, result["source"]["files"], QUALIFIED_COMMIT
+        )
         assert_components_current(self, [result["fixture"]])
         cases = {case["case_id"]: case for case in result["cases"]}
         self.assertEqual(set(cases), set(MEDIA_IO_CASES))
@@ -109,7 +112,9 @@ class NativeVlErrorLimitsQualificationTest(unittest.TestCase):
         self.assertTrue(result["qualified"])
         self.assertFalse(result["source"]["dirty"])
         self.assertEqual(result["source"]["commit"], QUALIFIED_COMMIT)
-        assert_components_current(self, result["source"]["files"])
+        assert_components_at_commit(
+            self, result["source"]["files"], QUALIFIED_COMMIT
+        )
         assert_components_current(self, list(result["bindings"].values()))
         cases = result["cases"]
         self.assertEqual(tuple(case["case_id"] for case in cases), REFERENCE_CASE_ORDER)
@@ -145,7 +150,9 @@ class NativeVlErrorLimitsQualificationTest(unittest.TestCase):
             result["build_info"]["source_commit"], NATIVE_QUALIFIED_COMMIT
         )
         self.assertEqual(result["binary"]["sha256"], QUALIFIED_BINARY_SHA256)
-        assert_components_current(self, result["source"]["files"])
+        assert_components_at_commit(
+            self, result["source"]["files"], NATIVE_QUALIFIED_COMMIT
+        )
         assert_components_current(
             self,
             [
