@@ -762,6 +762,10 @@ class NativeRuntimeContractTest(unittest.TestCase):
         )
         normalized_server = re.sub(r"\s+", " ", server)
 
+        self.assertIn("#define _GNU_SOURCE", server)
+        self.assertLess(
+            server.index("#define _GNU_SOURCE"), server.index("#include")
+        )
         self.assertIn('#include "aima/native_http_support.h"', server)
         self.assertIn("#include <poll.h>", server)
         self.assertIn("#include <pthread.h>", server)
@@ -809,7 +813,8 @@ class NativeRuntimeContractTest(unittest.TestCase):
             f"{receive_poll_name}[1].fd = wake_read_fd", normalized_receive
         )
         receive_poll = re.search(
-            rf"::poll\s*\(\s*{receive_poll_name}\s*,\s*2\s*,",
+            rf"::ppoll\s*\(\s*{receive_poll_name}\s*,\s*2\s*,"
+            r"[^,]+,\s*&wait_signal_mask\s*\)",
             normalized_receive,
         )
         receive_recv = re.search(
@@ -822,7 +827,56 @@ class NativeRuntimeContractTest(unittest.TestCase):
         assert receive_poll is not None
         assert receive_recv is not None
         self.assertLess(receive_poll.start(), receive_recv.start())
+        self.assertNotIn("::poll(", normalized_receive)
         self.assertIn("synchronize_signal_shutdown(wake_read_fd)", receive_body)
+        receive_start = server.index("ssize_t receive_before")
+        receive_signature = server[
+            receive_start : server.index("{", receive_start)
+        ]
+        self.assertIn(
+            "const sigset_t& wait_signal_mask", receive_signature
+        )
+        self.assertRegex(
+            normalized_receive,
+            r"optional<timespec> poll_timeout = ppoll_timeout_before\("
+            r"deadline, timeout_message\)",
+        )
+        self.assertRegex(
+            normalized_receive,
+            r"poll_timeout\.has_value\(\) \? &\*poll_timeout : nullptr",
+        )
+
+        bounded_timeout_body = cpp_free_function_body(
+            server, "poll_timeout_before"
+        )
+        self.assertIsNotNone(bounded_timeout_body)
+        assert bounded_timeout_body is not None
+        normalized_bounded_timeout = re.sub(
+            r"\s+", " ", bounded_timeout_body
+        )
+        self.assertIn(
+            "std::numeric_limits<int>::max()", normalized_bounded_timeout
+        )
+        self.assertRegex(
+            normalized_bounded_timeout,
+            r"remaining_ms\.count\(\) > maximum\) return maximum",
+        )
+        ppoll_timeout_body = cpp_free_function_body(
+            server, "ppoll_timeout_before"
+        )
+        self.assertIsNotNone(ppoll_timeout_body)
+        assert ppoll_timeout_body is not None
+        normalized_ppoll_timeout = re.sub(r"\s+", " ", ppoll_timeout_body)
+        self.assertIn(
+            "poll_timeout_before(deadline, timeout_message)",
+            normalized_ppoll_timeout,
+        )
+        self.assertIn(
+            "if (timeout_ms < 0) return std::nullopt",
+            normalized_ppoll_timeout,
+        )
+        self.assertIn("timeout.tv_sec", normalized_ppoll_timeout)
+        self.assertIn("timeout.tv_nsec", normalized_ppoll_timeout)
 
         poll_timeout_match = re.search(
             r"if\s*\(\s*poll_result\s*==\s*0\s*\)", receive_body
@@ -852,7 +906,21 @@ class NativeRuntimeContractTest(unittest.TestCase):
         read_request_body = cpp_free_function_body(server, "read_request")
         self.assertIsNotNone(read_request_body)
         assert read_request_body is not None
+        read_request_start = server.index("HttpRequest read_request")
+        read_request_signature = server[
+            read_request_start : server.index("{", read_request_start)
+        ]
+        self.assertIn(
+            "const sigset_t& wait_signal_mask", read_request_signature
+        )
         self.assertIn("wake_read_fd", read_request_body)
+        self.assertIn("wait_signal_mask", read_request_body)
+        normalized_read_request = re.sub(r"\s+", " ", read_request_body)
+        receive_forwarding = re.findall(
+            r"receive_before\( fd, wake_read_fd, wait_signal_mask,",
+            normalized_read_request,
+        )
+        self.assertEqual(2, len(receive_forwarding))
 
         synchronize_body = cpp_free_function_body(
             server, "synchronize_signal_shutdown"
@@ -964,7 +1032,7 @@ class NativeRuntimeContractTest(unittest.TestCase):
         normalized_run_server = re.sub(r"\s+", " ", run_server)
         block_signals = re.search(
             r"pthread_sigmask\(\s*SIG_BLOCK\s*,\s*&shutdown_signals\s*,"
-            r"\s*nullptr\s*\)",
+            r"\s*&original_signal_mask\s*\)",
             normalized_run_server,
         )
         self.assertIsNotNone(block_signals)
@@ -980,19 +1048,23 @@ class NativeRuntimeContractTest(unittest.TestCase):
         signal_handler_install = normalized_run_server.index(
             "::sigaction(SIGTERM"
         )
-        unblock_signals = re.search(
-            r"pthread_sigmask\(\s*SIG_UNBLOCK\s*,\s*&shutdown_signals\s*,"
-            r"\s*nullptr\s*\)",
-            normalized_run_server,
-        )
-        self.assertIsNotNone(unblock_signals)
-        assert unblock_signals is not None
         self.assertGreater(
             signal_handler_install,
             normalized_run_server.index("NativeSerialExecutor chat_executor"),
         )
-        self.assertGreater(unblock_signals.start(), signal_handler_install)
-        self.assertNotIn("SIG_SETMASK", normalized_run_server)
+        wait_mask_copy = normalized_run_server.index(
+            "sigset_t wait_signal_mask = original_signal_mask"
+        )
+        wait_mask_sigint = normalized_run_server.index(
+            "::sigdelset(&wait_signal_mask, SIGINT)"
+        )
+        wait_mask_sigterm = normalized_run_server.index(
+            "::sigdelset(&wait_signal_mask, SIGTERM)"
+        )
+        self.assertLess(block_signals.start(), wait_mask_copy)
+        self.assertLess(wait_mask_copy, wait_mask_sigint)
+        self.assertLess(wait_mask_copy, wait_mask_sigterm)
+        self.assertNotIn("SIG_UNBLOCK", normalized_run_server)
 
         wake_pipe_start = server.index("class SignalWakePipe")
         wake_pipe_opening = server.index("{", wake_pipe_start)
@@ -1015,7 +1087,6 @@ class NativeRuntimeContractTest(unittest.TestCase):
             "SignalWakePipe signal_wakeup"
         )
         self.assertLess(wake_pipe_instance, signal_handler_install)
-        self.assertLess(wake_pipe_instance, unblock_signals.start())
         self.assertRegex(
             normalized_run_server,
             r"::socket\([^;]*SOCK_NONBLOCK[^;]*\)",
@@ -1040,7 +1111,8 @@ class NativeRuntimeContractTest(unittest.TestCase):
             normalized_accept_loop,
         )
         accept_poll = re.search(
-            rf"::poll\s*\(\s*{accept_poll_name}\s*,\s*2\s*,",
+            rf"::ppoll\s*\(\s*{accept_poll_name}\s*,\s*2\s*,"
+            r"\s*nullptr\s*,\s*&wait_signal_mask\s*\)",
             normalized_accept_loop,
         )
         self.assertIsNotNone(accept_poll)
@@ -1048,6 +1120,7 @@ class NativeRuntimeContractTest(unittest.TestCase):
         self.assertLess(
             accept_poll.start(), normalized_accept_loop.index("::accept4(")
         )
+        self.assertNotIn("::poll(", normalized_accept_loop)
 
         tracker_start = server.index("class ActiveClientReadTracker")
         tracker_opening = server.index("{", tracker_start)
@@ -1083,6 +1156,18 @@ class NativeRuntimeContractTest(unittest.TestCase):
         )
         read_call = accept_loop_region.index(
             "read_request(", registration.start()
+        )
+        normalized_registration_scope = re.sub(
+            r"\s+",
+            " ",
+            accept_loop_region[
+                registration_scope_opening : registration_scope_closing + 1
+            ],
+        )
+        self.assertRegex(
+            normalized_registration_scope,
+            r"read_request\(client\.get\(\), signal_wakeup\.read_fd\(\), "
+            r"wait_signal_mask, options\.request_timeout_ms\)",
         )
         authentication = accept_loop_region.index(
             "requires_authentication", read_call
@@ -1123,7 +1208,27 @@ class NativeRuntimeContractTest(unittest.TestCase):
             "g_signal_wakeup_fd = -1", 0, server_return
         )
         self.assertNotEqual(-1, wake_fd_clear)
-        self.assertLess(wake_fd_clear, server_return)
+        restore_original_mask = re.search(
+            r"const\s+int\s+(?P<error>\w+)\s*=\s*"
+            r"::pthread_sigmask\(\s*SIG_SETMASK\s*,"
+            r"\s*&original_signal_mask\s*,\s*nullptr\s*\)",
+            run_server[:server_return],
+        )
+        self.assertIsNotNone(restore_original_mask)
+        assert restore_original_mask is not None
+        restore_tail = run_server[
+            restore_original_mask.end() : server_return
+        ]
+        self.assertRegex(
+            restore_tail,
+            rf"if\s*\(\s*{restore_original_mask.group('error')}\s*!=\s*0\s*\)",
+        )
+        final_executor_shutdown = run_server.rfind(
+            "chat_executor.shutdown();", 0, server_return
+        )
+        self.assertLess(final_executor_shutdown, wake_fd_clear)
+        self.assertLess(wake_fd_clear, restore_original_mask.start())
+        self.assertLess(restore_original_mask.start(), server_return)
 
         stopped_event = run_server.index('{"event", "stopped"}')
         accept_loop = run_server.index("while (!g_shutdown.load())")

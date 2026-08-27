@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2026 Approaching AI Authors
 
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
 #include "aima/native_http_server.h"
 
 #include "aima/native_chat_protocol.h"
@@ -337,7 +341,19 @@ int poll_timeout_before(
   return static_cast<int>(std::max<std::int64_t>(1, remaining_ms.count()));
 }
 
-ssize_t receive_before(int fd, int wake_read_fd, void* buffer,
+std::optional<timespec> ppoll_timeout_before(
+    const std::optional<std::chrono::steady_clock::time_point>& deadline,
+    const char* timeout_message) {
+  const int timeout_ms = poll_timeout_before(deadline, timeout_message);
+  if (timeout_ms < 0) return std::nullopt;
+  timespec timeout{};
+  timeout.tv_sec = static_cast<time_t>(timeout_ms / 1000);
+  timeout.tv_nsec = static_cast<long>((timeout_ms % 1000) * 1000000L);
+  return timeout;
+}
+
+ssize_t receive_before(int fd, int wake_read_fd,
+                       const sigset_t& wait_signal_mask, void* buffer,
                        std::size_t size,
                        const std::optional<
                            std::chrono::steady_clock::time_point>& deadline,
@@ -348,8 +364,12 @@ ssize_t receive_before(int fd, int wake_read_fd, void* buffer,
     wait_fds[0].events = POLLIN;
     wait_fds[1].fd = wake_read_fd;
     wait_fds[1].events = POLLIN;
+    const std::optional<timespec> poll_timeout =
+        ppoll_timeout_before(deadline, timeout_message);
     const int poll_result =
-        ::poll(wait_fds, 2, poll_timeout_before(deadline, timeout_message));
+        ::ppoll(wait_fds, 2,
+                poll_timeout.has_value() ? &*poll_timeout : nullptr,
+                &wait_signal_mask);
     if (poll_result < 0 && errno == EINTR) continue;
     if (poll_result < 0) {
       throw std::runtime_error("failed to poll HTTP request socket");
@@ -388,6 +408,7 @@ ssize_t receive_before(int fd, int wake_read_fd, void* buffer,
 }
 
 HttpRequest read_request(int fd, int wake_read_fd,
+                         const sigset_t& wait_signal_mask,
                          std::size_t timeout_ms) {
   std::optional<std::chrono::steady_clock::time_point> deadline;
   if (timeout_ms != 0) {
@@ -411,7 +432,7 @@ HttpRequest read_request(int fd, int wake_read_fd,
   while (header_end == std::string::npos) {
     char buffer[8192];
     const ssize_t count = receive_before(
-        fd, wake_read_fd, buffer, sizeof(buffer), deadline,
+        fd, wake_read_fd, wait_signal_mask, buffer, sizeof(buffer), deadline,
         "HTTP request header timed out");
     if (count <= 0) throw std::runtime_error("incomplete HTTP request");
     wire.append(buffer, static_cast<std::size_t>(count));
@@ -478,7 +499,8 @@ HttpRequest read_request(int fd, int wake_read_fd,
     const std::size_t remaining =
         content_length - (wire.size() - body_begin);
     const ssize_t count = receive_before(
-        fd, wake_read_fd, buffer, std::min(sizeof(buffer), remaining), deadline,
+        fd, wake_read_fd, wait_signal_mask, buffer,
+        std::min(sizeof(buffer), remaining), deadline,
         "HTTP request body timed out");
     if (count <= 0) throw std::runtime_error("incomplete HTTP request body");
     wire.append(buffer, static_cast<std::size_t>(count));
@@ -1158,13 +1180,17 @@ int run_native_http_server(int argc, char** argv) {
       ::sigaddset(&shutdown_signals, SIGTERM) != 0) {
     throw std::runtime_error("failed to construct shutdown signal mask");
   }
-  const int block_signals_error =
-      ::pthread_sigmask(SIG_BLOCK, &shutdown_signals, nullptr);
+  sigset_t original_signal_mask{};
+  const int block_signals_error = ::pthread_sigmask(
+      SIG_BLOCK, &shutdown_signals, &original_signal_mask);
   if (block_signals_error != 0) {
     throw std::runtime_error(
         "failed to block shutdown signals: " +
         std::string(std::strerror(block_signals_error)));
   }
+  sigset_t wait_signal_mask = original_signal_mask;
+  (void)::sigdelset(&wait_signal_mask, SIGINT);
+  (void)::sigdelset(&wait_signal_mask, SIGTERM);
 
   const ServerOptions options = parse_options(argc, argv);
   g_shutdown.store(false);
@@ -1214,13 +1240,6 @@ int run_native_http_server(int argc, char** argv) {
       ::sigaction(SIGTERM, &action, nullptr) != 0) {
     throw std::runtime_error("failed to install shutdown signal handlers");
   }
-  const int unblock_signals_error =
-      ::pthread_sigmask(SIG_UNBLOCK, &shutdown_signals, nullptr);
-  if (unblock_signals_error != 0) {
-    throw std::runtime_error(
-        "failed to unblock shutdown signals: " +
-        std::string(std::strerror(unblock_signals_error)));
-  }
   systemd_notify("READY=1\nSTATUS=Ready");
   const double command_to_ready_ms = elapsed_ms(process_started);
   std::cout << Json({{"event", "ready"},
@@ -1260,7 +1279,8 @@ int run_native_http_server(int argc, char** argv) {
     accept_fds[0].events = POLLIN;
     accept_fds[1].fd = signal_wakeup.read_fd();
     accept_fds[1].events = POLLIN;
-    const int poll_result = ::poll(accept_fds, 2, -1);
+    const int poll_result =
+        ::ppoll(accept_fds, 2, nullptr, &wait_signal_mask);
     if (poll_result < 0 && errno == EINTR) continue;
     if (poll_result < 0) {
       throw std::runtime_error("failed to poll native HTTP listener");
@@ -1299,6 +1319,7 @@ int run_native_http_server(int argc, char** argv) {
         ActiveClientReadTracker::Registration active_read_registration(
             active_client_reads, client.get());
         request = read_request(client.get(), signal_wakeup.read_fd(),
+                               wait_signal_mask,
                                options.request_timeout_ms);
       }
       if (requires_authentication(request, options) &&
@@ -1448,6 +1469,13 @@ int run_native_http_server(int argc, char** argv) {
                    .dump()
             << std::endl;
   g_signal_wakeup_fd = -1;
+  const int restore_signals_error = ::pthread_sigmask(
+      SIG_SETMASK, &original_signal_mask, nullptr);
+  if (restore_signals_error != 0) {
+    throw std::runtime_error(
+        "failed to restore signal mask: " +
+        std::string(std::strerror(restore_signals_error)));
+  }
   return 0;
 }
 
