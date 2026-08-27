@@ -271,13 +271,16 @@ def stream_summary(response: dict[str, Any]) -> dict[str, Any]:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--engine", type=Path, default=Path("build/native/aima-engine-native")
+        "--engine",
+        type=Path,
+        default=ROOT / "build/native/aima-engine-native",
     )
     parser.add_argument("--model-dir", type=Path, required=True)
     parser.add_argument(
         "--image",
         type=Path,
-        default=Path(
+        default=ROOT
+        / Path(
             "benchmarks/fixtures/vl-capability-v0.1.0/image-rgb-256.png"
         ),
     )
