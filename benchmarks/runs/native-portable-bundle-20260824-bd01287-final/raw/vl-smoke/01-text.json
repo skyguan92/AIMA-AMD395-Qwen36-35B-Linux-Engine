@@ -1,0 +1,137 @@
+{
+  "cache_reuse_signals": null,
+  "case_id": "text",
+  "checks": {
+    "image_count_exact": true,
+    "one_completion_token": true,
+    "one_model_load": true,
+    "request_index_exact": true,
+    "status_200": true,
+    "video_count_exact": true,
+    "vl_enabled_exact": true
+  },
+  "qualified": true,
+  "response": {
+    "aima_amd395": {
+      "aot_prefill_bucket_tokens": 1024,
+      "aot_prefill_segments": 1,
+      "aot_prefill_tokens": 18,
+      "client_cancelled": false,
+      "cold_prompt_decode_tokens": 0,
+      "cold_prompt_decode_wall_ms": 0.0,
+      "completion_tokens": 1,
+      "decode_tokens_per_second": 0.0,
+      "http_request_wall_ms": 512.930828,
+      "model_loads": 1,
+      "mrope": {
+        "decode_steps": 0,
+        "enabled": false,
+        "fmha_launches": 10,
+        "full_attention_launches": 0,
+        "position_delta": 0,
+        "position_upload_bytes": 0,
+        "unified_attention_launches": 0
+      },
+      "oracle_tensor_reads": 0,
+      "output_token_ids_sha256": "528b0f3da89facc67ed8e768c09172db38862e5133ec94197299ff4b8471f241",
+      "padded_prefill_tokens": 1006,
+      "prefill_tokens_per_second": 35.11049423706588,
+      "prefix_cache": {
+        "active_kv_reused": false,
+        "hits": 0,
+        "implemented": true,
+        "lookup": "miss",
+        "matched_tokens": 0,
+        "misses": 1,
+        "restore_wall_ms": 0.0,
+        "scope": "capacity-bounded-variable-exact-or-append-lru",
+        "suffix_aot_launches": 0,
+        "suffix_decode_tokens": 0,
+        "suffix_native_launches": 0,
+        "suffix_tokens": 18,
+        "suffix_wall_ms": 0.0,
+        "transfer_bytes": 64761856
+      },
+      "prompt_execution": "cold-aot-padded",
+      "prompt_source": "chat_template",
+      "prompt_tokens": 18,
+      "request_index": 1,
+      "request_wall_ms": 512.671435,
+      "runtime": "native-resident-q18",
+      "sampling": {
+        "logits_device_to_host_bytes": 0,
+        "logits_source": "certified-top1",
+        "mode": "argmax",
+        "seed": null,
+        "seed_provided": false,
+        "temperature": 0.0,
+        "token_selections": 0,
+        "top_p": 1.0,
+        "wall_ms": 0.0
+      },
+      "structured_decoding": {
+        "enabled": false,
+        "token_mask_upload_bytes": 0,
+        "token_selections": 0
+      },
+      "ttft_ms": 512.667235,
+      "vl": {
+        "embedding_injection_wall_ms": 0.0,
+        "enabled": false,
+        "host_to_device_bytes": 0,
+        "image_count": 0,
+        "logical_projection_plan_build_wall_ms": 0.0,
+        "logical_projection_plan_count": 0,
+        "logical_projection_plan_reused": false,
+        "logical_projection_tokens": 0,
+        "logical_projection_workspace_bytes": 0,
+        "media_cache_entries": 0,
+        "media_cache_hits": 0,
+        "media_cache_misses": 0,
+        "media_cache_resident_bytes": 0,
+        "media_count": 0,
+        "media_decode_wall_ms": 0.0,
+        "media_load_decode_wall_ms": 0.0,
+        "media_load_wall_ms": 0.0,
+        "processor_wall_ms": 0.0,
+        "source_bytes": 0,
+        "video_count": 0,
+        "vision_attention_image_sha256s": [],
+        "vision_batch_count": 0,
+        "vision_embedding_cache_capacity_bytes": 0,
+        "vision_embedding_cache_entries": 0,
+        "vision_embedding_cache_hit": false,
+        "vision_embedding_cache_resident_bytes": 0,
+        "vision_encode_wall_ms": 0.0,
+        "vision_input_upload_wall_ms": 0.0,
+        "vision_max_batch_patches": 0,
+        "vision_max_batch_tokens": 0,
+        "vision_patches": 0,
+        "vision_plan_build_wall_ms": 0.0,
+        "vision_plan_cache_entries": 0,
+        "vision_plan_cache_hit": false,
+        "visual_tokens": 0
+      }
+    },
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "content": "OK",
+          "role": "assistant"
+        }
+      }
+    ],
+    "created": 1787625118,
+    "id": "chatcmpl-native-1",
+    "model": "aima-amd395-qwen36-35b",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1,
+      "prompt_tokens": 18,
+      "total_tokens": 19
+    }
+  },
+  "status": 200
+}

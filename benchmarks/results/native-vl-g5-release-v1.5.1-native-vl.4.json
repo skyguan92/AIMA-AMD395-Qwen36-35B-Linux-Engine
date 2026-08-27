@@ -1,0 +1,186 @@
+{
+  "archive": {
+    "bytes": 345064109,
+    "checksum_sidecar": "aima-engine-native-portable-dc4b9e19c3e5.tar.zst.sha256",
+    "checksum_verified": true,
+    "name": "aima-engine-native-portable-dc4b9e19c3e5.tar.zst",
+    "sha256": "e55fb584827c7f30bd31a77ab91b9cb2d6f4e0b02bb29965dc1caed8bade0662"
+  },
+  "candidate": {
+    "host_rocm_userspace_required": false,
+    "native_engine_sha256": "fb5cae0ca5ffaa4bc3d418d5fb1630d822eae9d60f639ba6cc143e427c0cd1e9",
+    "native_source_commit": "bd012874027defa528279a357609b713e9069df4",
+    "ready_includes_language_and_vision": true,
+    "runtime_python": false,
+    "runtime_torch": false,
+    "runtime_transformers": false,
+    "runtime_triton": false,
+    "runtime_vllm": false,
+    "single_resident_process": true
+  },
+  "complete": true,
+  "decision": {
+    "g1_full_vl_functional_parity": true,
+    "g2_vl_correctness_parity": true,
+    "g3_text_product_no_regression": true,
+    "g4_native_vl_performance": true,
+    "g5_native_release_product": true,
+    "next_blocking_boundary": null,
+    "portable_archive": true,
+    "release_promoted": true,
+    "repository_security_evidence_gates": true,
+    "resident_mixed_workload_soak": true,
+    "rollback": true,
+    "second_amd395": true
+  },
+  "evidence": {
+    "package_input": {
+      "bytes": 12180,
+      "path": "benchmarks/results/native-portable-product-v1.5.1-native-vl.4.json",
+      "sha256": "f11acfd07442663b74e6401422b450229d2dc96fb2ab2d43f06cfaef25a4d681"
+    },
+    "primary_bundle": {
+      "bytes": 14474,
+      "path": "benchmarks/runs/native-portable-bundle-20260824-bd01287-final/bundle.json",
+      "sha256": "abef601d803e9bbd3256051475d115341f6d70194a1ff8d6b0d7ce6106c38f3a"
+    },
+    "product_contract": {
+      "bytes": 5986,
+      "path": "native/product-contract-v1.5.1-native-vl.4.json",
+      "sha256": "c5fb1b75dd4b3b39a73dbd82b0e358c449fe8af9d3c0130a5227a3b1d3b4857c"
+    },
+    "release_gates": {
+      "bytes": 3047,
+      "path": "benchmarks/runs/native-vl-release-gates-20260824-bd01287-final/release-gates.json",
+      "sha256": "826f24873c9dd7f5c14a34403b0ddf7d52880fd264e004a6136cc719583ec231"
+    },
+    "resident_soak": {
+      "bytes": 6352,
+      "path": "benchmarks/runs/native-vl-resident-soak-20260824-bd01287-final/soak.json",
+      "sha256": "61c8409b27aa3657469464f7efbc64b1fac4406fa1b6adb0e8702f18dac15067"
+    },
+    "rollback": {
+      "bytes": 4137,
+      "path": "benchmarks/runs/native-vl-rollback-20260824-bd01287-final/rollback.json",
+      "sha256": "d5eb79ecefec0491a357ae59688179cfd4ffb5a92c4b6079965ac523ba7e469f"
+    },
+    "second_bundle": {
+      "bytes": 14447,
+      "path": "benchmarks/runs/native-portable-baiying-20260824-bd01287-final/bundle.json",
+      "sha256": "88f686213d1bdb03966c7c7ba625eed59367553c70fd0239b75aeee9c2a512b3"
+    }
+  },
+  "gates": {
+    "g1_full_vl_functional_parity": true,
+    "g2_vl_correctness_parity": true,
+    "g3_text_product_no_regression": true,
+    "g4_native_vl_performance": true,
+    "portable_archive": true,
+    "repository_security_evidence_gates": true,
+    "resident_mixed_workload_soak": true,
+    "rollback": true,
+    "second_amd395": true
+  },
+  "host_checks": {
+    "cross_host": {
+      "live_host_facts_distinct": true,
+      "primary_bundle_all": true,
+      "roles_distinct": true,
+      "second_bundle_all": true
+    },
+    "primary": {
+      "archive_exact": true,
+      "doctor_qualified": true,
+      "host_fingerprint_present": true,
+      "host_role_exact": true,
+      "isolated_environment": true,
+      "manifest_native_vl": true,
+      "provider_smokes_qualified": true,
+      "public_hygiene": true,
+      "source_exact": true,
+      "vl_smoke_qualified": true
+    },
+    "primary_facts": {
+      "architecture": "x86_64",
+      "fingerprint_sha256": "fda002093d02125d9f8fe6adb677a400e9404ad42b936dece28908442118a646",
+      "gpu": {
+        "architecture": "gfx1151",
+        "device": "Radeon 8060S Graphics"
+      },
+      "gtt_bytes": 103079215104,
+      "kernel": "6.14.0-1020-oem",
+      "os": {
+        "id": "ubuntu",
+        "pretty_name": "Ubuntu 24.04.3 LTS",
+        "version_id": "24.04"
+      },
+      "role": "primary_amd395",
+      "vram_bytes": 536870912
+    },
+    "second": {
+      "archive_exact": true,
+      "doctor_qualified": true,
+      "host_fingerprint_present": true,
+      "host_role_exact": true,
+      "isolated_environment": true,
+      "manifest_native_vl": true,
+      "provider_smokes_qualified": true,
+      "public_hygiene": true,
+      "source_exact": true,
+      "vl_smoke_qualified": true
+    },
+    "second_facts": {
+      "architecture": "x86_64",
+      "fingerprint_sha256": "64e23e441a0fb18b250c2b2e88f6cfdcf370f1411dac32ddb6b954504989ae27",
+      "gpu": {
+        "architecture": "gfx1151",
+        "device": "Radeon 8060S Graphics"
+      },
+      "gtt_bytes": 103079215104,
+      "kernel": "7.0.0-30-generic",
+      "os": {
+        "id": "ubuntu",
+        "pretty_name": "Ubuntu 24.04.4 LTS",
+        "version_id": "24.04"
+      },
+      "role": "second_amd395",
+      "vram_bytes": 536870912
+    }
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "canonical_payload_sha256": "8da729d4bfb117092d0c354b2c624c337b1ba22197d15a0ba37463c9683a58c0"
+  },
+  "qualified": true,
+  "recorded_at": "2026-08-24",
+  "release": "1.5.1-native-vl.4",
+  "rollback_checks": {
+    "all_checks_pass": true,
+    "baseline_archive_exact": true,
+    "candidate_archive_exact": true,
+    "primary_host": true,
+    "rollback_decision": true
+  },
+  "schema": "aima-amd395-qwen36/native-vl-g5-release-qualification/v1",
+  "soak_checks": {
+    "all_checks_pass": true,
+    "archive_exact": true,
+    "minimum_requests": true,
+    "one_hour": true,
+    "primary_host": true,
+    "single_model_load": true
+  },
+  "source": {
+    "native_source_commit": "bd012874027defa528279a357609b713e9069df4",
+    "native_source_dirty": false,
+    "release_commit": "6a6310c843eab9496ca37d19ba216856c86ba476",
+    "release_tag": "v1.5.1-native-vl.4"
+  },
+  "static_release_checks": {
+    "all_checks_pass": true,
+    "evidence_preflight": true,
+    "make_check": true,
+    "security_scan": true,
+    "source_exact": true
+  }
+}

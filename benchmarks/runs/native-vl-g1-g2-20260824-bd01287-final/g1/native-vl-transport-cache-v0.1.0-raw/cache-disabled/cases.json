@@ -1,0 +1,2217 @@
+{
+  "cases": [
+    {
+      "accepted": true,
+      "cache": {
+        "completion_tokens": 8,
+        "image_count": 0,
+        "media_cache_entries": 0,
+        "media_cache_hits": 0,
+        "media_cache_misses": 1,
+        "media_cache_resident_bytes": 0,
+        "media_count": 1,
+        "media_decode_wall_ms": 1.796344,
+        "output_token_ids_sha256": "daea8773e03bcf14b5263990e6ba5572009c2a214d416de787f8c64b1fd887bf",
+        "prefix_lookup": "miss",
+        "prefix_matched_tokens": 0,
+        "processor_wall_ms": 0.163695,
+        "prompt_tokens": 67,
+        "video_count": 1,
+        "vision_encode_wall_ms": 12.435163
+      },
+      "cache_enabled": false,
+      "case_id": "video_content_a",
+      "expected_accept": true,
+      "observation_id": "video_content_a_disabled_1",
+      "passed": true,
+      "qualification_checks": {
+        "finish_reason_exact": true,
+        "generated_content_exact": true,
+        "media_counts_exact": true,
+        "media_executed": true,
+        "mrope_enabled": true,
+        "reference_status_exact": true,
+        "render_prompt_token_ids_exact": true,
+        "render_prompt_tokens_exact": true,
+        "request_contract_exact": true,
+        "resident_native_request": true,
+        "surface_accepted": true,
+        "usage_exact": true
+      },
+      "qualified": true,
+      "reference_case_id": "video_content_a",
+      "request": {
+        "max_tokens": 8,
+        "messages": [
+          {
+            "content": [
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 54027,
+                    "fixture": "video-8f-4fps-128.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+                    "transport": "http-mutable"
+                  }
+                }
+              },
+              {
+                "text": "Describe the video in one short sentence.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "${AIMA_SERVED_MODEL}",
+        "n": 1,
+        "stream": false,
+        "temperature": 0,
+        "top_p": 1
+      },
+      "request_sha256": "209018a6309ec64716fc8a71eb60949478af0500c010133746685bf8925b751a",
+      "response": {
+        "aima_amd395": {
+          "aot_prefill_bucket_tokens": 1024,
+          "aot_prefill_segments": 1,
+          "aot_prefill_tokens": 67,
+          "client_cancelled": false,
+          "cold_prompt_decode_tokens": 0,
+          "cold_prompt_decode_wall_ms": 0.0,
+          "completion_tokens": 8,
+          "decode_tokens_per_second": 34.2718719745434,
+          "http_request_wall_ms": 476.123294,
+          "model_loads": 1,
+          "mrope": {
+            "decode_steps": 7,
+            "enabled": true,
+            "fmha_launches": 0,
+            "full_attention_launches": 10,
+            "position_delta": -24,
+            "position_upload_bytes": 1608,
+            "unified_attention_launches": 10
+          },
+          "oracle_tensor_reads": 0,
+          "output_token_ids_canonical_sha256": "daea8773e03bcf14b5263990e6ba5572009c2a214d416de787f8c64b1fd887bf",
+          "output_token_ids_sha256": "a7b0a6f8b4b6cff44460f619d21570ae445567ab354b9811bcd40a0155845ea6",
+          "padded_prefill_tokens": 957,
+          "prefill_tokens_per_second": 251.12256189180718,
+          "prefix_cache": {
+            "active_kv_reused": false,
+            "hits": 0,
+            "implemented": true,
+            "lookup": "miss",
+            "matched_tokens": 0,
+            "misses": 1,
+            "restore_wall_ms": 0.0,
+            "scope": "capacity-bounded-variable-exact-or-append-lru",
+            "suffix_aot_launches": 0,
+            "suffix_decode_tokens": 0,
+            "suffix_native_launches": 0,
+            "suffix_tokens": 67,
+            "suffix_wall_ms": 0.0,
+            "transfer_bytes": 65765376
+          },
+          "prompt_execution": "cold-aot-padded",
+          "prompt_source": "chat_template",
+          "prompt_token_ids_sha256": "7151cafd1ed0edf8087e09b48ecf8ed825c0ac45f46fd567c9c38955b1088b9e",
+          "prompt_tokens": 67,
+          "request_index": 1,
+          "request_wall_ms": 471.320643,
+          "runtime": "native-resident-q67",
+          "sampling": {
+            "logits_device_to_host_bytes": 0,
+            "logits_source": "certified-top1",
+            "mode": "argmax",
+            "seed": null,
+            "seed_provided": false,
+            "temperature": 0.0,
+            "token_selections": 0,
+            "top_p": 1.0,
+            "wall_ms": 0.0
+          },
+          "structured_decoding": {
+            "enabled": false,
+            "token_mask_upload_bytes": 0,
+            "token_selections": 0
+          },
+          "ttft_ms": 266.801993,
+          "vl": {
+            "embedding_injection_wall_ms": 1.989049,
+            "enabled": true,
+            "host_to_device_bytes": 393740,
+            "image_count": 0,
+            "logical_projection_plan_build_wall_ms": 3.53177,
+            "logical_projection_plan_count": 9,
+            "logical_projection_plan_reused": false,
+            "logical_projection_tokens": 67,
+            "logical_projection_workspace_bytes": 0,
+            "media_cache_entries": 0,
+            "media_cache_hits": 0,
+            "media_cache_misses": 1,
+            "media_cache_resident_bytes": 0,
+            "media_count": 1,
+            "media_decode_wall_ms": 1.796344,
+            "media_load_decode_wall_ms": 4.213779,
+            "media_load_wall_ms": 2.417435,
+            "processor_wall_ms": 0.163695,
+            "source_bytes": 54027,
+            "video_count": 1,
+            "vision_attention_image_sha256s": [
+              "8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e"
+            ],
+            "vision_batch_count": 1,
+            "vision_embedding_cache_capacity_bytes": 536870912,
+            "vision_embedding_cache_entries": 0,
+            "vision_embedding_cache_hit": false,
+            "vision_embedding_cache_resident_bytes": 0,
+            "vision_encode_wall_ms": 12.435163,
+            "vision_input_upload_wall_ms": 0.115136,
+            "vision_max_batch_patches": 128,
+            "vision_max_batch_tokens": 32,
+            "vision_patches": 128,
+            "vision_plan_build_wall_ms": 10.375977,
+            "vision_plan_cache_entries": 3,
+            "vision_plan_cache_hit": false,
+            "visual_tokens": 32
+          }
+        },
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "message": {
+              "content": "The user wants a one-sentence description",
+              "role": "assistant"
+            }
+          }
+        ],
+        "model": "aima-amd395-qwen36-35b",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 8,
+          "prompt_tokens": 67,
+          "total_tokens": 75
+        }
+      },
+      "response_bytes": 3113,
+      "response_sha256": "b1bc9a5c02217d1d038c8804e7a34a74abef21f66e18d4657f242e1b0e2736c5",
+      "status_code": 200,
+      "surfaces": [
+        "video",
+        "cache_identity",
+        "long_generation"
+      ],
+      "timings": {
+        "total_seconds": 0.4765601996332407,
+        "ttft_seconds": null
+      },
+      "transport_request_sha256": "1d5ca4564f8ee806f6302df078471c33d136096d15291f5d0a6e2ae7877495a7"
+    },
+    {
+      "accepted": true,
+      "cache": {
+        "completion_tokens": 8,
+        "image_count": 0,
+        "media_cache_entries": 0,
+        "media_cache_hits": 0,
+        "media_cache_misses": 1,
+        "media_cache_resident_bytes": 0,
+        "media_count": 1,
+        "media_decode_wall_ms": 2.291159,
+        "output_token_ids_sha256": "daea8773e03bcf14b5263990e6ba5572009c2a214d416de787f8c64b1fd887bf",
+        "prefix_lookup": "miss",
+        "prefix_matched_tokens": 0,
+        "processor_wall_ms": 0.174134,
+        "prompt_tokens": 83,
+        "video_count": 1,
+        "vision_encode_wall_ms": 12.834291
+      },
+      "cache_enabled": false,
+      "case_id": "video_content_b",
+      "expected_accept": true,
+      "observation_id": "video_content_b_disabled",
+      "passed": true,
+      "qualification_checks": {
+        "finish_reason_exact": true,
+        "generated_content_exact": true,
+        "media_counts_exact": true,
+        "media_executed": true,
+        "mrope_enabled": true,
+        "reference_status_exact": true,
+        "render_prompt_token_ids_exact": true,
+        "render_prompt_tokens_exact": true,
+        "request_contract_exact": true,
+        "resident_native_request": true,
+        "surface_accepted": true,
+        "usage_exact": true
+      },
+      "qualified": true,
+      "reference_case_id": "video_content_b",
+      "request": {
+        "max_tokens": 8,
+        "messages": [
+          {
+            "content": [
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 169626,
+                    "fixture": "video-12f-6fps-192x128.avi",
+                    "mime": "video/x-msvideo",
+                    "sha256": "91f394f27c25a34fcbd279746aa7b2365c19c192e692df04a36b52edff701076",
+                    "transport": "http-mutable"
+                  }
+                }
+              },
+              {
+                "text": "Describe the video in one short sentence.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "${AIMA_SERVED_MODEL}",
+        "n": 1,
+        "stream": false,
+        "temperature": 0,
+        "top_p": 1
+      },
+      "request_sha256": "69eb4501a43b8b6432a287566142250c4ad3fc2f450c02cf04b647cbab0792a8",
+      "response": {
+        "aima_amd395": {
+          "aot_prefill_bucket_tokens": 1024,
+          "aot_prefill_segments": 1,
+          "aot_prefill_tokens": 83,
+          "client_cancelled": false,
+          "cold_prompt_decode_tokens": 0,
+          "cold_prompt_decode_wall_ms": 0.0,
+          "completion_tokens": 8,
+          "decode_tokens_per_second": 35.071637853554236,
+          "http_request_wall_ms": 485.033349,
+          "model_loads": 1,
+          "mrope": {
+            "decode_steps": 7,
+            "enabled": true,
+            "fmha_launches": 0,
+            "full_attention_launches": 10,
+            "position_delta": -36,
+            "position_upload_bytes": 1992,
+            "unified_attention_launches": 10
+          },
+          "oracle_tensor_reads": 0,
+          "output_token_ids_canonical_sha256": "daea8773e03bcf14b5263990e6ba5572009c2a214d416de787f8c64b1fd887bf",
+          "output_token_ids_sha256": "a7b0a6f8b4b6cff44460f619d21570ae445567ab354b9811bcd40a0155845ea6",
+          "padded_prefill_tokens": 941,
+          "prefill_tokens_per_second": 296.23769067258655,
+          "prefix_cache": {
+            "active_kv_reused": false,
+            "hits": 0,
+            "implemented": true,
+            "lookup": "miss",
+            "matched_tokens": 0,
+            "misses": 2,
+            "restore_wall_ms": 0.0,
+            "scope": "capacity-bounded-variable-exact-or-append-lru",
+            "suffix_aot_launches": 0,
+            "suffix_decode_tokens": 0,
+            "suffix_native_launches": 0,
+            "suffix_tokens": 83,
+            "suffix_wall_ms": 0.0,
+            "transfer_bytes": 66093056
+          },
+          "prompt_execution": "cold-aot-padded",
+          "prompt_source": "chat_template",
+          "prompt_token_ids_sha256": "57d8d63a07f70a892e0a1f37e4c91881890be49b6a835172a9647ecc908899cc",
+          "prompt_tokens": 83,
+          "request_index": 2,
+          "request_wall_ms": 479.817252,
+          "runtime": "native-resident-q83",
+          "sampling": {
+            "logits_device_to_host_bytes": 0,
+            "logits_source": "certified-top1",
+            "mode": "argmax",
+            "seed": null,
+            "seed_provided": false,
+            "temperature": 0.0,
+            "token_selections": 0,
+            "top_p": 1.0,
+            "wall_ms": 0.0
+          },
+          "structured_decoding": {
+            "enabled": false,
+            "token_mask_upload_bytes": 0,
+            "token_selections": 0
+          },
+          "ttft_ms": 280.180418,
+          "vl": {
+            "embedding_injection_wall_ms": 0.039749,
+            "enabled": true,
+            "host_to_device_bytes": 590540,
+            "image_count": 0,
+            "logical_projection_plan_build_wall_ms": 2.87226,
+            "logical_projection_plan_count": 9,
+            "logical_projection_plan_reused": false,
+            "logical_projection_tokens": 83,
+            "logical_projection_workspace_bytes": 0,
+            "media_cache_entries": 0,
+            "media_cache_hits": 0,
+            "media_cache_misses": 1,
+            "media_cache_resident_bytes": 0,
+            "media_count": 1,
+            "media_decode_wall_ms": 2.291159,
+            "media_load_decode_wall_ms": 4.795601,
+            "media_load_wall_ms": 2.504442,
+            "processor_wall_ms": 0.174134,
+            "source_bytes": 169626,
+            "video_count": 1,
+            "vision_attention_image_sha256s": [
+              "8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e"
+            ],
+            "vision_batch_count": 1,
+            "vision_embedding_cache_capacity_bytes": 536870912,
+            "vision_embedding_cache_entries": 0,
+            "vision_embedding_cache_hit": false,
+            "vision_embedding_cache_resident_bytes": 0,
+            "vision_encode_wall_ms": 12.834291,
+            "vision_input_upload_wall_ms": 0.182044,
+            "vision_max_batch_patches": 192,
+            "vision_max_batch_tokens": 48,
+            "vision_patches": 192,
+            "vision_plan_build_wall_ms": 9.312661,
+            "vision_plan_cache_entries": 4,
+            "vision_plan_cache_hit": false,
+            "visual_tokens": 48
+          }
+        },
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "message": {
+              "content": "The user wants a one-sentence description",
+              "role": "assistant"
+            }
+          }
+        ],
+        "model": "aima-amd395-qwen36-35b",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 8,
+          "prompt_tokens": 83,
+          "total_tokens": 91
+        }
+      },
+      "response_bytes": 3115,
+      "response_sha256": "e473de4c025d670044701d0fb138d3a92bfdbd8b444a4a6239f90d3a922bb979",
+      "status_code": 200,
+      "surfaces": [
+        "video",
+        "cache_identity",
+        "long_generation"
+      ],
+      "timings": {
+        "total_seconds": 0.48579753562808037,
+        "ttft_seconds": null
+      },
+      "transport_request_sha256": "1d5ca4564f8ee806f6302df078471c33d136096d15291f5d0a6e2ae7877495a7"
+    },
+    {
+      "accepted": true,
+      "cache": {
+        "completion_tokens": 8,
+        "image_count": 0,
+        "media_cache_entries": 0,
+        "media_cache_hits": 0,
+        "media_cache_misses": 1,
+        "media_cache_resident_bytes": 0,
+        "media_count": 1,
+        "media_decode_wall_ms": 1.27743,
+        "output_token_ids_sha256": "daea8773e03bcf14b5263990e6ba5572009c2a214d416de787f8c64b1fd887bf",
+        "prefix_lookup": "exact",
+        "prefix_matched_tokens": 67,
+        "processor_wall_ms": 0.161775,
+        "prompt_tokens": 67,
+        "video_count": 1,
+        "vision_encode_wall_ms": 0.0
+      },
+      "cache_enabled": false,
+      "case_id": "video_content_a",
+      "expected_accept": true,
+      "observation_id": "video_content_a_disabled_2",
+      "passed": true,
+      "qualification_checks": {
+        "finish_reason_exact": true,
+        "generated_content_exact": true,
+        "media_counts_exact": true,
+        "media_executed": true,
+        "mrope_enabled": true,
+        "reference_status_exact": true,
+        "render_prompt_token_ids_exact": true,
+        "render_prompt_tokens_exact": true,
+        "request_contract_exact": true,
+        "resident_native_request": true,
+        "surface_accepted": true,
+        "usage_exact": true
+      },
+      "qualified": true,
+      "reference_case_id": "video_content_a",
+      "request": {
+        "max_tokens": 8,
+        "messages": [
+          {
+            "content": [
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 54027,
+                    "fixture": "video-8f-4fps-128.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+                    "transport": "http-mutable"
+                  }
+                }
+              },
+              {
+                "text": "Describe the video in one short sentence.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "${AIMA_SERVED_MODEL}",
+        "n": 1,
+        "stream": false,
+        "temperature": 0,
+        "top_p": 1
+      },
+      "request_sha256": "209018a6309ec64716fc8a71eb60949478af0500c010133746685bf8925b751a",
+      "response": {
+        "aima_amd395": {
+          "aot_prefill_bucket_tokens": 0,
+          "aot_prefill_segments": 0,
+          "aot_prefill_tokens": 0,
+          "client_cancelled": false,
+          "cold_prompt_decode_tokens": 0,
+          "cold_prompt_decode_wall_ms": 0.0,
+          "completion_tokens": 8,
+          "decode_tokens_per_second": 35.14955291174679,
+          "http_request_wall_ms": 205.689676,
+          "model_loads": 1,
+          "mrope": {
+            "decode_steps": 7,
+            "enabled": true,
+            "fmha_launches": 0,
+            "full_attention_launches": 0,
+            "position_delta": -24,
+            "position_upload_bytes": 0,
+            "unified_attention_launches": 0
+          },
+          "oracle_tensor_reads": 0,
+          "output_token_ids_canonical_sha256": "daea8773e03bcf14b5263990e6ba5572009c2a214d416de787f8c64b1fd887bf",
+          "output_token_ids_sha256": "a7b0a6f8b4b6cff44460f619d21570ae445567ab354b9811bcd40a0155845ea6",
+          "padded_prefill_tokens": 0,
+          "prefill_tokens_per_second": 25761.01696805134,
+          "prefix_cache": {
+            "active_kv_reused": false,
+            "hits": 1,
+            "implemented": true,
+            "lookup": "exact",
+            "matched_tokens": 67,
+            "misses": 2,
+            "restore_wall_ms": 0.740567,
+            "scope": "capacity-bounded-variable-exact-or-append-lru",
+            "suffix_aot_launches": 0,
+            "suffix_decode_tokens": 0,
+            "suffix_native_launches": 0,
+            "suffix_tokens": 0,
+            "suffix_wall_ms": 0.0,
+            "transfer_bytes": 65761280
+          },
+          "prompt_execution": "prefix-cache-exact",
+          "prompt_source": "chat_template",
+          "prompt_token_ids_sha256": "7151cafd1ed0edf8087e09b48ecf8ed825c0ac45f46fd567c9c38955b1088b9e",
+          "prompt_tokens": 67,
+          "request_index": 3,
+          "request_wall_ms": 202.530714,
+          "runtime": "native-resident-q67",
+          "sampling": {
+            "logits_device_to_host_bytes": 0,
+            "logits_source": "certified-top1",
+            "mode": "argmax",
+            "seed": null,
+            "seed_provided": false,
+            "temperature": 0.0,
+            "token_selections": 0,
+            "top_p": 1.0,
+            "wall_ms": 0.0
+          },
+          "structured_decoding": {
+            "enabled": false,
+            "token_mask_upload_bytes": 0,
+            "token_selections": 0
+          },
+          "ttft_ms": 2.600829,
+          "vl": {
+            "embedding_injection_wall_ms": 0.0,
+            "enabled": true,
+            "host_to_device_bytes": 0,
+            "image_count": 0,
+            "logical_projection_plan_build_wall_ms": 0.0,
+            "logical_projection_plan_count": 0,
+            "logical_projection_plan_reused": false,
+            "logical_projection_tokens": 0,
+            "logical_projection_workspace_bytes": 0,
+            "media_cache_entries": 0,
+            "media_cache_hits": 0,
+            "media_cache_misses": 1,
+            "media_cache_resident_bytes": 0,
+            "media_count": 1,
+            "media_decode_wall_ms": 1.27743,
+            "media_load_decode_wall_ms": 2.743054,
+            "media_load_wall_ms": 1.465624,
+            "processor_wall_ms": 0.161775,
+            "source_bytes": 54027,
+            "video_count": 1,
+            "vision_attention_image_sha256s": [],
+            "vision_batch_count": 1,
+            "vision_embedding_cache_capacity_bytes": 536870912,
+            "vision_embedding_cache_entries": 0,
+            "vision_embedding_cache_hit": false,
+            "vision_embedding_cache_resident_bytes": 0,
+            "vision_encode_wall_ms": 0.0,
+            "vision_input_upload_wall_ms": 0.0,
+            "vision_max_batch_patches": 128,
+            "vision_max_batch_tokens": 32,
+            "vision_patches": 128,
+            "vision_plan_build_wall_ms": 0.0,
+            "vision_plan_cache_entries": 4,
+            "vision_plan_cache_hit": false,
+            "visual_tokens": 32
+          }
+        },
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "message": {
+              "content": "The user wants a one-sentence description",
+              "role": "assistant"
+            }
+          }
+        ],
+        "model": "aima-amd395-qwen36-35b",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 8,
+          "prompt_tokens": 67,
+          "total_tokens": 75
+        }
+      },
+      "response_bytes": 3010,
+      "response_sha256": "b2a94561384dd8daf2789d643e94062beef24070e5ab10132be6e4160b1f5606",
+      "status_code": 200,
+      "surfaces": [
+        "video",
+        "cache_identity",
+        "long_generation"
+      ],
+      "timings": {
+        "total_seconds": 0.20605058409273624,
+        "ttft_seconds": null
+      },
+      "transport_request_sha256": "1d5ca4564f8ee806f6302df078471c33d136096d15291f5d0a6e2ae7877495a7"
+    },
+    {
+      "accepted": false,
+      "cache": null,
+      "cache_enabled": false,
+      "case_id": "video_content_error",
+      "expected_accept": false,
+      "observation_id": "video_content_error_disabled",
+      "passed": true,
+      "qualification_checks": {
+        "reference_status_exact": true,
+        "request_contract_exact": true,
+        "structured_native_error": true,
+        "structured_reference_error": true,
+        "surface_rejected": true
+      },
+      "qualified": true,
+      "reference_case_id": "video_content_error",
+      "request": {
+        "max_tokens": 8,
+        "messages": [
+          {
+            "content": [
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 27,
+                    "fixture": "corrupt-video.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "e6d3c6ccb0b1e867a7ea3cface34953dbbf8c66f1c8ae9db2e889509af3984e4",
+                    "transport": "http-mutable"
+                  }
+                }
+              },
+              {
+                "text": "Describe the video in one short sentence.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "${AIMA_SERVED_MODEL}",
+        "n": 1,
+        "stream": false,
+        "temperature": 0,
+        "top_p": 1
+      },
+      "request_sha256": "1bbc012fb0272c4b23119c0163339b528ea52b755a44292912fcde0b45384286",
+      "response": {
+        "error": {
+          "code": "bad_request",
+          "message": "media payload has an unsupported or corrupt format",
+          "param": null,
+          "type": "invalid_request_error"
+        }
+      },
+      "response_bytes": 139,
+      "response_sha256": "c7e47f79e7140b97c3266e227e10ca83f0ebf3b60725e07f539f3b7c81896f8a",
+      "status_code": 400,
+      "surfaces": [
+        "video",
+        "cache_identity",
+        "long_generation"
+      ],
+      "timings": {
+        "total_seconds": 0.0009584305807948112,
+        "ttft_seconds": null
+      },
+      "transport_request_sha256": "1d5ca4564f8ee806f6302df078471c33d136096d15291f5d0a6e2ae7877495a7"
+    },
+    {
+      "accepted": true,
+      "cache": {
+        "completion_tokens": 8,
+        "image_count": 0,
+        "media_cache_entries": 0,
+        "media_cache_hits": 0,
+        "media_cache_misses": 1,
+        "media_cache_resident_bytes": 0,
+        "media_count": 1,
+        "media_decode_wall_ms": 0.794075,
+        "output_token_ids_sha256": "daea8773e03bcf14b5263990e6ba5572009c2a214d416de787f8c64b1fd887bf",
+        "prefix_lookup": "exact",
+        "prefix_matched_tokens": 67,
+        "processor_wall_ms": 0.118286,
+        "prompt_tokens": 67,
+        "video_count": 1,
+        "vision_encode_wall_ms": 0.0
+      },
+      "cache_enabled": false,
+      "case_id": "video_content_a",
+      "expected_accept": true,
+      "observation_id": "video_content_a_disabled_3",
+      "passed": true,
+      "qualification_checks": {
+        "finish_reason_exact": true,
+        "generated_content_exact": true,
+        "media_counts_exact": true,
+        "media_executed": true,
+        "mrope_enabled": true,
+        "reference_status_exact": true,
+        "render_prompt_token_ids_exact": true,
+        "render_prompt_tokens_exact": true,
+        "request_contract_exact": true,
+        "resident_native_request": true,
+        "surface_accepted": true,
+        "usage_exact": true
+      },
+      "qualified": true,
+      "reference_case_id": "video_content_a",
+      "request": {
+        "max_tokens": 8,
+        "messages": [
+          {
+            "content": [
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 54027,
+                    "fixture": "video-8f-4fps-128.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+                    "transport": "http-mutable"
+                  }
+                }
+              },
+              {
+                "text": "Describe the video in one short sentence.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "${AIMA_SERVED_MODEL}",
+        "n": 1,
+        "stream": false,
+        "temperature": 0,
+        "top_p": 1
+      },
+      "request_sha256": "209018a6309ec64716fc8a71eb60949478af0500c010133746685bf8925b751a",
+      "response": {
+        "aima_amd395": {
+          "aot_prefill_bucket_tokens": 0,
+          "aot_prefill_segments": 0,
+          "aot_prefill_tokens": 0,
+          "client_cancelled": false,
+          "cold_prompt_decode_tokens": 0,
+          "cold_prompt_decode_wall_ms": 0.0,
+          "completion_tokens": 8,
+          "decode_tokens_per_second": 35.151956988788555,
+          "http_request_wall_ms": 204.310138,
+          "model_loads": 1,
+          "mrope": {
+            "decode_steps": 7,
+            "enabled": true,
+            "fmha_launches": 0,
+            "full_attention_launches": 0,
+            "position_delta": -24,
+            "position_upload_bytes": 0,
+            "unified_attention_launches": 0
+          },
+          "oracle_tensor_reads": 0,
+          "output_token_ids_canonical_sha256": "daea8773e03bcf14b5263990e6ba5572009c2a214d416de787f8c64b1fd887bf",
+          "output_token_ids_sha256": "a7b0a6f8b4b6cff44460f619d21570ae445567ab354b9811bcd40a0155845ea6",
+          "padded_prefill_tokens": 0,
+          "prefill_tokens_per_second": 18689.0392132305,
+          "prefix_cache": {
+            "active_kv_reused": true,
+            "hits": 2,
+            "implemented": true,
+            "lookup": "exact",
+            "matched_tokens": 67,
+            "misses": 2,
+            "restore_wall_ms": 1.167414,
+            "scope": "capacity-bounded-variable-exact-or-append-lru",
+            "suffix_aot_launches": 0,
+            "suffix_decode_tokens": 0,
+            "suffix_native_launches": 0,
+            "suffix_tokens": 0,
+            "suffix_wall_ms": 0.0,
+            "transfer_bytes": 64389120
+          },
+          "prompt_execution": "prefix-cache-exact",
+          "prompt_source": "chat_template",
+          "prompt_token_ids_sha256": "7151cafd1ed0edf8087e09b48ecf8ed825c0ac45f46fd567c9c38955b1088b9e",
+          "prompt_tokens": 67,
+          "request_index": 4,
+          "request_wall_ms": 202.747137,
+          "runtime": "native-resident-q67",
+          "sampling": {
+            "logits_device_to_host_bytes": 0,
+            "logits_source": "certified-top1",
+            "mode": "argmax",
+            "seed": null,
+            "seed_provided": false,
+            "temperature": 0.0,
+            "token_selections": 0,
+            "top_p": 1.0,
+            "wall_ms": 0.0
+          },
+          "structured_decoding": {
+            "enabled": false,
+            "token_mask_upload_bytes": 0,
+            "token_selections": 0
+          },
+          "ttft_ms": 3.584989,
+          "vl": {
+            "embedding_injection_wall_ms": 0.0,
+            "enabled": true,
+            "host_to_device_bytes": 0,
+            "image_count": 0,
+            "logical_projection_plan_build_wall_ms": 0.0,
+            "logical_projection_plan_count": 0,
+            "logical_projection_plan_reused": false,
+            "logical_projection_tokens": 0,
+            "logical_projection_workspace_bytes": 0,
+            "media_cache_entries": 0,
+            "media_cache_hits": 0,
+            "media_cache_misses": 1,
+            "media_cache_resident_bytes": 0,
+            "media_count": 1,
+            "media_decode_wall_ms": 0.794075,
+            "media_load_decode_wall_ms": 1.27938,
+            "media_load_wall_ms": 0.485305,
+            "processor_wall_ms": 0.118286,
+            "source_bytes": 54027,
+            "video_count": 1,
+            "vision_attention_image_sha256s": [],
+            "vision_batch_count": 1,
+            "vision_embedding_cache_capacity_bytes": 536870912,
+            "vision_embedding_cache_entries": 0,
+            "vision_embedding_cache_hit": false,
+            "vision_embedding_cache_resident_bytes": 0,
+            "vision_encode_wall_ms": 0.0,
+            "vision_input_upload_wall_ms": 0.0,
+            "vision_max_batch_patches": 128,
+            "vision_max_batch_tokens": 32,
+            "vision_patches": 128,
+            "vision_plan_build_wall_ms": 0.0,
+            "vision_plan_cache_entries": 4,
+            "vision_plan_cache_hit": false,
+            "visual_tokens": 32
+          }
+        },
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "message": {
+              "content": "The user wants a one-sentence description",
+              "role": "assistant"
+            }
+          }
+        ],
+        "model": "aima-amd395-qwen36-35b",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 8,
+          "prompt_tokens": 67,
+          "total_tokens": 75
+        }
+      },
+      "response_bytes": 3009,
+      "response_sha256": "5a124f64449ad87d26a1f93d20d394faed476751190d96db48148b8130bea38c",
+      "status_code": 200,
+      "surfaces": [
+        "video",
+        "cache_identity",
+        "long_generation"
+      ],
+      "timings": {
+        "total_seconds": 0.20458549913018942,
+        "ttft_seconds": null
+      },
+      "transport_request_sha256": "1d5ca4564f8ee806f6302df078471c33d136096d15291f5d0a6e2ae7877495a7"
+    },
+    {
+      "accepted": true,
+      "cache": {
+        "completion_tokens": 1,
+        "image_count": 0,
+        "media_cache_entries": 0,
+        "media_cache_hits": 0,
+        "media_cache_misses": 1,
+        "media_cache_resident_bytes": 0,
+        "media_count": 1,
+        "media_decode_wall_ms": 1.637789,
+        "output_token_ids_sha256": "a9cf0c5bfacb7118d245ee1a31149cbb264f7138ee585445dd76cc681d755554",
+        "prefix_lookup": "miss",
+        "prefix_matched_tokens": 0,
+        "processor_wall_ms": 0.169224,
+        "prompt_tokens": 81,
+        "video_count": 1,
+        "vision_encode_wall_ms": 12.827002
+      },
+      "cache_enabled": false,
+      "case_id": "video_sampling_default",
+      "expected_accept": true,
+      "observation_id": "video_sampling_default_disabled_1",
+      "passed": true,
+      "qualification_checks": {
+        "finish_reason_exact": true,
+        "generated_content_exact": true,
+        "media_counts_exact": true,
+        "media_executed": true,
+        "mrope_enabled": true,
+        "reference_status_exact": true,
+        "render_prompt_token_ids_exact": true,
+        "render_prompt_tokens_exact": true,
+        "request_contract_exact": true,
+        "resident_native_request": true,
+        "surface_accepted": true,
+        "usage_exact": true
+      },
+      "qualified": true,
+      "reference_case_id": "video_sampling_default",
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": [
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 169626,
+                    "fixture": "video-12f-6fps-192x128.avi",
+                    "mime": "video/x-msvideo",
+                    "sha256": "91f394f27c25a34fcbd279746aa7b2365c19c192e692df04a36b52edff701076",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "text": "Describe the sampled video briefly.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "${AIMA_SERVED_MODEL}",
+        "n": 1,
+        "stream": false,
+        "temperature": 0,
+        "top_p": 1
+      },
+      "request_sha256": "3307a75feac01e723715ca9029b1a6413c4f995585bff678e6567ec65620da48",
+      "response": {
+        "aima_amd395": {
+          "aot_prefill_bucket_tokens": 1024,
+          "aot_prefill_segments": 1,
+          "aot_prefill_tokens": 81,
+          "client_cancelled": false,
+          "cold_prompt_decode_tokens": 0,
+          "cold_prompt_decode_wall_ms": 0.0,
+          "completion_tokens": 1,
+          "decode_tokens_per_second": 0.0,
+          "http_request_wall_ms": 271.609236,
+          "model_loads": 1,
+          "mrope": {
+            "decode_steps": 0,
+            "enabled": true,
+            "fmha_launches": 0,
+            "full_attention_launches": 10,
+            "position_delta": -36,
+            "position_upload_bytes": 1944,
+            "unified_attention_launches": 10
+          },
+          "oracle_tensor_reads": 0,
+          "output_token_ids_canonical_sha256": "a9cf0c5bfacb7118d245ee1a31149cbb264f7138ee585445dd76cc681d755554",
+          "output_token_ids_sha256": "afccd937e6ac2d1b6d6e9f318bc5e8a179c977c7413b33b3e4d902ff8cec501e",
+          "padded_prefill_tokens": 943,
+          "prefill_tokens_per_second": 300.96472235318834,
+          "prefix_cache": {
+            "active_kv_reused": false,
+            "hits": 2,
+            "implemented": true,
+            "lookup": "miss",
+            "matched_tokens": 0,
+            "misses": 3,
+            "restore_wall_ms": 0.0,
+            "scope": "capacity-bounded-variable-exact-or-append-lru",
+            "suffix_aot_launches": 0,
+            "suffix_decode_tokens": 0,
+            "suffix_native_launches": 0,
+            "suffix_tokens": 81,
+            "suffix_wall_ms": 0.0,
+            "transfer_bytes": 66052096
+          },
+          "prompt_execution": "cold-aot-padded",
+          "prompt_source": "chat_template",
+          "prompt_token_ids_sha256": "0e8ed982dfc5375a6cb38d9e8a18f624a0b5daffead3008baeb871e811dfd90e",
+          "prompt_tokens": 81,
+          "request_index": 5,
+          "request_wall_ms": 269.138673,
+          "runtime": "native-resident-q81",
+          "sampling": {
+            "logits_device_to_host_bytes": 0,
+            "logits_source": "certified-top1",
+            "mode": "argmax",
+            "seed": null,
+            "seed_provided": false,
+            "temperature": 0.0,
+            "token_selections": 0,
+            "top_p": 1.0,
+            "wall_ms": 0.0
+          },
+          "structured_decoding": {
+            "enabled": false,
+            "token_mask_upload_bytes": 0,
+            "token_selections": 0
+          },
+          "ttft_ms": 269.134533,
+          "vl": {
+            "embedding_injection_wall_ms": 0.034769,
+            "enabled": true,
+            "host_to_device_bytes": 590532,
+            "image_count": 0,
+            "logical_projection_plan_build_wall_ms": 2.562941,
+            "logical_projection_plan_count": 9,
+            "logical_projection_plan_reused": false,
+            "logical_projection_tokens": 81,
+            "logical_projection_workspace_bytes": 0,
+            "media_cache_entries": 0,
+            "media_cache_hits": 0,
+            "media_cache_misses": 1,
+            "media_cache_resident_bytes": 0,
+            "media_count": 1,
+            "media_decode_wall_ms": 1.637789,
+            "media_load_decode_wall_ms": 2.149524,
+            "media_load_wall_ms": 0.511735,
+            "processor_wall_ms": 0.169224,
+            "source_bytes": 169626,
+            "video_count": 1,
+            "vision_attention_image_sha256s": [
+              "8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e"
+            ],
+            "vision_batch_count": 1,
+            "vision_embedding_cache_capacity_bytes": 536870912,
+            "vision_embedding_cache_entries": 0,
+            "vision_embedding_cache_hit": false,
+            "vision_embedding_cache_resident_bytes": 0,
+            "vision_encode_wall_ms": 12.827002,
+            "vision_input_upload_wall_ms": 0.072137,
+            "vision_max_batch_patches": 192,
+            "vision_max_batch_tokens": 48,
+            "vision_patches": 192,
+            "vision_plan_build_wall_ms": 0.0,
+            "vision_plan_cache_entries": 4,
+            "vision_plan_cache_hit": true,
+            "visual_tokens": 48
+          }
+        },
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "message": {
+              "content": "The",
+              "role": "assistant"
+            }
+          }
+        ],
+        "model": "aima-amd395-qwen36-35b",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 1,
+          "prompt_tokens": 81,
+          "total_tokens": 82
+        }
+      },
+      "response_bytes": 3057,
+      "response_sha256": "d6a7f624ceac5d706b5b51309048b196b59b8882e67014365cd15daf1d46de6a",
+      "status_code": 200,
+      "surfaces": [
+        "video",
+        "sampling",
+        "cache_identity"
+      ],
+      "timings": {
+        "total_seconds": 0.2718874178826809,
+        "ttft_seconds": null
+      },
+      "transport_request_sha256": "f7852b23a3fc2685484d703f69e4718609ebf806a38b5b1b768c8ec47da49d07"
+    },
+    {
+      "accepted": true,
+      "cache": {
+        "completion_tokens": 1,
+        "image_count": 0,
+        "media_cache_entries": 0,
+        "media_cache_hits": 0,
+        "media_cache_misses": 1,
+        "media_cache_resident_bytes": 0,
+        "media_count": 1,
+        "media_decode_wall_ms": 1.640429,
+        "output_token_ids_sha256": "a9cf0c5bfacb7118d245ee1a31149cbb264f7138ee585445dd76cc681d755554",
+        "prefix_lookup": "exact",
+        "prefix_matched_tokens": 81,
+        "processor_wall_ms": 0.170215,
+        "prompt_tokens": 81,
+        "video_count": 1,
+        "vision_encode_wall_ms": 0.0
+      },
+      "cache_enabled": false,
+      "case_id": "video_sampling_default",
+      "expected_accept": true,
+      "observation_id": "video_sampling_default_disabled_2",
+      "passed": true,
+      "qualification_checks": {
+        "finish_reason_exact": true,
+        "generated_content_exact": true,
+        "media_counts_exact": true,
+        "media_executed": true,
+        "mrope_enabled": true,
+        "reference_status_exact": true,
+        "render_prompt_token_ids_exact": true,
+        "render_prompt_tokens_exact": true,
+        "request_contract_exact": true,
+        "resident_native_request": true,
+        "surface_accepted": true,
+        "usage_exact": true
+      },
+      "qualified": true,
+      "reference_case_id": "video_sampling_default",
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": [
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 169626,
+                    "fixture": "video-12f-6fps-192x128.avi",
+                    "mime": "video/x-msvideo",
+                    "sha256": "91f394f27c25a34fcbd279746aa7b2365c19c192e692df04a36b52edff701076",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "text": "Describe the sampled video briefly.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "${AIMA_SERVED_MODEL}",
+        "n": 1,
+        "stream": false,
+        "temperature": 0,
+        "top_p": 1
+      },
+      "request_sha256": "3307a75feac01e723715ca9029b1a6413c4f995585bff678e6567ec65620da48",
+      "response": {
+        "aima_amd395": {
+          "aot_prefill_bucket_tokens": 0,
+          "aot_prefill_segments": 0,
+          "aot_prefill_tokens": 0,
+          "client_cancelled": false,
+          "cold_prompt_decode_tokens": 0,
+          "cold_prompt_decode_wall_ms": 0.0,
+          "completion_tokens": 1,
+          "decode_tokens_per_second": 0.0,
+          "http_request_wall_ms": 5.851088,
+          "model_loads": 1,
+          "mrope": {
+            "decode_steps": 0,
+            "enabled": true,
+            "fmha_launches": 0,
+            "full_attention_launches": 0,
+            "position_delta": -36,
+            "position_upload_bytes": 0,
+            "unified_attention_launches": 0
+          },
+          "oracle_tensor_reads": 0,
+          "output_token_ids_canonical_sha256": "a9cf0c5bfacb7118d245ee1a31149cbb264f7138ee585445dd76cc681d755554",
+          "output_token_ids_sha256": "afccd937e6ac2d1b6d6e9f318bc5e8a179c977c7413b33b3e4d902ff8cec501e",
+          "padded_prefill_tokens": 0,
+          "prefill_tokens_per_second": 23795.087283905355,
+          "prefix_cache": {
+            "active_kv_reused": true,
+            "hits": 3,
+            "implemented": true,
+            "lookup": "exact",
+            "matched_tokens": 81,
+            "misses": 3,
+            "restore_wall_ms": 1.032928,
+            "scope": "capacity-bounded-variable-exact-or-append-lru",
+            "suffix_aot_launches": 0,
+            "suffix_decode_tokens": 0,
+            "suffix_native_launches": 0,
+            "suffix_tokens": 0,
+            "suffix_wall_ms": 0.0,
+            "transfer_bytes": 64389120
+          },
+          "prompt_execution": "prefix-cache-exact",
+          "prompt_source": "chat_template",
+          "prompt_token_ids_sha256": "0e8ed982dfc5375a6cb38d9e8a18f624a0b5daffead3008baeb871e811dfd90e",
+          "prompt_tokens": 81,
+          "request_index": 6,
+          "request_wall_ms": 3.406084,
+          "runtime": "native-resident-q81",
+          "sampling": {
+            "logits_device_to_host_bytes": 0,
+            "logits_source": "certified-top1",
+            "mode": "argmax",
+            "seed": null,
+            "seed_provided": false,
+            "temperature": 0.0,
+            "token_selections": 0,
+            "top_p": 1.0,
+            "wall_ms": 0.0
+          },
+          "structured_decoding": {
+            "enabled": false,
+            "token_mask_upload_bytes": 0,
+            "token_selections": 0
+          },
+          "ttft_ms": 3.404064,
+          "vl": {
+            "embedding_injection_wall_ms": 0.0,
+            "enabled": true,
+            "host_to_device_bytes": 0,
+            "image_count": 0,
+            "logical_projection_plan_build_wall_ms": 0.0,
+            "logical_projection_plan_count": 0,
+            "logical_projection_plan_reused": false,
+            "logical_projection_tokens": 0,
+            "logical_projection_workspace_bytes": 0,
+            "media_cache_entries": 0,
+            "media_cache_hits": 0,
+            "media_cache_misses": 1,
+            "media_cache_resident_bytes": 0,
+            "media_count": 1,
+            "media_decode_wall_ms": 1.640429,
+            "media_load_decode_wall_ms": 2.142683,
+            "media_load_wall_ms": 0.502254,
+            "processor_wall_ms": 0.170215,
+            "source_bytes": 169626,
+            "video_count": 1,
+            "vision_attention_image_sha256s": [],
+            "vision_batch_count": 1,
+            "vision_embedding_cache_capacity_bytes": 536870912,
+            "vision_embedding_cache_entries": 0,
+            "vision_embedding_cache_hit": false,
+            "vision_embedding_cache_resident_bytes": 0,
+            "vision_encode_wall_ms": 0.0,
+            "vision_input_upload_wall_ms": 0.0,
+            "vision_max_batch_patches": 192,
+            "vision_max_batch_tokens": 48,
+            "vision_patches": 192,
+            "vision_plan_build_wall_ms": 0.0,
+            "vision_plan_cache_entries": 4,
+            "vision_plan_cache_hit": false,
+            "visual_tokens": 48
+          }
+        },
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "message": {
+              "content": "The",
+              "role": "assistant"
+            }
+          }
+        ],
+        "model": "aima-amd395-qwen36-35b",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 1,
+          "prompt_tokens": 81,
+          "total_tokens": 82
+        }
+      },
+      "response_bytes": 2956,
+      "response_sha256": "af2059a4ae78decc76407b95f9a2a24b65e0a290972070327688b7d5fc147882",
+      "status_code": 200,
+      "surfaces": [
+        "video",
+        "sampling",
+        "cache_identity"
+      ],
+      "timings": {
+        "total_seconds": 0.006087411195039749,
+        "ttft_seconds": null
+      },
+      "transport_request_sha256": "f7852b23a3fc2685484d703f69e4718609ebf806a38b5b1b768c8ec47da49d07"
+    },
+    {
+      "accepted": true,
+      "cache": {
+        "completion_tokens": 1,
+        "image_count": 0,
+        "media_cache_entries": 0,
+        "media_cache_hits": 0,
+        "media_cache_misses": 1,
+        "media_cache_resident_bytes": 0,
+        "media_count": 1,
+        "media_decode_wall_ms": 1.591371,
+        "output_token_ids_sha256": "a9cf0c5bfacb7118d245ee1a31149cbb264f7138ee585445dd76cc681d755554",
+        "prefix_lookup": "miss",
+        "prefix_matched_tokens": 0,
+        "processor_wall_ms": 0.083717,
+        "prompt_tokens": 49,
+        "video_count": 1,
+        "vision_encode_wall_ms": 9.067148
+      },
+      "cache_enabled": false,
+      "case_id": "video_sampling_fps_1",
+      "expected_accept": true,
+      "observation_id": "video_sampling_fps_1_disabled_1",
+      "passed": true,
+      "qualification_checks": {
+        "finish_reason_exact": true,
+        "generated_content_exact": true,
+        "media_counts_exact": true,
+        "media_executed": true,
+        "mrope_enabled": true,
+        "reference_status_exact": true,
+        "render_prompt_token_ids_exact": true,
+        "render_prompt_tokens_exact": true,
+        "request_contract_exact": true,
+        "resident_native_request": true,
+        "surface_accepted": true,
+        "usage_exact": true
+      },
+      "qualified": true,
+      "reference_case_id": "video_sampling_fps_1",
+      "request": {
+        "max_tokens": 1,
+        "media_io_kwargs": {
+          "video": {
+            "fps": 1.0,
+            "video_backend": "opencv"
+          }
+        },
+        "messages": [
+          {
+            "content": [
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 169626,
+                    "fixture": "video-12f-6fps-192x128.avi",
+                    "mime": "video/x-msvideo",
+                    "sha256": "91f394f27c25a34fcbd279746aa7b2365c19c192e692df04a36b52edff701076",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "text": "Describe the sampled video briefly.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "${AIMA_SERVED_MODEL}",
+        "n": 1,
+        "stream": false,
+        "temperature": 0,
+        "top_p": 1
+      },
+      "request_sha256": "b1fadbc0a00c5502e120b0b9e5902f763c926a2e9f1d249291a9a12c776d93db",
+      "response": {
+        "aima_amd395": {
+          "aot_prefill_bucket_tokens": 1024,
+          "aot_prefill_segments": 1,
+          "aot_prefill_tokens": 49,
+          "client_cancelled": false,
+          "cold_prompt_decode_tokens": 0,
+          "cold_prompt_decode_wall_ms": 0.0,
+          "completion_tokens": 1,
+          "decode_tokens_per_second": 0.0,
+          "http_request_wall_ms": 232.980848,
+          "model_loads": 1,
+          "mrope": {
+            "decode_steps": 0,
+            "enabled": true,
+            "fmha_launches": 0,
+            "full_attention_launches": 10,
+            "position_delta": -18,
+            "position_upload_bytes": 1176,
+            "unified_attention_launches": 10
+          },
+          "oracle_tensor_reads": 0,
+          "output_token_ids_canonical_sha256": "a9cf0c5bfacb7118d245ee1a31149cbb264f7138ee585445dd76cc681d755554",
+          "output_token_ids_sha256": "afccd937e6ac2d1b6d6e9f318bc5e8a179c977c7413b33b3e4d902ff8cec501e",
+          "padded_prefill_tokens": 975,
+          "prefill_tokens_per_second": 212.41342310647087,
+          "prefix_cache": {
+            "active_kv_reused": false,
+            "hits": 3,
+            "implemented": true,
+            "lookup": "miss",
+            "matched_tokens": 0,
+            "misses": 4,
+            "restore_wall_ms": 0.0,
+            "scope": "capacity-bounded-variable-exact-or-append-lru",
+            "suffix_aot_launches": 0,
+            "suffix_decode_tokens": 0,
+            "suffix_native_launches": 0,
+            "suffix_tokens": 49,
+            "suffix_wall_ms": 0.0,
+            "transfer_bytes": 65396736
+          },
+          "prompt_execution": "cold-aot-padded",
+          "prompt_source": "chat_template",
+          "prompt_token_ids_sha256": "ad9e81977759e9f02b9b1a6754dbf8c355c5c659cf80f94670144abb78bb0a6b",
+          "prompt_tokens": 49,
+          "request_index": 7,
+          "request_wall_ms": 230.685599,
+          "runtime": "native-resident-q49",
+          "sampling": {
+            "logits_device_to_host_bytes": 0,
+            "logits_source": "certified-top1",
+            "mode": "argmax",
+            "seed": null,
+            "seed_provided": false,
+            "temperature": 0.0,
+            "token_selections": 0,
+            "top_p": 1.0,
+            "wall_ms": 0.0
+          },
+          "structured_decoding": {
+            "enabled": false,
+            "token_mask_upload_bytes": 0,
+            "token_selections": 0
+          },
+          "ttft_ms": 230.68222,
+          "vl": {
+            "embedding_injection_wall_ms": 0.030549,
+            "enabled": true,
+            "host_to_device_bytes": 295300,
+            "image_count": 0,
+            "logical_projection_plan_build_wall_ms": 2.737185,
+            "logical_projection_plan_count": 9,
+            "logical_projection_plan_reused": false,
+            "logical_projection_tokens": 49,
+            "logical_projection_workspace_bytes": 65536,
+            "media_cache_entries": 0,
+            "media_cache_hits": 0,
+            "media_cache_misses": 1,
+            "media_cache_resident_bytes": 0,
+            "media_count": 1,
+            "media_decode_wall_ms": 1.591371,
+            "media_load_decode_wall_ms": 2.0820060000000002,
+            "media_load_wall_ms": 0.490635,
+            "processor_wall_ms": 0.083717,
+            "source_bytes": 169626,
+            "video_count": 1,
+            "vision_attention_image_sha256s": [
+              "8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e"
+            ],
+            "vision_batch_count": 1,
+            "vision_embedding_cache_capacity_bytes": 536870912,
+            "vision_embedding_cache_entries": 0,
+            "vision_embedding_cache_hit": false,
+            "vision_embedding_cache_resident_bytes": 0,
+            "vision_encode_wall_ms": 9.067148,
+            "vision_input_upload_wall_ms": 0.045569,
+            "vision_max_batch_patches": 96,
+            "vision_max_batch_tokens": 24,
+            "vision_patches": 96,
+            "vision_plan_build_wall_ms": 8.905293,
+            "vision_plan_cache_entries": 4,
+            "vision_plan_cache_hit": false,
+            "visual_tokens": 24
+          }
+        },
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "message": {
+              "content": "The",
+              "role": "assistant"
+            }
+          }
+        ],
+        "model": "aima-amd395-qwen36-35b",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 1,
+          "prompt_tokens": 49,
+          "total_tokens": 50
+        }
+      },
+      "response_bytes": 3073,
+      "response_sha256": "320062a36f4124029e4356fa86115e21dfc172749bed248d5d16e9599999680f",
+      "status_code": 200,
+      "surfaces": [
+        "video",
+        "sampling",
+        "cache_identity"
+      ],
+      "timings": {
+        "total_seconds": 0.23327232990413904,
+        "ttft_seconds": null
+      },
+      "transport_request_sha256": "8b7f8b5dccce3d87618672af5cf4074801b6cf4a15794390e7308da7a29b1d66"
+    },
+    {
+      "accepted": true,
+      "cache": {
+        "completion_tokens": 1,
+        "image_count": 0,
+        "media_cache_entries": 0,
+        "media_cache_hits": 0,
+        "media_cache_misses": 1,
+        "media_cache_resident_bytes": 0,
+        "media_count": 1,
+        "media_decode_wall_ms": 1.634059,
+        "output_token_ids_sha256": "a9cf0c5bfacb7118d245ee1a31149cbb264f7138ee585445dd76cc681d755554",
+        "prefix_lookup": "exact",
+        "prefix_matched_tokens": 49,
+        "processor_wall_ms": 0.083738,
+        "prompt_tokens": 49,
+        "video_count": 1,
+        "vision_encode_wall_ms": 0.0
+      },
+      "cache_enabled": false,
+      "case_id": "video_sampling_fps_1",
+      "expected_accept": true,
+      "observation_id": "video_sampling_fps_1_disabled_2",
+      "passed": true,
+      "qualification_checks": {
+        "finish_reason_exact": true,
+        "generated_content_exact": true,
+        "media_counts_exact": true,
+        "media_executed": true,
+        "mrope_enabled": true,
+        "reference_status_exact": true,
+        "render_prompt_token_ids_exact": true,
+        "render_prompt_tokens_exact": true,
+        "request_contract_exact": true,
+        "resident_native_request": true,
+        "surface_accepted": true,
+        "usage_exact": true
+      },
+      "qualified": true,
+      "reference_case_id": "video_sampling_fps_1",
+      "request": {
+        "max_tokens": 1,
+        "media_io_kwargs": {
+          "video": {
+            "fps": 1.0,
+            "video_backend": "opencv"
+          }
+        },
+        "messages": [
+          {
+            "content": [
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 169626,
+                    "fixture": "video-12f-6fps-192x128.avi",
+                    "mime": "video/x-msvideo",
+                    "sha256": "91f394f27c25a34fcbd279746aa7b2365c19c192e692df04a36b52edff701076",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "text": "Describe the sampled video briefly.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "${AIMA_SERVED_MODEL}",
+        "n": 1,
+        "stream": false,
+        "temperature": 0,
+        "top_p": 1
+      },
+      "request_sha256": "b1fadbc0a00c5502e120b0b9e5902f763c926a2e9f1d249291a9a12c776d93db",
+      "response": {
+        "aima_amd395": {
+          "aot_prefill_bucket_tokens": 0,
+          "aot_prefill_segments": 0,
+          "aot_prefill_tokens": 0,
+          "client_cancelled": false,
+          "cold_prompt_decode_tokens": 0,
+          "cold_prompt_decode_wall_ms": 0.0,
+          "completion_tokens": 1,
+          "decode_tokens_per_second": 0.0,
+          "http_request_wall_ms": 5.976245,
+          "model_loads": 1,
+          "mrope": {
+            "decode_steps": 0,
+            "enabled": true,
+            "fmha_launches": 0,
+            "full_attention_launches": 0,
+            "position_delta": -18,
+            "position_upload_bytes": 0,
+            "unified_attention_launches": 0
+          },
+          "oracle_tensor_reads": 0,
+          "output_token_ids_canonical_sha256": "a9cf0c5bfacb7118d245ee1a31149cbb264f7138ee585445dd76cc681d755554",
+          "output_token_ids_sha256": "afccd937e6ac2d1b6d6e9f318bc5e8a179c977c7413b33b3e4d902ff8cec501e",
+          "padded_prefill_tokens": 0,
+          "prefill_tokens_per_second": 13563.157813153937,
+          "prefix_cache": {
+            "active_kv_reused": true,
+            "hits": 4,
+            "implemented": true,
+            "lookup": "exact",
+            "matched_tokens": 49,
+            "misses": 4,
+            "restore_wall_ms": 1.198633,
+            "scope": "capacity-bounded-variable-exact-or-append-lru",
+            "suffix_aot_launches": 0,
+            "suffix_decode_tokens": 0,
+            "suffix_native_launches": 0,
+            "suffix_tokens": 0,
+            "suffix_wall_ms": 0.0,
+            "transfer_bytes": 64389120
+          },
+          "prompt_execution": "prefix-cache-exact",
+          "prompt_source": "chat_template",
+          "prompt_token_ids_sha256": "ad9e81977759e9f02b9b1a6754dbf8c355c5c659cf80f94670144abb78bb0a6b",
+          "prompt_tokens": 49,
+          "request_index": 8,
+          "request_wall_ms": 3.614748,
+          "runtime": "native-resident-q49",
+          "sampling": {
+            "logits_device_to_host_bytes": 0,
+            "logits_source": "certified-top1",
+            "mode": "argmax",
+            "seed": null,
+            "seed_provided": false,
+            "temperature": 0.0,
+            "token_selections": 0,
+            "top_p": 1.0,
+            "wall_ms": 0.0
+          },
+          "structured_decoding": {
+            "enabled": false,
+            "token_mask_upload_bytes": 0,
+            "token_selections": 0
+          },
+          "ttft_ms": 3.612728,
+          "vl": {
+            "embedding_injection_wall_ms": 0.0,
+            "enabled": true,
+            "host_to_device_bytes": 0,
+            "image_count": 0,
+            "logical_projection_plan_build_wall_ms": 0.0,
+            "logical_projection_plan_count": 0,
+            "logical_projection_plan_reused": false,
+            "logical_projection_tokens": 0,
+            "logical_projection_workspace_bytes": 0,
+            "media_cache_entries": 0,
+            "media_cache_hits": 0,
+            "media_cache_misses": 1,
+            "media_cache_resident_bytes": 0,
+            "media_count": 1,
+            "media_decode_wall_ms": 1.634059,
+            "media_load_decode_wall_ms": 2.1645119999999998,
+            "media_load_wall_ms": 0.530453,
+            "processor_wall_ms": 0.083738,
+            "source_bytes": 169626,
+            "video_count": 1,
+            "vision_attention_image_sha256s": [],
+            "vision_batch_count": 1,
+            "vision_embedding_cache_capacity_bytes": 536870912,
+            "vision_embedding_cache_entries": 0,
+            "vision_embedding_cache_hit": false,
+            "vision_embedding_cache_resident_bytes": 0,
+            "vision_encode_wall_ms": 0.0,
+            "vision_input_upload_wall_ms": 0.0,
+            "vision_max_batch_patches": 96,
+            "vision_max_batch_tokens": 24,
+            "vision_patches": 96,
+            "vision_plan_build_wall_ms": 0.0,
+            "vision_plan_cache_entries": 4,
+            "vision_plan_cache_hit": false,
+            "visual_tokens": 24
+          }
+        },
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "message": {
+              "content": "The",
+              "role": "assistant"
+            }
+          }
+        ],
+        "model": "aima-amd395-qwen36-35b",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 1,
+          "prompt_tokens": 49,
+          "total_tokens": 50
+        }
+      },
+      "response_bytes": 2964,
+      "response_sha256": "e0ecf1234b7f8e048b4c33b9123bd2be4229bc1f74f1f560b90c574614f05898",
+      "status_code": 200,
+      "surfaces": [
+        "video",
+        "sampling",
+        "cache_identity"
+      ],
+      "timings": {
+        "total_seconds": 0.006236186251044273,
+        "ttft_seconds": null
+      },
+      "transport_request_sha256": "8b7f8b5dccce3d87618672af5cf4074801b6cf4a15794390e7308da7a29b1d66"
+    },
+    {
+      "accepted": true,
+      "cache": {
+        "completion_tokens": 1,
+        "image_count": 1,
+        "media_cache_entries": 0,
+        "media_cache_hits": 0,
+        "media_cache_misses": 2,
+        "media_cache_resident_bytes": 0,
+        "media_count": 2,
+        "media_decode_wall_ms": 1.514994,
+        "output_token_ids_sha256": "a9cf0c5bfacb7118d245ee1a31149cbb264f7138ee585445dd76cc681d755554",
+        "prefix_lookup": "miss",
+        "prefix_matched_tokens": 0,
+        "processor_wall_ms": 0.47864399999999996,
+        "prompt_tokens": 172,
+        "video_count": 1,
+        "vision_encode_wall_ms": 29.126155
+      },
+      "cache_enabled": false,
+      "case_id": "mixed_image_video",
+      "expected_accept": true,
+      "observation_id": "mixed_image_video_disabled_1",
+      "passed": true,
+      "qualification_checks": {
+        "finish_reason_exact": true,
+        "generated_content_exact": true,
+        "media_counts_exact": true,
+        "media_executed": true,
+        "mrope_enabled": true,
+        "reference_status_exact": true,
+        "render_prompt_token_ids_exact": true,
+        "render_prompt_tokens_exact": true,
+        "request_contract_exact": true,
+        "resident_native_request": true,
+        "surface_accepted": true,
+        "usage_exact": true
+      },
+      "qualified": true,
+      "reference_case_id": "mixed_image_video",
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "Media 1:",
+                "type": "text"
+              },
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 125682,
+                    "fixture": "image-landscape-512x192.jpg",
+                    "mime": "image/jpeg",
+                    "sha256": "f3c0db7e6458b7aa669b600c1b213246585d3924102583c0f0605ab009e895e2",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "text": "Media 2:",
+                "type": "text"
+              },
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 54027,
+                    "fixture": "video-8f-4fps-128.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "text": "Compare them briefly.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "${AIMA_SERVED_MODEL}",
+        "n": 1,
+        "stream": false,
+        "temperature": 0,
+        "top_p": 1
+      },
+      "request_sha256": "b48a043f622078d13195bfe5aab4ac3b8d2c97daebe4a9823bbfc31dad668956",
+      "response": {
+        "aima_amd395": {
+          "aot_prefill_bucket_tokens": 1024,
+          "aot_prefill_segments": 1,
+          "aot_prefill_tokens": 172,
+          "client_cancelled": false,
+          "cold_prompt_decode_tokens": 0,
+          "cold_prompt_decode_wall_ms": 0.0,
+          "completion_tokens": 1,
+          "decode_tokens_per_second": 0.0,
+          "http_request_wall_ms": 397.391138,
+          "model_loads": 1,
+          "mrope": {
+            "decode_steps": 0,
+            "enabled": true,
+            "fmha_launches": 0,
+            "full_attention_launches": 10,
+            "position_delta": -104,
+            "position_upload_bytes": 4128,
+            "unified_attention_launches": 10
+          },
+          "oracle_tensor_reads": 0,
+          "output_token_ids_canonical_sha256": "a9cf0c5bfacb7118d245ee1a31149cbb264f7138ee585445dd76cc681d755554",
+          "output_token_ids_sha256": "afccd937e6ac2d1b6d6e9f318bc5e8a179c977c7413b33b3e4d902ff8cec501e",
+          "padded_prefill_tokens": 852,
+          "prefill_tokens_per_second": 436.1416021142441,
+          "prefix_cache": {
+            "active_kv_reused": false,
+            "hits": 4,
+            "implemented": true,
+            "lookup": "miss",
+            "matched_tokens": 0,
+            "misses": 5,
+            "restore_wall_ms": 0.0,
+            "scope": "capacity-bounded-variable-exact-or-append-lru",
+            "suffix_aot_launches": 0,
+            "suffix_decode_tokens": 0,
+            "suffix_native_launches": 0,
+            "suffix_tokens": 172,
+            "suffix_wall_ms": 0.0,
+            "transfer_bytes": 67915776
+          },
+          "prompt_execution": "cold-aot-padded",
+          "prompt_source": "chat_template",
+          "prompt_token_ids_sha256": "af957696eaad930fa98315971836b4f6deec213459b99fa9418e08f756a769b2",
+          "prompt_tokens": 172,
+          "request_index": 9,
+          "request_wall_ms": 394.382032,
+          "runtime": "native-resident-q172",
+          "sampling": {
+            "logits_device_to_host_bytes": 0,
+            "logits_source": "certified-top1",
+            "mode": "argmax",
+            "seed": null,
+            "seed_provided": false,
+            "temperature": 0.0,
+            "token_selections": 0,
+            "top_p": 1.0,
+            "wall_ms": 0.0
+          },
+          "structured_decoding": {
+            "enabled": false,
+            "token_mask_upload_bytes": 0,
+            "token_selections": 0
+          },
+          "ttft_ms": 394.367332,
+          "vl": {
+            "embedding_injection_wall_ms": 0.038448,
+            "enabled": true,
+            "host_to_device_bytes": 1574576,
+            "image_count": 1,
+            "logical_projection_plan_build_wall_ms": 2.729825,
+            "logical_projection_plan_count": 9,
+            "logical_projection_plan_reused": false,
+            "logical_projection_tokens": 172,
+            "logical_projection_workspace_bytes": 0,
+            "media_cache_entries": 0,
+            "media_cache_hits": 0,
+            "media_cache_misses": 2,
+            "media_cache_resident_bytes": 0,
+            "media_count": 2,
+            "media_decode_wall_ms": 1.514994,
+            "media_load_decode_wall_ms": 2.078305,
+            "media_load_wall_ms": 0.563311,
+            "processor_wall_ms": 0.47864399999999996,
+            "source_bytes": 179709,
+            "video_count": 1,
+            "vision_attention_image_sha256s": [
+              "8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e"
+            ],
+            "vision_batch_count": 1,
+            "vision_embedding_cache_capacity_bytes": 536870912,
+            "vision_embedding_cache_entries": 0,
+            "vision_embedding_cache_hit": false,
+            "vision_embedding_cache_resident_bytes": 0,
+            "vision_encode_wall_ms": 29.126155,
+            "vision_input_upload_wall_ms": 0.149285,
+            "vision_max_batch_patches": 512,
+            "vision_max_batch_tokens": 128,
+            "vision_patches": 512,
+            "vision_plan_build_wall_ms": 39.220991,
+            "vision_plan_cache_entries": 4,
+            "vision_plan_cache_hit": false,
+            "visual_tokens": 128
+          }
+        },
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "message": {
+              "content": "The",
+              "role": "assistant"
+            }
+          }
+        ],
+        "model": "aima-amd395-qwen36-35b",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 1,
+          "prompt_tokens": 172,
+          "total_tokens": 173
+        }
+      },
+      "response_bytes": 3085,
+      "response_sha256": "50f4f6e2d0b2553f302b273211b306ebabe57d0992a5614c98ef7ebe213a089a",
+      "status_code": 200,
+      "surfaces": [
+        "mixed",
+        "order",
+        "cache_identity"
+      ],
+      "timings": {
+        "total_seconds": 0.3978815535083413,
+        "ttft_seconds": null
+      },
+      "transport_request_sha256": "dd4f3c9c577b93966a58c550852844a64f99aebbf55ba3c59b42992858da38e2"
+    },
+    {
+      "accepted": true,
+      "cache": {
+        "completion_tokens": 1,
+        "image_count": 1,
+        "media_cache_entries": 0,
+        "media_cache_hits": 0,
+        "media_cache_misses": 2,
+        "media_cache_resident_bytes": 0,
+        "media_count": 2,
+        "media_decode_wall_ms": 1.638808,
+        "output_token_ids_sha256": "a9cf0c5bfacb7118d245ee1a31149cbb264f7138ee585445dd76cc681d755554",
+        "prefix_lookup": "exact",
+        "prefix_matched_tokens": 172,
+        "processor_wall_ms": 0.503525,
+        "prompt_tokens": 172,
+        "video_count": 1,
+        "vision_encode_wall_ms": 0.0
+      },
+      "cache_enabled": false,
+      "case_id": "mixed_image_video",
+      "expected_accept": true,
+      "observation_id": "mixed_image_video_disabled_2",
+      "passed": true,
+      "qualification_checks": {
+        "finish_reason_exact": true,
+        "generated_content_exact": true,
+        "media_counts_exact": true,
+        "media_executed": true,
+        "mrope_enabled": true,
+        "reference_status_exact": true,
+        "render_prompt_token_ids_exact": true,
+        "render_prompt_tokens_exact": true,
+        "request_contract_exact": true,
+        "resident_native_request": true,
+        "surface_accepted": true,
+        "usage_exact": true
+      },
+      "qualified": true,
+      "reference_case_id": "mixed_image_video",
+      "request": {
+        "max_tokens": 1,
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "Media 1:",
+                "type": "text"
+              },
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 125682,
+                    "fixture": "image-landscape-512x192.jpg",
+                    "mime": "image/jpeg",
+                    "sha256": "f3c0db7e6458b7aa669b600c1b213246585d3924102583c0f0605ab009e895e2",
+                    "transport": "local"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "text": "Media 2:",
+                "type": "text"
+              },
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 54027,
+                    "fixture": "video-8f-4fps-128.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "d476e3eed137ad704de6e4fbd32477720aac5a97f30ffeb75f3415b6ac15e26c",
+                    "transport": "local"
+                  }
+                }
+              },
+              {
+                "text": "Compare them briefly.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "${AIMA_SERVED_MODEL}",
+        "n": 1,
+        "stream": false,
+        "temperature": 0,
+        "top_p": 1
+      },
+      "request_sha256": "b48a043f622078d13195bfe5aab4ac3b8d2c97daebe4a9823bbfc31dad668956",
+      "response": {
+        "aima_amd395": {
+          "aot_prefill_bucket_tokens": 0,
+          "aot_prefill_segments": 0,
+          "aot_prefill_tokens": 0,
+          "client_cancelled": false,
+          "cold_prompt_decode_tokens": 0,
+          "cold_prompt_decode_wall_ms": 0.0,
+          "completion_tokens": 1,
+          "decode_tokens_per_second": 0.0,
+          "http_request_wall_ms": 6.604565,
+          "model_loads": 1,
+          "mrope": {
+            "decode_steps": 0,
+            "enabled": true,
+            "fmha_launches": 0,
+            "full_attention_launches": 0,
+            "position_delta": -104,
+            "position_upload_bytes": 0,
+            "unified_attention_launches": 0
+          },
+          "oracle_tensor_reads": 0,
+          "output_token_ids_canonical_sha256": "a9cf0c5bfacb7118d245ee1a31149cbb264f7138ee585445dd76cc681d755554",
+          "output_token_ids_sha256": "afccd937e6ac2d1b6d6e9f318bc5e8a179c977c7413b33b3e4d902ff8cec501e",
+          "padded_prefill_tokens": 0,
+          "prefill_tokens_per_second": 48040.81458228651,
+          "prefix_cache": {
+            "active_kv_reused": true,
+            "hits": 5,
+            "implemented": true,
+            "lookup": "exact",
+            "matched_tokens": 172,
+            "misses": 5,
+            "restore_wall_ms": 1.137465,
+            "scope": "capacity-bounded-variable-exact-or-append-lru",
+            "suffix_aot_launches": 0,
+            "suffix_decode_tokens": 0,
+            "suffix_native_launches": 0,
+            "suffix_tokens": 0,
+            "suffix_wall_ms": 0.0,
+            "transfer_bytes": 64389120
+          },
+          "prompt_execution": "prefix-cache-exact",
+          "prompt_source": "chat_template",
+          "prompt_token_ids_sha256": "af957696eaad930fa98315971836b4f6deec213459b99fa9418e08f756a769b2",
+          "prompt_tokens": 172,
+          "request_index": 10,
+          "request_wall_ms": 3.584408,
+          "runtime": "native-resident-q172",
+          "sampling": {
+            "logits_device_to_host_bytes": 0,
+            "logits_source": "certified-top1",
+            "mode": "argmax",
+            "seed": null,
+            "seed_provided": false,
+            "temperature": 0.0,
+            "token_selections": 0,
+            "top_p": 1.0,
+            "wall_ms": 0.0
+          },
+          "structured_decoding": {
+            "enabled": false,
+            "token_mask_upload_bytes": 0,
+            "token_selections": 0
+          },
+          "ttft_ms": 3.580289,
+          "vl": {
+            "embedding_injection_wall_ms": 0.0,
+            "enabled": true,
+            "host_to_device_bytes": 0,
+            "image_count": 1,
+            "logical_projection_plan_build_wall_ms": 0.0,
+            "logical_projection_plan_count": 0,
+            "logical_projection_plan_reused": false,
+            "logical_projection_tokens": 0,
+            "logical_projection_workspace_bytes": 0,
+            "media_cache_entries": 0,
+            "media_cache_hits": 0,
+            "media_cache_misses": 2,
+            "media_cache_resident_bytes": 0,
+            "media_count": 2,
+            "media_decode_wall_ms": 1.638808,
+            "media_load_decode_wall_ms": 2.221311,
+            "media_load_wall_ms": 0.582503,
+            "processor_wall_ms": 0.503525,
+            "source_bytes": 179709,
+            "video_count": 1,
+            "vision_attention_image_sha256s": [],
+            "vision_batch_count": 1,
+            "vision_embedding_cache_capacity_bytes": 536870912,
+            "vision_embedding_cache_entries": 0,
+            "vision_embedding_cache_hit": false,
+            "vision_embedding_cache_resident_bytes": 0,
+            "vision_encode_wall_ms": 0.0,
+            "vision_input_upload_wall_ms": 0.0,
+            "vision_max_batch_patches": 512,
+            "vision_max_batch_tokens": 128,
+            "vision_patches": 512,
+            "vision_plan_build_wall_ms": 0.0,
+            "vision_plan_cache_entries": 4,
+            "vision_plan_cache_hit": false,
+            "visual_tokens": 128
+          }
+        },
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "message": {
+              "content": "The",
+              "role": "assistant"
+            }
+          }
+        ],
+        "model": "aima-amd395-qwen36-35b",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 1,
+          "prompt_tokens": 172,
+          "total_tokens": 173
+        }
+      },
+      "response_bytes": 2965,
+      "response_sha256": "3466e1847e1f7079717ffe3a5f38b29d7a04528a537d882b26e56eb162fdc92e",
+      "status_code": 200,
+      "surfaces": [
+        "mixed",
+        "order",
+        "cache_identity"
+      ],
+      "timings": {
+        "total_seconds": 0.006991932168602943,
+        "ttft_seconds": null
+      },
+      "transport_request_sha256": "dd4f3c9c577b93966a58c550852844a64f99aebbf55ba3c59b42992858da38e2"
+    }
+  ]
+}

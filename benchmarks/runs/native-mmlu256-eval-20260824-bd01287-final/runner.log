@@ -1,0 +1,1 @@
+{"output": "${AIMA_REPO_ROOT}/benchmarks/runs/native-mmlu256-eval-20260824-bd01287-final/mmlu256.json", "score": {"correct": 218, "items": 256, "accuracy": 0.8515625, "invalid_answers": 0, "finish_reasons": {"length": 1, "stop": 255}}, "qualified": true}

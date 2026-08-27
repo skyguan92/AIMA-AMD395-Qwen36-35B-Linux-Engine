@@ -1,0 +1,251 @@
+{
+  "claim_effect": "G1-G5 passed for the exact native VL archive: one native resident process serves text, image, video and mixed media without framework or host ROCm userspace dependencies, preserves the v1.5.1 text product, reproduces on a second AMD395, survives the formal soak and rolls back to the exact v1.5.1 portable baseline. Seeded nonzero-temperature text/VL sampling is separately qualified only after that G5 boundary.",
+  "clarification": "The immutable tag binds the exact native runtime, G1-G4 evidence, release tooling and product contract. The portable archive, two-host qualification, one-hour mixed-workload soak, exact v1.5.1 rollback and post-G5 temperature-sampling qualification are additive hash-bound release records.",
+  "complete": true,
+  "immutable_records": {
+    "envelope": {
+      "bytes": 209529,
+      "path": "benchmarks/results/native-vl-envelope-v0.1.0.json",
+      "sha256": "cb9104e3bb2ed5e756fc33a238f6f1ea4e6b24cfd4af098725e27a913c94325f"
+    },
+    "g1": {
+      "bytes": 24039,
+      "path": "benchmarks/results/native-vl-g1-coverage-audit-v0.1.0.json",
+      "sha256": "47ec49546628a16cbb7a1d63962b26c595f301850bf2949dd4e1ff4caca038ee"
+    },
+    "g2": {
+      "bytes": 12702,
+      "path": "benchmarks/results/vl-correctness-v0.1.0.json",
+      "sha256": "970fddd4eb0a91defd4398d863e38b31e4f3a8827df3ef2983d6523092207dbd"
+    },
+    "g3": {
+      "bytes": 6628,
+      "path": "benchmarks/results/text-v151-nonregression-v0.1.0.json",
+      "sha256": "29051b6b8d2b77b53897bfa9f9e3a47f74603d037d3855c2fcfce64c5af2b0e7"
+    },
+    "g4": {
+      "bytes": 2018336,
+      "path": "benchmarks/results/vl-performance-v0.1.0.json",
+      "sha256": "b3eeffb723a22a83f749e188c07c044da1bb1dfa1386e65718a6729dd4cfcf8a"
+    },
+    "package_input_qualification": {
+      "bytes": 12180,
+      "path": "benchmarks/results/native-portable-product-v1.5.1-native-vl.4.json",
+      "sha256": "f11acfd07442663b74e6401422b450229d2dc96fb2ab2d43f06cfaef25a4d681"
+    },
+    "portable_bundle_result": {
+      "bytes": 14474,
+      "path": "benchmarks/results/native-portable-bundle-v1.5.1-native-vl.4.json",
+      "sha256": "abef601d803e9bbd3256051475d115341f6d70194a1ff8d6b0d7ce6106c38f3a"
+    },
+    "product_contract": {
+      "bytes": 5986,
+      "path": "native/product-contract-v1.5.1-native-vl.4.json",
+      "sha256": "c5fb1b75dd4b3b39a73dbd82b0e358c449fe8af9d3c0130a5227a3b1d3b4857c"
+    },
+    "product_result": {
+      "bytes": 6167,
+      "path": "benchmarks/results/native-vl-g5-release-v1.5.1-native-vl.4.json",
+      "sha256": "8e6bf3e6763b6b4972b10eb5d3e884ba0604e6080630ebc300615efb8c74a987"
+    },
+    "temperature_sampling": {
+      "bytes": 12048,
+      "path": "benchmarks/results/native-temperature-sampling-v0.1.0.json",
+      "sha256": "b11f5929cc43efc60019cf66ff3c585392e26de5539214443631ad7c8dea529b"
+    }
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "canonical_payload_sha256": "f9ab37ab677a642fdd91ee2602e253e61f1377335bc460e657b096641c33c90f"
+  },
+  "native_source_commit": "bd012874027defa528279a357609b713e9069df4",
+  "public_evidence": {
+    "g1_g2": {
+      "bytes": 194268,
+      "path": "benchmarks/runs/native-vl-g1-g2-20260824-bd01287-final/g1/native-vl-capability-v0.1.0.json",
+      "sha256": "fc0b9eb693e353b72f5a02533d1827060891071f8696ec2a27a98fce11452e55",
+      "tree_path": "benchmarks/runs/native-vl-g1-g2-20260824-bd01287-final"
+    },
+    "g1_generation_raw": {
+      "bytes": 137637,
+      "path": "benchmarks/results/native-vl-generation-current-head-v0.1.0-raw/probe.stdout.json",
+      "sha256": "e9c20f2b56bd9bce6cd6613818f94b8c2ce9449534e09b40595124bee31c696a",
+      "tree_path": "benchmarks/results/native-vl-generation-current-head-v0.1.0-raw"
+    },
+    "g3_correctness": {
+      "bytes": 10003,
+      "path": "benchmarks/runs/native-correctness-20260824-bd01287-final/correctness.json",
+      "sha256": "d3c77325b2efeffb29b8f874072cd7ddc172341928d735f4e16e4c0dfc734ecb",
+      "tree_path": "benchmarks/runs/native-correctness-20260824-bd01287-final"
+    },
+    "g3_doctor": {
+      "bytes": 4594,
+      "path": "benchmarks/runs/native-doctor-20260824-bd01287-final/doctor.json",
+      "sha256": "4244b19b56df6fce78e39dd4005c959b35a1e4033504c514bb651b181adf6d2c",
+      "tree_path": "benchmarks/runs/native-doctor-20260824-bd01287-final"
+    },
+    "g3_mmlu": {
+      "bytes": 310294,
+      "path": "benchmarks/runs/native-mmlu256-eval-20260824-bd01287-final/mmlu256.json",
+      "sha256": "98a88335b2fd78f58de76e3f69a2111f878bb80b62e4307989dd95dba6e6c460",
+      "tree_path": "benchmarks/runs/native-mmlu256-eval-20260824-bd01287-final"
+    },
+    "g3_openai_features": {
+      "bytes": 25489,
+      "path": "benchmarks/runs/native-openai-features-20260824-bd01287-final/features.json",
+      "sha256": "b888f1a73fcb63df9fd80179c3472935d82bc28cad5025cdb4db8abffd809c94",
+      "tree_path": "benchmarks/runs/native-openai-features-20260824-bd01287-final"
+    },
+    "g3_product_surfaces": {
+      "bytes": 21015,
+      "path": "benchmarks/runs/native-product-surfaces-20260824-bd01287-final/surfaces.json",
+      "sha256": "0dcc9619eff0c2118f38329d4628e24cb9a6582820b0476f52468309f69377b3",
+      "tree_path": "benchmarks/runs/native-product-surfaces-20260824-bd01287-final"
+    },
+    "g3_text_matrix": {
+      "bytes": 231548,
+      "path": "benchmarks/runs/native-paired-text-matrix-20260824-bd01287-final-balanced6/matrix.json",
+      "sha256": "5784beb620f829409aaeac5926042f4ef0b720b852af1e17e941674492bc0803",
+      "tree_path": "benchmarks/runs/native-paired-text-matrix-20260824-bd01287-final-balanced6"
+    },
+    "g4_reference_availability_raw": {
+      "bytes": 1795,
+      "path": "benchmarks/results/native-vl-performance-reference-availability-v0.1.0-raw/evidence-spec.json",
+      "sha256": "497b3955df89773e58712a3dd59644ac59c2b92173abb1ec9ed4f76240ef44fe",
+      "tree_path": "benchmarks/results/native-vl-performance-reference-availability-v0.1.0-raw"
+    },
+    "g4_vl_performance": {
+      "bytes": 184292,
+      "path": "benchmarks/runs/native-vl-performance-20260824-bd01287-final/pair-01/summary.json",
+      "sha256": "14f5d62610a803467236cd1439f480b6da8a3b166239377f66b6265cb744c50b",
+      "tree_path": "benchmarks/runs/native-vl-performance-20260824-bd01287-final"
+    },
+    "primary_bundle": {
+      "bytes": 14474,
+      "path": "benchmarks/runs/native-portable-bundle-20260824-bd01287-final/bundle.json",
+      "sha256": "abef601d803e9bbd3256051475d115341f6d70194a1ff8d6b0d7ce6106c38f3a",
+      "tree_path": "benchmarks/runs/native-portable-bundle-20260824-bd01287-final"
+    },
+    "release_gates": {
+      "bytes": 3047,
+      "path": "benchmarks/runs/native-vl-release-gates-20260824-bd01287-final/release-gates.json",
+      "sha256": "826f24873c9dd7f5c14a34403b0ddf7d52880fd264e004a6136cc719583ec231",
+      "tree_path": "benchmarks/runs/native-vl-release-gates-20260824-bd01287-final"
+    },
+    "resident_soak": {
+      "bytes": 6352,
+      "path": "benchmarks/runs/native-vl-resident-soak-20260824-bd01287-final/soak.json",
+      "sha256": "61c8409b27aa3657469464f7efbc64b1fac4406fa1b6adb0e8702f18dac15067",
+      "tree_path": "benchmarks/runs/native-vl-resident-soak-20260824-bd01287-final"
+    },
+    "rollback": {
+      "bytes": 4137,
+      "path": "benchmarks/runs/native-vl-rollback-20260824-bd01287-final/rollback.json",
+      "sha256": "d5eb79ecefec0491a357ae59688179cfd4ffb5a92c4b6079965ac523ba7e469f",
+      "tree_path": "benchmarks/runs/native-vl-rollback-20260824-bd01287-final"
+    },
+    "second_bundle": {
+      "bytes": 14447,
+      "path": "benchmarks/runs/native-portable-baiying-20260824-bd01287-final/bundle.json",
+      "sha256": "88f686213d1bdb03966c7c7ba625eed59367553c70fd0239b75aeee9c2a512b3",
+      "tree_path": "benchmarks/runs/native-portable-baiying-20260824-bd01287-final"
+    }
+  },
+  "public_evidence_trees": {
+    "g1_g2": {
+      "bytes": 296316360,
+      "file_count": 200,
+      "path": "benchmarks/runs/native-vl-g1-g2-20260824-bd01287-final",
+      "tree_sha256": "d715e67220abe21ebf2d3692ea6d2c4ece2539b6ae417ffe00eb877798b476c7"
+    },
+    "g1_generation_raw": {
+      "bytes": 142918,
+      "file_count": 5,
+      "path": "benchmarks/results/native-vl-generation-current-head-v0.1.0-raw",
+      "tree_sha256": "f6e359c8a19d3e754a4895bf8d2b757a998cb4debaafb0f1e1d73cc7301741a4"
+    },
+    "g3_correctness": {
+      "bytes": 143212,
+      "file_count": 44,
+      "path": "benchmarks/runs/native-correctness-20260824-bd01287-final",
+      "tree_sha256": "af3f388502a7006aba77d2763a55000396b06fac30478de665f4fc0aecffdcc4"
+    },
+    "g3_doctor": {
+      "bytes": 4596,
+      "file_count": 3,
+      "path": "benchmarks/runs/native-doctor-20260824-bd01287-final",
+      "tree_sha256": "59ff8d8cddfa1283e6c8a1578d92297154e639d2085c40c8be70d2eaca4f2ccb"
+    },
+    "g3_mmlu": {
+      "bytes": 319290,
+      "file_count": 11,
+      "path": "benchmarks/runs/native-mmlu256-eval-20260824-bd01287-final",
+      "tree_sha256": "ae588f5a8544253a61f6e2ddba1ae90f7a9aef89b12a96f546097400e706c925"
+    },
+    "g3_openai_features": {
+      "bytes": 30842,
+      "file_count": 8,
+      "path": "benchmarks/runs/native-openai-features-20260824-bd01287-final",
+      "tree_sha256": "3c3efde0acd221748d3046f43da8085feb204e34d8fce878cd8c0d1732f73158"
+    },
+    "g3_product_surfaces": {
+      "bytes": 628368,
+      "file_count": 127,
+      "path": "benchmarks/runs/native-product-surfaces-20260824-bd01287-final",
+      "tree_sha256": "b082e6a4b32e466d1b8324adad362b56c0c5328fe33f6197308fb112f90dfa2f"
+    },
+    "g3_text_matrix": {
+      "bytes": 3825424,
+      "file_count": 580,
+      "path": "benchmarks/runs/native-paired-text-matrix-20260824-bd01287-final-balanced6",
+      "tree_sha256": "018086cce0031126f73d379375948d76d7f93dab8bc87bcdab1000cc4621c695"
+    },
+    "g4_reference_availability_raw": {
+      "bytes": 224025,
+      "file_count": 19,
+      "path": "benchmarks/results/native-vl-performance-reference-availability-v0.1.0-raw",
+      "tree_sha256": "3b0395c051041543cdc60a2a730f1c1004f9271c44d10f8e9d911eee30e9285d"
+    },
+    "g4_vl_performance": {
+      "bytes": 2026574,
+      "file_count": 11,
+      "path": "benchmarks/runs/native-vl-performance-20260824-bd01287-final",
+      "tree_sha256": "3c986c1ff617ca7c5ecdf50b683ce894da3ce1a59be943d55309e7ab72f69432"
+    },
+    "primary_bundle": {
+      "bytes": 86701,
+      "file_count": 25,
+      "path": "benchmarks/runs/native-portable-bundle-20260824-bd01287-final",
+      "tree_sha256": "4a2d024874cb901a4c18da6266057844fc2153beced4769764944cbabf80da91"
+    },
+    "release_gates": {
+      "bytes": 14133,
+      "file_count": 5,
+      "path": "benchmarks/runs/native-vl-release-gates-20260824-bd01287-final",
+      "tree_sha256": "36151333b0b0c2ef292a0202a9868c2b71db7b6b4ae33437585f4509505fa2d4"
+    },
+    "resident_soak": {
+      "bytes": 286371,
+      "file_count": 14,
+      "path": "benchmarks/runs/native-vl-resident-soak-20260824-bd01287-final",
+      "tree_sha256": "1098040e5789dcd582370828f9ec268254fb4259f40dfa7f72988668465ccc31"
+    },
+    "rollback": {
+      "bytes": 16111,
+      "file_count": 8,
+      "path": "benchmarks/runs/native-vl-rollback-20260824-bd01287-final",
+      "tree_sha256": "1f7aff042a560681366b8c49fbe2df22955f02bd14ec4343a3bf7458b77c112a"
+    },
+    "second_bundle": {
+      "bytes": 86550,
+      "file_count": 25,
+      "path": "benchmarks/runs/native-portable-baiying-20260824-bd01287-final",
+      "tree_sha256": "2288dac94cd7b42a6cbb220ac4cb9f4783d854f7bc216ccf433317addaf5172e"
+    }
+  },
+  "recorded_on": "2026-08-24",
+  "release": "1.5.1-native-vl.4",
+  "release_commit": "6a6310c843eab9496ca37d19ba216856c86ba476",
+  "release_tag": "v1.5.1-native-vl.4",
+  "schema": "aima-amd395-qwen36/native-release-provenance/v1"
+}

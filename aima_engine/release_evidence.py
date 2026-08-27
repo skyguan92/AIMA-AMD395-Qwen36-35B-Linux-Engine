@@ -10,7 +10,7 @@ from typing import Any
 from aima_engine.vl_reference import verify_manifest_integrity
 
 
-DEFAULT_RELEASE = "1.5.0"
+DEFAULT_RELEASE = "1.5.1-native-vl.4"
 NATIVE_VL_RELEASE = "1.5.1-native-vl.4"
 NATIVE_VL_RAW_IMMUTABLE_KEYS = {
     "g1",
@@ -192,18 +192,54 @@ def _resolve_recorded_path(root: Path, owner: Path, value: str) -> Path | None:
         except ValueError:
             return exact
         if len(owner_relative.parts) > 1 and len(recorded_relative.parts) > 1:
-            renamed_run = runs_root / owner_relative.parts[0]
-            rebased = renamed_run.joinpath(*recorded_relative.parts[1:])
-            if rebased.is_file():
-                return rebased
+            recorded_run = recorded_relative.parts[0]
+            recorded_tail = recorded_relative.parts[1:]
+            owner_run = owner_relative.parts[0]
+            if owner_run == recorded_run or owner_run.startswith(
+                recorded_run + "-"
+            ):
+                rebased = runs_root / owner_run
+                rebased = rebased.joinpath(*recorded_tail)
+                if rebased.is_file():
+                    return rebased
+            candidates = sorted(
+                run_directory.joinpath(*recorded_tail)
+                for run_directory in runs_root.glob(recorded_run + "-*")
+                if run_directory.joinpath(*recorded_tail).is_file()
+            )
+            if len(candidates) == 1:
+                return candidates[0]
         return exact
+
+    relative: Path
     if value.startswith("raw/"):
-        return owner.parent / value
-    if value.startswith("${AIMA_OUTPUT_DIR}/"):
-        return owner.parent / value.removeprefix("${AIMA_OUTPUT_DIR}/")
-    if value.startswith(("${", "/")):
+        relative = Path(value)
+    elif value.startswith("${AIMA_OUTPUT_DIR}/"):
+        relative = Path(value.removeprefix("${AIMA_OUTPUT_DIR}/"))
+    elif value.startswith(("${", "/")):
         return None
-    return owner.parent / value
+    else:
+        relative = Path(value)
+
+    # Raw reports often repeat paths rooted at the qualification output while
+    # also embedding those same paths in nested JSON reports. Resolve from the
+    # closest enclosing evidence root instead of blindly duplicating `raw/` at
+    # the nested report's directory.
+    owner_parent = owner.parent.resolve()
+    root = root.resolve()
+    for base in (owner_parent, *owner_parent.parents):
+        try:
+            base.relative_to(root)
+        except ValueError:
+            continue
+        candidate = (base / relative).resolve()
+        try:
+            candidate.relative_to(root)
+        except ValueError:
+            continue
+        if candidate.is_file():
+            return candidate
+    return owner_parent / relative
 
 
 def _is_public_artifact_path(value: str) -> bool:
@@ -274,13 +310,20 @@ def _verify_recorded_artifacts(root: Path, owner: Path, value: Any) -> list[str]
             continue
         if isinstance(paths, str):
             paths = [paths]
+        elif path_key == "response" and not (
+            isinstance(paths, list)
+            and all(isinstance(path, str) for path in paths)
+        ):
+            # HTTP evidence uses response/response_sha256 for an inline JSON
+            # object and its canonical-content digest as well as for response
+            # artifact paths. Only the latter belongs to the file verifier.
+            continue
+        elif not isinstance(paths, list):
+            errors.append(f"{owner}: malformed {path_key}/{digest_key} pair")
+            continue
         if isinstance(digests, str):
             digests = [digests]
-        if (
-            not isinstance(paths, list)
-            or not isinstance(digests, list)
-            or len(paths) != len(digests)
-        ):
+        if not isinstance(digests, list) or len(paths) != len(digests):
             errors.append(f"{owner}: malformed {path_key}/{digest_key} pair")
             continue
         for recorded_path, expected in zip(paths, digests, strict=True):

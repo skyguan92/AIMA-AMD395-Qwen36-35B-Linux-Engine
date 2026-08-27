@@ -1,0 +1,118 @@
+{
+  "checks": {
+    "all_commands_exit_zero": true,
+    "all_gate_logs_public": true,
+    "all_required_markers_present": true,
+    "product_makefile_exact": true,
+    "release_checkout_clean": true,
+    "release_tag_exact": true
+  },
+  "complete": true,
+  "decision": {
+    "g5_static_release_gates_passed": true,
+    "make_check_passed": true,
+    "make_security_scan_passed": true,
+    "make_verify_evidence_passed": true
+  },
+  "gates": [
+    {
+      "checks": {
+        "exit_zero": true,
+        "public_hygiene": true,
+        "required_text_present": true
+      },
+      "command": [
+        "make",
+        "check"
+      ],
+      "elapsed_seconds": 83.38796494249254,
+      "exit_code": 0,
+      "gate_id": "make-check",
+      "log": {
+        "bytes": 10866,
+        "path": "raw/make-check.log",
+        "sha256": "ff70f676467e93b2a033c3ba64bbab39409391fc4d9c5474c6f2841a1056400e"
+      },
+      "qualified": true
+    },
+    {
+      "checks": {
+        "exit_zero": true,
+        "public_hygiene": true,
+        "required_text_present": true
+      },
+      "command": [
+        "make",
+        "security-scan"
+      ],
+      "elapsed_seconds": 16.274630173109472,
+      "exit_code": 0,
+      "gate_id": "make-security-scan",
+      "log": {
+        "bytes": 63,
+        "path": "raw/make-security-scan.log",
+        "sha256": "c70f0764592d82916e8eef96eb27efe08470860c1cac4dd36d102d415b16b19c"
+      },
+      "qualified": true
+    },
+    {
+      "checks": {
+        "exit_zero": true,
+        "public_hygiene": true,
+        "required_text_present": true
+      },
+      "command": [
+        "make",
+        "verify-evidence"
+      ],
+      "elapsed_seconds": 0.06451598182320595,
+      "exit_code": 0,
+      "gate_id": "make-verify-evidence",
+      "log": {
+        "bytes": 72,
+        "path": "raw/make-verify-evidence.log",
+        "sha256": "f82e66d9097d3fe7fe33016460b9781d4b6a0f3da4467b67714dd4429fcc1188"
+      },
+      "qualified": true
+    }
+  ],
+  "integrity": {
+    "algorithm": "sha256",
+    "canonical_payload_sha256": "0a615b15b111ed18cabf2c992fab5e0c05790f54d58caf15ddde946dbe61c39d"
+  },
+  "product_result": {
+    "bytes": 12180,
+    "path": "share/aima/qualification.json",
+    "sha256": "f11acfd07442663b74e6401422b450229d2dc96fb2ab2d43f06cfaef25a4d681"
+  },
+  "protocol": {
+    "clean_tagged_checkout": true,
+    "commands": [
+      [
+        "make",
+        "check"
+      ],
+      [
+        "make",
+        "security-scan"
+      ],
+      [
+        "make",
+        "verify-evidence"
+      ]
+    ],
+    "logs_are_combined_stdout_stderr": true,
+    "nonzero_is_blocking": true
+  },
+  "qualified": true,
+  "recorded_at": "2026-08-25T03:35:46+00:00",
+  "release": "1.5.1-native-vl.4",
+  "schema": "aima-amd395-qwen36/native-vl-release-gates/v1",
+  "source": {
+    "native_source_commit": "bd012874027defa528279a357609b713e9069df4",
+    "native_source_dirty": false,
+    "release_commit": "6a6310c843eab9496ca37d19ba216856c86ba476",
+    "release_tag": "v1.5.1-native-vl.4"
+  },
+  "started_at": "2026-08-25T03:34:07+00:00"
+}

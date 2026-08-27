@@ -1,0 +1,2 @@
+python3 scripts/verify-release-evidence.py
+release evidence 1.5.0: PASS

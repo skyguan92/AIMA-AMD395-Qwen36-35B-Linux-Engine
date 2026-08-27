@@ -1,0 +1,2936 @@
+{
+  "cases": [
+    {
+      "accepted": true,
+      "case_id": "image_central_red_circle",
+      "expected_accept": true,
+      "modality": "image",
+      "output_text": "The user wants me to identify the main shape and its color in the provided image.\n\n1.  **Analyze the image:** The image shows a red circle in the center of a white background. This is the flag of Japan.\n2.  **Identify the shape:** It is a circle.\n3.  **Identify the color:** It is red.\n4.  **Formulate the sentence:** \"The large central shape is a red circle.\" or \"The image features a large red circle in the center.\"\n5.  **Check constraints:**\n    *   Identify large central shape? Yes (circle).\n    *   Identify color? Yes (red).\n    *   One complete sentence? Yes.\n    *   Mention both facts? Yes.\n\nFinal Answer construction: \"The large central shape is a red circle.\"\n</think>\n\nThe large central shape is a red circle.",
+      "output_token_ids_sha256": "6c0b2215a4b2dae186d2f8cefa67ea493cbc2d27f8fce24fc0b39bf5f3d454cc",
+      "parity_diagnostics": {
+        "finish_reason_reference_exact": true,
+        "generated_content_reference_exact": true,
+        "output_token_ids_reference_exact": true,
+        "score_reference_exact": true,
+        "usage_reference_exact": true
+      },
+      "passed": true,
+      "qualification_checks": {
+        "completion_usage_valid": true,
+        "finish_reason_supported": true,
+        "generated_content_nonempty": true,
+        "media_counts_exact": true,
+        "media_executed": true,
+        "mrope_enabled": true,
+        "output_token_hash_present": true,
+        "reference_status_exact": true,
+        "render_prompt_token_ids_exact": true,
+        "render_prompt_tokens_exact": true,
+        "request_contract_exact": true,
+        "resident_native_request": true,
+        "score_recomputed": true,
+        "structured_decoding_disabled": true,
+        "surface_accepted": true,
+        "task_quality_not_below_reference": true
+      },
+      "qualified": true,
+      "request": {
+        "max_tokens": 192,
+        "messages": [
+          {
+            "content": [
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 1660,
+                    "fixture": "image-central-red-circle.png",
+                    "mime": "image/png",
+                    "sha256": "350423c09dd064191e311c8b47f0f5c6cd1abde4504283cfbd3802b433bb19f3",
+                    "transport": "data"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "text": "Identify the large central shape and its color. Answer in one complete sentence and mention both facts.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "${AIMA_SERVED_MODEL}",
+        "stream": false,
+        "temperature": 0
+      },
+      "request_sha256": "d8542b11e2ba80de00356b5117699f8c0d9e372166e514f7fc9b8a6f2f593913",
+      "response": {
+        "aima_amd395": {
+          "aot_prefill_bucket_tokens": 1024,
+          "aot_prefill_segments": 1,
+          "aot_prefill_tokens": 225,
+          "client_cancelled": false,
+          "cold_prompt_decode_tokens": 0,
+          "cold_prompt_decode_wall_ms": 0.0,
+          "completion_tokens": 190,
+          "decode_tokens_per_second": 35.15573312047961,
+          "http_request_wall_ms": 5892.411026,
+          "model_loads": 1,
+          "mrope": {
+            "decode_steps": 189,
+            "enabled": true,
+            "fmha_launches": 0,
+            "full_attention_launches": 10,
+            "position_delta": -176,
+            "position_upload_bytes": 5400,
+            "unified_attention_launches": 10
+          },
+          "oracle_tensor_reads": 0,
+          "output_token_ids_canonical_sha256": "6c0b2215a4b2dae186d2f8cefa67ea493cbc2d27f8fce24fc0b39bf5f3d454cc",
+          "output_token_ids_sha256": "9779f11caab72c9beb8859724e354e95f428497280ebe86ede645d50b557c850",
+          "padded_prefill_tokens": 799,
+          "prefill_tokens_per_second": 438.48005212370236,
+          "prefix_cache": {
+            "active_kv_reused": false,
+            "hits": 0,
+            "implemented": true,
+            "lookup": "miss",
+            "matched_tokens": 0,
+            "misses": 1,
+            "restore_wall_ms": 0.0,
+            "scope": "capacity-bounded-variable-exact-or-append-lru",
+            "suffix_aot_launches": 0,
+            "suffix_decode_tokens": 0,
+            "suffix_native_launches": 0,
+            "suffix_tokens": 225,
+            "suffix_wall_ms": 0.0,
+            "transfer_bytes": 69001216
+          },
+          "prompt_execution": "cold-aot-padded",
+          "prompt_source": "chat_template",
+          "prompt_token_ids_sha256": "35f63b05704909bc68bcff71f6f7bb52d2d89791b56d165630c9d93c00cef060",
+          "prompt_tokens": 225,
+          "request_index": 1,
+          "request_wall_ms": 5889.85528,
+          "runtime": "native-resident-q225",
+          "sampling": {
+            "logits_device_to_host_bytes": 0,
+            "logits_source": "certified-top1",
+            "mode": "argmax",
+            "seed": null,
+            "seed_provided": false,
+            "temperature": 0.0,
+            "token_selections": 0,
+            "top_p": 1.0,
+            "wall_ms": 0.0
+          },
+          "structured_decoding": {
+            "enabled": false,
+            "token_mask_upload_bytes": 0,
+            "token_selections": 0
+          },
+          "ttft_ms": 513.136228,
+          "vl": {
+            "embedding_injection_wall_ms": 1.356016,
+            "enabled": true,
+            "host_to_device_bytes": 2361732,
+            "image_count": 1,
+            "logical_projection_plan_build_wall_ms": 2.941132,
+            "logical_projection_plan_count": 9,
+            "logical_projection_plan_reused": false,
+            "logical_projection_tokens": 225,
+            "logical_projection_workspace_bytes": 0,
+            "media_cache_entries": 1,
+            "media_cache_hits": 0,
+            "media_cache_misses": 1,
+            "media_cache_resident_bytes": 2359727,
+            "media_count": 1,
+            "media_decode_wall_ms": 1.304607,
+            "media_load_decode_wall_ms": 1.318867,
+            "media_load_wall_ms": 0.01426,
+            "processor_wall_ms": 0.734256,
+            "source_bytes": 1660,
+            "video_count": 0,
+            "vision_attention_image_sha256s": [
+              "8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e"
+            ],
+            "vision_batch_count": 1,
+            "vision_embedding_cache_capacity_bytes": 536870912,
+            "vision_embedding_cache_entries": 1,
+            "vision_embedding_cache_hit": false,
+            "vision_embedding_cache_resident_bytes": 786432,
+            "vision_encode_wall_ms": 47.100099,
+            "vision_input_upload_wall_ms": 0.351398,
+            "vision_max_batch_patches": 768,
+            "vision_max_batch_tokens": 192,
+            "vision_patches": 768,
+            "vision_plan_build_wall_ms": 57.6367,
+            "vision_plan_cache_entries": 3,
+            "vision_plan_cache_hit": false,
+            "visual_tokens": 192
+          }
+        },
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "content": "The user wants me to identify the main shape and its color in the provided image.\n\n1.  **Analyze the image:** The image shows a red circle in the center of a white background. This is the flag of Japan.\n2.  **Identify the shape:** It is a circle.\n3.  **Identify the color:** It is red.\n4.  **Formulate the sentence:** \"The large central shape is a red circle.\" or \"The image features a large red circle in the center.\"\n5.  **Check constraints:**\n    *   Identify large central shape? Yes (circle).\n    *   Identify color? Yes (red).\n    *   One complete sentence? Yes.\n    *   Mention both facts? Yes.\n\nFinal Answer construction: \"The large central shape is a red circle.\"\n</think>\n\nThe large central shape is a red circle.",
+              "role": "assistant"
+            }
+          }
+        ],
+        "model": "aima-amd395-qwen36-35b",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 190,
+          "prompt_tokens": 225,
+          "total_tokens": 415
+        }
+      },
+      "response_bytes": 3841,
+      "response_sha256": "41924a9d5a6d79bb3fc3dd96c4c3f61038c4fad32866fc638f4e004046d77ac7",
+      "rubric": [
+        {
+          "any_of": [
+            "red"
+          ],
+          "id": "red"
+        },
+        {
+          "any_of": [
+            "circle",
+            "round"
+          ],
+          "id": "circle"
+        }
+      ],
+      "score": {
+        "criteria": [
+          {
+            "id": "red",
+            "passed": true
+          },
+          {
+            "id": "circle",
+            "passed": true
+          }
+        ],
+        "earned_points": 2,
+        "score_millionths": 1000000,
+        "total_points": 2
+      },
+      "status_code": 200,
+      "surfaces": [
+        "image",
+        "generation",
+        "task_quality"
+      ],
+      "timings": {
+        "total_seconds": 5.90212578419596,
+        "ttft_seconds": null
+      },
+      "transport_request_sha256": "079bdc2f3a0c93bf8ea7dac61dae1673aacd891938a68074ea55f58c43a6b6c2"
+    },
+    {
+      "accepted": true,
+      "case_id": "image_blue_square_left_yellow_triangle",
+      "expected_accept": true,
+      "modality": "image",
+      "output_text": "The user wants me to identify the shapes in the image and their positions.\n\n1.  **Identify the shapes:**\n    *   On the left, there is a four-sided shape with equal sides and right angles. It's a square. The color is blue.\n    *   On the right, there is a three-sided shape. It's a triangle. The color is yellow (or gold/mustard).\n\n2.  **Determine positions:**\n    *   The blue square is on the left side of the image.\n    *   The yellow triangle is on the right side of the image.\n\n3.  **Formulate the response:**\n    *   Start by naming the shapes.\n    *   State the position of each.\n    *   Combine into a clear sentence or two. \"There is a blue square on the left and a yellow triangle on the right.\"\n</think>\n\nBased on",
+      "output_token_ids_sha256": "4603c90e0917568b9df75b06e3c4975358e4870ddc4375479d35425b7fa5c6de",
+      "parity_diagnostics": {
+        "finish_reason_reference_exact": true,
+        "generated_content_reference_exact": true,
+        "output_token_ids_reference_exact": true,
+        "score_reference_exact": true,
+        "usage_reference_exact": true
+      },
+      "passed": true,
+      "qualification_checks": {
+        "completion_usage_valid": true,
+        "finish_reason_supported": true,
+        "generated_content_nonempty": true,
+        "media_counts_exact": true,
+        "media_executed": true,
+        "mrope_enabled": true,
+        "output_token_hash_present": true,
+        "reference_status_exact": true,
+        "render_prompt_token_ids_exact": true,
+        "render_prompt_tokens_exact": true,
+        "request_contract_exact": true,
+        "resident_native_request": true,
+        "score_recomputed": true,
+        "structured_decoding_disabled": true,
+        "surface_accepted": true,
+        "task_quality_not_below_reference": true
+      },
+      "qualified": true,
+      "request": {
+        "max_tokens": 192,
+        "messages": [
+          {
+            "content": [
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 1522,
+                    "fixture": "image-spatial-shapes.png",
+                    "mime": "image/png",
+                    "sha256": "84b062e2fbf437fdb54bb8912de87f56abcbd7ac1b05ce65994d26e619b99c36",
+                    "transport": "data"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "text": "Name both colored shapes and state which one is on the left and which one is on the right.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "${AIMA_SERVED_MODEL}",
+        "stream": false,
+        "temperature": 0
+      },
+      "request_sha256": "7e8e2196f42c469c2b83bf7e87b7636d4b2f7a1c193a05f38b23ad4f85415748",
+      "response": {
+        "aima_amd395": {
+          "aot_prefill_bucket_tokens": 1024,
+          "aot_prefill_segments": 1,
+          "aot_prefill_tokens": 225,
+          "client_cancelled": false,
+          "cold_prompt_decode_tokens": 0,
+          "cold_prompt_decode_wall_ms": 0.0,
+          "completion_tokens": 192,
+          "decode_tokens_per_second": 35.18907341642063,
+          "http_request_wall_ms": 5881.302618,
+          "model_loads": 1,
+          "mrope": {
+            "decode_steps": 191,
+            "enabled": true,
+            "fmha_launches": 0,
+            "full_attention_launches": 10,
+            "position_delta": -176,
+            "position_upload_bytes": 5400,
+            "unified_attention_launches": 10
+          },
+          "oracle_tensor_reads": 0,
+          "output_token_ids_canonical_sha256": "4603c90e0917568b9df75b06e3c4975358e4870ddc4375479d35425b7fa5c6de",
+          "output_token_ids_sha256": "462b546ab0c43fb21fbf008c30cf53b23142ff8c5b01560d58f6da1a08490c2c",
+          "padded_prefill_tokens": 799,
+          "prefill_tokens_per_second": 500.6684725177668,
+          "prefix_cache": {
+            "active_kv_reused": false,
+            "hits": 0,
+            "implemented": true,
+            "lookup": "miss",
+            "matched_tokens": 0,
+            "misses": 2,
+            "restore_wall_ms": 0.0,
+            "scope": "capacity-bounded-variable-exact-or-append-lru",
+            "suffix_aot_launches": 0,
+            "suffix_decode_tokens": 0,
+            "suffix_native_launches": 0,
+            "suffix_tokens": 225,
+            "suffix_wall_ms": 0.0,
+            "transfer_bytes": 69001216
+          },
+          "prompt_execution": "cold-aot-padded",
+          "prompt_source": "chat_template",
+          "prompt_token_ids_sha256": "fd845ceb8e6f3ee0d39e5f6509fc7aed5a51964deab57af86c45867c14a7821e",
+          "prompt_tokens": 225,
+          "request_index": 2,
+          "request_wall_ms": 5878.025795,
+          "runtime": "native-resident-q225",
+          "sampling": {
+            "logits_device_to_host_bytes": 0,
+            "logits_source": "certified-top1",
+            "mode": "argmax",
+            "seed": null,
+            "seed_provided": false,
+            "temperature": 0.0,
+            "token_selections": 0,
+            "top_p": 1.0,
+            "wall_ms": 0.0
+          },
+          "structured_decoding": {
+            "enabled": false,
+            "token_mask_upload_bytes": 0,
+            "token_selections": 0
+          },
+          "ttft_ms": 449.399178,
+          "vl": {
+            "embedding_injection_wall_ms": 0.071017,
+            "enabled": true,
+            "host_to_device_bytes": 2361732,
+            "image_count": 1,
+            "logical_projection_plan_build_wall_ms": 0.0,
+            "logical_projection_plan_count": 9,
+            "logical_projection_plan_reused": true,
+            "logical_projection_tokens": 225,
+            "logical_projection_workspace_bytes": 0,
+            "media_cache_entries": 2,
+            "media_cache_hits": 0,
+            "media_cache_misses": 1,
+            "media_cache_resident_bytes": 4719454,
+            "media_count": 1,
+            "media_decode_wall_ms": 1.50023,
+            "media_load_decode_wall_ms": 1.51712,
+            "media_load_wall_ms": 0.01689,
+            "processor_wall_ms": 1.329256,
+            "source_bytes": 1522,
+            "video_count": 0,
+            "vision_attention_image_sha256s": [
+              "8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e"
+            ],
+            "vision_batch_count": 1,
+            "vision_embedding_cache_capacity_bytes": 536870912,
+            "vision_embedding_cache_entries": 2,
+            "vision_embedding_cache_hit": false,
+            "vision_embedding_cache_resident_bytes": 1572864,
+            "vision_encode_wall_ms": 45.487886,
+            "vision_input_upload_wall_ms": 0.313969,
+            "vision_max_batch_patches": 768,
+            "vision_max_batch_tokens": 192,
+            "vision_patches": 768,
+            "vision_plan_build_wall_ms": 0.0,
+            "vision_plan_cache_entries": 3,
+            "vision_plan_cache_hit": true,
+            "visual_tokens": 192
+          }
+        },
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "message": {
+              "content": "The user wants me to identify the shapes in the image and their positions.\n\n1.  **Identify the shapes:**\n    *   On the left, there is a four-sided shape with equal sides and right angles. It's a square. The color is blue.\n    *   On the right, there is a three-sided shape. It's a triangle. The color is yellow (or gold/mustard).\n\n2.  **Determine positions:**\n    *   The blue square is on the left side of the image.\n    *   The yellow triangle is on the right side of the image.\n\n3.  **Formulate the response:**\n    *   Start by naming the shapes.\n    *   State the position of each.\n    *   Combine into a clear sentence or two. \"There is a blue square on the left and a yellow triangle on the right.\"\n</think>\n\nBased on",
+              "role": "assistant"
+            }
+          }
+        ],
+        "model": "aima-amd395-qwen36-35b",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 192,
+          "prompt_tokens": 225,
+          "total_tokens": 417
+        }
+      },
+      "response_bytes": 3829,
+      "response_sha256": "c7149337f0f1b3f38c8428b06dd52071abe2c662780f512dc272df9e00d0cd70",
+      "rubric": [
+        {
+          "any_of": [
+            "blue"
+          ],
+          "id": "blue"
+        },
+        {
+          "any_of": [
+            "square"
+          ],
+          "id": "square"
+        },
+        {
+          "any_of": [
+            "yellow"
+          ],
+          "id": "yellow"
+        },
+        {
+          "any_of": [
+            "triangle"
+          ],
+          "id": "triangle"
+        },
+        {
+          "id": "left_relation",
+          "ordered_any_of": [
+            [
+              "blue square",
+              "square"
+            ],
+            [
+              "left"
+            ]
+          ]
+        }
+      ],
+      "score": {
+        "criteria": [
+          {
+            "id": "blue",
+            "passed": true
+          },
+          {
+            "id": "square",
+            "passed": true
+          },
+          {
+            "id": "yellow",
+            "passed": true
+          },
+          {
+            "id": "triangle",
+            "passed": true
+          },
+          {
+            "id": "left_relation",
+            "passed": true
+          }
+        ],
+        "earned_points": 5,
+        "score_millionths": 1000000,
+        "total_points": 5
+      },
+      "status_code": 200,
+      "surfaces": [
+        "image",
+        "generation",
+        "task_quality"
+      ],
+      "timings": {
+        "total_seconds": 5.881961255334318,
+        "ttft_seconds": null
+      },
+      "transport_request_sha256": "08a1fe8765588bcc755ed428d28eabf5446e80f1284626a600b341fe42a7fc2d"
+    },
+    {
+      "accepted": true,
+      "case_id": "image_count_green_circles_red_squares",
+      "expected_accept": true,
+      "modality": "image",
+      "output_text": "The user wants me to count two specific shapes in the provided image.\n1.  **Green circles:** I need to scan the image for green circular shapes.\n    *   Looking at the top row, I see one green circle on the left.\n    *   I see a second green circle in the middle.\n    *   I see a third green circle on the right.\n    *   Total count for green circles is 3.\n\n2.  **Red squares:** I need to scan the image for red square shapes.\n    *   Looking at the bottom row, I see one red square on the left.\n    *   I see a second red square on the right.\n    *   Total count for red squares is 2.\n\nNow I will formulate the final response stating these counts clearly.\n</think>\n\nBased on the image provided:\n\n*   **Green circles:** 3\n*  ",
+      "output_token_ids_sha256": "0dd6e9c43311e0107994f3e72e9300252fabb8c0324052000b9b6d7e8ec886e1",
+      "parity_diagnostics": {
+        "finish_reason_reference_exact": true,
+        "generated_content_reference_exact": true,
+        "output_token_ids_reference_exact": true,
+        "score_reference_exact": true,
+        "usage_reference_exact": true
+      },
+      "passed": true,
+      "qualification_checks": {
+        "completion_usage_valid": true,
+        "finish_reason_supported": true,
+        "generated_content_nonempty": true,
+        "media_counts_exact": true,
+        "media_executed": true,
+        "mrope_enabled": true,
+        "output_token_hash_present": true,
+        "reference_status_exact": true,
+        "render_prompt_token_ids_exact": true,
+        "render_prompt_tokens_exact": true,
+        "request_contract_exact": true,
+        "resident_native_request": true,
+        "score_recomputed": true,
+        "structured_decoding_disabled": true,
+        "surface_accepted": true,
+        "task_quality_not_below_reference": true
+      },
+      "qualified": true,
+      "request": {
+        "max_tokens": 192,
+        "messages": [
+          {
+            "content": [
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 1627,
+                    "fixture": "image-count-shapes.png",
+                    "mime": "image/png",
+                    "sha256": "cb5f622da4a4446b6e50569efada78499990741c85ef7afcabd40022d034f075",
+                    "transport": "data"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "text": "Count the green circles and the red squares separately. State both counts clearly.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "${AIMA_SERVED_MODEL}",
+        "stream": false,
+        "temperature": 0
+      },
+      "request_sha256": "0254c902bebf91b897babbdac6fbba3b0b69bf928abecd804ee945a7a7026380",
+      "response": {
+        "aima_amd395": {
+          "aot_prefill_bucket_tokens": 1024,
+          "aot_prefill_segments": 1,
+          "aot_prefill_tokens": 220,
+          "client_cancelled": false,
+          "cold_prompt_decode_tokens": 0,
+          "cold_prompt_decode_wall_ms": 0.0,
+          "completion_tokens": 192,
+          "decode_tokens_per_second": 35.183877031307894,
+          "http_request_wall_ms": 5874.002617,
+          "model_loads": 1,
+          "mrope": {
+            "decode_steps": 191,
+            "enabled": true,
+            "fmha_launches": 0,
+            "full_attention_launches": 10,
+            "position_delta": -176,
+            "position_upload_bytes": 5280,
+            "unified_attention_launches": 10
+          },
+          "oracle_tensor_reads": 0,
+          "output_token_ids_canonical_sha256": "0dd6e9c43311e0107994f3e72e9300252fabb8c0324052000b9b6d7e8ec886e1",
+          "output_token_ids_sha256": "b420c2f2ef4c3c8a08001a673e4adb124f0a9688fe5ed11cff52153d6395f29e",
+          "padded_prefill_tokens": 804,
+          "prefill_tokens_per_second": 499.0749543637355,
+          "prefix_cache": {
+            "active_kv_reused": false,
+            "hits": 0,
+            "implemented": true,
+            "lookup": "miss",
+            "matched_tokens": 0,
+            "misses": 3,
+            "restore_wall_ms": 0.0,
+            "scope": "capacity-bounded-variable-exact-or-append-lru",
+            "suffix_aot_launches": 0,
+            "suffix_decode_tokens": 0,
+            "suffix_native_launches": 0,
+            "suffix_tokens": 220,
+            "suffix_wall_ms": 0.0,
+            "transfer_bytes": 68898816
+          },
+          "prompt_execution": "cold-aot-padded",
+          "prompt_source": "chat_template",
+          "prompt_token_ids_sha256": "99326330b363f6e61ca0d1b89f0834d41c271ce60b72206cbcec315c29c628c3",
+          "prompt_tokens": 220,
+          "request_index": 3,
+          "request_wall_ms": 5870.27266,
+          "runtime": "native-resident-q220",
+          "sampling": {
+            "logits_device_to_host_bytes": 0,
+            "logits_source": "certified-top1",
+            "mode": "argmax",
+            "seed": null,
+            "seed_provided": false,
+            "temperature": 0.0,
+            "token_selections": 0,
+            "top_p": 1.0,
+            "wall_ms": 0.0
+          },
+          "structured_decoding": {
+            "enabled": false,
+            "token_mask_upload_bytes": 0,
+            "token_selections": 0
+          },
+          "ttft_ms": 440.815549,
+          "vl": {
+            "embedding_injection_wall_ms": 0.072117,
+            "enabled": true,
+            "host_to_device_bytes": 2361712,
+            "image_count": 1,
+            "logical_projection_plan_build_wall_ms": 2.973942,
+            "logical_projection_plan_count": 9,
+            "logical_projection_plan_reused": false,
+            "logical_projection_tokens": 220,
+            "logical_projection_workspace_bytes": 0,
+            "media_cache_entries": 3,
+            "media_cache_hits": 0,
+            "media_cache_misses": 1,
+            "media_cache_resident_bytes": 7079181,
+            "media_count": 1,
+            "media_decode_wall_ms": 1.923837,
+            "media_load_decode_wall_ms": 1.942636,
+            "media_load_wall_ms": 0.018799,
+            "processor_wall_ms": 1.345735,
+            "source_bytes": 1627,
+            "video_count": 0,
+            "vision_attention_image_sha256s": [
+              "8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e"
+            ],
+            "vision_batch_count": 1,
+            "vision_embedding_cache_capacity_bytes": 536870912,
+            "vision_embedding_cache_entries": 3,
+            "vision_embedding_cache_hit": false,
+            "vision_embedding_cache_resident_bytes": 2359296,
+            "vision_encode_wall_ms": 44.999094,
+            "vision_input_upload_wall_ms": 0.136316,
+            "vision_max_batch_patches": 768,
+            "vision_max_batch_tokens": 192,
+            "vision_patches": 768,
+            "vision_plan_build_wall_ms": 0.0,
+            "vision_plan_cache_entries": 3,
+            "vision_plan_cache_hit": true,
+            "visual_tokens": 192
+          }
+        },
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "message": {
+              "content": "The user wants me to count two specific shapes in the provided image.\n1.  **Green circles:** I need to scan the image for green circular shapes.\n    *   Looking at the top row, I see one green circle on the left.\n    *   I see a second green circle in the middle.\n    *   I see a third green circle on the right.\n    *   Total count for green circles is 3.\n\n2.  **Red squares:** I need to scan the image for red square shapes.\n    *   Looking at the bottom row, I see one red square on the left.\n    *   I see a second red square on the right.\n    *   Total count for red squares is 2.\n\nNow I will formulate the final response stating these counts clearly.\n</think>\n\nBased on the image provided:\n\n*   **Green circles:** 3\n*  ",
+              "role": "assistant"
+            }
+          }
+        ],
+        "model": "aima-amd395-qwen36-35b",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 192,
+          "prompt_tokens": 220,
+          "total_tokens": 412
+        }
+      },
+      "response_bytes": 3839,
+      "response_sha256": "7f6b574c8581268271889fe230d3b92644348aafe436585e94e2dfb829957464",
+      "rubric": [
+        {
+          "all_of": [
+            [
+              "three",
+              "3"
+            ],
+            [
+              "green"
+            ],
+            [
+              "circle",
+              "circles"
+            ]
+          ],
+          "id": "three_green_circles"
+        },
+        {
+          "all_of": [
+            [
+              "two",
+              "2"
+            ],
+            [
+              "red"
+            ],
+            [
+              "square",
+              "squares"
+            ]
+          ],
+          "id": "two_red_squares"
+        }
+      ],
+      "score": {
+        "criteria": [
+          {
+            "id": "three_green_circles",
+            "passed": true
+          },
+          {
+            "id": "two_red_squares",
+            "passed": true
+          }
+        ],
+        "earned_points": 2,
+        "score_millionths": 1000000,
+        "total_points": 2
+      },
+      "status_code": 200,
+      "surfaces": [
+        "image",
+        "generation",
+        "task_quality"
+      ],
+      "timings": {
+        "total_seconds": 5.874780431389809,
+        "ttft_seconds": null
+      },
+      "transport_request_sha256": "49b8294c546baee2b95dfb8e40de025f4283b9cb76afb0603d6e24c6cfaf3d7b"
+    },
+    {
+      "accepted": true,
+      "case_id": "image_red_circle_top_right_quadrant",
+      "expected_accept": true,
+      "modality": "image",
+      "output_text": "The user wants me to identify the quadrant containing the red circle.\n\n1.  **Analyze the image:**\n    *   I see a Cartesian coordinate system with a horizontal x-axis and a vertical y-axis intersecting at the origin (0,0).\n    *   There is a red circle located in the upper right section of the graph.\n\n2.  **Recall quadrant definitions:**\n    *   **Quadrant I:** Top right (x > 0, y > 0)\n    *   **Quadrant II:** Top left (x < 0, y > 0)\n    *   **Quadrant III:** Bottom left (x < 0, y < 0)\n    *   **Quadrant IV:** Bottom right (x > 0, y < 0)\n\n3.  **Locate the object:**\n    *   The red circle is",
+      "output_token_ids_sha256": "adcbc7c5567410e04256a8b28631c23a98827798ba302fdb6f94366a61e8892d",
+      "parity_diagnostics": {
+        "finish_reason_reference_exact": true,
+        "generated_content_reference_exact": true,
+        "output_token_ids_reference_exact": true,
+        "score_reference_exact": true,
+        "usage_reference_exact": true
+      },
+      "passed": true,
+      "qualification_checks": {
+        "completion_usage_valid": true,
+        "finish_reason_supported": true,
+        "generated_content_nonempty": true,
+        "media_counts_exact": true,
+        "media_executed": true,
+        "mrope_enabled": true,
+        "output_token_hash_present": true,
+        "reference_status_exact": true,
+        "render_prompt_token_ids_exact": true,
+        "render_prompt_tokens_exact": true,
+        "request_contract_exact": true,
+        "resident_native_request": true,
+        "score_recomputed": true,
+        "structured_decoding_disabled": true,
+        "surface_accepted": true,
+        "task_quality_not_below_reference": true
+      },
+      "qualified": true,
+      "request": {
+        "max_tokens": 192,
+        "messages": [
+          {
+            "content": [
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 1498,
+                    "fixture": "image-quadrant-red-circle.png",
+                    "mime": "image/png",
+                    "sha256": "a65cda6f8045770cf454a1dd4a7d98e0ed407a5a5de012857c3b786006b7b0d8",
+                    "transport": "data"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "text": "Which quadrant contains the red circle? Answer with one of the four standard quadrant names.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "${AIMA_SERVED_MODEL}",
+        "stream": false,
+        "temperature": 0
+      },
+      "request_sha256": "30331419ac592e8d27b183e42faf0e5c6aeb2dc6082f9bb289f8f85b5eab7c08",
+      "response": {
+        "aima_amd395": {
+          "aot_prefill_bucket_tokens": 1024,
+          "aot_prefill_segments": 1,
+          "aot_prefill_tokens": 222,
+          "client_cancelled": false,
+          "cold_prompt_decode_tokens": 0,
+          "cold_prompt_decode_wall_ms": 0.0,
+          "completion_tokens": 192,
+          "decode_tokens_per_second": 35.17814150077,
+          "http_request_wall_ms": 5873.577214,
+          "model_loads": 1,
+          "mrope": {
+            "decode_steps": 191,
+            "enabled": true,
+            "fmha_launches": 0,
+            "full_attention_launches": 10,
+            "position_delta": -176,
+            "position_upload_bytes": 5328,
+            "unified_attention_launches": 10
+          },
+          "oracle_tensor_reads": 0,
+          "output_token_ids_canonical_sha256": "adcbc7c5567410e04256a8b28631c23a98827798ba302fdb6f94366a61e8892d",
+          "output_token_ids_sha256": "b6c371e0a0a5c5a8e5a30fc7916f424f7f802702e2f734b11eb7043037ed5d1a",
+          "padded_prefill_tokens": 802,
+          "prefill_tokens_per_second": 505.2869355622866,
+          "prefix_cache": {
+            "active_kv_reused": false,
+            "hits": 0,
+            "implemented": true,
+            "lookup": "miss",
+            "matched_tokens": 0,
+            "misses": 4,
+            "restore_wall_ms": 0.0,
+            "scope": "capacity-bounded-variable-exact-or-append-lru",
+            "suffix_aot_launches": 0,
+            "suffix_decode_tokens": 0,
+            "suffix_native_launches": 0,
+            "suffix_tokens": 222,
+            "suffix_wall_ms": 0.0,
+            "transfer_bytes": 68939776
+          },
+          "prompt_execution": "cold-aot-padded",
+          "prompt_source": "chat_template",
+          "prompt_token_ids_sha256": "3d57c701d984325fc4971f5f1e8b1aca20c25bc72148acb7a637d0203d312ddf",
+          "prompt_tokens": 222,
+          "request_index": 4,
+          "request_wall_ms": 5869.566506,
+          "runtime": "native-resident-q222",
+          "sampling": {
+            "logits_device_to_host_bytes": 0,
+            "logits_source": "certified-top1",
+            "mode": "argmax",
+            "seed": null,
+            "seed_provided": false,
+            "temperature": 0.0,
+            "token_selections": 0,
+            "top_p": 1.0,
+            "wall_ms": 0.0
+          },
+          "structured_decoding": {
+            "enabled": false,
+            "token_mask_upload_bytes": 0,
+            "token_selections": 0
+          },
+          "ttft_ms": 439.354324,
+          "vl": {
+            "embedding_injection_wall_ms": 0.070577,
+            "enabled": true,
+            "host_to_device_bytes": 2361720,
+            "image_count": 1,
+            "logical_projection_plan_build_wall_ms": 3.240993,
+            "logical_projection_plan_count": 9,
+            "logical_projection_plan_reused": false,
+            "logical_projection_tokens": 222,
+            "logical_projection_workspace_bytes": 0,
+            "media_cache_entries": 4,
+            "media_cache_hits": 0,
+            "media_cache_misses": 1,
+            "media_cache_resident_bytes": 9438908,
+            "media_count": 1,
+            "media_decode_wall_ms": 2.006684,
+            "media_load_decode_wall_ms": 2.025883,
+            "media_load_wall_ms": 0.019199,
+            "processor_wall_ms": 1.492571,
+            "source_bytes": 1498,
+            "video_count": 0,
+            "vision_attention_image_sha256s": [
+              "8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e"
+            ],
+            "vision_batch_count": 1,
+            "vision_embedding_cache_capacity_bytes": 536870912,
+            "vision_embedding_cache_entries": 4,
+            "vision_embedding_cache_hit": false,
+            "vision_embedding_cache_resident_bytes": 3145728,
+            "vision_encode_wall_ms": 44.949049,
+            "vision_input_upload_wall_ms": 0.117896,
+            "vision_max_batch_patches": 768,
+            "vision_max_batch_tokens": 192,
+            "vision_patches": 768,
+            "vision_plan_build_wall_ms": 0.0,
+            "vision_plan_cache_entries": 3,
+            "vision_plan_cache_hit": true,
+            "visual_tokens": 192
+          }
+        },
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "message": {
+              "content": "The user wants me to identify the quadrant containing the red circle.\n\n1.  **Analyze the image:**\n    *   I see a Cartesian coordinate system with a horizontal x-axis and a vertical y-axis intersecting at the origin (0,0).\n    *   There is a red circle located in the upper right section of the graph.\n\n2.  **Recall quadrant definitions:**\n    *   **Quadrant I:** Top right (x > 0, y > 0)\n    *   **Quadrant II:** Top left (x < 0, y > 0)\n    *   **Quadrant III:** Bottom left (x < 0, y < 0)\n    *   **Quadrant IV:** Bottom right (x > 0, y < 0)\n\n3.  **Locate the object:**\n    *   The red circle is",
+              "role": "assistant"
+            }
+          }
+        ],
+        "model": "aima-amd395-qwen36-35b",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 192,
+          "prompt_tokens": 222,
+          "total_tokens": 414
+        }
+      },
+      "response_bytes": 3703,
+      "response_sha256": "34fc990e594f639a35c2277523e7544e6bf8456b35b63c02c470cf8328038145",
+      "rubric": [
+        {
+          "any_of": [
+            "top-right",
+            "top right",
+            "upper-right",
+            "upper right"
+          ],
+          "id": "top_right"
+        }
+      ],
+      "score": {
+        "criteria": [
+          {
+            "id": "top_right",
+            "passed": true
+          }
+        ],
+        "earned_points": 1,
+        "score_millionths": 1000000,
+        "total_points": 1
+      },
+      "status_code": 200,
+      "surfaces": [
+        "image",
+        "generation",
+        "task_quality"
+      ],
+      "timings": {
+        "total_seconds": 5.874297169968486,
+        "ttft_seconds": null
+      },
+      "transport_request_sha256": "e54654f1ee48d9bdf9095a20587d9b922f30f42aa2b9bfa48a7826078b308016"
+    },
+    {
+      "accepted": true,
+      "case_id": "image_orange_top_purple_bottom",
+      "expected_accept": true,
+      "modality": "image",
+      "output_text": "The user wants me to identify the colors of the two bands in the image.\n1.  **Analyze the image:** The image is a simple flag or banner divided horizontally into two equal sections.\n2.  **Identify the top band:** The top half is a solid color. It looks like a shade of orange. It's a fairly bright, medium orange.\n3.  **Identify the bottom band:** The bottom half is a solid color. It looks like a shade of purple or violet. It's a medium-dark purple.\n4.  **Formulate the answer:** The user requested the colors in top-to-bottom order.\n    *   Top: Orange\n    *   Bottom: Purple\n5.  **Final check:** Does the description match the visual evidence? Yes. The top is clearly orange and the bottom is clearly purple. This looks like the flag of the Republic of Texas (historically)",
+      "output_token_ids_sha256": "4287f7d02c728627fa8250f6286d1b6011524fef011aec628d6036432edf0a4c",
+      "parity_diagnostics": {
+        "finish_reason_reference_exact": true,
+        "generated_content_reference_exact": true,
+        "output_token_ids_reference_exact": true,
+        "score_reference_exact": true,
+        "usage_reference_exact": true
+      },
+      "passed": true,
+      "qualification_checks": {
+        "completion_usage_valid": true,
+        "finish_reason_supported": true,
+        "generated_content_nonempty": true,
+        "media_counts_exact": true,
+        "media_executed": true,
+        "mrope_enabled": true,
+        "output_token_hash_present": true,
+        "reference_status_exact": true,
+        "render_prompt_token_ids_exact": true,
+        "render_prompt_tokens_exact": true,
+        "request_contract_exact": true,
+        "resident_native_request": true,
+        "score_recomputed": true,
+        "structured_decoding_disabled": true,
+        "surface_accepted": true,
+        "task_quality_not_below_reference": true
+      },
+      "qualified": true,
+      "request": {
+        "max_tokens": 192,
+        "messages": [
+          {
+            "content": [
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 1151,
+                    "fixture": "image-two-color-bands.png",
+                    "mime": "image/png",
+                    "sha256": "81745922c16431e7b77f8373152d33d480ef4e6e37bd8e15ac373ca7235aa40d",
+                    "transport": "data"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "text": "What color is the top band and what color is the bottom band? Give them in top-to-bottom order.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "${AIMA_SERVED_MODEL}",
+        "stream": false,
+        "temperature": 0
+      },
+      "request_sha256": "9fcdd92d9a2b4287d43e3cd91866559dda7732d0f839f3d361efc0f6a75559d3",
+      "response": {
+        "aima_amd395": {
+          "aot_prefill_bucket_tokens": 1024,
+          "aot_prefill_segments": 1,
+          "aot_prefill_tokens": 227,
+          "client_cancelled": false,
+          "cold_prompt_decode_tokens": 0,
+          "cold_prompt_decode_wall_ms": 0.0,
+          "completion_tokens": 192,
+          "decode_tokens_per_second": 35.16052118715948,
+          "http_request_wall_ms": 5889.594598,
+          "model_loads": 1,
+          "mrope": {
+            "decode_steps": 191,
+            "enabled": true,
+            "fmha_launches": 0,
+            "full_attention_launches": 10,
+            "position_delta": -176,
+            "position_upload_bytes": 5448,
+            "unified_attention_launches": 10
+          },
+          "oracle_tensor_reads": 0,
+          "output_token_ids_canonical_sha256": "4287f7d02c728627fa8250f6286d1b6011524fef011aec628d6036432edf0a4c",
+          "output_token_ids_sha256": "85a23023c9348b004062f42cd508392df1771537d71f71fd19ca8db360ed6f54",
+          "padded_prefill_tokens": 797,
+          "prefill_tokens_per_second": 501.3720122419054,
+          "prefix_cache": {
+            "active_kv_reused": false,
+            "hits": 0,
+            "implemented": true,
+            "lookup": "miss",
+            "matched_tokens": 0,
+            "misses": 5,
+            "restore_wall_ms": 0.0,
+            "scope": "capacity-bounded-variable-exact-or-append-lru",
+            "suffix_aot_launches": 0,
+            "suffix_decode_tokens": 0,
+            "suffix_native_launches": 0,
+            "suffix_tokens": 227,
+            "suffix_wall_ms": 0.0,
+            "transfer_bytes": 69042176
+          },
+          "prompt_execution": "cold-aot-padded",
+          "prompt_source": "chat_template",
+          "prompt_token_ids_sha256": "04e0073bb39f5b896dfc7b26133026ed736e12e55eb30bc69eab82da650ba1b5",
+          "prompt_tokens": 227,
+          "request_index": 5,
+          "request_wall_ms": 5885.776194,
+          "runtime": "native-resident-q227",
+          "sampling": {
+            "logits_device_to_host_bytes": 0,
+            "logits_source": "certified-top1",
+            "mode": "argmax",
+            "seed": null,
+            "seed_provided": false,
+            "temperature": 0.0,
+            "token_selections": 0,
+            "top_p": 1.0,
+            "wall_ms": 0.0
+          },
+          "structured_decoding": {
+            "enabled": false,
+            "token_mask_upload_bytes": 0,
+            "token_selections": 0
+          },
+          "ttft_ms": 452.757622,
+          "vl": {
+            "embedding_injection_wall_ms": 0.059768,
+            "enabled": true,
+            "host_to_device_bytes": 2361740,
+            "image_count": 1,
+            "logical_projection_plan_build_wall_ms": 3.083879,
+            "logical_projection_plan_count": 9,
+            "logical_projection_plan_reused": false,
+            "logical_projection_tokens": 227,
+            "logical_projection_workspace_bytes": 0,
+            "media_cache_entries": 5,
+            "media_cache_hits": 0,
+            "media_cache_misses": 1,
+            "media_cache_resident_bytes": 11798635,
+            "media_count": 1,
+            "media_decode_wall_ms": 1.979294,
+            "media_load_decode_wall_ms": 1.9904940000000002,
+            "media_load_wall_ms": 0.0112,
+            "processor_wall_ms": 1.394875,
+            "source_bytes": 1151,
+            "video_count": 0,
+            "vision_attention_image_sha256s": [
+              "8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e"
+            ],
+            "vision_batch_count": 1,
+            "vision_embedding_cache_capacity_bytes": 536870912,
+            "vision_embedding_cache_entries": 5,
+            "vision_embedding_cache_hit": false,
+            "vision_embedding_cache_resident_bytes": 3932160,
+            "vision_encode_wall_ms": 45.286691,
+            "vision_input_upload_wall_ms": 0.135205,
+            "vision_max_batch_patches": 768,
+            "vision_max_batch_tokens": 192,
+            "vision_patches": 768,
+            "vision_plan_build_wall_ms": 0.0,
+            "vision_plan_cache_entries": 3,
+            "vision_plan_cache_hit": true,
+            "visual_tokens": 192
+          }
+        },
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "message": {
+              "content": "The user wants me to identify the colors of the two bands in the image.\n1.  **Analyze the image:** The image is a simple flag or banner divided horizontally into two equal sections.\n2.  **Identify the top band:** The top half is a solid color. It looks like a shade of orange. It's a fairly bright, medium orange.\n3.  **Identify the bottom band:** The bottom half is a solid color. It looks like a shade of purple or violet. It's a medium-dark purple.\n4.  **Formulate the answer:** The user requested the colors in top-to-bottom order.\n    *   Top: Orange\n    *   Bottom: Purple\n5.  **Final check:** Does the description match the visual evidence? Yes. The top is clearly orange and the bottom is clearly purple. This looks like the flag of the Republic of Texas (historically)",
+              "role": "assistant"
+            }
+          }
+        ],
+        "model": "aima-amd395-qwen36-35b",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 192,
+          "prompt_tokens": 227,
+          "total_tokens": 419
+        }
+      },
+      "response_bytes": 3889,
+      "response_sha256": "f93a21ee4a9fde439be853fb7492423153a95d3ac946132dbae8bc34a0112525",
+      "rubric": [
+        {
+          "any_of": [
+            "orange"
+          ],
+          "id": "orange"
+        },
+        {
+          "any_of": [
+            "purple",
+            "violet"
+          ],
+          "id": "purple"
+        },
+        {
+          "id": "top_to_bottom_order",
+          "ordered_any_of": [
+            [
+              "orange"
+            ],
+            [
+              "purple",
+              "violet"
+            ]
+          ]
+        }
+      ],
+      "score": {
+        "criteria": [
+          {
+            "id": "orange",
+            "passed": true
+          },
+          {
+            "id": "purple",
+            "passed": true
+          },
+          {
+            "id": "top_to_bottom_order",
+            "passed": true
+          }
+        ],
+        "earned_points": 3,
+        "score_millionths": 1000000,
+        "total_points": 3
+      },
+      "status_code": 200,
+      "surfaces": [
+        "image",
+        "generation",
+        "task_quality"
+      ],
+      "timings": {
+        "total_seconds": 5.890246797353029,
+        "ttft_seconds": null
+      },
+      "transport_request_sha256": "5b2bdcb62be1b46d60bc2b71c5275bfab147e03f7908bbacf99638ff36fe9db4"
+    },
+    {
+      "accepted": true,
+      "case_id": "image_arrow_points_right",
+      "expected_accept": true,
+      "modality": "image",
+      "output_text": "The user wants to know the direction of the arrow in the image.\n1.  **Identify the object:** It's a black arrow.\n2.  **Determine orientation:** The arrowhead is on the right side, and the tail is on the left side.\n3.  **Determine direction:** Therefore, it points to the right.\n4.  **Formulate the sentence:** \"The large black arrow points to the right.\" or \"It points right.\" The user asked for a short sentence explaining the direction.\n\nDrafting the response:\n- \"The large black arrow points to the right.\"\n- \"The arrow is pointing towards the right side of the image.\"\n\nLet's go with the simplest, most direct answer.\n</think>\n\nThe large black arrow points to the right.",
+      "output_token_ids_sha256": "5216499e9aa8c4122fe0b7e8562545c27ff8792acfcbcb7bc9efda145b979ef8",
+      "parity_diagnostics": {
+        "finish_reason_reference_exact": true,
+        "generated_content_reference_exact": true,
+        "output_token_ids_reference_exact": true,
+        "score_reference_exact": true,
+        "usage_reference_exact": true
+      },
+      "passed": true,
+      "qualification_checks": {
+        "completion_usage_valid": true,
+        "finish_reason_supported": true,
+        "generated_content_nonempty": true,
+        "media_counts_exact": true,
+        "media_executed": true,
+        "mrope_enabled": true,
+        "output_token_hash_present": true,
+        "reference_status_exact": true,
+        "render_prompt_token_ids_exact": true,
+        "render_prompt_tokens_exact": true,
+        "request_contract_exact": true,
+        "resident_native_request": true,
+        "score_recomputed": true,
+        "structured_decoding_disabled": true,
+        "surface_accepted": true,
+        "task_quality_not_below_reference": true
+      },
+      "qualified": true,
+      "request": {
+        "max_tokens": 192,
+        "messages": [
+          {
+            "content": [
+              {
+                "image_url": {
+                  "url": {
+                    "bytes": 1528,
+                    "fixture": "image-arrow-right.png",
+                    "mime": "image/png",
+                    "sha256": "7f808552947f3e9c8328ac7926a2c5b3f367298c61cc9dc8c12b3a75210e3a24",
+                    "transport": "data"
+                  }
+                },
+                "type": "image_url"
+              },
+              {
+                "text": "Which direction does the large black arrow point? Explain the direction in one short sentence.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "${AIMA_SERVED_MODEL}",
+        "stream": false,
+        "temperature": 0
+      },
+      "request_sha256": "900e36716c0efb2e5c7fa8602f45064770ebcd066655177e4cf376ae2a8a0a06",
+      "response": {
+        "aima_amd395": {
+          "aot_prefill_bucket_tokens": 1024,
+          "aot_prefill_segments": 1,
+          "aot_prefill_tokens": 222,
+          "client_cancelled": false,
+          "cold_prompt_decode_tokens": 0,
+          "cold_prompt_decode_wall_ms": 0.0,
+          "completion_tokens": 169,
+          "decode_tokens_per_second": 35.19917202898448,
+          "http_request_wall_ms": 5229.239785,
+          "model_loads": 1,
+          "mrope": {
+            "decode_steps": 168,
+            "enabled": true,
+            "fmha_launches": 0,
+            "full_attention_launches": 10,
+            "position_delta": -176,
+            "position_upload_bytes": 5328,
+            "unified_attention_launches": 10
+          },
+          "oracle_tensor_reads": 0,
+          "output_token_ids_canonical_sha256": "5216499e9aa8c4122fe0b7e8562545c27ff8792acfcbcb7bc9efda145b979ef8",
+          "output_token_ids_sha256": "8da8e06a2eb1415c31772b40dff9a976191b8bb78c0e7d2d80311afd73db8121",
+          "padded_prefill_tokens": 802,
+          "prefill_tokens_per_second": 491.29618027244936,
+          "prefix_cache": {
+            "active_kv_reused": false,
+            "hits": 0,
+            "implemented": true,
+            "lookup": "miss",
+            "matched_tokens": 0,
+            "misses": 6,
+            "restore_wall_ms": 0.0,
+            "scope": "capacity-bounded-variable-exact-or-append-lru",
+            "suffix_aot_launches": 0,
+            "suffix_decode_tokens": 0,
+            "suffix_native_launches": 0,
+            "suffix_tokens": 222,
+            "suffix_wall_ms": 0.0,
+            "transfer_bytes": 68939776
+          },
+          "prompt_execution": "cold-aot-padded",
+          "prompt_source": "chat_template",
+          "prompt_token_ids_sha256": "ad5cbaa92ae853d49958ffe11d4bdbdbf6df0fdeba6b54147c3fc7d8c9f503ec",
+          "prompt_tokens": 222,
+          "request_index": 6,
+          "request_wall_ms": 5225.309933,
+          "runtime": "native-resident-q222",
+          "sampling": {
+            "logits_device_to_host_bytes": 0,
+            "logits_source": "certified-top1",
+            "mode": "argmax",
+            "seed": null,
+            "seed_provided": false,
+            "temperature": 0.0,
+            "token_selections": 0,
+            "top_p": 1.0,
+            "wall_ms": 0.0
+          },
+          "structured_decoding": {
+            "enabled": false,
+            "token_mask_upload_bytes": 0,
+            "token_selections": 0
+          },
+          "ttft_ms": 451.865919,
+          "vl": {
+            "embedding_injection_wall_ms": 0.073268,
+            "enabled": true,
+            "host_to_device_bytes": 2361720,
+            "image_count": 1,
+            "logical_projection_plan_build_wall_ms": 0.0,
+            "logical_projection_plan_count": 9,
+            "logical_projection_plan_reused": true,
+            "logical_projection_tokens": 222,
+            "logical_projection_workspace_bytes": 0,
+            "media_cache_entries": 6,
+            "media_cache_hits": 0,
+            "media_cache_misses": 1,
+            "media_cache_resident_bytes": 14158362,
+            "media_count": 1,
+            "media_decode_wall_ms": 1.987995,
+            "media_load_decode_wall_ms": 2.013364,
+            "media_load_wall_ms": 0.025369,
+            "processor_wall_ms": 1.479131,
+            "source_bytes": 1528,
+            "video_count": 0,
+            "vision_attention_image_sha256s": [
+              "8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e"
+            ],
+            "vision_batch_count": 1,
+            "vision_embedding_cache_capacity_bytes": 536870912,
+            "vision_embedding_cache_entries": 6,
+            "vision_embedding_cache_hit": false,
+            "vision_embedding_cache_resident_bytes": 4718592,
+            "vision_encode_wall_ms": 45.623623,
+            "vision_input_upload_wall_ms": 0.28261,
+            "vision_max_batch_patches": 768,
+            "vision_max_batch_tokens": 192,
+            "vision_patches": 768,
+            "vision_plan_build_wall_ms": 0.0,
+            "vision_plan_cache_entries": 3,
+            "vision_plan_cache_hit": true,
+            "visual_tokens": 192
+          }
+        },
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "content": "The user wants to know the direction of the arrow in the image.\n1.  **Identify the object:** It's a black arrow.\n2.  **Determine orientation:** The arrowhead is on the right side, and the tail is on the left side.\n3.  **Determine direction:** Therefore, it points to the right.\n4.  **Formulate the sentence:** \"The large black arrow points to the right.\" or \"It points right.\" The user asked for a short sentence explaining the direction.\n\nDrafting the response:\n- \"The large black arrow points to the right.\"\n- \"The arrow is pointing towards the right side of the image.\"\n\nLet's go with the simplest, most direct answer.\n</think>\n\nThe large black arrow points to the right.",
+              "role": "assistant"
+            }
+          }
+        ],
+        "model": "aima-amd395-qwen36-35b",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 169,
+          "prompt_tokens": 222,
+          "total_tokens": 391
+        }
+      },
+      "response_bytes": 3784,
+      "response_sha256": "7e2abbe1c8eba9b2a1d029e61456c1dc2057e2c9f4041a3928252a40a5def9a8",
+      "rubric": [
+        {
+          "any_of": [
+            "right",
+            "rightward"
+          ],
+          "id": "right"
+        }
+      ],
+      "score": {
+        "criteria": [
+          {
+            "id": "right",
+            "passed": true
+          }
+        ],
+        "earned_points": 1,
+        "score_millionths": 1000000,
+        "total_points": 1
+      },
+      "status_code": 200,
+      "surfaces": [
+        "image",
+        "generation",
+        "task_quality"
+      ],
+      "timings": {
+        "total_seconds": 5.229918751865625,
+        "ttft_seconds": null
+      },
+      "transport_request_sha256": "c020e543c8184aed5878ccf091db0b8f03f7e9b332a99330bd65b9a843ad33a7"
+    },
+    {
+      "accepted": true,
+      "case_id": "video_red_circle_moves_right",
+      "expected_accept": true,
+      "modality": "video",
+      "output_text": "The user wants a description of the red circle's motion.\n\n1.  **Identify the object:** It's a red circle.\n2.  **Identify the color:** Red.\n3.  **Analyze the motion:**\n    *   **Start (00:00 - 00:01):** The circle is on the left side of the screen.\n    *   **Middle (00:01 - 00:02):** The circle moves towards the center.\n    *   **End (00:02 - 00:03):** The circle continues moving to the right side of the screen.\n4.  **Synthesize the description:** The red circle starts on the left, moves to the center, and then continues moving to the right.\n\n**Drafting the response:**\nThe object is a red circle. It starts on the left side",
+      "output_token_ids_sha256": "1ac349c5ffa7c07c0ce5029aca9f1750c5e2d15e9d449d1f09238a54a578ab75",
+      "parity_diagnostics": {
+        "finish_reason_reference_exact": true,
+        "generated_content_reference_exact": true,
+        "output_token_ids_reference_exact": true,
+        "score_reference_exact": true,
+        "usage_reference_exact": true
+      },
+      "passed": true,
+      "qualification_checks": {
+        "completion_usage_valid": true,
+        "finish_reason_supported": true,
+        "generated_content_nonempty": true,
+        "media_counts_exact": true,
+        "media_executed": true,
+        "mrope_enabled": true,
+        "output_token_hash_present": true,
+        "reference_status_exact": true,
+        "render_prompt_token_ids_exact": true,
+        "render_prompt_tokens_exact": true,
+        "request_contract_exact": true,
+        "resident_native_request": true,
+        "score_recomputed": true,
+        "structured_decoding_disabled": true,
+        "surface_accepted": true,
+        "task_quality_not_below_reference": true
+      },
+      "qualified": true,
+      "request": {
+        "max_tokens": 192,
+        "messages": [
+          {
+            "content": [
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 12517,
+                    "fixture": "video-red-circle-right.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "25d9cd5a8ccfaff3b74328a76ff8bfde184cff48a9e2e48b6bde65703c82c650",
+                    "transport": "data"
+                  }
+                }
+              },
+              {
+                "text": "Describe the red circle's motion from the beginning to the end. Name the object, color, and direction.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "${AIMA_SERVED_MODEL}",
+        "stream": false,
+        "temperature": 0
+      },
+      "request_sha256": "879294f59a5802ebb05e34ce2b41308a4e882867dffed18627e68bdc6cfdcab6",
+      "response": {
+        "aima_amd395": {
+          "aot_prefill_bucket_tokens": 1024,
+          "aot_prefill_segments": 1,
+          "aot_prefill_tokens": 497,
+          "client_cancelled": false,
+          "cold_prompt_decode_tokens": 0,
+          "cold_prompt_decode_wall_ms": 0.0,
+          "completion_tokens": 192,
+          "decode_tokens_per_second": 35.145543146328336,
+          "http_request_wall_ms": 6164.764929,
+          "model_loads": 1,
+          "mrope": {
+            "decode_steps": 191,
+            "enabled": true,
+            "fmha_launches": 0,
+            "full_attention_launches": 10,
+            "position_delta": -384,
+            "position_upload_bytes": 11928,
+            "unified_attention_launches": 10
+          },
+          "oracle_tensor_reads": 0,
+          "output_token_ids_canonical_sha256": "1ac349c5ffa7c07c0ce5029aca9f1750c5e2d15e9d449d1f09238a54a578ab75",
+          "output_token_ids_sha256": "853520cca49901a916e46ff6ca1294223f3b382455a473f52dc6cc579501ed10",
+          "padded_prefill_tokens": 527,
+          "prefill_tokens_per_second": 687.7760382902329,
+          "prefix_cache": {
+            "active_kv_reused": false,
+            "hits": 0,
+            "implemented": true,
+            "lookup": "miss",
+            "matched_tokens": 0,
+            "misses": 7,
+            "restore_wall_ms": 0.0,
+            "scope": "capacity-bounded-variable-exact-or-append-lru",
+            "suffix_aot_launches": 0,
+            "suffix_decode_tokens": 0,
+            "suffix_native_launches": 0,
+            "suffix_tokens": 497,
+            "suffix_wall_ms": 0.0,
+            "transfer_bytes": 74571776
+          },
+          "prompt_execution": "cold-aot-padded",
+          "prompt_source": "chat_template",
+          "prompt_token_ids_sha256": "ae8c4295e1402363a530f8fab5558b611aafdeac952f6457711df848c578d456",
+          "prompt_tokens": 497,
+          "request_index": 7,
+          "request_wall_ms": 6158.122797,
+          "runtime": "native-resident-q497",
+          "sampling": {
+            "logits_device_to_host_bytes": 0,
+            "logits_source": "certified-top1",
+            "mode": "argmax",
+            "seed": null,
+            "seed_provided": false,
+            "temperature": 0.0,
+            "token_selections": 0,
+            "top_p": 1.0,
+            "wall_ms": 0.0
+          },
+          "structured_decoding": {
+            "enabled": false,
+            "token_mask_upload_bytes": 0,
+            "token_selections": 0
+          },
+          "ttft_ms": 722.618952,
+          "vl": {
+            "embedding_injection_wall_ms": 0.114406,
+            "enabled": true,
+            "host_to_device_bytes": 5313860,
+            "image_count": 0,
+            "logical_projection_plan_build_wall_ms": 2.964503,
+            "logical_projection_plan_count": 9,
+            "logical_projection_plan_reused": false,
+            "logical_projection_tokens": 497,
+            "logical_projection_workspace_bytes": 0,
+            "media_cache_entries": 7,
+            "media_cache_hits": 0,
+            "media_cache_misses": 1,
+            "media_cache_resident_bytes": 19467273,
+            "media_count": 1,
+            "media_decode_wall_ms": 2.017154,
+            "media_load_decode_wall_ms": 2.165409,
+            "media_load_wall_ms": 0.148255,
+            "processor_wall_ms": 3.199865,
+            "source_bytes": 12517,
+            "video_count": 1,
+            "vision_attention_image_sha256s": [
+              "8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e"
+            ],
+            "vision_batch_count": 1,
+            "vision_embedding_cache_capacity_bytes": 536870912,
+            "vision_embedding_cache_entries": 7,
+            "vision_embedding_cache_hit": false,
+            "vision_embedding_cache_resident_bytes": 6488064,
+            "vision_encode_wall_ms": 95.084994,
+            "vision_input_upload_wall_ms": 0.431196,
+            "vision_max_batch_patches": 1728,
+            "vision_max_batch_tokens": 432,
+            "vision_patches": 1728,
+            "vision_plan_build_wall_ms": 100.200746,
+            "vision_plan_cache_entries": 4,
+            "vision_plan_cache_hit": false,
+            "visual_tokens": 432
+          }
+        },
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "message": {
+              "content": "The user wants a description of the red circle's motion.\n\n1.  **Identify the object:** It's a red circle.\n2.  **Identify the color:** Red.\n3.  **Analyze the motion:**\n    *   **Start (00:00 - 00:01):** The circle is on the left side of the screen.\n    *   **Middle (00:01 - 00:02):** The circle moves towards the center.\n    *   **End (00:02 - 00:03):** The circle continues moving to the right side of the screen.\n4.  **Synthesize the description:** The red circle starts on the left, moves to the center, and then continues moving to the right.\n\n**Drafting the response:**\nThe object is a red circle. It starts on the left side",
+              "role": "assistant"
+            }
+          }
+        ],
+        "model": "aima-amd395-qwen36-35b",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 192,
+          "prompt_tokens": 497,
+          "total_tokens": 689
+        }
+      },
+      "response_bytes": 3750,
+      "response_sha256": "3d60c15ce57cc96e13fc59710950956797848932dc8563f4a84249c536f584fd",
+      "rubric": [
+        {
+          "any_of": [
+            "red"
+          ],
+          "id": "red"
+        },
+        {
+          "any_of": [
+            "circle",
+            "ball"
+          ],
+          "id": "circle"
+        },
+        {
+          "any_of": [
+            "right",
+            "rightward"
+          ],
+          "id": "right"
+        }
+      ],
+      "score": {
+        "criteria": [
+          {
+            "id": "red",
+            "passed": true
+          },
+          {
+            "id": "circle",
+            "passed": true
+          },
+          {
+            "id": "right",
+            "passed": true
+          }
+        ],
+        "earned_points": 3,
+        "score_millionths": 1000000,
+        "total_points": 3
+      },
+      "status_code": 200,
+      "surfaces": [
+        "video",
+        "generation",
+        "task_quality"
+      ],
+      "timings": {
+        "total_seconds": 6.16547863651067,
+        "ttft_seconds": null
+      },
+      "transport_request_sha256": "242448ea04a29caa3e83dbd7db721d26d68b2b340df1bf9c9a3f5cca9935e147"
+    },
+    {
+      "accepted": true,
+      "case_id": "video_blue_square_moves_down",
+      "expected_accept": true,
+      "modality": "video",
+      "output_text": "The user wants a description of the blue square's motion.\n\n1.  **Identify the object:** It's a blue square.\n2.  **Identify the color:** Blue.\n3.  **Analyze the motion:**\n    *   At 00:00, the square is near the top center.\n    *   At 00:01, it has moved slightly down.\n    *   At 00:02, it has moved further down.\n    *   At 00:03, it is near the bottom center.\n    *   The motion is a continuous downward movement.\n\n4.  **Formulate the response:**\n    *   Object: Blue square.\n    *   Color: Blue.\n    *   Direction: Downwards (from top to bottom).\n    *   Combine these elements into a coherent sentence. \"The",
+      "output_token_ids_sha256": "cc9c7e0078857ad7cf12e3b18180d52af72097211adb8c1de03aeb29b2f68fd1",
+      "parity_diagnostics": {
+        "finish_reason_reference_exact": true,
+        "generated_content_reference_exact": true,
+        "output_token_ids_reference_exact": true,
+        "score_reference_exact": true,
+        "usage_reference_exact": true
+      },
+      "passed": true,
+      "qualification_checks": {
+        "completion_usage_valid": true,
+        "finish_reason_supported": true,
+        "generated_content_nonempty": true,
+        "media_counts_exact": true,
+        "media_executed": true,
+        "mrope_enabled": true,
+        "output_token_hash_present": true,
+        "reference_status_exact": true,
+        "render_prompt_token_ids_exact": true,
+        "render_prompt_tokens_exact": true,
+        "request_contract_exact": true,
+        "resident_native_request": true,
+        "score_recomputed": true,
+        "structured_decoding_disabled": true,
+        "surface_accepted": true,
+        "task_quality_not_below_reference": true
+      },
+      "qualified": true,
+      "request": {
+        "max_tokens": 192,
+        "messages": [
+          {
+            "content": [
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 6815,
+                    "fixture": "video-blue-square-down.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "ef875c70a214cb13d18cb39ba8a3bd3c51a962fb0b627a0542c9bab395aa2a6b",
+                    "transport": "data"
+                  }
+                }
+              },
+              {
+                "text": "Describe the blue square's motion from the beginning to the end. Name the object, color, and direction.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "${AIMA_SERVED_MODEL}",
+        "stream": false,
+        "temperature": 0
+      },
+      "request_sha256": "1661d26e4c32c4eb0fac25c7d97fb47e8a626097fcbde2c56e7ff0de6eaadd37",
+      "response": {
+        "aima_amd395": {
+          "aot_prefill_bucket_tokens": 1024,
+          "aot_prefill_segments": 1,
+          "aot_prefill_tokens": 497,
+          "client_cancelled": false,
+          "cold_prompt_decode_tokens": 0,
+          "cold_prompt_decode_wall_ms": 0.0,
+          "completion_tokens": 192,
+          "decode_tokens_per_second": 35.15860713020863,
+          "http_request_wall_ms": 6048.951453,
+          "model_loads": 1,
+          "mrope": {
+            "decode_steps": 191,
+            "enabled": true,
+            "fmha_launches": 0,
+            "full_attention_launches": 10,
+            "position_delta": -384,
+            "position_upload_bytes": 11928,
+            "unified_attention_launches": 10
+          },
+          "oracle_tensor_reads": 0,
+          "output_token_ids_canonical_sha256": "cc9c7e0078857ad7cf12e3b18180d52af72097211adb8c1de03aeb29b2f68fd1",
+          "output_token_ids_sha256": "38f7de6170ff5534553287331cac1324a724f9f82575513d4cba266820ff467a",
+          "padded_prefill_tokens": 527,
+          "prefill_tokens_per_second": 814.3531162262465,
+          "prefix_cache": {
+            "active_kv_reused": false,
+            "hits": 0,
+            "implemented": true,
+            "lookup": "miss",
+            "matched_tokens": 0,
+            "misses": 8,
+            "restore_wall_ms": 0.0,
+            "scope": "capacity-bounded-variable-exact-or-append-lru",
+            "suffix_aot_launches": 0,
+            "suffix_decode_tokens": 0,
+            "suffix_native_launches": 0,
+            "suffix_tokens": 497,
+            "suffix_wall_ms": 0.0,
+            "transfer_bytes": 74571776
+          },
+          "prompt_execution": "cold-aot-padded",
+          "prompt_source": "chat_template",
+          "prompt_token_ids_sha256": "dcd1a4ed194ecf85825ffa3f44daeaca578bd6e1732ea35d2af7feac32e589cc",
+          "prompt_tokens": 497,
+          "request_index": 8,
+          "request_wall_ms": 6043.924387,
+          "runtime": "native-resident-q497",
+          "sampling": {
+            "logits_device_to_host_bytes": 0,
+            "logits_source": "certified-top1",
+            "mode": "argmax",
+            "seed": null,
+            "seed_provided": false,
+            "temperature": 0.0,
+            "token_selections": 0,
+            "top_p": 1.0,
+            "wall_ms": 0.0
+          },
+          "structured_decoding": {
+            "enabled": false,
+            "token_mask_upload_bytes": 0,
+            "token_selections": 0
+          },
+          "ttft_ms": 610.30036,
+          "vl": {
+            "embedding_injection_wall_ms": 0.104287,
+            "enabled": true,
+            "host_to_device_bytes": 5313860,
+            "image_count": 0,
+            "logical_projection_plan_build_wall_ms": 0.0,
+            "logical_projection_plan_count": 9,
+            "logical_projection_plan_reused": true,
+            "logical_projection_tokens": 497,
+            "logical_projection_workspace_bytes": 0,
+            "media_cache_entries": 8,
+            "media_cache_hits": 0,
+            "media_cache_misses": 1,
+            "media_cache_resident_bytes": 24776184,
+            "media_count": 1,
+            "media_decode_wall_ms": 1.422933,
+            "media_load_decode_wall_ms": 1.4895909999999999,
+            "media_load_wall_ms": 0.066658,
+            "processor_wall_ms": 1.975946,
+            "source_bytes": 6815,
+            "video_count": 1,
+            "vision_attention_image_sha256s": [
+              "8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e"
+            ],
+            "vision_batch_count": 1,
+            "vision_embedding_cache_capacity_bytes": 536870912,
+            "vision_embedding_cache_entries": 8,
+            "vision_embedding_cache_hit": false,
+            "vision_embedding_cache_resident_bytes": 8257536,
+            "vision_encode_wall_ms": 87.993111,
+            "vision_input_upload_wall_ms": 0.476325,
+            "vision_max_batch_patches": 1728,
+            "vision_max_batch_tokens": 432,
+            "vision_patches": 1728,
+            "vision_plan_build_wall_ms": 0.0,
+            "vision_plan_cache_entries": 4,
+            "vision_plan_cache_hit": true,
+            "visual_tokens": 432
+          }
+        },
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "message": {
+              "content": "The user wants a description of the blue square's motion.\n\n1.  **Identify the object:** It's a blue square.\n2.  **Identify the color:** Blue.\n3.  **Analyze the motion:**\n    *   At 00:00, the square is near the top center.\n    *   At 00:01, it has moved slightly down.\n    *   At 00:02, it has moved further down.\n    *   At 00:03, it is near the bottom center.\n    *   The motion is a continuous downward movement.\n\n4.  **Formulate the response:**\n    *   Object: Blue square.\n    *   Color: Blue.\n    *   Direction: Downwards (from top to bottom).\n    *   Combine these elements into a coherent sentence. \"The",
+              "role": "assistant"
+            }
+          }
+        ],
+        "model": "aima-amd395-qwen36-35b",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 192,
+          "prompt_tokens": 497,
+          "total_tokens": 689
+        }
+      },
+      "response_bytes": 3730,
+      "response_sha256": "fdebfd2bda148431f9ce9f7d42a1cede2eb1dcef4f3ba641a63dd7093bb7b16e",
+      "rubric": [
+        {
+          "any_of": [
+            "blue"
+          ],
+          "id": "blue"
+        },
+        {
+          "any_of": [
+            "square",
+            "box"
+          ],
+          "id": "square"
+        },
+        {
+          "any_of": [
+            "down",
+            "downward",
+            "bottom"
+          ],
+          "id": "down"
+        }
+      ],
+      "score": {
+        "criteria": [
+          {
+            "id": "blue",
+            "passed": true
+          },
+          {
+            "id": "square",
+            "passed": true
+          },
+          {
+            "id": "down",
+            "passed": true
+          }
+        ],
+        "earned_points": 3,
+        "score_millionths": 1000000,
+        "total_points": 3
+      },
+      "status_code": 200,
+      "surfaces": [
+        "video",
+        "generation",
+        "task_quality"
+      ],
+      "timings": {
+        "total_seconds": 6.049570512957871,
+        "ttft_seconds": null
+      },
+      "transport_request_sha256": "1ff76da361b2f85f9db234381937ca754668559160537e16cbd7128515396206"
+    },
+    {
+      "accepted": true,
+      "case_id": "video_circle_blue_then_green",
+      "expected_accept": true,
+      "modality": "video",
+      "output_text": "The user wants to know the color progression of the circle in the video.\n\n1.  **Analyze the initial frames:**\n    *   Frame at 00:00 shows a blue circle.\n    *   Frame at 00:01 shows a blue circle.\n    *   Frame at 00:02 shows a blue circle.\n    *   So, the initial color is blue.\n\n2.  **Analyze the middle/transition frames:**\n    *   Frame at 00:03 shows a green circle.\n    *   Frame at 00:04 shows a green circle.\n    *   Frame at 00:05 shows a green circle.\n    *   Frame at 00:06 shows a green circle.\n    *   Frame at 00:07 shows a green circle.\n    *   Frame",
+      "output_token_ids_sha256": "3f2b2313ea4afde8ffff04d459f41f7dd828a50ea20d1dd406b261d9203c379a",
+      "parity_diagnostics": {
+        "finish_reason_reference_exact": true,
+        "generated_content_reference_exact": true,
+        "output_token_ids_reference_exact": true,
+        "score_reference_exact": true,
+        "usage_reference_exact": true
+      },
+      "passed": true,
+      "qualification_checks": {
+        "completion_usage_valid": true,
+        "finish_reason_supported": true,
+        "generated_content_nonempty": true,
+        "media_counts_exact": true,
+        "media_executed": true,
+        "mrope_enabled": true,
+        "output_token_hash_present": true,
+        "reference_status_exact": true,
+        "render_prompt_token_ids_exact": true,
+        "render_prompt_tokens_exact": true,
+        "request_contract_exact": true,
+        "resident_native_request": true,
+        "score_recomputed": true,
+        "structured_decoding_disabled": true,
+        "surface_accepted": true,
+        "task_quality_not_below_reference": true
+      },
+      "qualified": true,
+      "request": {
+        "max_tokens": 192,
+        "messages": [
+          {
+            "content": [
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 11880,
+                    "fixture": "video-circle-blue-green.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "22eb885522ecf57fa90babfad21a202a0549dd20edd50d7a2fcbb7044dbdbcea",
+                    "transport": "data"
+                  }
+                }
+              },
+              {
+                "text": "How does the circle's color change over time? State the initial color and the final color in order.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "${AIMA_SERVED_MODEL}",
+        "stream": false,
+        "temperature": 0
+      },
+      "request_sha256": "32924ba0d3cda0cfd850e9ec9822eda2c6918de9fcb27d6807cd5955d80c6afa",
+      "response": {
+        "aima_amd395": {
+          "aot_prefill_bucket_tokens": 1024,
+          "aot_prefill_segments": 1,
+          "aot_prefill_tokens": 496,
+          "client_cancelled": false,
+          "cold_prompt_decode_tokens": 0,
+          "cold_prompt_decode_wall_ms": 0.0,
+          "completion_tokens": 192,
+          "decode_tokens_per_second": 35.12970480356026,
+          "http_request_wall_ms": 6054.628212,
+          "model_loads": 1,
+          "mrope": {
+            "decode_steps": 191,
+            "enabled": true,
+            "fmha_launches": 0,
+            "full_attention_launches": 10,
+            "position_delta": -384,
+            "position_upload_bytes": 11904,
+            "unified_attention_launches": 10
+          },
+          "oracle_tensor_reads": 0,
+          "output_token_ids_canonical_sha256": "3f2b2313ea4afde8ffff04d459f41f7dd828a50ea20d1dd406b261d9203c379a",
+          "output_token_ids_sha256": "92dcac77987fa6db112034722f162e7249c4d12c23d404865d72748a735b90ae",
+          "padded_prefill_tokens": 528,
+          "prefill_tokens_per_second": 811.6916430840242,
+          "prefix_cache": {
+            "active_kv_reused": false,
+            "hits": 0,
+            "implemented": true,
+            "lookup": "miss",
+            "matched_tokens": 0,
+            "misses": 9,
+            "restore_wall_ms": 0.0,
+            "scope": "capacity-bounded-variable-exact-or-append-lru",
+            "suffix_aot_launches": 0,
+            "suffix_decode_tokens": 0,
+            "suffix_native_launches": 0,
+            "suffix_tokens": 496,
+            "suffix_wall_ms": 0.0,
+            "transfer_bytes": 74551296
+          },
+          "prompt_execution": "cold-aot-padded",
+          "prompt_source": "chat_template",
+          "prompt_token_ids_sha256": "85af12c296395d5cbf6ae979390d03fb96a5253d97ff5e1bddb5f8fad7f7ef85",
+          "prompt_tokens": 496,
+          "request_index": 9,
+          "request_wall_ms": 6048.8744,
+          "runtime": "native-resident-q496",
+          "sampling": {
+            "logits_device_to_host_bytes": 0,
+            "logits_source": "certified-top1",
+            "mode": "argmax",
+            "seed": null,
+            "seed_provided": false,
+            "temperature": 0.0,
+            "token_selections": 0,
+            "top_p": 1.0,
+            "wall_ms": 0.0
+          },
+          "structured_decoding": {
+            "enabled": false,
+            "token_mask_upload_bytes": 0,
+            "token_selections": 0
+          },
+          "ttft_ms": 611.069492,
+          "vl": {
+            "embedding_injection_wall_ms": 0.103257,
+            "enabled": true,
+            "host_to_device_bytes": 5313856,
+            "image_count": 0,
+            "logical_projection_plan_build_wall_ms": 2.929014,
+            "logical_projection_plan_count": 9,
+            "logical_projection_plan_reused": false,
+            "logical_projection_tokens": 496,
+            "logical_projection_workspace_bytes": 0,
+            "media_cache_entries": 9,
+            "media_cache_hits": 0,
+            "media_cache_misses": 1,
+            "media_cache_resident_bytes": 30085095,
+            "media_count": 1,
+            "media_decode_wall_ms": 2.051503,
+            "media_load_decode_wall_ms": 2.1885589999999997,
+            "media_load_wall_ms": 0.137056,
+            "processor_wall_ms": 2.023344,
+            "source_bytes": 11880,
+            "video_count": 1,
+            "vision_attention_image_sha256s": [
+              "8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e"
+            ],
+            "vision_batch_count": 1,
+            "vision_embedding_cache_capacity_bytes": 536870912,
+            "vision_embedding_cache_entries": 9,
+            "vision_embedding_cache_hit": false,
+            "vision_embedding_cache_resident_bytes": 10027008,
+            "vision_encode_wall_ms": 89.096211,
+            "vision_input_upload_wall_ms": 0.759975,
+            "vision_max_batch_patches": 1728,
+            "vision_max_batch_tokens": 432,
+            "vision_patches": 1728,
+            "vision_plan_build_wall_ms": 0.0,
+            "vision_plan_cache_entries": 4,
+            "vision_plan_cache_hit": true,
+            "visual_tokens": 432
+          }
+        },
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "message": {
+              "content": "The user wants to know the color progression of the circle in the video.\n\n1.  **Analyze the initial frames:**\n    *   Frame at 00:00 shows a blue circle.\n    *   Frame at 00:01 shows a blue circle.\n    *   Frame at 00:02 shows a blue circle.\n    *   So, the initial color is blue.\n\n2.  **Analyze the middle/transition frames:**\n    *   Frame at 00:03 shows a green circle.\n    *   Frame at 00:04 shows a green circle.\n    *   Frame at 00:05 shows a green circle.\n    *   Frame at 00:06 shows a green circle.\n    *   Frame at 00:07 shows a green circle.\n    *   Frame",
+              "role": "assistant"
+            }
+          }
+        ],
+        "model": "aima-amd395-qwen36-35b",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 192,
+          "prompt_tokens": 496,
+          "total_tokens": 688
+        }
+      },
+      "response_bytes": 3690,
+      "response_sha256": "faf07f37ac950d70fbb58d139834c0ba0b6d0a389dee4560ce409aa2b2f53d27",
+      "rubric": [
+        {
+          "any_of": [
+            "blue"
+          ],
+          "id": "blue"
+        },
+        {
+          "any_of": [
+            "green"
+          ],
+          "id": "green"
+        },
+        {
+          "id": "blue_then_green",
+          "ordered_any_of": [
+            [
+              "blue"
+            ],
+            [
+              "green"
+            ]
+          ]
+        }
+      ],
+      "score": {
+        "criteria": [
+          {
+            "id": "blue",
+            "passed": true
+          },
+          {
+            "id": "green",
+            "passed": true
+          },
+          {
+            "id": "blue_then_green",
+            "passed": true
+          }
+        ],
+        "earned_points": 3,
+        "score_millionths": 1000000,
+        "total_points": 3
+      },
+      "status_code": 200,
+      "surfaces": [
+        "video",
+        "generation",
+        "task_quality"
+      ],
+      "timings": {
+        "total_seconds": 6.055304280482233,
+        "ttft_seconds": null
+      },
+      "transport_request_sha256": "b50159fa0529c5eb997d60b28328654effe5e75589071cc80e58a963643a2346"
+    },
+    {
+      "accepted": true,
+      "case_id": "video_count_one_to_four",
+      "expected_accept": true,
+      "modality": "video",
+      "output_text": "The user wants me to count the yellow circles at the start and end of the video and determine the trend.\n\n1.  **Beginning (00:00 - 00:01):**\n    *   Looking at the first frame, there is a single yellow circle in the top-left area.\n    *   Count = 1.\n\n2.  **Middle (00:01 - 00:02):**\n    *   A second circle appears on the right.\n    *   A third circle appears below the first one.\n    *   Count = 3.\n\n3.  **End (00:03 - 00:04):**\n    *   A fourth circle appears in the bottom-right area.\n    *   Now there are four circles arranged in a square-like pattern.\n    *   Count = 4.\n\n4.  **Comparison",
+      "output_token_ids_sha256": "91bc9259385ea6ebf8ef8cfa67de7d226383538af4a03a89db0a48c24ab6971b",
+      "parity_diagnostics": {
+        "finish_reason_reference_exact": true,
+        "generated_content_reference_exact": true,
+        "output_token_ids_reference_exact": true,
+        "score_reference_exact": true,
+        "usage_reference_exact": true
+      },
+      "passed": true,
+      "qualification_checks": {
+        "completion_usage_valid": true,
+        "finish_reason_supported": true,
+        "generated_content_nonempty": true,
+        "media_counts_exact": true,
+        "media_executed": true,
+        "mrope_enabled": true,
+        "output_token_hash_present": true,
+        "reference_status_exact": true,
+        "render_prompt_token_ids_exact": true,
+        "render_prompt_tokens_exact": true,
+        "request_contract_exact": true,
+        "resident_native_request": true,
+        "score_recomputed": true,
+        "structured_decoding_disabled": true,
+        "surface_accepted": true,
+        "task_quality_not_below_reference": true
+      },
+      "qualified": true,
+      "request": {
+        "max_tokens": 192,
+        "messages": [
+          {
+            "content": [
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 13236,
+                    "fixture": "video-count-one-to-four.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "e3c74d5c650309b90421d9368068129a0f3b6487f66b326c6c9efcf997fddcf4",
+                    "transport": "data"
+                  }
+                }
+              },
+              {
+                "text": "How many yellow circles are visible at the beginning and at the end, and does the count increase or decrease?",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "${AIMA_SERVED_MODEL}",
+        "stream": false,
+        "temperature": 0
+      },
+      "request_sha256": "7bcbb07786c6d077f7a0eb19f9d5f324ea73dfc07ccf7d1e038ed071853b2855",
+      "response": {
+        "aima_amd395": {
+          "aot_prefill_bucket_tokens": 1024,
+          "aot_prefill_segments": 1,
+          "aot_prefill_tokens": 497,
+          "client_cancelled": false,
+          "cold_prompt_decode_tokens": 0,
+          "cold_prompt_decode_wall_ms": 0.0,
+          "completion_tokens": 192,
+          "decode_tokens_per_second": 35.13633044207218,
+          "http_request_wall_ms": 6048.655267,
+          "model_loads": 1,
+          "mrope": {
+            "decode_steps": 191,
+            "enabled": true,
+            "fmha_launches": 0,
+            "full_attention_launches": 10,
+            "position_delta": -384,
+            "position_upload_bytes": 11928,
+            "unified_attention_launches": 10
+          },
+          "oracle_tensor_reads": 0,
+          "output_token_ids_canonical_sha256": "91bc9259385ea6ebf8ef8cfa67de7d226383538af4a03a89db0a48c24ab6971b",
+          "output_token_ids_sha256": "d4b1c22882f7a9e999bb7a281fb048416a64a7090f303765c114b8c7ba647ddb",
+          "padded_prefill_tokens": 527,
+          "prefill_tokens_per_second": 819.3202304465909,
+          "prefix_cache": {
+            "active_kv_reused": false,
+            "hits": 0,
+            "implemented": true,
+            "lookup": "miss",
+            "matched_tokens": 0,
+            "misses": 10,
+            "restore_wall_ms": 0.0,
+            "scope": "capacity-bounded-variable-exact-or-append-lru",
+            "suffix_aot_launches": 0,
+            "suffix_decode_tokens": 0,
+            "suffix_native_launches": 0,
+            "suffix_tokens": 497,
+            "suffix_wall_ms": 0.0,
+            "transfer_bytes": 74571776
+          },
+          "prompt_execution": "cold-aot-padded",
+          "prompt_source": "chat_template",
+          "prompt_token_ids_sha256": "59028eb83d4c89aa5ffb1319a3dfa99b53c008f8e24b113e33bc0684eeb4d277",
+          "prompt_tokens": 497,
+          "request_index": 10,
+          "request_wall_ms": 6043.506515,
+          "runtime": "native-resident-q497",
+          "sampling": {
+            "logits_device_to_host_bytes": 0,
+            "logits_source": "certified-top1",
+            "mode": "argmax",
+            "seed": null,
+            "seed_provided": false,
+            "temperature": 0.0,
+            "token_selections": 0,
+            "top_p": 1.0,
+            "wall_ms": 0.0
+          },
+          "structured_decoding": {
+            "enabled": false,
+            "token_mask_upload_bytes": 0,
+            "token_selections": 0
+          },
+          "ttft_ms": 606.600425,
+          "vl": {
+            "embedding_injection_wall_ms": 0.133695,
+            "enabled": true,
+            "host_to_device_bytes": 5313860,
+            "image_count": 0,
+            "logical_projection_plan_build_wall_ms": 0.0,
+            "logical_projection_plan_count": 9,
+            "logical_projection_plan_reused": true,
+            "logical_projection_tokens": 497,
+            "logical_projection_workspace_bytes": 0,
+            "media_cache_entries": 10,
+            "media_cache_hits": 0,
+            "media_cache_misses": 1,
+            "media_cache_resident_bytes": 35394006,
+            "media_count": 1,
+            "media_decode_wall_ms": 1.584149,
+            "media_load_decode_wall_ms": 1.87081,
+            "media_load_wall_ms": 0.286661,
+            "processor_wall_ms": 1.887068,
+            "source_bytes": 13236,
+            "video_count": 1,
+            "vision_attention_image_sha256s": [
+              "8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e"
+            ],
+            "vision_batch_count": 1,
+            "vision_embedding_cache_capacity_bytes": 536870912,
+            "vision_embedding_cache_entries": 10,
+            "vision_embedding_cache_hit": false,
+            "vision_embedding_cache_resident_bytes": 11796480,
+            "vision_encode_wall_ms": 88.584713,
+            "vision_input_upload_wall_ms": 0.461215,
+            "vision_max_batch_patches": 1728,
+            "vision_max_batch_tokens": 432,
+            "vision_patches": 1728,
+            "vision_plan_build_wall_ms": 0.0,
+            "vision_plan_cache_entries": 4,
+            "vision_plan_cache_hit": true,
+            "visual_tokens": 432
+          }
+        },
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "message": {
+              "content": "The user wants me to count the yellow circles at the start and end of the video and determine the trend.\n\n1.  **Beginning (00:00 - 00:01):**\n    *   Looking at the first frame, there is a single yellow circle in the top-left area.\n    *   Count = 1.\n\n2.  **Middle (00:01 - 00:02):**\n    *   A second circle appears on the right.\n    *   A third circle appears below the first one.\n    *   Count = 3.\n\n3.  **End (00:03 - 00:04):**\n    *   A fourth circle appears in the bottom-right area.\n    *   Now there are four circles arranged in a square-like pattern.\n    *   Count = 4.\n\n4.  **Comparison",
+              "role": "assistant"
+            }
+          }
+        ],
+        "model": "aima-amd395-qwen36-35b",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 192,
+          "prompt_tokens": 497,
+          "total_tokens": 689
+        }
+      },
+      "response_bytes": 3710,
+      "response_sha256": "ee98c8e58f7eb433b28d27d8481fbac5f9de03caf1891c8047723d13978cb343",
+      "rubric": [
+        {
+          "any_of": [
+            "one",
+            "1"
+          ],
+          "id": "one_at_start"
+        },
+        {
+          "any_of": [
+            "four",
+            "4"
+          ],
+          "id": "four_at_end"
+        },
+        {
+          "any_of": [
+            "increase",
+            "increases",
+            "grows"
+          ],
+          "id": "increases"
+        }
+      ],
+      "score": {
+        "criteria": [
+          {
+            "id": "one_at_start",
+            "passed": true
+          },
+          {
+            "id": "four_at_end",
+            "passed": true
+          },
+          {
+            "id": "increases",
+            "passed": false
+          }
+        ],
+        "earned_points": 2,
+        "score_millionths": 666666,
+        "total_points": 3
+      },
+      "status_code": 200,
+      "surfaces": [
+        "video",
+        "generation",
+        "task_quality"
+      ],
+      "timings": {
+        "total_seconds": 6.049463450908661,
+        "ttft_seconds": null
+      },
+      "transport_request_sha256": "61f2c36e66e8daa6b91ae3eb73e1a945984f2204e6dac2e8aa7ad0beb7a84fcd"
+    },
+    {
+      "accepted": true,
+      "case_id": "video_shape_order_circle_square_triangle",
+      "expected_accept": true,
+      "modality": "video",
+      "output_text": "The user wants me to identify three colored shapes in the order they appear in the video.\n\n1.  **First Shape:**\n    *   Looking at the first few frames (00:00 - 00:01), I see a red circle.\n    *   It's a solid red circle on a white background.\n    *   So, the first shape is a red circle.\n\n2.  **Second Shape:**\n    *   Looking at the next set of frames (00:02), the shape changes.\n    *   It is now a blue square.\n    *   So, the second shape is a blue square.\n\n3.  **Third Shape:**\n    *   Looking at the final frames (00:03 - 00:04), the shape changes again.\n    *   It is now a green triangle.\n    *   So",
+      "output_token_ids_sha256": "a2f8822f8c939d0a73cd06584ce708548479782c69c435d23477fe7489bb7d91",
+      "parity_diagnostics": {
+        "finish_reason_reference_exact": true,
+        "generated_content_reference_exact": true,
+        "output_token_ids_reference_exact": true,
+        "score_reference_exact": true,
+        "usage_reference_exact": true
+      },
+      "passed": true,
+      "qualification_checks": {
+        "completion_usage_valid": true,
+        "finish_reason_supported": true,
+        "generated_content_nonempty": true,
+        "media_counts_exact": true,
+        "media_executed": true,
+        "mrope_enabled": true,
+        "output_token_hash_present": true,
+        "reference_status_exact": true,
+        "render_prompt_token_ids_exact": true,
+        "render_prompt_tokens_exact": true,
+        "request_contract_exact": true,
+        "resident_native_request": true,
+        "score_recomputed": true,
+        "structured_decoding_disabled": true,
+        "surface_accepted": true,
+        "task_quality_not_below_reference": true
+      },
+      "qualified": true,
+      "request": {
+        "max_tokens": 192,
+        "messages": [
+          {
+            "content": [
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 17793,
+                    "fixture": "video-shape-order.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "e54c921fb94f9895f7a4717790a770f64a7c664963bd13dcfce7e8f30dbaf477",
+                    "transport": "data"
+                  }
+                }
+              },
+              {
+                "text": "List the three colored shapes in the order they appear from first to last. Include each shape's color.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "${AIMA_SERVED_MODEL}",
+        "stream": false,
+        "temperature": 0
+      },
+      "request_sha256": "715f171ed852761a59f01b5b7ae542e581ae48796cde7202d475825b549990fc",
+      "response": {
+        "aima_amd395": {
+          "aot_prefill_bucket_tokens": 1024,
+          "aot_prefill_segments": 1,
+          "aot_prefill_tokens": 496,
+          "client_cancelled": false,
+          "cold_prompt_decode_tokens": 0,
+          "cold_prompt_decode_wall_ms": 0.0,
+          "completion_tokens": 192,
+          "decode_tokens_per_second": 35.13999836521735,
+          "http_request_wall_ms": 6037.03859,
+          "model_loads": 1,
+          "mrope": {
+            "decode_steps": 191,
+            "enabled": true,
+            "fmha_launches": 0,
+            "full_attention_launches": 10,
+            "position_delta": -384,
+            "position_upload_bytes": 11904,
+            "unified_attention_launches": 10
+          },
+          "oracle_tensor_reads": 0,
+          "output_token_ids_canonical_sha256": "a2f8822f8c939d0a73cd06584ce708548479782c69c435d23477fe7489bb7d91",
+          "output_token_ids_sha256": "0cc0f64adf9b36888f489c9d71b3126869ca919525b4db1d544fd32996770f0b",
+          "padded_prefill_tokens": 528,
+          "prefill_tokens_per_second": 833.2539152194952,
+          "prefix_cache": {
+            "active_kv_reused": false,
+            "hits": 0,
+            "implemented": true,
+            "lookup": "miss",
+            "matched_tokens": 0,
+            "misses": 11,
+            "restore_wall_ms": 0.0,
+            "scope": "capacity-bounded-variable-exact-or-append-lru",
+            "suffix_aot_launches": 0,
+            "suffix_decode_tokens": 0,
+            "suffix_native_launches": 0,
+            "suffix_tokens": 496,
+            "suffix_wall_ms": 0.0,
+            "transfer_bytes": 74551296
+          },
+          "prompt_execution": "cold-aot-padded",
+          "prompt_source": "chat_template",
+          "prompt_token_ids_sha256": "0624838219fea68e64a4f56c32d3da6aef2110f992f3c54b754155428e6c8d7d",
+          "prompt_tokens": 496,
+          "request_index": 11,
+          "request_wall_ms": 6031.632606,
+          "runtime": "native-resident-q496",
+          "sampling": {
+            "logits_device_to_host_bytes": 0,
+            "logits_source": "certified-top1",
+            "mode": "argmax",
+            "seed": null,
+            "seed_provided": false,
+            "temperature": 0.0,
+            "token_selections": 0,
+            "top_p": 1.0,
+            "wall_ms": 0.0
+          },
+          "structured_decoding": {
+            "enabled": false,
+            "token_mask_upload_bytes": 0,
+            "token_selections": 0
+          },
+          "ttft_ms": 595.256729,
+          "vl": {
+            "embedding_injection_wall_ms": 0.104187,
+            "enabled": true,
+            "host_to_device_bytes": 5313856,
+            "image_count": 0,
+            "logical_projection_plan_build_wall_ms": 0.0,
+            "logical_projection_plan_count": 9,
+            "logical_projection_plan_reused": true,
+            "logical_projection_tokens": 496,
+            "logical_projection_workspace_bytes": 0,
+            "media_cache_entries": 11,
+            "media_cache_hits": 0,
+            "media_cache_misses": 1,
+            "media_cache_resident_bytes": 40702917,
+            "media_count": 1,
+            "media_decode_wall_ms": 1.596428,
+            "media_load_decode_wall_ms": 1.82822,
+            "media_load_wall_ms": 0.231792,
+            "processor_wall_ms": 1.997555,
+            "source_bytes": 17793,
+            "video_count": 1,
+            "vision_attention_image_sha256s": [
+              "8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e"
+            ],
+            "vision_batch_count": 1,
+            "vision_embedding_cache_capacity_bytes": 536870912,
+            "vision_embedding_cache_entries": 11,
+            "vision_embedding_cache_hit": false,
+            "vision_embedding_cache_resident_bytes": 13565952,
+            "vision_encode_wall_ms": 88.932746,
+            "vision_input_upload_wall_ms": 0.470375,
+            "vision_max_batch_patches": 1728,
+            "vision_max_batch_tokens": 432,
+            "vision_patches": 1728,
+            "vision_plan_build_wall_ms": 0.0,
+            "vision_plan_cache_entries": 4,
+            "vision_plan_cache_hit": true,
+            "visual_tokens": 432
+          }
+        },
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "message": {
+              "content": "The user wants me to identify three colored shapes in the order they appear in the video.\n\n1.  **First Shape:**\n    *   Looking at the first few frames (00:00 - 00:01), I see a red circle.\n    *   It's a solid red circle on a white background.\n    *   So, the first shape is a red circle.\n\n2.  **Second Shape:**\n    *   Looking at the next set of frames (00:02), the shape changes.\n    *   It is now a blue square.\n    *   So, the second shape is a blue square.\n\n3.  **Third Shape:**\n    *   Looking at the final frames (00:03 - 00:04), the shape changes again.\n    *   It is now a green triangle.\n    *   So",
+              "role": "assistant"
+            }
+          }
+        ],
+        "model": "aima-amd395-qwen36-35b",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 192,
+          "prompt_tokens": 496,
+          "total_tokens": 688
+        }
+      },
+      "response_bytes": 3722,
+      "response_sha256": "9b95cfa0f579159ef96f0d661f2d1bc0bf0bae06e924885fab56e8714b149126",
+      "rubric": [
+        {
+          "any_of": [
+            "red circle"
+          ],
+          "id": "red_circle"
+        },
+        {
+          "any_of": [
+            "blue square"
+          ],
+          "id": "blue_square"
+        },
+        {
+          "any_of": [
+            "green triangle"
+          ],
+          "id": "green_triangle"
+        },
+        {
+          "id": "shape_order",
+          "ordered_any_of": [
+            [
+              "red circle"
+            ],
+            [
+              "blue square"
+            ],
+            [
+              "green triangle"
+            ]
+          ]
+        }
+      ],
+      "score": {
+        "criteria": [
+          {
+            "id": "red_circle",
+            "passed": true
+          },
+          {
+            "id": "blue_square",
+            "passed": true
+          },
+          {
+            "id": "green_triangle",
+            "passed": true
+          },
+          {
+            "id": "shape_order",
+            "passed": true
+          }
+        ],
+        "earned_points": 4,
+        "score_millionths": 1000000,
+        "total_points": 4
+      },
+      "status_code": 200,
+      "surfaces": [
+        "video",
+        "generation",
+        "task_quality"
+      ],
+      "timings": {
+        "total_seconds": 6.03778709564358,
+        "ttft_seconds": null
+      },
+      "transport_request_sha256": "ab7c34ee8e843ee50cf8575da7b7a9eaafde42af2c6115ba3035436a42f3fe16"
+    },
+    {
+      "accepted": true,
+      "case_id": "video_arrow_left_then_up",
+      "expected_accept": true,
+      "modality": "video",
+      "output_text": "The user wants me to describe the change in the arrow's direction based on the provided video frames.\n\n1.  **Analyze the first part of the video (00:00 - 00:01):**\n    *   The frames show a black arrow pointing to the left.\n    *   So, the first direction is \"left\".\n\n2.  **Analyze the second part of the video (00:02 - 00:03):**\n    *   The frames show a black arrow pointing upwards.\n    *   So, the later direction is \"up\".\n\n3.  **Synthesize the description:**\n    *   The arrow starts pointing left.\n    *   Then it changes to point up.\n    *   The request asks for the first direction and the later direction in order.\n\n4.  **Formulate the final response:**\n    *  ",
+      "output_token_ids_sha256": "ec8063fd35fa3b7da749d7c5889c99d7fc793732b40775106d62574ce287ae88",
+      "parity_diagnostics": {
+        "finish_reason_reference_exact": true,
+        "generated_content_reference_exact": true,
+        "output_token_ids_reference_exact": true,
+        "score_reference_exact": true,
+        "usage_reference_exact": true
+      },
+      "passed": true,
+      "qualification_checks": {
+        "completion_usage_valid": true,
+        "finish_reason_supported": true,
+        "generated_content_nonempty": true,
+        "media_counts_exact": true,
+        "media_executed": true,
+        "mrope_enabled": true,
+        "output_token_hash_present": true,
+        "reference_status_exact": true,
+        "render_prompt_token_ids_exact": true,
+        "render_prompt_tokens_exact": true,
+        "request_contract_exact": true,
+        "resident_native_request": true,
+        "score_recomputed": true,
+        "structured_decoding_disabled": true,
+        "surface_accepted": true,
+        "task_quality_not_below_reference": true
+      },
+      "qualified": true,
+      "request": {
+        "max_tokens": 192,
+        "messages": [
+          {
+            "content": [
+              {
+                "type": "video_url",
+                "video_url": {
+                  "url": {
+                    "bytes": 14869,
+                    "fixture": "video-arrow-left-up.mp4",
+                    "mime": "video/mp4",
+                    "sha256": "2d2c844cc4db30805d45b161811c8f616943cd2290032be1e685e9e80c5a3ba9",
+                    "transport": "data"
+                  }
+                }
+              },
+              {
+                "text": "Describe how the arrow's pointing direction changes. State the first direction and the later direction in order.",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "${AIMA_SERVED_MODEL}",
+        "stream": false,
+        "temperature": 0
+      },
+      "request_sha256": "e12b058c60c7811d9bc089227080f263b396ef6561541be61bba7bc10f042cc4",
+      "response": {
+        "aima_amd395": {
+          "aot_prefill_bucket_tokens": 1024,
+          "aot_prefill_segments": 1,
+          "aot_prefill_tokens": 495,
+          "client_cancelled": false,
+          "cold_prompt_decode_tokens": 0,
+          "cold_prompt_decode_wall_ms": 0.0,
+          "completion_tokens": 192,
+          "decode_tokens_per_second": 35.14877559806081,
+          "http_request_wall_ms": 6049.842186,
+          "model_loads": 1,
+          "mrope": {
+            "decode_steps": 191,
+            "enabled": true,
+            "fmha_launches": 0,
+            "full_attention_launches": 10,
+            "position_delta": -384,
+            "position_upload_bytes": 11880,
+            "unified_attention_launches": 10
+          },
+          "oracle_tensor_reads": 0,
+          "output_token_ids_canonical_sha256": "ec8063fd35fa3b7da749d7c5889c99d7fc793732b40775106d62574ce287ae88",
+          "output_token_ids_sha256": "633b398e2237f642c76a267fc56d6d3723aa11071e48c8309c054096add2d6ab",
+          "padded_prefill_tokens": 529,
+          "prefill_tokens_per_second": 812.3288798444574,
+          "prefix_cache": {
+            "active_kv_reused": false,
+            "hits": 0,
+            "implemented": true,
+            "lookup": "miss",
+            "matched_tokens": 0,
+            "misses": 12,
+            "restore_wall_ms": 0.0,
+            "scope": "capacity-bounded-variable-exact-or-append-lru",
+            "suffix_aot_launches": 0,
+            "suffix_decode_tokens": 0,
+            "suffix_native_launches": 0,
+            "suffix_tokens": 495,
+            "suffix_wall_ms": 0.0,
+            "transfer_bytes": 74530816
+          },
+          "prompt_execution": "cold-aot-padded",
+          "prompt_source": "chat_template",
+          "prompt_token_ids_sha256": "b5fe2482033200bcd4b4d8da9d230ce496bdaac6c4e5292d91fa9f932a4c4461",
+          "prompt_tokens": 495,
+          "request_index": 12,
+          "request_wall_ms": 6044.233788,
+          "runtime": "native-resident-q495",
+          "sampling": {
+            "logits_device_to_host_bytes": 0,
+            "logits_source": "certified-top1",
+            "mode": "argmax",
+            "seed": null,
+            "seed_provided": false,
+            "temperature": 0.0,
+            "token_selections": 0,
+            "top_p": 1.0,
+            "wall_ms": 0.0
+          },
+          "structured_decoding": {
+            "enabled": false,
+            "token_mask_upload_bytes": 0,
+            "token_selections": 0
+          },
+          "ttft_ms": 609.359106,
+          "vl": {
+            "embedding_injection_wall_ms": 0.105127,
+            "enabled": true,
+            "host_to_device_bytes": 5313852,
+            "image_count": 0,
+            "logical_projection_plan_build_wall_ms": 3.000103,
+            "logical_projection_plan_count": 9,
+            "logical_projection_plan_reused": false,
+            "logical_projection_tokens": 495,
+            "logical_projection_workspace_bytes": 0,
+            "media_cache_entries": 12,
+            "media_cache_hits": 0,
+            "media_cache_misses": 1,
+            "media_cache_resident_bytes": 46011828,
+            "media_count": 1,
+            "media_decode_wall_ms": 1.613558,
+            "media_load_decode_wall_ms": 1.799962,
+            "media_load_wall_ms": 0.186404,
+            "processor_wall_ms": 2.186059,
+            "source_bytes": 14869,
+            "video_count": 1,
+            "vision_attention_image_sha256s": [
+              "8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e"
+            ],
+            "vision_batch_count": 1,
+            "vision_embedding_cache_capacity_bytes": 536870912,
+            "vision_embedding_cache_entries": 12,
+            "vision_embedding_cache_hit": false,
+            "vision_embedding_cache_resident_bytes": 15335424,
+            "vision_encode_wall_ms": 89.095347,
+            "vision_input_upload_wall_ms": 0.30099,
+            "vision_max_batch_patches": 1728,
+            "vision_max_batch_tokens": 432,
+            "vision_patches": 1728,
+            "vision_plan_build_wall_ms": 0.0,
+            "vision_plan_cache_entries": 4,
+            "vision_plan_cache_hit": true,
+            "visual_tokens": 432
+          }
+        },
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "message": {
+              "content": "The user wants me to describe the change in the arrow's direction based on the provided video frames.\n\n1.  **Analyze the first part of the video (00:00 - 00:01):**\n    *   The frames show a black arrow pointing to the left.\n    *   So, the first direction is \"left\".\n\n2.  **Analyze the second part of the video (00:02 - 00:03):**\n    *   The frames show a black arrow pointing upwards.\n    *   So, the later direction is \"up\".\n\n3.  **Synthesize the description:**\n    *   The arrow starts pointing left.\n    *   Then it changes to point up.\n    *   The request asks for the first direction and the later direction in order.\n\n4.  **Formulate the final response:**\n    *  ",
+              "role": "assistant"
+            }
+          }
+        ],
+        "model": "aima-amd395-qwen36-35b",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 192,
+          "prompt_tokens": 495,
+          "total_tokens": 687
+        }
+      },
+      "response_bytes": 3796,
+      "response_sha256": "db3a7ea18568ed18439d1bfe38ccc71e8938a1254804f5236e36ad62e8b33c3e",
+      "rubric": [
+        {
+          "any_of": [
+            "left",
+            "leftward"
+          ],
+          "id": "left"
+        },
+        {
+          "any_of": [
+            "up",
+            "upward",
+            "top"
+          ],
+          "id": "up"
+        },
+        {
+          "id": "left_then_up",
+          "ordered_any_of": [
+            [
+              "left",
+              "leftward"
+            ],
+            [
+              "up",
+              "upward"
+            ]
+          ]
+        }
+      ],
+      "score": {
+        "criteria": [
+          {
+            "id": "left",
+            "passed": true
+          },
+          {
+            "id": "up",
+            "passed": true
+          },
+          {
+            "id": "left_then_up",
+            "passed": true
+          }
+        ],
+        "earned_points": 3,
+        "score_millionths": 1000000,
+        "total_points": 3
+      },
+      "status_code": 200,
+      "surfaces": [
+        "video",
+        "generation",
+        "task_quality"
+      ],
+      "timings": {
+        "total_seconds": 6.050671758130193,
+        "ttft_seconds": null
+      },
+      "transport_request_sha256": "2a2d3a36812e1215f71f1f68cd08d38de1f2674616377bfe15d913d2b2daeb92"
+    }
+  ]
+}

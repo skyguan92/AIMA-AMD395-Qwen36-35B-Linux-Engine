@@ -1,0 +1,370 @@
+{
+  "artifacts": {
+    "load_report": {
+      "bytes": 3249,
+      "path": "native-temperature-sampling-v0.1.0-raw/native-weight-load.json",
+      "sha256": "f7b179e3ad9d06637a27fe103c3ee1ec7637083319a87f64539a409de8281d10"
+    },
+    "stderr": {
+      "bytes": 0,
+      "path": "native-temperature-sampling-v0.1.0-raw/stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "candidate": {
+    "binary_sha256": "fb5cae0ca5ffaa4bc3d418d5fb1630d822eae9d60f639ba6cc143e427c0cd1e9",
+    "source_commit": "bd012874027defa528279a357609b713e9069df4"
+  },
+  "cases": {
+    "different_seed": {
+      "content_sha256": "34910aa8ab99106bd8812d2d4b09a201e387ce92ad3333d0d079c0a84c99f089",
+      "finish_reason": "length",
+      "output_token_ids_sha256": "5eff3eaa2703c1b798fd604aaa260d103230b1361c5942938572e3cd34474896",
+      "sampling": {
+        "logits_device_to_host_bytes": 7946240,
+        "logits_source": "exact-bf16-full-vocabulary",
+        "mode": "temperature-top-p",
+        "seed": 424243,
+        "seed_provided": true,
+        "temperature": 0.8,
+        "token_selections": 16,
+        "top_p": 0.9,
+        "wall_ms": 70.859226
+      },
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 20,
+        "total_tokens": 36
+      },
+      "vl": {
+        "enabled": false,
+        "image_count": 0,
+        "media_count": 0,
+        "video_count": 0,
+        "vision_patches": 0,
+        "visual_tokens": 0
+      }
+    },
+    "greedy": {
+      "content_sha256": "a251ebf85efc0273db535e78c16be12d212dfcfedd6c24ec3bce614d37d10a19",
+      "finish_reason": "length",
+      "output_token_ids_sha256": "cc3da4f9f1e518765677b5866dbb9724bd13b45793addfd7b986baa2077e40af",
+      "sampling": {
+        "logits_device_to_host_bytes": 0,
+        "logits_source": "certified-top1",
+        "mode": "argmax",
+        "seed": null,
+        "seed_provided": false,
+        "temperature": 0.0,
+        "token_selections": 0,
+        "top_p": 1.0,
+        "wall_ms": 0.0
+      },
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 20,
+        "total_tokens": 36
+      },
+      "vl": {
+        "enabled": false,
+        "image_count": 0,
+        "media_count": 0,
+        "video_count": 0,
+        "vision_patches": 0,
+        "visual_tokens": 0
+      }
+    },
+    "invalid": [
+      {
+        "case_id": "negative_temperature",
+        "error": {
+          "code": "bad_request",
+          "message": "temperature must be in [0, 2]",
+          "param": null,
+          "type": "invalid_request_error"
+        },
+        "status": 400
+      },
+      {
+        "case_id": "high_temperature",
+        "error": {
+          "code": "bad_request",
+          "message": "temperature must be in [0, 2]",
+          "param": null,
+          "type": "invalid_request_error"
+        },
+        "status": 400
+      },
+      {
+        "case_id": "zero_top_p",
+        "error": {
+          "code": "bad_request",
+          "message": "top_p must be in (0, 1]",
+          "param": null,
+          "type": "invalid_request_error"
+        },
+        "status": 400
+      },
+      {
+        "case_id": "greedy_top_p",
+        "error": {
+          "code": "bad_request",
+          "message": "top_p requires temperature > 0",
+          "param": null,
+          "type": "invalid_request_error"
+        },
+        "status": 400
+      },
+      {
+        "case_id": "negative_seed",
+        "error": {
+          "code": "bad_request",
+          "message": "seed must be a non-negative integer",
+          "param": null,
+          "type": "invalid_request_error"
+        },
+        "status": 400
+      }
+    ],
+    "same_seed_first": {
+      "content_sha256": "718b6116818b547d29a8ea1d231026491318a28d9acf68299e06fdb27a672c6e",
+      "finish_reason": "length",
+      "output_token_ids_sha256": "2da4254500862d53b31839a1ec87c7b1cf703212042346e202c65722500a4fe4",
+      "sampling": {
+        "logits_device_to_host_bytes": 7946240,
+        "logits_source": "exact-bf16-full-vocabulary",
+        "mode": "temperature-top-p",
+        "seed": 424242,
+        "seed_provided": true,
+        "temperature": 0.8,
+        "token_selections": 16,
+        "top_p": 0.9,
+        "wall_ms": 70.90564099999999
+      },
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 20,
+        "total_tokens": 36
+      },
+      "vl": {
+        "enabled": false,
+        "image_count": 0,
+        "media_count": 0,
+        "video_count": 0,
+        "vision_patches": 0,
+        "visual_tokens": 0
+      }
+    },
+    "same_seed_replay": {
+      "content_sha256": "718b6116818b547d29a8ea1d231026491318a28d9acf68299e06fdb27a672c6e",
+      "finish_reason": "length",
+      "output_token_ids_sha256": "2da4254500862d53b31839a1ec87c7b1cf703212042346e202c65722500a4fe4",
+      "sampling": {
+        "logits_device_to_host_bytes": 7946240,
+        "logits_source": "exact-bf16-full-vocabulary",
+        "mode": "temperature-top-p",
+        "seed": 424242,
+        "seed_provided": true,
+        "temperature": 0.8,
+        "token_selections": 16,
+        "top_p": 0.9,
+        "wall_ms": 70.84417
+      },
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 20,
+        "total_tokens": 36
+      },
+      "vl": {
+        "enabled": false,
+        "image_count": 0,
+        "media_count": 0,
+        "video_count": 0,
+        "vision_patches": 0,
+        "visual_tokens": 0
+      }
+    },
+    "stream": {
+      "content_sha256": "718b6116818b547d29a8ea1d231026491318a28d9acf68299e06fdb27a672c6e",
+      "finish_reason": "length",
+      "output_token_ids_sha256": "2da4254500862d53b31839a1ec87c7b1cf703212042346e202c65722500a4fe4",
+      "sampling": {
+        "logits_device_to_host_bytes": 7946240,
+        "logits_source": "exact-bf16-full-vocabulary",
+        "mode": "temperature-top-p",
+        "seed": 424242,
+        "seed_provided": true,
+        "temperature": 0.8,
+        "token_selections": 16,
+        "top_p": 0.9,
+        "wall_ms": 71.035045
+      },
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 20,
+        "total_tokens": 36
+      }
+    },
+    "vl_first": {
+      "content_sha256": "947140acdffdc6de8238adc2838366b5a75f5a80077bab472dc7f8943ce77943",
+      "finish_reason": "length",
+      "output_token_ids_sha256": "b3f91034665f63d18475b8869ed077babf4c5f6cbd3bab60929e795c6c61977a",
+      "sampling": {
+        "logits_device_to_host_bytes": 3973120,
+        "logits_source": "exact-bf16-full-vocabulary",
+        "mode": "temperature-top-p",
+        "seed": 777,
+        "seed_provided": true,
+        "temperature": 0.7,
+        "token_selections": 8,
+        "top_p": 0.85,
+        "wall_ms": 35.449462999999994
+      },
+      "usage": {
+        "completion_tokens": 8,
+        "prompt_tokens": 85,
+        "total_tokens": 93
+      },
+      "vl": {
+        "enabled": true,
+        "image_count": 1,
+        "media_count": 1,
+        "video_count": 0,
+        "vision_patches": 256,
+        "visual_tokens": 64
+      }
+    },
+    "vl_replay": {
+      "content_sha256": "947140acdffdc6de8238adc2838366b5a75f5a80077bab472dc7f8943ce77943",
+      "finish_reason": "length",
+      "output_token_ids_sha256": "b3f91034665f63d18475b8869ed077babf4c5f6cbd3bab60929e795c6c61977a",
+      "sampling": {
+        "logits_device_to_host_bytes": 3973120,
+        "logits_source": "exact-bf16-full-vocabulary",
+        "mode": "temperature-top-p",
+        "seed": 777,
+        "seed_provided": true,
+        "temperature": 0.7,
+        "token_selections": 8,
+        "top_p": 0.85,
+        "wall_ms": 35.493472
+      },
+      "usage": {
+        "completion_tokens": 8,
+        "prompt_tokens": 85,
+        "total_tokens": 93
+      },
+      "vl": {
+        "enabled": true,
+        "image_count": 1,
+        "media_count": 1,
+        "video_count": 0,
+        "vision_patches": 256,
+        "visual_tokens": 64
+      }
+    }
+  },
+  "checks": {
+    "different_seed_text_diverges": true,
+    "greedy_fast_path_preserved": true,
+    "invalid_sampling_boundaries_fail_closed": true,
+    "same_seed_text_exact_replay": true,
+    "same_seed_vl_exact_replay": true,
+    "seeded_stream_nonstream_exact": true,
+    "single_load_clean_lifecycle": true
+  },
+  "complete": true,
+  "decision": {
+    "greedy_contract_unchanged": true,
+    "nonzero_temperature_supported": true,
+    "text_and_vl_seeded_sampling_qualified": true
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "canonical_payload_sha256": "b8f9cec5f4b3d8ef63de1b930cfd6282f35e1d3d6882ebe7c56b6d18b93ad4d0"
+  },
+  "lifecycle": {
+    "ready": {
+      "allowed_local_media_roots": 1,
+      "allowed_media_domains": 0,
+      "authentication": "none",
+      "command_to_ready_wall_ms": 20662.748664,
+      "context_capacity": 2048,
+      "engine_load_wall_ms": 20342.183137,
+      "event": "ready",
+      "fmha_provider_backend": "CK-Tile",
+      "fmha_provider_path": "${AIMA_FMHA_PROVIDER}",
+      "host": "127.0.0.1",
+      "http_shutdown_enabled": true,
+      "language_layout_manifest_sha256": "a1e192c1e60c3120023d95c40b9266d0086c87d60fae172d7a854f22f1a7b131",
+      "language_model_payload_bytes": 69321221376,
+      "language_model_tensor_count": 693,
+      "media_cache_capacity_bytes": 4294967296,
+      "media_cache_capacity_entries": 64,
+      "model": "aima-amd395-qwen36-35b",
+      "model_payload_bytes": 70214363872,
+      "model_shard_count": 26,
+      "model_tensor_count": 1026,
+      "mrope_position_state_bytes": 49152,
+      "native_vl": true,
+      "port": 18129,
+      "prefix_cache_entries": 4,
+      "prompt_token_ids_extension": true,
+      "request_timeout_ms": 120000,
+      "resident_prefill_buckets": [
+        1024
+      ],
+      "runtime_python": false,
+      "runtime_torch": false,
+      "runtime_triton": false,
+      "runtime_vllm": false,
+      "secondary_fmha_layers": [],
+      "secondary_fmha_provider_backend": "",
+      "secondary_fmha_provider_path": "",
+      "static_prefill_tokens": 1024,
+      "structured_token_mask_bytes": 248320,
+      "vision_attention_image_sha256": "8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e",
+      "vision_dense_image_attention_image_sha256": "e8757f4464fdb39f5505241a1ffd0f40b74f18704318280e070015bd4302d71c",
+      "vision_image_count_warmup_encode_wall_ms": 194.779353,
+      "vision_image_count_warmup_patches": 4096,
+      "vision_image_count_warmup_plan_build_wall_ms": 9.594964,
+      "vision_image_count_warmup_visual_tokens": 1024,
+      "vision_plan_cache_capacity": 4,
+      "vision_plan_cache_entries_at_ready": 2,
+      "vision_warmup_completed": true,
+      "vision_warmup_encode_wall_ms": 67.463561,
+      "vision_warmup_patches": 1024,
+      "vision_warmup_plan_build_wall_ms": 11.617666,
+      "vision_warmup_visual_tokens": 256,
+      "visual_layout_manifest_sha256": "abc5b3a0cc0881ba2d3e815b472eebe3404a6e3bc6438a430faccfbe8093c0aa",
+      "visual_model_payload_bytes": 893142496,
+      "visual_model_tensor_count": 333
+    },
+    "stopped": {
+      "event": "stopped",
+      "model_loads": 1,
+      "served": 7
+    }
+  },
+  "post_g5_boundary": {
+    "g5_recorded_at": "2026-08-24",
+    "g5_result": {
+      "bytes": 6167,
+      "path": "benchmarks/results/native-vl-g5-release-v1.5.1-native-vl.4.json",
+      "sha256": "8e6bf3e6763b6b4972b10eb5d3e884ba0604e6080630ebc300615efb8c74a987"
+    },
+    "ordering_proof": "the sealed complete G5 result was validated and identity-matched before the temperature engine launch"
+  },
+  "qualified": true,
+  "recorded_at": "2026-08-27T13:53:22+00:00",
+  "sampling_contract": {
+    "bf16_logits_per_selection_bytes": 496640,
+    "logits": "exact full-vocabulary BF16 wvSplitK projection from raw LM-head weights",
+    "prng": "splitmix64-upper53",
+    "seed": "optional non-negative uint64; effective seed reported",
+    "temperature": "0 retains greedy; positive range is (0,2]",
+    "top_p": "(0,1] on the positive-temperature path",
+    "vocabulary_size": 248320
+  },
+  "schema": "aima-amd395-qwen36/native-temperature-sampling/v1"
+}

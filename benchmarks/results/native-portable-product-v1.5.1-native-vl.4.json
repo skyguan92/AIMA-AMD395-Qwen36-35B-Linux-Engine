@@ -1,0 +1,308 @@
+{
+  "complete": true,
+  "components": {
+    "aotriton_fmha_provider": {
+      "bytes": 22968,
+      "path": "build/native/libaima-fmha-aotriton.so",
+      "sha256": "e5336b2d66b36c5f17aeb07ab780fa8f60a6092910f9b01b3ebf4bc31f766bb4"
+    },
+    "aotriton_gfx1151_image": {
+      "bytes": 219800,
+      "path": "lib/aotriton.images/amd-gfx11xx/flash/attn_fwd/FONLY__\uff0abf16@16_256_F_F_3_0___gfx11xx.aks2",
+      "sha256": "0f3a6a2f9dee6620443ee2145ee1f8257bde65a378589952840d99bf3d485c10"
+    },
+    "aotriton_runtime": {
+      "bytes": 18174192,
+      "path": "build/native/libaotriton_v2.so.0.11.1",
+      "sha256": "e0638806efa5d35cef04fd7fb02c62cd038b3a38727ecb5d87a49045aa1b9aa5"
+    },
+    "ck_fmha_provider": {
+      "bytes": 93680,
+      "path": "build/native/libaima-fmha-ck.so",
+      "sha256": "0145e819869d3ea5b25661f8f11279f5e6bd3484b29e8c7910a8b30c927baa93"
+    },
+    "embedded_dense_vision_attention": {
+      "integrity_boundary": "embedded AOT registry inside the exact native_engine payload",
+      "kernel_hash": "2bb5125141eea1b811395f9833de3077de68893bfebbbf1950ca26832db6bb52",
+      "sha256": "e8757f4464fdb39f5505241a1ffd0f40b74f18704318280e070015bd4302d71c"
+    },
+    "native_engine": {
+      "bytes": 39773952,
+      "path": "build/native/aima-engine-native",
+      "sha256": "fb5cae0ca5ffaa4bc3d418d5fb1630d822eae9d60f639ba6cc143e427c0cd1e9"
+    },
+    "q16384_hybrid_fmha_provider": {
+      "bytes": 162952,
+      "path": "build/native/libaima-fmha-q16384-hybrid.so",
+      "sha256": "e6b8c50e76c3c7d49b8c208275234d7f4607faff250019826866f86e37fedd29"
+    },
+    "source": {
+      "native_source_commit": "bd012874027defa528279a357609b713e9069df4",
+      "native_source_dirty": false,
+      "release_commit": "6a6310c843eab9496ca37d19ba216856c86ba476",
+      "release_tag": "v1.5.1-native-vl.4"
+    },
+    "static_launcher": {
+      "bytes": 706568,
+      "path": "build/native/aima-engine-launcher",
+      "sha256": "d913b44ff33ad3903470817793e5bf095bc3cc6fe5eda00fc1562ed818323a43"
+    },
+    "vision_attention_image": {
+      "bytes": 51056,
+      "path": "lib/aima-vision-attention.hsaco",
+      "sha256": "8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e"
+    }
+  },
+  "decision": {
+    "g1_full_vl_functional_parity": true,
+    "g2_vl_correctness_parity": true,
+    "g3_text_product_no_regression": true,
+    "g4_native_vl_performance": true,
+    "g5_native_release_product": false,
+    "next_blocking_boundary": "build and qualify the exact portable archive, then pass isolated-bundle, second-host, resident soak, rollback and release-evidence verification",
+    "package_input_qualified": true
+  },
+  "engine_version": "1.5.1-native",
+  "gates": {
+    "g1_full_vl_functional_parity": true,
+    "g2_vl_correctness_parity": true,
+    "g3_text_product_no_regression": true,
+    "g4_native_vl_performance": true
+  },
+  "inputs": {
+    "bundle_closure": {
+      "bytes": 5083,
+      "path": "scripts/native_bundle_closure.py",
+      "sha256": "a376717fee882045269ec216f26f6d096e8e4606ebcf96005dbd05f7385ae0af"
+    },
+    "bundle_manifest_generator": {
+      "bytes": 12732,
+      "path": "scripts/generate-native-bundle-manifest.py",
+      "sha256": "5beb877b392b9ada9220b3b3999ec6199a0579509ff2b575b32f7f41929ed288"
+    },
+    "bundle_qualifier": {
+      "bytes": 36561,
+      "path": "scripts/qualify-native-portable-bundle.py",
+      "sha256": "5565039ee4e6fea03cb44175b640196f23b10e3ec03c9bab0f3ba1b77ecd8840"
+    },
+    "cache_test": {
+      "bytes": 5767,
+      "path": "tests/native_multimodal_cache_test.cpp",
+      "sha256": "e8c603b84016fc622cbb80956c2899456fdcccc5d6f7017a2f30df952d0007e4"
+    },
+    "envelope": {
+      "bytes": 209529,
+      "path": "benchmarks/results/native-vl-envelope-v0.1.0.json",
+      "sha256": "cb9104e3bb2ed5e756fc33a238f6f1ea4e6b24cfd4af098725e27a913c94325f"
+    },
+    "g1": {
+      "bytes": 24039,
+      "path": "benchmarks/results/native-vl-g1-coverage-audit-v0.1.0.json",
+      "sha256": "47ec49546628a16cbb7a1d63962b26c595f301850bf2949dd4e1ff4caca038ee"
+    },
+    "g2": {
+      "bytes": 12702,
+      "path": "benchmarks/results/vl-correctness-v0.1.0.json",
+      "sha256": "970fddd4eb0a91defd4398d863e38b31e4f3a8827df3ef2983d6523092207dbd"
+    },
+    "g3": {
+      "bytes": 6628,
+      "path": "benchmarks/results/text-v151-nonregression-v0.1.0.json",
+      "sha256": "29051b6b8d2b77b53897bfa9f9e3a47f74603d037d3855c2fcfce64c5af2b0e7"
+    },
+    "g4": {
+      "bytes": 2018336,
+      "path": "benchmarks/results/vl-performance-v0.1.0.json",
+      "sha256": "b3eeffb723a22a83f749e188c07c044da1bb1dfa1386e65718a6729dd4cfcf8a"
+    },
+    "g5_qualification_generator": {
+      "bytes": 18820,
+      "path": "scripts/generate-native-vl-g5-qualification.py",
+      "sha256": "b175a659f602347fcf6fdb6b56a698a2cc3c18e318a790557e4707efe928ead7"
+    },
+    "goal": {
+      "bytes": 18354,
+      "path": "docs/NATIVE_VL_GOAL.md",
+      "sha256": "4884803ea4c74a3082d949646ad31684536e672a39e229da796589009b0d212c"
+    },
+    "makefile": {
+      "bytes": 12807,
+      "path": "Makefile",
+      "sha256": "a53f2646dcd397db387bd14d9316f49b752d75ed440647ea8b33917e8dddd7c9"
+    },
+    "media_source": {
+      "bytes": 17041,
+      "path": "native/src/native_media.cpp",
+      "sha256": "6438374a5e65fd24db79cd3814836c11adc08ec84762b2ed334edcfc996a770c"
+    },
+    "media_test": {
+      "bytes": 23137,
+      "path": "tests/native_media_test.cpp",
+      "sha256": "6103ebff97d362082b108e59005fa77e30bed2276fe6b52ca4a2ebf308942969"
+    },
+    "package_input_verifier": {
+      "bytes": 1785,
+      "path": "scripts/verify-native-package-inputs.py",
+      "sha256": "5dc4f5af7b5648405955df277128f0a16d3e3dd891cefead24f007fa14553ed1"
+    },
+    "package_qualification": {
+      "bytes": 3860,
+      "path": "aima_engine/package_qualification.py",
+      "sha256": "a7bdbd15d3bd11f0fb5e6bec06c02bddba3ba965a11fe9bd40bf9624e6bc138c"
+    },
+    "package_script": {
+      "bytes": 21569,
+      "path": "scripts/package-native-foundation.sh",
+      "sha256": "4df06ad5923ebbea482174c1187c88fa3723f1f096ec6039e01dd0fd9ab7b9dd"
+    },
+    "product_contract": {
+      "bytes": 5986,
+      "path": "native/product-contract-v1.5.1-native-vl.4.json",
+      "sha256": "c5fb1b75dd4b3b39a73dbd82b0e358c449fe8af9d3c0130a5227a3b1d3b4857c"
+    },
+    "product_qualification_generator": {
+      "bytes": 22543,
+      "path": "scripts/generate-native-vl-product-qualification.py",
+      "sha256": "1fb40cfb971b732845454fadb58333de304fb975ad7097733eaee2bf90edb791"
+    },
+    "public_hygiene": {
+      "bytes": 3333,
+      "path": "aima_engine/public_hygiene.py",
+      "sha256": "49b6450e7b9e0b8d9d396aea245babb668bb57167622691c7e52729b40567208"
+    },
+    "release_evidence": {
+      "bytes": 19981,
+      "path": "aima_engine/release_evidence.py",
+      "sha256": "cb33f8e50e540b7327e99029e62e52d5c3aa561c8313b820ba18762276febe86"
+    },
+    "release_gates_qualifier": {
+      "bytes": 7763,
+      "path": "scripts/qualify-native-vl-release-gates.py",
+      "sha256": "23317707aec10644798fbe80b4493c5ba7d5d15d00536aeb3747910337655e09"
+    },
+    "release_provenance_generator": {
+      "bytes": 12014,
+      "path": "scripts/generate-native-vl-release-provenance.py",
+      "sha256": "dae2120331c790bd1c55531ce0beb7b856e849ce70b783cc46fb62b1ea6087c6"
+    },
+    "remote_media_source": {
+      "bytes": 20522,
+      "path": "native/src/native_remote_media.cpp",
+      "sha256": "ec994fa572a1869dc26ecd4c0ed05f47dc970cccd35e956df53622598910552b"
+    },
+    "resident_soak_qualifier": {
+      "bytes": 29032,
+      "path": "scripts/qualify-native-vl-resident-soak.py",
+      "sha256": "60f73e044de5c4f79338366be6c934add35ae9d5f44ad647825bf94ec56aaa69"
+    },
+    "resident_source": {
+      "bytes": 135069,
+      "path": "native/src/native_resident_engine.hip.cpp",
+      "sha256": "b1cb278179339adb12fb3275adb98c6078188adb91b781529571e21f498dddda"
+    },
+    "rollback_qualifier": {
+      "bytes": 16094,
+      "path": "scripts/qualify-native-vl-rollback.py",
+      "sha256": "8917ddbefab1c4c08d39847fea296711628941d27a59921a9f17c9d51348fdf0"
+    },
+    "systemd_environment": {
+      "bytes": 222,
+      "path": "packaging/systemd/aima-engine.env.example",
+      "sha256": "8be7520d0818f6a9779cd54f42d2937b594e9e90432c54d2e8733f86a2f582eb"
+    },
+    "systemd_service": {
+      "bytes": 875,
+      "path": "packaging/systemd/aima-engine.service",
+      "sha256": "2799c6e57645a4f9e7a3a102fad5b0cd4915c5ffd1ce09b3f6b368c3cf68876d"
+    },
+    "temperature_sampling_qualifier": {
+      "bytes": 24078,
+      "path": "scripts/qualify-native-temperature-sampling.py",
+      "sha256": "f73089cf96a55b3923b6c5325d50c8d09f0d97767446bcadc0fcf0f7d8bcec0d"
+    },
+    "vision_stack_source": {
+      "bytes": 7480,
+      "path": "native/src/native_vision_aot_block_stack.hip.cpp",
+      "sha256": "96e930c020e4e44a94242ef0f04c950f71c682556451bd77a8baead4198704f5"
+    }
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "canonical_payload_sha256": "452fd4728fb4029a3959f8a261853bc2c0ddd1c8cb9e8472f643880ecc5d1a85"
+  },
+  "media_security_contract": {
+    "live_gate_pending": "make check plus make security-scan in G5",
+    "local_file": "descriptor-relative allowlisted open, no symlink traversal, bounded bytes",
+    "remote_url": "per-hop allowlist, bounded redirects/time/bytes, SSRF and credential rejection, proxy inheritance disabled"
+  },
+  "model_contract": {
+    "checkpoint_index_sha256": "41b9356101ebf8e7519e150dc811f80c4226e727301fbb032b890f006ed0be83",
+    "checkpoint_shards": 26,
+    "id": "Qwen/Qwen3.6-35B-A3B",
+    "input_contract": "external standard Hugging Face Safetensors",
+    "revision": "995ad96eacd98c81ed38be0c5b274b04031597b0",
+    "weights_in_package": false
+  },
+  "qualification_scope": "exact G1-G4 candidate and complete package-input closure; final G5 promotion additionally requires the built archive, isolated bundle, second host, soak, rollback and release-evidence gates",
+  "qualified": true,
+  "ready_boundary": {
+    "checks": {
+      "all_model_tensors_ready": true,
+      "dense_vision_image_exact": true,
+      "full_window_ready": true,
+      "general_vision_image_exact": true,
+      "language_weights_ready": true,
+      "runtime_python_absent": true,
+      "runtime_torch_absent": true,
+      "runtime_triton_absent": true,
+      "runtime_vllm_absent": true,
+      "single_native_process": true,
+      "vision_warmup_before_ready": true,
+      "vision_weights_ready": true
+    },
+    "command_to_ready_wall_ms": 33419.097452,
+    "language_model_payload_bytes": 69321221376,
+    "model_payload_bytes": 70214363872,
+    "vision_image_count_warmup_patches": 4096,
+    "vision_warmup_patches": 1024,
+    "visual_model_payload_bytes": 893142496
+  },
+  "recorded_on": "2026-08-24",
+  "release": "1.5.1-native-vl.4",
+  "release_source": {
+    "checks": {
+      "checkout_head_is_release_commit": true,
+      "immutable_release_tag_exact": true,
+      "immutable_release_tag_resolves": true,
+      "native_source_is_release_ancestor": true,
+      "release_checkout_clean": true,
+      "tracked_tree_matches_release_commit": true
+    },
+    "commit": "6a6310c843eab9496ca37d19ba216856c86ba476",
+    "native_source_commit": "bd012874027defa528279a357609b713e9069df4",
+    "tag": "v1.5.1-native-vl.4"
+  },
+  "runtime_dependency_gate": {
+    "host_rocm_userspace_required": false,
+    "model_weights_bundled": false,
+    "runtime_python": false,
+    "runtime_torch": false,
+    "runtime_transformers": false,
+    "runtime_triton": false,
+    "runtime_vllm": false
+  },
+  "schema": "aima-amd395-qwen36/native-vl-product-qualification/v1",
+  "source_architecture": {
+    "checks": {
+      "descriptor_relative_local_media_open": true,
+      "no_numbered_runtime_layer_or_block_sources": true,
+      "remote_media_disables_proxy_inheritance": true,
+      "remote_media_has_explicit_allowlist": true,
+      "runtime_source_matches_embedded_commit": true,
+      "single_parameterized_twenty_seven_block_loop": true,
+      "single_shared_forty_layer_loop": true
+    },
+    "language_stack": "one parameterized 40-layer shared loop",
+    "vision_stack": "one parameterized 27-block shared loop"
+  }
+}

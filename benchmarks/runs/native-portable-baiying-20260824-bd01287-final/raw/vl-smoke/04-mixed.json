@@ -1,0 +1,141 @@
+{
+  "cache_reuse_signals": null,
+  "case_id": "mixed",
+  "checks": {
+    "image_count_exact": true,
+    "one_completion_token": true,
+    "one_model_load": true,
+    "request_index_exact": true,
+    "status_200": true,
+    "video_count_exact": true,
+    "vl_enabled_exact": true
+  },
+  "qualified": true,
+  "response": {
+    "aima_amd395": {
+      "aot_prefill_bucket_tokens": 1024,
+      "aot_prefill_segments": 1,
+      "aot_prefill_tokens": 491,
+      "client_cancelled": false,
+      "cold_prompt_decode_tokens": 0,
+      "cold_prompt_decode_wall_ms": 0.0,
+      "completion_tokens": 1,
+      "decode_tokens_per_second": 0.0,
+      "http_request_wall_ms": 693.71682,
+      "model_loads": 1,
+      "mrope": {
+        "decode_steps": 0,
+        "enabled": true,
+        "fmha_launches": 0,
+        "full_attention_launches": 10,
+        "position_delta": -336,
+        "position_upload_bytes": 11784,
+        "unified_attention_launches": 10
+      },
+      "oracle_tensor_reads": 0,
+      "output_token_ids_canonical_sha256": "a9cf0c5bfacb7118d245ee1a31149cbb264f7138ee585445dd76cc681d755554",
+      "output_token_ids_sha256": "afccd937e6ac2d1b6d6e9f318bc5e8a179c977c7413b33b3e4d902ff8cec501e",
+      "padded_prefill_tokens": 533,
+      "prefill_tokens_per_second": 714.4888051820386,
+      "prefix_cache": {
+        "active_kv_reused": false,
+        "hits": 0,
+        "implemented": true,
+        "lookup": "miss",
+        "matched_tokens": 0,
+        "misses": 4,
+        "restore_wall_ms": 0.0,
+        "scope": "capacity-bounded-variable-exact-or-append-lru",
+        "suffix_aot_launches": 0,
+        "suffix_decode_tokens": 0,
+        "suffix_native_launches": 0,
+        "suffix_tokens": 491,
+        "suffix_wall_ms": 0.0,
+        "transfer_bytes": 74448896
+      },
+      "prompt_execution": "cold-aot-padded",
+      "prompt_source": "chat_template",
+      "prompt_token_ids_sha256": "b038940fbf90d781eb6373e6b727503a464862b94bd8afa155782385bcec714f",
+      "prompt_tokens": 491,
+      "request_index": 4,
+      "request_wall_ms": 687.214849,
+      "runtime": "native-resident-q491",
+      "sampling": {
+        "logits_device_to_host_bytes": 0,
+        "logits_source": "certified-top1",
+        "mode": "argmax",
+        "seed": null,
+        "seed_provided": false,
+        "temperature": 0.0,
+        "token_selections": 0,
+        "top_p": 1.0,
+        "wall_ms": 0.0
+      },
+      "structured_decoding": {
+        "enabled": false,
+        "token_mask_upload_bytes": 0,
+        "token_selections": 0
+      },
+      "ttft_ms": 687.204609,
+      "vl": {
+        "embedding_injection_wall_ms": 0.087839,
+        "enabled": true,
+        "host_to_device_bytes": 4723628,
+        "image_count": 1,
+        "logical_projection_plan_build_wall_ms": 2.802731,
+        "logical_projection_plan_count": 9,
+        "logical_projection_plan_reused": false,
+        "logical_projection_tokens": 491,
+        "logical_projection_workspace_bytes": 0,
+        "media_cache_entries": 4,
+        "media_cache_hits": 0,
+        "media_cache_misses": 2,
+        "media_cache_resident_bytes": 5555948,
+        "media_count": 2,
+        "media_decode_wall_ms": 2.797171,
+        "media_load_decode_wall_ms": 2.88425,
+        "media_load_wall_ms": 0.087079,
+        "processor_wall_ms": 2.366088,
+        "source_bytes": 3883,
+        "video_count": 1,
+        "vision_attention_image_sha256s": [
+          "8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e"
+        ],
+        "vision_batch_count": 1,
+        "vision_embedding_cache_capacity_bytes": 536870912,
+        "vision_embedding_cache_entries": 3,
+        "vision_embedding_cache_hit": false,
+        "vision_embedding_cache_resident_bytes": 1851392,
+        "vision_encode_wall_ms": 79.201001,
+        "vision_input_upload_wall_ms": 0.153557,
+        "vision_max_batch_patches": 1536,
+        "vision_max_batch_tokens": 384,
+        "vision_patches": 1536,
+        "vision_plan_build_wall_ms": 88.755327,
+        "vision_plan_cache_entries": 4,
+        "vision_plan_cache_hit": false,
+        "visual_tokens": 384
+      }
+    },
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "content": "The",
+          "role": "assistant"
+        }
+      }
+    ],
+    "created": 1787725456,
+    "id": "chatcmpl-native-4",
+    "model": "aima-amd395-qwen36-35b",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1,
+      "prompt_tokens": 491,
+      "total_tokens": 492
+    }
+  },
+  "status": 200
+}
