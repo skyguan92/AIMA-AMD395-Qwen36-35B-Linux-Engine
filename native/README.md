@@ -79,22 +79,27 @@ requires it unless the explicit unsafe override is supplied. The packaged
 systemd unit enables the token, a socket timeout and
 `--disable-http-shutdown` by default.
 
-The HTTP control plane continues serving health, model-list and shutdown while
-one serial worker executes chat inference. Up to 16 accepted chats wait in its
-pending queue; engine, tokenizer and cache access is never concurrent. During
-chat work `/health` still returns HTTP 200 with `status: "ok"` and reports
-`busy: true`. Queue saturation or shutdown returns/cancels chats with HTTP 503
-OpenAI errors (`code` `server_busy`, `type` `server_error`). Shutdown stops
-admission, cancels queued chats, waits for active inference to finish and joins
-the worker before engine teardown; it does not forcibly cancel active
-inference.
+After a request is fully read and routed, the HTTP control endpoints (health,
+model-list and shutdown) do not wait for one serial worker executing chat
+inference. Accept/read/routing itself is single-threaded. Up to 16 accepted
+chats wait in its pending queue; engine, tokenizer and cache access is never
+concurrent. During chat work a normal complete `/health` request still returns
+HTTP 200 with `status: "ok"` and reports `busy: true`. Queue saturation or
+shutdown returns/cancels chats with HTTP 503 OpenAI errors (`code`
+`server_busy`, `type` `server_error`). Shutdown stops admission, cancels queued
+chats, waits for active inference to finish and joins the worker before engine
+teardown; it does not forcibly cancel active inference.
 
 `--request-timeout-ms` defaults to 15000. Positive platform-representable
 millisecond values have no 600-second cap and bound complete request reads and
 blocking socket writes, not inference duration. `0` disables those socket
 timeouts—the absolute request-read and per-blocking-write timeouts—but retains
 the 1 MiB request-body limit; use it only when slow clients and blocked writes
-are acceptable operationally.
+are acceptable operationally. At `0`, an incomplete or slow request can occupy
+the single accept/read/routing loop indefinitely, leaving every HTTP endpoint,
+including `/health` and HTTP `/shutdown`, unresponsive. A blocked main-thread
+control write or queued-chat cancellation write can also delay shutdown. Use a
+finite positive timeout when liveness matters.
 
 The selected context is the preferred AOT prefill specialization, not a
 mandatory request length. Every positive prompt is admitted when prompt plus
@@ -158,8 +163,8 @@ The final v1.5.1 qualification established:
   and post-long short-request isolation;
 - resident q1024/q2048/q4096/q8192 dispatch and an exact A/B/A four-entry LRU
   replay;
-- resident HTTP with one model load, independent health/models/shutdown control
-  plane, serial chat inference, exact cache reuse and clean shutdown;
+- resident HTTP with one model load, routed health/models/shutdown control
+  endpoints during serial chat inference, exact cache reuse and clean shutdown;
 - live chunked SSE/non-stream token parity, structured function-tool parity
   and healthy resident state after client-disconnect cancellation.
 

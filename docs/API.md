@@ -65,7 +65,7 @@ Options:
 The process stays in the foreground and handles `SIGINT` / `SIGTERM`.
 Use systemd, a container runtime or another supervisor for detached operation.
 A non-loopback `--host` requires `--api-key-file` unless the explicit unsafe
-override is present. `/health` remains available for liveness; the model list,
+override is present. `/health` is unauthenticated for liveness; the model list,
 chat and enabled shutdown routes require `Authorization: Bearer TOKEN` whenever
 an API key is configured. The engine never logs the token or its file contents.
 
@@ -75,7 +75,11 @@ absolute deadline for reading one HTTP request and bounds blocking socket
 writes, not an inference wall-clock deadline. `0` disables the absolute
 request-read and per-blocking-write socket timeouts, but the 1 MiB request-body
 limit remains. Disable timeouts only when slow clients and indefinitely blocked
-writes are operationally acceptable.
+writes are operationally acceptable. In particular, request accept/read/routing
+is single-threaded: at `0`, an incomplete or slow request can block every HTTP
+endpoint, including `/health` and HTTP `/shutdown`, indefinitely. A blocked
+main-thread control write or queued-chat cancellation write can also delay
+shutdown. Use a finite positive timeout when liveness matters.
 
 The optional dependency-free Python client accepts the same protected API:
 
@@ -166,12 +170,15 @@ Not supported:
 - stochastic sampling;
 - batching or concurrent inference execution.
 
-The accept/control plane continues to handle health, model-list and shutdown
-requests while chat inference runs. Accepted chats enter a bounded pending
-queue of 16; exactly one chat inference runs at a time, so the engine,
-tokenizer and cache are never used concurrently. Queue saturation or shutdown
-rejects/cancels a chat with HTTP 503 and an OpenAI error whose `code` is
-`server_busy` and `type` is `server_error`.
+Chat execution/inference is serialized while routed control endpoints can be
+served during it. Those endpoints are health, model-list and shutdown, after
+their requests have been fully read and routed. The accept/read/routing loop
+itself is single-threaded, so this does not protect against a slow or incomplete
+request occupying that loop when the timeout is disabled. Accepted chats enter
+a bounded pending queue of 16; exactly one chat inference runs at a time, so
+the engine, tokenizer and cache are never used concurrently. Queue saturation
+or shutdown rejects/cancels a chat with HTTP 503 and an OpenAI error whose
+`code` is `server_busy` and `type` is `server_error`.
 
 The server applies the model's qualified Qwen tool/chat template with thinking
 disabled. Its native renderer is byte-for-byte and token-for-token checked
@@ -366,7 +373,9 @@ fatal.
 
 ## Concurrency
 
-One process owns one model and serializes requests. This preserves the measured
-batch-1 contract and the capacity-bounded exact-token prefix state. Run
-separate isolated processes only when the machine has enough memory; a normal
-128 GB AMD395 host does not have room for two copies of this BF16 model.
+One process owns one model and serializes chat execution/inference. Fully read
+and routed control endpoints can be served while a chat runs. This preserves
+the measured batch-1 contract and the capacity-bounded exact-token prefix
+state. Run separate isolated processes only when the machine has enough memory;
+a normal 128 GB AMD395 host does not have room for two copies of this BF16
+model.

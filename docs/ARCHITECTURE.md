@@ -132,15 +132,17 @@ lookups and report that no prefill launches occurred on a hit.
 ## HTTP residency
 
 The server binds its address, loads the native tokenizer and engine, then starts
-listening. Its accept/control plane handles health, model-list and shutdown
-independently while a serial chat worker executes inference. At most 16
-accepted chats wait in the pending queue, and exactly one chat inference runs
-at a time; the engine, tokenizer and cache are therefore never used
-concurrently. Queue saturation and stopping reject or cancel chats with HTTP
-503 OpenAI errors (`code` `server_busy`, `type` `server_error`). After
-readiness, `/health` remains HTTP 200 with `status: "ok"` during chat work and
-adds `busy`, true only while that worker executes a chat; its existing fields
-remain compatible. Health and model-list endpoints do not mutate the cache.
+listening. After a request is fully read and routed, health, model-list and
+shutdown do not wait for a serial chat worker executing inference. The
+accept/read/routing loop itself is single-threaded. At most 16 accepted chats
+wait in the pending queue, and exactly one chat inference runs at a time; the
+engine, tokenizer and cache are therefore never used concurrently. Queue
+saturation and stopping reject or cancel chats with HTTP 503 OpenAI errors
+(`code` `server_busy`, `type` `server_error`). After readiness, a normal
+complete `/health` request remains HTTP 200 with `status: "ok"` during chat
+work and adds `busy`, true only while that worker executes a chat; its existing
+fields remain compatible. Health and model-list endpoints do not mutate the
+cache.
 Binding before the expensive model load makes address conflicts fail
 immediately, while listening only after the load preserves readiness semantics.
 `SIGINT`, `SIGTERM` and enabled `POST /shutdown` stop chat admission, cancel
@@ -151,8 +153,12 @@ engine teardown; active inference is not forcibly cancelled. Positive
 a per-blocking-write socket timeout, not an inference deadline. `0` disables
 the absolute request-read and per-blocking-write socket timeouts while
 retaining the 1 MiB request-body limit, at the operational risk of slow clients
-or indefinitely blocked writes. Client send failures do not terminate the
-resident process.
+or indefinitely blocked writes. In particular, an incomplete or slow request
+can then occupy the single accept/read/routing loop indefinitely, making every
+HTTP endpoint—including `/health` and HTTP `/shutdown`—unresponsive. A blocked
+main-thread control write or queued-chat cancellation write can also delay
+shutdown. Use a finite positive timeout when liveness matters. Client send
+failures do not terminate the resident process.
 The native process sends systemd `STATUS`, `READY=1` and `STOPPING=1`
 datagrams when `NOTIFY_SOCKET` is present; no libsystemd runtime dependency is
 introduced.
