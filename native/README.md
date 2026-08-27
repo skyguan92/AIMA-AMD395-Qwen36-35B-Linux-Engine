@@ -79,6 +79,23 @@ requires it unless the explicit unsafe override is supplied. The packaged
 systemd unit enables the token, a socket timeout and
 `--disable-http-shutdown` by default.
 
+The HTTP control plane continues serving health, model-list and shutdown while
+one serial worker executes chat inference. Up to 16 accepted chats wait in its
+pending queue; engine, tokenizer and cache access is never concurrent. During
+chat work `/health` still returns HTTP 200 with `status: "ok"` and reports
+`busy: true`. Queue saturation or shutdown returns/cancels chats with HTTP 503
+OpenAI errors (`code` `server_busy`, `type` `server_error`). Shutdown stops
+admission, cancels queued chats, waits for active inference to finish and joins
+the worker before engine teardown; it does not forcibly cancel active
+inference.
+
+`--request-timeout-ms` defaults to 15000. Positive platform-representable
+millisecond values have no 600-second cap and bound complete request reads and
+blocking socket writes, not inference duration. `0` disables those socket
+timeouts—the absolute request-read and per-blocking-write timeouts—but retains
+the 1 MiB request-body limit; use it only when slow clients and blocked writes
+are acceptable operationally.
+
 The selected context is the preferred AOT prefill specialization, not a
 mandatory request length. Every positive prompt is admitted when prompt plus
 requested output fits the cache capacity. A cache miss starts from clean
@@ -141,8 +158,8 @@ The final v1.5.1 qualification established:
   and post-long short-request isolation;
 - resident q1024/q2048/q4096/q8192 dispatch and an exact A/B/A four-entry LRU
   replay;
-- resident HTTP with one model load, health/models/chat endpoints, exact cache
-  reuse and clean shutdown;
+- resident HTTP with one model load, independent health/models/shutdown control
+  plane, serial chat inference, exact cache reuse and clean shutdown;
 - live chunked SSE/non-stream token parity, structured function-tool parity
   and healthy resident state after client-disconnect cancellation.
 

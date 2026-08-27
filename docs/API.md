@@ -56,7 +56,7 @@ Options:
 | `--chunk-bytes N` | checkpoint read chunk | 512 MiB |
 | `--report PATH` | native weight-load report | working directory |
 | `--max-requests N` | stop after N successful chat requests | unlimited |
-| `--request-timeout-ms N` | absolute request-read deadline and per-write timeout (maximum 600000) | 15000 |
+| `--request-timeout-ms N` | request-read and blocking-write socket timeout; `0` disables both | 15000 |
 | `--api-key-file PATH` | read one bearer token from a non-symlink file with mode `0640` or stricter | disabled on loopback |
 | `--disable-http-shutdown` | remove the HTTP shutdown route | false |
 | `--allow-insecure-remote` | explicitly permit a non-loopback bind without a token | false |
@@ -68,6 +68,14 @@ A non-loopback `--host` requires `--api-key-file` unless the explicit unsafe
 override is present. `/health` remains available for liveness; the model list,
 chat and enabled shutdown routes require `Authorization: Bearer TOKEN` whenever
 an API key is configured. The engine never logs the token or its file contents.
+
+Positive `--request-timeout-ms` values are accepted up to the platform's
+representable millisecond range; there is no 600-second product cap. It sets an
+absolute deadline for reading one HTTP request and bounds blocking socket
+writes, not an inference wall-clock deadline. `0` disables the absolute
+request-read and per-blocking-write socket timeouts, but the 1 MiB request-body
+limit remains. Disable timeouts only when slow clients and indefinitely blocked
+writes are operationally acceptable.
 
 The optional dependency-free Python client accepts the same protected API:
 
@@ -106,6 +114,8 @@ Returns:
 
 - status and model id;
 - whether the model is loaded and resident;
+- `busy`, a boolean that is true only while the single chat inference worker is
+  executing a chat;
 - successful request count and uptime;
 - total context capacity and selected static AOT prefill specialization;
 - selected FMHA provider;
@@ -120,7 +130,10 @@ Returns the single id `aima-amd395-qwen36-35b`.
 Returns `{"status":"shutting_down"}`, then exits after the response is sent.
 It requires the configured bearer token and returns 404 when
 `--disable-http-shutdown` is active. The packaged systemd unit disables this
-route; use `systemctl stop aima-engine` there.
+route; use `systemctl stop aima-engine` there. Shutdown stops new chat
+admission, cancels queued chats with a `503` OpenAI error (`code` `server_busy`,
+`type` `server_error`), lets an active inference finish, then joins its worker
+before tearing down the engine. It does not forcibly cancel active inference.
 
 ## `POST /v1/chat/completions`
 
@@ -151,7 +164,14 @@ Not supported:
 - image, audio or video message parts;
 - deprecated `functions` or structured response formats;
 - stochastic sampling;
-- batching or concurrent execution.
+- batching or concurrent inference execution.
+
+The accept/control plane continues to handle health, model-list and shutdown
+requests while chat inference runs. Accepted chats enter a bounded pending
+queue of 16; exactly one chat inference runs at a time, so the engine,
+tokenizer and cache are never used concurrently. Queue saturation or shutdown
+rejects/cancels a chat with HTTP 503 and an OpenAI error whose `code` is
+`server_busy` and `type` is `server_error`.
 
 The server applies the model's qualified Qwen tool/chat template with thinking
 disabled. Its native renderer is byte-for-byte and token-for-token checked

@@ -132,13 +132,27 @@ lookups and report that no prefill launches occurred on a hit.
 ## HTTP residency
 
 The server binds its address, loads the native tokenizer and engine, then starts
-listening. One process handles one request at a time, retaining model and cache
-state. Health and model-list endpoints do not mutate the cache. Binding before
-the expensive model load makes address conflicts fail immediately, while
-listening only after the load preserves readiness semantics. `SIGINT`, `SIGTERM` and an
-enabled `POST /shutdown` lead to normal RAII cleanup. The complete request read
-has an absolute `--request-timeout-ms` deadline, each socket write is bounded,
-and client send failures do not terminate the resident process.
+listening. Its accept/control plane handles health, model-list and shutdown
+independently while a serial chat worker executes inference. At most 16
+accepted chats wait in the pending queue, and exactly one chat inference runs
+at a time; the engine, tokenizer and cache are therefore never used
+concurrently. Queue saturation and stopping reject or cancel chats with HTTP
+503 OpenAI errors (`code` `server_busy`, `type` `server_error`). After
+readiness, `/health` remains HTTP 200 with `status: "ok"` during chat work and
+adds `busy`, true only while that worker executes a chat; its existing fields
+remain compatible. Health and model-list endpoints do not mutate the cache.
+Binding before the expensive model load makes address conflicts fail
+immediately, while listening only after the load preserves readiness semantics.
+`SIGINT`, `SIGTERM` and enabled `POST /shutdown` stop chat admission, cancel
+queued chats, then allow active inference to finish and join the worker before
+engine teardown; active inference is not forcibly cancelled. Positive
+`--request-timeout-ms` values are platform-representable milliseconds with no
+600-second cap. The setting is an absolute complete-request-read deadline and
+a per-blocking-write socket timeout, not an inference deadline. `0` disables
+the absolute request-read and per-blocking-write socket timeouts while
+retaining the 1 MiB request-body limit, at the operational risk of slow clients
+or indefinitely blocked writes. Client send failures do not terminate the
+resident process.
 The native process sends systemd `STATUS`, `READY=1` and `STOPPING=1`
 datagrams when `NOTIFY_SOCKET` is present; no libsystemd runtime dependency is
 introduced.
