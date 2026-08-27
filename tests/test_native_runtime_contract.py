@@ -829,6 +829,41 @@ class NativeRuntimeContractTest(unittest.TestCase):
         self.assertLess(receive_poll.start(), receive_recv.start())
         self.assertNotIn("::poll(", normalized_receive)
         self.assertIn("synchronize_signal_shutdown(wake_read_fd)", receive_body)
+        self.assertEqual(
+            1,
+            receive_body.count("::ppoll("),
+            "every receive ppoll site must share the guarded loop",
+        )
+        receive_ppoll_offset = receive_body.index("::ppoll")
+        pre_ppoll_shutdown = receive_body.rfind(
+            "if (g_shutdown.load())", 0, receive_ppoll_offset
+        )
+        self.assertNotEqual(
+            -1,
+            pre_ppoll_shutdown,
+            "a registered client read must reject worker shutdown before ppoll",
+        )
+        pre_ppoll_shutdown_opening = receive_body.index(
+            "{", pre_ppoll_shutdown
+        )
+        pre_ppoll_shutdown_closing = cpp_matching_brace(
+            receive_body, pre_ppoll_shutdown_opening
+        )
+        pre_ppoll_shutdown_body = receive_body[
+            pre_ppoll_shutdown_opening : pre_ppoll_shutdown_closing + 1
+        ]
+        self.assertIn("std::errc::operation_canceled", pre_ppoll_shutdown_body)
+        self.assertEqual(
+            "const int poll_result =",
+            re.sub(
+                r"\s+",
+                " ",
+                receive_body[
+                    pre_ppoll_shutdown_closing + 1 : receive_ppoll_offset
+                ],
+            ).strip(),
+            "the shutdown check must be immediately before ppoll",
+        )
         receive_start = server.index("ssize_t receive_before")
         receive_signature = server[
             receive_start : server.index("{", receive_start)
@@ -1172,7 +1207,12 @@ class NativeRuntimeContractTest(unittest.TestCase):
         authentication = accept_loop_region.index(
             "requires_authentication", read_call
         )
-        self.assertLess(registration.start(), read_call)
+        self.assertLess(
+            registration.start(),
+            read_call,
+            "client tracking must begin before read_request can reach the "
+            "pre-ppoll shutdown check",
+        )
         self.assertLess(read_call, registration_scope_closing)
         self.assertLess(registration_scope_closing, authentication)
 

@@ -366,6 +366,11 @@ ssize_t receive_before(int fd, int wake_read_fd,
     wait_fds[1].events = POLLIN;
     const std::optional<timespec> poll_timeout =
         ppoll_timeout_before(deadline, timeout_message);
+    if (g_shutdown.load()) {
+      throw std::system_error(
+          std::make_error_code(std::errc::operation_canceled),
+          "HTTP request cancelled");
+    }
     const int poll_result =
         ::ppoll(wait_fds, 2,
                 poll_timeout.has_value() ? &*poll_timeout : nullptr,
