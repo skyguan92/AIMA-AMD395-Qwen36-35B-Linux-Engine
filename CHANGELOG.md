@@ -5,6 +5,17 @@ Versioning.
 
 ## Unreleased
 
+- Added opt-in Qwen reasoning through the validated top-level `thinking`
+  request object, with non-stream and SSE `reasoning_content` separation,
+  answer-only backward compatibility, text/VL prompt control, and a declared
+  reasoning budget inside the total generation limit.
+- Suppressed exact normalized tool-call duplicates, bounded retries after
+  repeated empty/error history results, unified stream/non-stream admission,
+  and exposed machine-readable `aima_amd395.tool_progress` guidance for caller
+  strategy changes or blocked results.
+- Rejected known unsupported sampling and anti-repetition request fields
+  instead of silently ignoring them.
+
 ## 1.5.1-native-vl.4 - 2026-08-25
 
 - Added the complete fixed `Qwen3.6-35B-A3B-BF16` native image, video,

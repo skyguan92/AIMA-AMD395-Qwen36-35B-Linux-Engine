@@ -155,6 +155,11 @@ Supported request fields:
   when `temperature` is positive;
 - `seed`: optional non-negative integer. It controls the positive-temperature
   PRNG; when omitted the response metrics expose the generated effective seed;
+- `thinking`: optional object with `type` exactly `enabled` or `disabled` and
+  an optional positive-integer `budget_tokens`. Omission preserves the prior
+  product behavior (answer-only text prompts and the frozen VL template
+  default). Explicit `enabled` returns Qwen reasoning separately; explicit
+  `disabled` selects the answer-only template for both text and VL;
 - `n`: exactly `1`;
 - `stream`: boolean;
 - `stream_options.include_usage`: boolean when `stream` is true;
@@ -173,17 +178,28 @@ Supported request fields:
 Not supported:
 
 - custom stop values;
+- sampling/anti-repetition controls other than `temperature`, `top_p`, and
+  `seed`, including `frequency_penalty`, `presence_penalty`, `logit_bias`,
+  `logprobs`, `top_logprobs`, `repetition_penalty`, `min_p`, and `top_k`;
 - audio message parts;
 - deprecated `functions` or structured response formats;
 - unqualified media-I/O fields such as `video.frame_recovery` and
   `video.max_duration`, or video backends other than OpenCV;
 - batching or concurrent execution.
 
-The server applies the model's qualified Qwen tool/chat template. Thinking is
-disabled for the frozen text product path and retained for VL requests to
-match the frozen multimodal processor oracle. Its native renderer is
-byte-for-byte and token-for-token checked against the checkpoint template for
-plain, tool, assistant/tool-history and multimodal fixtures.
+The server applies the model's qualified Qwen tool/chat template. When
+`thinking.type` is `enabled`, the assistant suffix remains inside Qwen's
+thinking region until the model emits `</think>`; when it is `disabled`, the
+renderer closes an empty thinking region before generation. `budget_tokens`
+is validated to be no larger than the effective `max_tokens`, but is a budget
+declaration rather than a second decoder stop: `max_tokens` remains the hard
+combined bound for reasoning plus final content. A disabled request may retain
+the budget field so clients can switch only `type`. The omitted-field behavior
+is unchanged for compatibility. Explicit thinking is rejected with the raw
+`prompt_token_ids` extension because that extension supplies its own complete
+prompt. The native renderer is byte-for-byte and token-for-token checked
+against the checkpoint template for plain, thinking-enabled, tool,
+assistant/tool-history, and multimodal fixtures.
 
 Positive-temperature requests compute a raw-weight BF16 LM-head projection for
 all 248,320 tokens, then apply temperature scaling and nucleus sampling with a
@@ -266,7 +282,11 @@ input/output pairs `262143/1`, `261632/512` and `261120/1024`.
 
 With `stream:false`, the response follows the OpenAI shape: `id`, `object`,
 `created`, `model`, `choices` and `usage`. Plain generations return assistant
-`content`. A function generation returns `message.tool_calls` and ends with
+`content`. With explicit thinking enabled, the same message also returns
+`reasoning_content`; `content` contains only bytes after `</think>`. If the
+generation limit is reached before that marker, all visible bytes are
+reasoning and `content` is empty. Neither thinking marker is returned. A
+function generation returns `message.tool_calls` and ends with
 `finish_reason: "tool_calls"`:
 
 ```json
@@ -292,6 +312,10 @@ is not exposed as a valid call. A terminal EOS token counts in
 `aima_amd395` adds:
 
 - runtime and request index;
+- the effective thinking mode, declared reasoning budget, and total generation
+  bound;
+- for tool requests, parsed/suppressed call counts, matching history counts,
+  and a machine-readable bounded-retry/no-progress decision;
 - `model_loads`;
 - prefill/decode throughput and total latency;
 - TTFT;
@@ -313,11 +337,13 @@ is not exposed as a valid call. A terminal EOS token counts in
 `Content-Type: text/event-stream`. The sequence is:
 
 1. an assistant-role `chat.completion.chunk`;
-2. content deltas as soon as generated token bytes form valid UTF-8;
-3. a structured `delta.tool_calls` when Qwen completes a function call;
-4. a terminal chunk with `stop`, `length` or `tool_calls`;
-5. an optional empty-choices usage chunk;
-6. `data: [DONE]`.
+2. when thinking is explicitly enabled, `delta.reasoning_content` chunks until
+   the closing marker, which is withheld even across token boundaries;
+3. content deltas as soon as post-thinking token bytes form valid UTF-8;
+4. a structured `delta.tool_calls` when Qwen completes a function call;
+5. a terminal chunk with `stop`, `length` or `tool_calls`;
+6. an optional empty-choices usage chunk;
+7. `data: [DONE]`.
 
 This is live decode streaming, not post-generation text splitting. Closing the
 connection cancels remaining decode work while keeping the model and valid
@@ -394,7 +420,28 @@ assistant and tool messages:
 Tool definitions and history count toward the cache capacity. Clients do not
 pad requests; after tokenization the engine composes resident AOT buckets and
 internally pads only the final segment. Required and named `tool_choice`
-requests fail if generation does not produce an admitted function call.
+requests fail if generation does not produce an admitted function call, except
+when the bounded no-progress policy deliberately suppresses an exhausted
+history signature.
+
+At the protocol boundary, calls are compared by function name plus canonical
+JSON arguments. Exact duplicates in one generated response are emitted only
+once; the same function with different arguments remains valid. History is
+also inspected conservatively: an empty result or explicit error permits one
+same-signature retry, while a second no-progress result suppresses another
+identical call. `parallel_tool_calls:false` is applied after those checks and
+emits at most one call in both response modes.
+
+The terminal `aima_amd395.tool_progress` object reports
+`duplicate_calls_suppressed`, `history_signature_occurrences`,
+`history_no_progress_results`, `exhausted_history_calls_suppressed`,
+`no_progress`, `reason`, and `caller_action`. The native engine prevents exact
+duplicate actions and exposes this state; choosing a materially different
+strategy, composing a best-effort answer, or returning a domain-specific
+blocked result remains the calling agent's responsibility. This boundary is
+intentional because the engine cannot determine whether two different tool
+calls are semantically equivalent or whether their results add domain-specific
+information.
 
 ## Errors
 

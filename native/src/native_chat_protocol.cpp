@@ -4,6 +4,7 @@
 #include "aima/native_chat_protocol.h"
 
 #include <algorithm>
+#include <array>
 #include <cerrno>
 #include <cctype>
 #include <charconv>
@@ -25,12 +26,15 @@ constexpr std::string_view kFunctionStart = "<function=";
 constexpr std::string_view kFunctionEnd = "</function>";
 constexpr std::string_view kParameterStart = "<parameter=";
 constexpr std::string_view kParameterEnd = "</parameter>";
+constexpr std::string_view kThinkStart = "<think>";
+constexpr std::string_view kThinkEnd = "</think>";
 constexpr std::string_view kImagePlaceholder =
     "<|vision_start|><|image_pad|><|vision_end|>";
 constexpr std::string_view kVideoPlaceholder =
     "<|vision_start|><|video_pad|><|vision_end|>";
 constexpr std::size_t kMaximumImagesPerPrompt = 16;
 constexpr std::size_t kMaximumVideosPerPrompt = 21;
+constexpr std::size_t kSameSignatureRetryLimit = 1;
 
 std::int64_t media_io_integer(const NativeOrderedJson& value,
                               std::string_view field) {
@@ -149,6 +153,201 @@ std::string trim_ascii_copy(std::string_view input) {
     --end;
   }
   return std::string(input.substr(begin, end - begin));
+}
+
+std::string lowercase_ascii_copy(std::string_view input) {
+  std::string result(input);
+  std::transform(result.begin(), result.end(), result.begin(),
+                 [](unsigned char value) {
+                   return static_cast<char>(std::tolower(value));
+                 });
+  return result;
+}
+
+std::string canonical_tool_signature(std::string_view name,
+                                     const NativeOrderedJson& arguments) {
+  // nlohmann::json uses a sorted object map, making otherwise equivalent
+  // argument objects independent of caller/model key insertion order.
+  const nlohmann::json canonical = arguments;
+  std::string result(name);
+  result.push_back('\0');
+  result += canonical.dump(-1, ' ', false,
+                           nlohmann::json::error_handler_t::strict);
+  return result;
+}
+
+bool json_result_is_no_progress(const NativeOrderedJson& value);
+
+bool string_result_is_no_progress(std::string_view input) {
+  const std::string trimmed = trim_ascii_copy(input);
+  if (trimmed.empty()) return true;
+  const std::string lower = lowercase_ascii_copy(trimmed);
+  if (lower == "no output" || lower == "<no output>" ||
+      lower == "null" || lower == "none" || lower == "exit code: 0" ||
+      lower == "process exited with code 0" || lower == "final output:") {
+    return true;
+  }
+
+  const auto explicit_nonzero_exit = [&](std::string_view marker) {
+    const std::size_t position = lower.find(marker);
+    if (position == std::string::npos) return false;
+    std::size_t cursor = position + marker.size();
+    while (cursor < lower.size() && lower[cursor] == ' ') ++cursor;
+    std::uint64_t code = 0;
+    const auto parsed = std::from_chars(
+        lower.data() + cursor, lower.data() + lower.size(), code);
+    return parsed.ec == std::errc{} && code != 0;
+  };
+  if (explicit_nonzero_exit("exit code:") ||
+      explicit_nonzero_exit("process exited with code")) {
+    return true;
+  }
+
+  // Common command wrappers emit only status boilerplate when stdout and
+  // stderr are empty. Do not classify a result that has payload after the
+  // final-output label.
+  const std::size_t final_output = lower.find("final output:");
+  if (final_output != std::string::npos) {
+    const std::string prefix = trim_ascii_copy(
+        lower.substr(0, final_output));
+    const bool status_only_prefix =
+        prefix.empty() || prefix == "exit code: 0" ||
+        prefix == "process exited with code 0";
+    if (status_only_prefix) {
+      const std::string payload = trim_ascii_copy(
+          trimmed.substr(final_output +
+                         std::string_view("final output:").size()));
+      if (payload.empty() || string_result_is_no_progress(payload)) {
+        return true;
+      }
+    }
+  }
+
+  try {
+    return json_result_is_no_progress(NativeOrderedJson::parse(trimmed));
+  } catch (const NativeOrderedJson::exception&) {
+    // Explicit failure forms are safe to classify; an arbitrary useful
+    // payload that merely mentions an error remains progress.
+    return lower.rfind("error:", 0) == 0 ||
+           lower.rfind("error ", 0) == 0 ||
+           lower.rfind("failed:", 0) == 0 ||
+           lower.rfind("failure:", 0) == 0 ||
+           lower.rfind("tool execution failed", 0) == 0 ||
+           lower.rfind("command failed", 0) == 0 ||
+           lower.rfind("curl: (", 0) == 0 ||
+           lower.rfind("proxyerror", 0) == 0 ||
+           lower.rfind("proxy error", 0) == 0 ||
+           lower.rfind("traceback (most recent call last):", 0) == 0 ||
+           lower == "failed" || lower == "failure";
+  }
+}
+
+bool json_result_is_no_progress(const NativeOrderedJson& value) {
+  if (value.is_null()) return true;
+  if (value.is_string()) {
+    return string_result_is_no_progress(value.get_ref<const std::string&>());
+  }
+  if (value.is_array()) return value.empty();
+  if (!value.is_object()) return false;
+  if (value.empty()) return true;
+
+  for (const std::string_view key : {"error", "exception"}) {
+    const auto found = value.find(std::string(key));
+    if (found != value.end() && !found->is_null() &&
+        !(found->is_string() && found->get_ref<const std::string&>().empty())) {
+      return true;
+    }
+  }
+  for (const std::string_view key : {"ok", "success"}) {
+    const auto found = value.find(std::string(key));
+    if (found != value.end() && found->is_boolean() && !found->get<bool>()) {
+      return true;
+    }
+  }
+  for (const std::string_view key : {"exit_code", "returncode"}) {
+    const auto found = value.find(std::string(key));
+    if (found != value.end() && found->is_number_integer() &&
+        found->get<std::int64_t>() != 0) {
+      return true;
+    }
+  }
+  const auto status = value.find("status");
+  if (status != value.end() && status->is_string()) {
+    const std::string normalized =
+        lowercase_ascii_copy(status->get_ref<const std::string&>());
+    if (normalized == "error" || normalized == "failed" ||
+        normalized == "failure") {
+      return true;
+    }
+  }
+
+  bool found_payload = false;
+  bool all_payload_empty = true;
+  for (const std::string_view key : {"output", "stdout", "result", "data"}) {
+    const auto found = value.find(std::string(key));
+    if (found == value.end()) continue;
+    found_payload = true;
+    all_payload_empty = all_payload_empty && json_result_is_no_progress(*found);
+  }
+  return found_payload && all_payload_empty;
+}
+
+void reject_unsupported_generation_fields(const NativeOrderedJson& request) {
+  static constexpr std::array<std::string_view, 14> kUnsupported = {
+      "frequency_penalty", "presence_penalty", "logit_bias", "logprobs",
+      "top_logprobs", "repetition_penalty", "min_p", "top_k", "best_of",
+      "beam_search", "use_beam_search", "length_penalty",
+      "early_stopping", "ignore_eos"};
+  for (const std::string_view field : kUnsupported) {
+    if (request.contains(std::string(field))) {
+      throw std::invalid_argument("unsupported generation field: " +
+                                  std::string(field));
+    }
+  }
+}
+
+void parse_thinking(const NativeOrderedJson& request,
+                    NativePreparedChat* prepared) {
+  if (!request.contains("thinking")) return;
+  const NativeOrderedJson& thinking = request["thinking"];
+  if (!thinking.is_object()) {
+    throw std::invalid_argument("thinking must be an object");
+  }
+  for (auto item = thinking.begin(); item != thinking.end(); ++item) {
+    if (item.key() != "type" && item.key() != "budget_tokens") {
+      throw std::invalid_argument("unsupported thinking field: " +
+                                  item.key());
+    }
+  }
+  if (!thinking.contains("type") || !thinking["type"].is_string()) {
+    throw std::invalid_argument(
+        "thinking.type must be enabled or disabled");
+  }
+  const std::string type = thinking["type"].get<std::string>();
+  if (type == "enabled") {
+    prepared->thinking_mode = NativeThinkingMode::kEnabled;
+  } else if (type == "disabled") {
+    prepared->thinking_mode = NativeThinkingMode::kDisabled;
+  } else {
+    throw std::invalid_argument(
+        "thinking.type must be enabled or disabled");
+  }
+  if (!thinking.contains("budget_tokens")) return;
+  const NativeOrderedJson& budget = thinking["budget_tokens"];
+  std::uint64_t parsed = 0;
+  if (budget.is_number_unsigned()) {
+    parsed = budget.get<std::uint64_t>();
+  } else if (budget.is_number_integer()) {
+    const std::int64_t signed_value = budget.get<std::int64_t>();
+    if (signed_value > 0) parsed = static_cast<std::uint64_t>(signed_value);
+  }
+  if (parsed == 0 ||
+      parsed > static_cast<std::uint64_t>(
+                   std::numeric_limits<std::size_t>::max())) {
+    throw std::invalid_argument(
+        "thinking.budget_tokens must be a positive integer");
+  }
+  prepared->thinking_budget_tokens = static_cast<std::size_t>(parsed);
 }
 
 std::string json_string(std::string_view value) {
@@ -490,12 +689,13 @@ bool parse_tool_block(std::string_view block,
   return true;
 }
 
-std::size_t longest_marker_prefix_suffix(std::string_view value) {
+std::size_t longest_marker_prefix_suffix(std::string_view value,
+                                         std::string_view marker) {
   const std::size_t maximum =
-      std::min(value.size(), kToolCallStart.size() - 1);
+      std::min(value.size(), marker.size() - 1);
   for (std::size_t length = maximum; length != 0; --length) {
     if (value.substr(value.size() - length) ==
-        kToolCallStart.substr(0, length)) {
+        marker.substr(0, length)) {
       return length;
     }
   }
@@ -746,7 +946,10 @@ NativeAssistantOutput parse_native_named_tool_json_output(
   call.name = tool.name;
   call.arguments = std::move(arguments);
   call.serialized_arguments = std::string(model_output);
-  return {std::string(), {std::move(call)}};
+  NativeAssistantOutput output;
+  output.tool_calls.push_back(std::move(call));
+  output.tool_progress.parsed_tool_calls = 1;
+  return output;
 }
 
 NativeNamedToolJsonConstraint::NativeNamedToolJsonConstraint(
@@ -843,16 +1046,31 @@ std::string render_qwen_json(const NativeOrderedJson& value) {
                     NativeOrderedJson::error_handler_t::strict);
 }
 
+bool native_tool_result_is_no_progress(std::string_view result) {
+  return string_result_is_no_progress(result);
+}
+
+void validate_native_thinking_budget(const NativePreparedChat& chat,
+                                     std::size_t max_tokens) {
+  if (chat.thinking_budget_tokens.has_value() &&
+      *chat.thinking_budget_tokens > max_tokens) {
+    throw std::invalid_argument(
+        "thinking.budget_tokens must not exceed max_tokens");
+  }
+}
+
 NativePreparedChat prepare_native_chat(const NativeOrderedJson& request) {
   if (!request.is_object()) {
     throw std::invalid_argument("request body must be a JSON object");
   }
+  reject_unsupported_generation_fields(request);
   if (!request.contains("messages") || !request["messages"].is_array() ||
       request["messages"].empty()) {
     throw std::invalid_argument("messages must be a non-empty array");
   }
 
   NativePreparedChat prepared;
+  parse_thinking(request, &prepared);
   parse_media_io_kwargs(request, &prepared);
   std::unordered_set<std::string> tool_names;
   if (request.contains("tools")) {
@@ -938,7 +1156,8 @@ NativePreparedChat prepare_native_chat(const NativeOrderedJson& request) {
   std::string leading_system_vl;
   bool left_leading_system = false;
   bool saw_user = false;
-  std::unordered_set<std::string> known_call_ids;
+  std::unordered_map<std::string, std::size_t> call_id_to_history;
+  std::unordered_map<std::string, std::size_t> history_signature_indices;
   for (std::size_t message_index = 0;
        message_index < request["messages"].size(); ++message_index) {
     const NativeOrderedJson& source = request["messages"][message_index];
@@ -1011,9 +1230,9 @@ NativePreparedChat prepare_native_chat(const NativeOrderedJson& request) {
             throw std::invalid_argument(
                 "assistant tool_calls require function name and JSON arguments");
           }
-          if (!known_call_ids
-                   .insert(source_call["id"].get<std::string>())
-                   .second) {
+          const std::string call_id =
+              source_call["id"].get<std::string>();
+          if (call_id_to_history.count(call_id) != 0) {
             throw std::invalid_argument(
                 "assistant tool call ids must be unique");
           }
@@ -1036,6 +1255,22 @@ NativePreparedChat prepare_native_chat(const NativeOrderedJson& request) {
             throw std::invalid_argument(
                 "assistant function arguments must encode a JSON object");
           }
+          const std::string serialized_arguments =
+              render_qwen_json(arguments);
+          const std::string signature =
+              canonical_tool_signature(call.name, arguments);
+          auto history = history_signature_indices.find(signature);
+          std::size_t history_index = 0;
+          if (history == history_signature_indices.end()) {
+            history_index = prepared.historical_tool_calls.size();
+            history_signature_indices.emplace(signature, history_index);
+            prepared.historical_tool_calls.push_back(
+                {call.name, serialized_arguments, signature, 0, 0, 0});
+          } else {
+            history_index = history->second;
+          }
+          ++prepared.historical_tool_calls[history_index].call_count;
+          call_id_to_history.emplace(call_id, history_index);
           for (auto item = arguments.begin(); item != arguments.end(); ++item) {
             if (item.key().empty() ||
                 item.key().find_first_of(">\r\n") != std::string::npos) {
@@ -1059,9 +1294,16 @@ NativePreparedChat prepare_native_chat(const NativeOrderedJson& request) {
             "tool messages require a string tool_call_id");
       }
       const std::string id = source["tool_call_id"].get<std::string>();
-      if (known_call_ids.count(id) == 0) {
+      const auto history = call_id_to_history.find(id);
+      if (history == call_id_to_history.end()) {
         throw std::invalid_argument(
             "tool message tool_call_id has no preceding assistant tool call");
+      }
+      NativeHistoricalToolCall& historical =
+          prepared.historical_tool_calls[history->second];
+      ++historical.result_count;
+      if (native_tool_result_is_no_progress(content.baseline)) {
+        ++historical.no_progress_result_count;
       }
     } else {
       throw std::invalid_argument(
@@ -1146,6 +1388,7 @@ NativeAssistantOutput parse_qwen_tool_output(
     const std::vector<NativeFunctionTool>& tools,
     std::string_view call_id_prefix) {
   NativeAssistantOutput output;
+  std::unordered_set<std::string> seen_signatures;
   std::size_t cursor = 0;
   std::size_t first_call = std::string_view::npos;
   while (cursor < model_output.size()) {
@@ -1160,8 +1403,15 @@ NativeAssistantOutput parse_qwen_tool_output(
                            std::to_string(output.tool_calls.size());
     if (parse_tool_block(model_output.substr(start, block_end - start), tools,
                          id, &call)) {
+      ++output.tool_progress.parsed_tool_calls;
       if (first_call == std::string_view::npos) first_call = start;
-      output.tool_calls.push_back(std::move(call));
+      const std::string signature =
+          canonical_tool_signature(call.name, call.arguments);
+      if (seen_signatures.insert(signature).second) {
+        output.tool_calls.push_back(std::move(call));
+      } else {
+        ++output.tool_progress.duplicate_calls_suppressed;
+      }
     }
     cursor = block_end;
   }
@@ -1170,6 +1420,89 @@ NativeAssistantOutput parse_qwen_tool_output(
   } else {
     output.content = std::string(model_output.substr(0, first_call));
   }
+  return output;
+}
+
+void apply_native_tool_call_policy(const NativePreparedChat& chat,
+                                   NativeAssistantOutput* output) {
+  if (output == nullptr) {
+    throw std::invalid_argument("native tool-call policy output is null");
+  }
+
+  if (chat.tool_choice == NativeToolChoiceMode::kSpecific) {
+    output->tool_calls.erase(
+        std::remove_if(
+            output->tool_calls.begin(), output->tool_calls.end(),
+            [&](const NativeParsedToolCall& call) {
+              return call.name != chat.required_function_name;
+            }),
+        output->tool_calls.end());
+  }
+
+  std::vector<NativeParsedToolCall> admitted;
+  admitted.reserve(output->tool_calls.size());
+  for (NativeParsedToolCall& call : output->tool_calls) {
+    const std::string signature =
+        canonical_tool_signature(call.name, call.arguments);
+    const auto history = std::find_if(
+        chat.historical_tool_calls.begin(),
+        chat.historical_tool_calls.end(),
+        [&](const NativeHistoricalToolCall& candidate) {
+          return candidate.normalized_signature == signature;
+        });
+    if (history != chat.historical_tool_calls.end()) {
+      output->tool_progress.history_signature_occurrences +=
+          history->call_count;
+      output->tool_progress.history_no_progress_results +=
+          history->no_progress_result_count;
+      if (history->no_progress_result_count > kSameSignatureRetryLimit) {
+        ++output->tool_progress.exhausted_history_calls_suppressed;
+        output->tool_progress.no_progress = true;
+        continue;
+      }
+    }
+    admitted.push_back(std::move(call));
+  }
+  output->tool_calls = std::move(admitted);
+
+  if (!chat.parallel_tool_calls && output->tool_calls.size() > 1) {
+    output->tool_progress.parallel_calls_suppressed +=
+        output->tool_calls.size() - 1;
+    output->tool_calls.resize(1);
+  }
+}
+
+NativeAssistantOutput parse_native_assistant_output(
+    std::string_view model_output, const NativePreparedChat& chat,
+    std::string_view call_id_prefix) {
+  const NativeThinkingOutput thinking = split_qwen_thinking_output(
+      model_output, chat.thinking_mode == NativeThinkingMode::kEnabled);
+  NativeAssistantOutput output;
+  if (chat.tool_choice != NativeToolChoiceMode::kNone &&
+      !chat.prompt_tools.empty()) {
+    output = parse_qwen_tool_output(thinking.content, chat.function_tools,
+                                    call_id_prefix);
+    apply_native_tool_call_policy(chat, &output);
+  } else {
+    output.content = thinking.content;
+  }
+  output.reasoning_content_provided =
+      thinking.reasoning_content_provided;
+  output.reasoning_content = thinking.reasoning_content;
+  return output;
+}
+
+NativeThinkingOutput split_qwen_thinking_output(
+    std::string_view model_output, bool enabled) {
+  NativeThinkingStreamGate gate(enabled);
+  NativeThinkingStreamDelta first = gate.push(model_output);
+  NativeThinkingStreamDelta last = gate.finish();
+  NativeThinkingOutput output;
+  output.reasoning_content_provided = enabled;
+  output.reasoning_content = std::move(first.reasoning_content);
+  output.reasoning_content += last.reasoning_content;
+  output.content = std::move(first.content);
+  output.content += last.content;
   return output;
 }
 
@@ -1251,7 +1584,8 @@ std::string NativeToolStreamGate::push(std::string_view utf8) {
   }
   const std::string_view unissued(complete_text_.data() + emitted_bytes_,
                                   complete_text_.size() - emitted_bytes_);
-  const std::size_t keep = longest_marker_prefix_suffix(unissued);
+  const std::size_t keep =
+      longest_marker_prefix_suffix(unissued, kToolCallStart);
   const std::size_t send = unissued.size() - keep;
   std::string output(unissued.substr(0, send));
   emitted_bytes_ += send;
@@ -1262,6 +1596,86 @@ std::string NativeToolStreamGate::finish(bool parsed_tool_calls) {
   if (parsed_tool_calls) return {};
   std::string output = complete_text_.substr(emitted_bytes_);
   emitted_bytes_ = complete_text_.size();
+  return output;
+}
+
+NativeThinkingStreamDelta NativeThinkingStreamGate::push(
+    std::string_view utf8) {
+  pending_.append(utf8);
+  return process(false);
+}
+
+NativeThinkingStreamDelta NativeThinkingStreamGate::finish() {
+  return process(true);
+}
+
+NativeThinkingStreamDelta NativeThinkingStreamGate::process(bool terminal) {
+  NativeThinkingStreamDelta output;
+  if (!enabled_) {
+    output.content = std::move(pending_);
+    pending_.clear();
+    return output;
+  }
+
+  if (!opening_decided_) {
+    const bool possible_opening =
+        pending_.size() <= kThinkStart.size() &&
+        kThinkStart.substr(0, pending_.size()) == pending_;
+    if (pending_.size() >= kThinkStart.size()) {
+      opening_decided_ = true;
+      if (pending_.compare(0, kThinkStart.size(), kThinkStart) == 0) {
+        pending_.erase(0, kThinkStart.size());
+        stripping_reasoning_newlines_ = true;
+      }
+    } else if (!possible_opening || terminal) {
+      opening_decided_ = true;
+    } else {
+      return output;
+    }
+  }
+
+  if (!reasoning_finished_) {
+    if (stripping_reasoning_newlines_) {
+      std::size_t offset = 0;
+      while (offset < pending_.size() &&
+             (pending_[offset] == '\r' || pending_[offset] == '\n')) {
+        ++offset;
+      }
+      pending_.erase(0, offset);
+      if (pending_.empty() && !terminal) return output;
+      stripping_reasoning_newlines_ = false;
+    }
+
+    const std::size_t marker = pending_.find(kThinkEnd);
+    if (marker != std::string::npos) {
+      output.reasoning_content = pending_.substr(0, marker);
+      pending_.erase(0, marker + kThinkEnd.size());
+      reasoning_finished_ = true;
+      stripping_content_newlines_ = true;
+    } else {
+      const std::size_t keep = terminal
+                                   ? 0
+                                   : longest_marker_prefix_suffix(pending_,
+                                                                  kThinkEnd);
+      const std::size_t send = pending_.size() - keep;
+      output.reasoning_content.assign(pending_, 0, send);
+      pending_.erase(0, send);
+      return output;
+    }
+  }
+
+  if (stripping_content_newlines_) {
+    std::size_t offset = 0;
+    while (offset < pending_.size() &&
+           (pending_[offset] == '\r' || pending_[offset] == '\n')) {
+      ++offset;
+    }
+    pending_.erase(0, offset);
+    if (pending_.empty() && !terminal) return output;
+    stripping_content_newlines_ = false;
+  }
+  output.content = std::move(pending_);
+  pending_.clear();
   return output;
 }
 

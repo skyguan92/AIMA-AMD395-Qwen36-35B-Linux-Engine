@@ -137,6 +137,18 @@ curl -fsS http://127.0.0.1:8000/v1/chat/completions \
 `seed`。实际 seed 和采样开销记录在 `aima_amd395.sampling`；显式 seed 在流式和
 非流式请求中复现同一 token 序列。
 
+Qwen 推理能力采用显式开启并保持向后兼容：
+
+```json
+"thinking": {"type": "enabled", "budget_tokens": 4608}
+```
+
+非流式返回将 `message.reasoning_content` 与最终 `message.content` 分离；SSE 先
+发送 `delta.reasoning_content`，再发送 `delta.content`。`budget_tokens` 是
+`max_tokens` 组合上限内经过校验的声明，不是第二个硬停止点。显式设置
+`type:"disabled"` 可让文本或 VL 请求使用仅答案模板。默认行为、校验规则和原始
+token 限制详见 [docs/API.md](docs/API.md)。
+
 真正的逐 token SSE 流式输出：
 
 ```bash
@@ -155,7 +167,10 @@ curl -N http://127.0.0.1:8000/v1/chat/completions \
 
 同一接口也支持 OpenAI function `tools`、`tool_choice`、
 `parallel_tool_calls`、assistant 工具调用历史以及 tool 响应。完整请求与返回示例、
-变长 prompt 执行规则见 [docs/API.md](docs/API.md)。
+变长 prompt 执行规则见 [docs/API.md](docs/API.md)。同一次 assistant 返回中的精确
+规范化重复调用只会暴露一次；同一历史签名连续得到两次空结果或明确错误后，后续
+相同调用会被抑制，`aima_amd395.tool_progress` 会提示调用方更换策略或返回明确的
+blocked/best-effort 结果。
 
 图片请求使用同一个接口和有序 OpenAI content parts：
 

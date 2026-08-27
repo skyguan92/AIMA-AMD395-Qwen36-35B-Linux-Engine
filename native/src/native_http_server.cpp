@@ -969,6 +969,12 @@ ParsedCompletionRequest parse_completion_request(
         "requested output leaves no room for a prompt");
   }
   parsed.chat = prepare_native_chat(request);
+  validate_native_thinking_budget(parsed.chat, parsed.max_tokens);
+  if (request.contains("prompt_token_ids") &&
+      parsed.chat.thinking_mode != NativeThinkingMode::kDefault) {
+    throw std::invalid_argument(
+        "thinking cannot be combined with prompt_token_ids");
+  }
   if (!parsed.chat.media.empty()) {
     if (parsed.chat.tool_choice == NativeToolChoiceMode::kSpecific) {
       const auto selected = std::find_if(
@@ -1049,8 +1055,10 @@ ParsedCompletionRequest parse_completion_request(
     }
     parsed.raw_prompt_tokens = true;
   } else if (parsed.chat.media.empty()) {
+    const bool disable_thinking =
+        parsed.chat.thinking_mode != NativeThinkingMode::kEnabled;
     parsed.prompt = tokenizer.encode_chat(
-        parsed.chat.messages, parsed.chat.prompt_tools, true);
+        parsed.chat.messages, parsed.chat.prompt_tools, disable_thinking);
   }
   return parsed;
 }
@@ -1074,6 +1082,60 @@ Json tool_calls_json(const std::vector<NativeParsedToolCall>& calls) {
   return result;
 }
 
+Json thinking_contract_json(const NativePreparedChat& chat,
+                            std::size_t max_tokens) {
+  const char* mode = "default";
+  if (chat.thinking_mode == NativeThinkingMode::kEnabled) {
+    mode = "enabled";
+  } else if (chat.thinking_mode == NativeThinkingMode::kDisabled) {
+    mode = "disabled";
+  }
+  return {{"mode", mode},
+          {"budget_tokens",
+           chat.thinking_budget_tokens.has_value()
+               ? Json(*chat.thinking_budget_tokens)
+               : Json(nullptr)},
+          {"max_tokens", max_tokens},
+          {"budget_semantics", "declaration_within_total_max_tokens"}};
+}
+
+Json tool_progress_json(const NativeAssistantOutput& output) {
+  const bool no_progress = output.tool_progress.no_progress;
+  const char* caller_action = "continue";
+  if (no_progress) {
+    caller_action = output.tool_calls.empty()
+                        ? "change_strategy_or_return_blocked"
+                        : "continue_with_admitted_calls";
+  }
+  return {{"parsed_calls", output.tool_progress.parsed_tool_calls},
+          {"duplicate_calls_suppressed",
+           output.tool_progress.duplicate_calls_suppressed},
+          {"parallel_calls_suppressed",
+           output.tool_progress.parallel_calls_suppressed},
+          {"history_signature_occurrences",
+           output.tool_progress.history_signature_occurrences},
+          {"history_no_progress_results",
+           output.tool_progress.history_no_progress_results},
+          {"exhausted_history_calls_suppressed",
+           output.tool_progress.exhausted_history_calls_suppressed},
+          {"same_signature_retry_limit", 1},
+          {"no_progress", no_progress},
+          {"reason",
+           no_progress ? Json("repeated_failed_or_empty_tool_call")
+                       : Json(nullptr)},
+          {"caller_action", caller_action}};
+}
+
+void add_chat_protocol_metrics(Json* metrics,
+                               const NativePreparedChat& chat,
+                               const NativeAssistantOutput& output,
+                               std::size_t max_tokens) {
+  (*metrics)["thinking"] = thinking_contract_json(chat, max_tokens);
+  if (!chat.function_tools.empty()) {
+    (*metrics)["tool_progress"] = tool_progress_json(output);
+  }
+}
+
 std::int64_t unix_time_seconds() {
   return std::chrono::duration_cast<std::chrono::seconds>(
              std::chrono::system_clock::now().time_since_epoch())
@@ -1092,27 +1154,17 @@ NativeAssistantOutput visible_assistant_output(
   }
   const std::string text = tokenizer.decode(visible);
   if (named_tool_json_constraint != nullptr) {
-    return named_tool_json_constraint->parse_output(text, call_id_prefix);
+    NativeAssistantOutput output =
+        named_tool_json_constraint->parse_output(text, call_id_prefix);
+    if (chat.thinking_mode == NativeThinkingMode::kEnabled) {
+      // Named VL decoding is schema-constrained from its first generated
+      // token, so it may validly contain no free-form reasoning region.
+      output.reasoning_content_provided = true;
+    }
+    apply_native_tool_call_policy(chat, &output);
+    return output;
   }
-  if (chat.tool_choice == NativeToolChoiceMode::kNone ||
-      chat.prompt_tools.empty()) {
-    return {text, {}};
-  }
-  NativeAssistantOutput output =
-      parse_qwen_tool_output(text, chat.function_tools, call_id_prefix);
-  if (!chat.parallel_tool_calls && output.tool_calls.size() > 1) {
-    output.tool_calls.resize(1);
-  }
-  if (chat.tool_choice == NativeToolChoiceMode::kSpecific) {
-    output.tool_calls.erase(
-        std::remove_if(
-            output.tool_calls.begin(), output.tool_calls.end(),
-            [&](const NativeParsedToolCall& call) {
-              return call.name != chat.required_function_name;
-            }),
-        output.tool_calls.end());
-  }
-  return output;
+  return parse_native_assistant_output(text, chat, call_id_prefix);
 }
 
 bool required_tool_choice_satisfied(
@@ -1120,7 +1172,7 @@ bool required_tool_choice_satisfied(
     const NativeAssistantOutput& output) {
   return (chat.tool_choice != NativeToolChoiceMode::kRequired &&
           chat.tool_choice != NativeToolChoiceMode::kSpecific) ||
-         !output.tool_calls.empty();
+         !output.tool_calls.empty() || output.tool_progress.no_progress;
 }
 
 Json chat_completion(NativeResidentEngine& engine, NativeTokenizer& tokenizer,
@@ -1160,6 +1212,9 @@ Json chat_completion(NativeResidentEngine& engine, NativeTokenizer& tokenizer,
         "model output did not satisfy the required tool_choice");
   }
   Json message = {{"role", "assistant"}};
+  if (output.reasoning_content_provided) {
+    message["reasoning_content"] = output.reasoning_content;
+  }
   if (named_vl_tool_choice) {
     // vLLM exposes named forced-tool generations as an empty content string
     // and keeps the model stop/length reason even though a tool call is
@@ -1193,6 +1248,8 @@ Json chat_completion(NativeResidentEngine& engine, NativeTokenizer& tokenizer,
                    {"aima_amd395", request_metrics_json(metrics)}};
   response["aima_amd395"]["prompt_source"] =
       raw_prompt_tokens ? "token_ids" : "chat_template";
+  add_chat_protocol_metrics(&response["aima_amd395"], parsed.chat, output,
+                            parsed.max_tokens);
   return response;
 }
 
@@ -1228,6 +1285,10 @@ bool stream_chat_completion(
   if (!send_chunk(std::move(role))) return false;
 
   NativeIncrementalUtf8Decoder utf8;
+  const bool split_thinking =
+      parsed.chat.thinking_mode == NativeThinkingMode::kEnabled &&
+      parsed.named_tool_json_constraint == nullptr;
+  NativeThinkingStreamGate thinking_gate(split_thinking);
   NativeToolStreamGate gate;
   const bool hold_content_for_required_tool =
       parsed.chat.tool_choice == NativeToolChoiceMode::kRequired ||
@@ -1258,7 +1319,17 @@ bool stream_chat_completion(
     if (token_id == tokenizer.eos_token_id()) return true;
     const std::string decoded =
         utf8.push(tokenizer.decode_token_bytes(token_id));
-    const std::string content = gate.push(decoded);
+    NativeThinkingStreamDelta thinking = thinking_gate.push(decoded);
+    if (!thinking.reasoning_content.empty()) {
+      Json chunk = stream_chunk_base(id, created);
+      chunk["choices"] = Json::array(
+          {{{"index", 0},
+            {"delta",
+             {{"reasoning_content", thinking.reasoning_content}}},
+            {"finish_reason", nullptr}}});
+      if (!send_chunk(std::move(chunk))) return false;
+    }
+    const std::string content = gate.push(thinking.content);
     if (content.empty() || hold_content_for_required_tool) return true;
     Json chunk = stream_chunk_base(id, created);
     chunk["choices"] = Json::array(
@@ -1286,29 +1357,40 @@ bool stream_chat_completion(
 
   const std::string terminal_utf8 = utf8.finish();
   std::string terminal_streamable;
-  if (!terminal_utf8.empty()) {
-    terminal_streamable = gate.push(terminal_utf8);
+  auto route_terminal_thinking =
+      [&](NativeThinkingStreamDelta thinking) -> bool {
+    if (!thinking.reasoning_content.empty()) {
+      Json chunk = stream_chunk_base(id, created);
+      chunk["choices"] = Json::array(
+          {{{"index", 0},
+            {"delta",
+             {{"reasoning_content", thinking.reasoning_content}}},
+            {"finish_reason", nullptr}}});
+      if (!send_chunk(std::move(chunk))) return false;
+    }
+    if (!thinking.content.empty()) {
+      terminal_streamable += gate.push(thinking.content);
+    }
+    return true;
+  };
+  if (!terminal_utf8.empty() &&
+      !route_terminal_thinking(thinking_gate.push(terminal_utf8))) {
+    return false;
   }
+  if (!route_terminal_thinking(thinking_gate.finish())) return false;
   NativeAssistantOutput output;
   if (parsed.named_tool_json_constraint != nullptr) {
     output = parsed.named_tool_json_constraint->parse_output(
         gate.complete_text(), id + "-call-");
+    if (parsed.chat.thinking_mode == NativeThinkingMode::kEnabled) {
+      output.reasoning_content_provided = true;
+    }
+    apply_native_tool_call_policy(parsed.chat, &output);
   } else if (parsed.chat.tool_choice != NativeToolChoiceMode::kNone &&
       !parsed.chat.prompt_tools.empty()) {
     output = parse_qwen_tool_output(
         gate.complete_text(), parsed.chat.function_tools, id + "-call-");
-    if (!parsed.chat.parallel_tool_calls && output.tool_calls.size() > 1) {
-      output.tool_calls.resize(1);
-    }
-    if (parsed.chat.tool_choice == NativeToolChoiceMode::kSpecific) {
-      output.tool_calls.erase(
-          std::remove_if(
-              output.tool_calls.begin(), output.tool_calls.end(),
-              [&](const NativeParsedToolCall& call) {
-                return call.name != parsed.chat.required_function_name;
-              }),
-          output.tool_calls.end());
-    }
+    apply_native_tool_call_policy(parsed.chat, &output);
   } else {
     output.content = gate.complete_text();
   }
@@ -1336,7 +1418,7 @@ bool stream_chat_completion(
   if (!hold_content_for_required_tool) {
     remaining = std::move(terminal_streamable);
   }
-  remaining += gate.finish(!output.tool_calls.empty());
+  remaining += gate.finish(output.tool_progress.parsed_tool_calls != 0);
   if (!remaining.empty()) {
     Json chunk = stream_chunk_base(id, created);
     chunk["choices"] = Json::array(
@@ -1379,6 +1461,8 @@ bool stream_chat_completion(
       raw_prompt_tokens ? "token_ids" : "chat_template";
   terminal["aima_amd395"]["http_request_wall_ms"] =
       elapsed_ms(http_started);
+  add_chat_protocol_metrics(&terminal["aima_amd395"], parsed.chat, output,
+                            parsed.max_tokens);
   if (!send_chunk(std::move(terminal))) return false;
   if (parsed.include_usage) {
     Json usage = stream_chunk_base(id, created);

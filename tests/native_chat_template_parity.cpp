@@ -22,8 +22,10 @@ void check_case(aima::NativeTokenizer* tokenizer, const char* name,
                 std::size_t expected_tokens) {
   const aima::NativePreparedChat prepared =
       aima::prepare_native_chat(request);
+  const bool disable_thinking =
+      prepared.thinking_mode != aima::NativeThinkingMode::kEnabled;
   const std::string prompt = tokenizer->render_chat_prompt(
-      prepared.messages, prepared.prompt_tools, true);
+      prepared.messages, prepared.prompt_tools, disable_thinking);
   const std::string actual_sha256 =
       aima::sha256_bytes(prompt.data(), prompt.size());
   const std::size_t actual_tokens = tokenizer->encode(prompt).size();
@@ -61,6 +63,24 @@ int main(int argc, char** argv) {
         Json::array(
             {{{"role", "system"}, {"content", " Be concise. "}},
              {{"role", "user"}, {"content", " Hello 世界 "}}})}},
+      "7bedf5ff847e89b2836218398d22fa6db5197ebbcff83cf98dbbcef420c2ba9d",
+      23);
+  check_case(
+      &tokenizer, "thinking-enabled",
+      {{"messages",
+        Json::array(
+            {{{"role", "system"}, {"content", " Be concise. "}},
+             {{"role", "user"}, {"content", " Hello 世界 "}}})},
+       {"thinking", {{"type", "enabled"}, {"budget_tokens", 64}}}},
+      "ca8e7eddc88e26a2a4c3e87912f892a38af5db2f43faa4401abebbcde0eb6f8e",
+      21);
+  check_case(
+      &tokenizer, "thinking-disabled",
+      {{"messages",
+        Json::array(
+            {{{"role", "system"}, {"content", " Be concise. "}},
+             {{"role", "user"}, {"content", " Hello 世界 "}}})},
+       {"thinking", {{"type", "disabled"}, {"budget_tokens", 64}}}},
       "7bedf5ff847e89b2836218398d22fa6db5197ebbcff83cf98dbbcef420c2ba9d",
       23);
   check_case(

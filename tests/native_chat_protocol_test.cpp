@@ -70,6 +70,54 @@ int main() {
           "VL prompt retained a synthetic tool directive");
   require(prepared.function_tools[0].name == "weather",
           "function name preparation failed");
+  require(prepared.thinking_mode == aima::NativeThinkingMode::kDefault &&
+              !prepared.thinking_budget_tokens.has_value(),
+          "omitted thinking did not preserve the default contract");
+
+  NativeOrderedJson thinking_request = request;
+  thinking_request["thinking"] = {
+      {"type", "enabled"}, {"budget_tokens", 8}};
+  const auto thinking_enabled =
+      aima::prepare_native_chat(thinking_request);
+  require(thinking_enabled.thinking_mode ==
+              aima::NativeThinkingMode::kEnabled &&
+              thinking_enabled.thinking_budget_tokens == 8,
+          "enabled thinking request was not prepared");
+  aima::validate_native_thinking_budget(thinking_enabled, 8);
+  require_invalid(
+      [&]() { aima::validate_native_thinking_budget(thinking_enabled, 7); },
+      "thinking budget above max_tokens was admitted");
+
+  thinking_request["thinking"]["type"] = "disabled";
+  const auto thinking_disabled =
+      aima::prepare_native_chat(thinking_request);
+  require(thinking_disabled.thinking_mode ==
+              aima::NativeThinkingMode::kDisabled &&
+              thinking_disabled.thinking_budget_tokens == 8,
+          "disabled thinking request lost its accepted budget declaration");
+
+  for (const NativeOrderedJson& invalid_thinking :
+       std::vector<NativeOrderedJson>{
+           nullptr,
+           NativeOrderedJson::object(),
+           {{"type", "automatic"}},
+           {{"type", "enabled"}, {"budget_tokens", 0}},
+           {{"type", "enabled"}, {"budget_tokens", -1}},
+           {{"type", "enabled"}, {"budget_tokens", 1.5}},
+           {{"type", "enabled"}, {"unknown", true}},
+       }) {
+    NativeOrderedJson invalid = request;
+    invalid["thinking"] = invalid_thinking;
+    require_invalid(
+        [&]() { (void)aima::prepare_native_chat(invalid); },
+        "invalid thinking request was admitted");
+  }
+
+  NativeOrderedJson unsupported_sampling = request;
+  unsupported_sampling["frequency_penalty"] = 0;
+  require_invalid(
+      [&]() { (void)aima::prepare_native_chat(unsupported_sampling); },
+      "unsupported anti-repetition field was silently admitted");
 
   NativeOrderedJson canonical_wire_request = request;
   canonical_wire_request["tools"][0] = {
@@ -200,6 +248,89 @@ int main() {
   require(multiple.tool_calls[1].id == "call_multi_1",
           "parallel tool-call indices changed");
 
+  const std::string duplicate_calls =
+      "<tool_call><function=weather><parameter=city>\nParis\n"
+      "</parameter><parameter=days>\n3\n</parameter></function></tool_call>"
+      "<tool_call><function=weather><parameter=days>\n3\n"
+      "</parameter><parameter=city>\nParis\n</parameter></function></tool_call>";
+  const auto deduplicated = aima::parse_qwen_tool_output(
+      duplicate_calls, prepared.function_tools, "call_duplicate_");
+  require(deduplicated.tool_progress.parsed_tool_calls == 2 &&
+              deduplicated.tool_calls.size() == 1 &&
+              deduplicated.tool_progress.duplicate_calls_suppressed == 1,
+          "normalized duplicate tool calls were not suppressed");
+
+  const NativeOrderedJson mutating_request = {
+      {"messages",
+       NativeOrderedJson::array(
+           {{{"role", "user"}, {"content", "Delete resource 42"}}})},
+      {"tools",
+       NativeOrderedJson::array(
+           {{{"type", "function"},
+             {"function",
+              {{"name", "delete_resource"},
+               {"parameters",
+                {{"type", "object"},
+                 {"properties",
+                  {{"resource_id", {{"type", "string"}}}}},
+                 {"required", NativeOrderedJson::array({"resource_id"})},
+                 {"additionalProperties", false}}}}}}})}};
+  const auto mutating = aima::prepare_native_chat(mutating_request);
+  const std::string duplicate_mutation =
+      "<tool_call><function=delete_resource><parameter=resource_id>\n42\n"
+      "</parameter></function></tool_call>"
+      "<tool_call><function=delete_resource><parameter=resource_id>\n42\n"
+      "</parameter></function></tool_call>";
+  const auto safe_mutation = aima::parse_native_assistant_output(
+      duplicate_mutation, mutating, "call_mutating_");
+  require(safe_mutation.tool_calls.size() == 1 &&
+              safe_mutation.tool_progress.parsed_tool_calls == 2 &&
+              safe_mutation.tool_progress.duplicate_calls_suppressed == 1,
+          "duplicate mutating tool side effect was exposed twice");
+
+  const auto separated = aima::split_qwen_thinking_output(
+      "<think>\nreasoning</think>\r\nfinal answer", true);
+  require(separated.reasoning_content_provided &&
+              separated.reasoning_content == "reasoning" &&
+              separated.content == "final answer",
+          "thinking output was not separated");
+  const auto unfinished =
+      aima::split_qwen_thinking_output("unfinished reasoning", true);
+  require(unfinished.reasoning_content == "unfinished reasoning" &&
+              unfinished.content.empty(),
+          "unterminated thinking was exposed as final content");
+  const auto answer_only = aima::split_qwen_thinking_output(
+      "answer with </think> text", false);
+  require(!answer_only.reasoning_content_provided &&
+              answer_only.content == "answer with </think> text",
+          "disabled thinking changed answer-only output");
+
+  aima::NativeThinkingStreamGate thinking_gate(true);
+  aima::NativeThinkingStreamDelta thinking_delta;
+  std::string streamed_reasoning;
+  std::string streamed_answer;
+  for (const std::string_view fragment :
+       std::vector<std::string_view>{"<thi", "nk>\n推理</thi", "nk>\n",
+                                     "\n答案"}) {
+    thinking_delta = thinking_gate.push(fragment);
+    streamed_reasoning += thinking_delta.reasoning_content;
+    streamed_answer += thinking_delta.content;
+  }
+  thinking_delta = thinking_gate.finish();
+  streamed_reasoning += thinking_delta.reasoning_content;
+  streamed_answer += thinking_delta.content;
+  require(streamed_reasoning == "推理" && streamed_answer == "答案",
+          "split thinking markers leaked across stream chunks");
+
+  const auto thinking_tool = aima::parse_native_assistant_output(
+      "reason first</think>\n\n" + raw, thinking_enabled,
+      "call_thinking_");
+  require(thinking_tool.reasoning_content_provided &&
+              thinking_tool.reasoning_content == "reason first" &&
+              thinking_tool.content == "I will check.\n" &&
+              thinking_tool.tool_calls.size() == 1,
+          "thinking followed by a tool call was not separated and parsed");
+
   const std::string malformed =
       "plain <tool_call><function=weather><parameter=city>Paris";
   const auto fallback = aima::parse_qwen_tool_output(
@@ -274,6 +405,83 @@ int main() {
   require(history.messages[1].tool_calls[0].arguments[1].rendered_value ==
               "2",
           "history numeric argument rendering failed");
+
+  require(aima::native_tool_result_is_no_progress("Exit code: 0") &&
+              aima::native_tool_result_is_no_progress(
+                  R"({"stdout":"","exit_code":0})") &&
+              aima::native_tool_result_is_no_progress(
+                  R"({"error":"proxy unavailable"})") &&
+              aima::native_tool_result_is_no_progress(
+                  "Process exited with code 5\nFinal output:\n"
+                  "curl: (5) Could not resolve proxy") &&
+              aima::native_tool_result_is_no_progress(
+                  "Process exited with code 0\nFinal output:\n"
+                  "curl: (5) Could not resolve proxy") &&
+              !aima::native_tool_result_is_no_progress(
+                  R"({"temperature":20})"),
+          "tool result progress classification changed");
+
+  const auto failed_call = [](const char* id) {
+    return NativeOrderedJson{
+        {"role", "assistant"},
+        {"content", nullptr},
+        {"tool_calls",
+         NativeOrderedJson::array(
+             {{{"id", id},
+               {"type", "function"},
+               {"function",
+                {{"name", "weather"},
+                 {"arguments", R"({"city":"Paris"})"}}}}})}};
+  };
+  const std::string paris_call =
+      "<tool_call><function=weather><parameter=city>\nParis\n"
+      "</parameter></function></tool_call>";
+  NativeOrderedJson one_retry_request = {
+      {"messages", NativeOrderedJson::array()},
+      {"tools", NativeOrderedJson::array({ordered})}};
+  one_retry_request["messages"].push_back(
+      {{"role", "user"}, {"content", "Try weather"}});
+  one_retry_request["messages"].push_back(failed_call("call_failed_1"));
+  one_retry_request["messages"].push_back(
+      {{"role", "tool"},
+       {"tool_call_id", "call_failed_1"},
+       {"content", "Exit code: 0"}});
+  const auto one_retry =
+      aima::prepare_native_chat(one_retry_request);
+  const auto admitted_retry = aima::parse_native_assistant_output(
+      paris_call, one_retry, "call_retry_");
+  require(admitted_retry.tool_calls.size() == 1 &&
+              admitted_retry.tool_progress.history_signature_occurrences ==
+                  1 &&
+              admitted_retry.tool_progress.history_no_progress_results == 1 &&
+              !admitted_retry.tool_progress.no_progress,
+          "one same-signature retry after no progress was not admitted");
+
+  NativeOrderedJson exhausted_request = one_retry_request;
+  exhausted_request["messages"].push_back(failed_call("call_failed_2"));
+  exhausted_request["messages"].push_back(
+      {{"role", "tool"},
+       {"tool_call_id", "call_failed_2"},
+       {"content", R"({"error":"proxy unavailable"})"}});
+  const auto exhausted = aima::prepare_native_chat(exhausted_request);
+  const auto stopped = aima::parse_native_assistant_output(
+      paris_call, exhausted, "call_stopped_");
+  require(stopped.tool_calls.empty() && stopped.tool_progress.no_progress &&
+              stopped.tool_progress.history_signature_occurrences == 2 &&
+              stopped.tool_progress.history_no_progress_results == 2 &&
+              stopped.tool_progress.exhausted_history_calls_suppressed == 1 &&
+              stopped.tool_progress.parsed_tool_calls == 1,
+          "exhausted same-signature tool call was not bounded");
+
+  NativeOrderedJson single_parallel_request = request;
+  single_parallel_request["parallel_tool_calls"] = false;
+  const auto single_parallel =
+      aima::prepare_native_chat(single_parallel_request);
+  const auto one_of_two = aima::parse_native_assistant_output(
+      two_calls, single_parallel, "call_single_");
+  require(one_of_two.tool_calls.size() == 1 &&
+              one_of_two.tool_progress.parallel_calls_suppressed == 1,
+          "parallel_tool_calls=false admitted more than one call");
 
   const NativeOrderedJson media_request = {
       {"messages",

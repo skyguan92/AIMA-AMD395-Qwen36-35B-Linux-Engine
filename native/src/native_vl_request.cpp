@@ -374,8 +374,13 @@ NativeVlPreparedRequest prepare_native_vl_request(
   // choice and constrains the generated function arguments at the decoder.
   // `required` retains the existing native XML-tool contract until its
   // multi-tool JSON-array grammar is implemented and qualified separately.
-  const bool disable_thinking =
+  bool disable_thinking =
       chat.tool_choice == NativeToolChoiceMode::kRequired;
+  if (chat.thinking_mode == NativeThinkingMode::kEnabled) {
+    disable_thinking = false;
+  } else if (chat.thinking_mode == NativeThinkingMode::kDisabled) {
+    disable_thinking = true;
+  }
   const std::string prompt = tokenizer.render_chat_prompt(
       chat.vl_prompt_messages, chat.vl_prompt_tools, disable_thinking);
   // vLLM tokenizes each chat/content segment before replacing multimodal

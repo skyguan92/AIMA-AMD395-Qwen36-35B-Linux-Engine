@@ -168,6 +168,19 @@ and optionally a non-negative `seed`. The effective seed and sampling work are
 reported under `aima_amd395.sampling`; an explicit seed reproduces the same
 token sequence across stream and non-stream requests.
 
+Qwen reasoning is opt-in and backward compatible:
+
+```json
+"thinking": {"type": "enabled", "budget_tokens": 4608}
+```
+
+The non-stream response separates `message.reasoning_content` from final
+`message.content`; SSE emits `delta.reasoning_content` before `delta.content`.
+`budget_tokens` is a validated declaration inside the combined `max_tokens`
+limit, not an additional hard stop. Use `type:"disabled"` for an explicit
+answer-only text or VL request. See [docs/API.md](docs/API.md) for the exact
+default, validation, and raw-token rules.
+
 Live token output uses real SSE decode streaming:
 
 ```bash
@@ -187,7 +200,10 @@ curl -N http://127.0.0.1:8000/v1/chat/completions \
 The same endpoint accepts OpenAI function `tools`, `tool_choice`,
 `parallel_tool_calls`, assistant tool-call history and tool responses. See
 [docs/API.md](docs/API.md) for request/response examples and variable-prompt
-execution details.
+execution details. Exact normalized duplicates in one assistant response are
+suppressed. After two empty/error results for the same historical signature,
+another identical call is suppressed and `aima_amd395.tool_progress` tells the
+caller to change strategy or return a blocked/best-effort result.
 
 An image request uses the same endpoint and ordered OpenAI content parts:
 
