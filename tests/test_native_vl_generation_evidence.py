@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import unittest
 
+from aima_engine.release_evidence import NATIVE_VL_ARCHIVE_ONLY_COMPONENTS
 from aima_engine.vl_generation_layer_oracle import (
     BOUNDARY_NAMES,
     LAYER0_TAIL_BOUNDARY_SPECS,
@@ -76,7 +77,14 @@ def assert_component_current(
     test: unittest.TestCase, component: dict, root: Path = ROOT
 ) -> None:
     path = root / component["path"]
-    test.assertTrue(path.is_file(), component["path"])
+    if not path.is_file():
+        repository_relative = path.relative_to(ROOT)
+        test.assertEqual(
+            NATIVE_VL_ARCHIVE_ONLY_COMPONENTS.get(repository_relative),
+            (component["sha256"], component["bytes"]),
+            component["path"],
+        )
+        return
     test.assertEqual(path.stat().st_size, component["bytes"])
     test.assertEqual(
         hashlib.sha256(path.read_bytes()).hexdigest(), component["sha256"]
