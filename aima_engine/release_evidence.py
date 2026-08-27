@@ -20,6 +20,54 @@ NATIVE_VL_RAW_IMMUTABLE_KEYS = {
     "envelope",
     "temperature_sampling",
 }
+# These raw components were sealed into the completed native-VL release before
+# the repository-wide ``*.log`` ignore rule was noticed.  They live in the
+# separately published evidence archive, but a Git source checkout intentionally
+# does not contain them (one log also contains builder-local paths).  Keep the
+# exact archive identities here so source verification can project the sealed
+# tree without accepting any other missing path or digest.
+NATIVE_VL_ARCHIVE_ONLY_COMPONENTS: dict[Path, tuple[str, int]] = {
+    Path(
+        "benchmarks/results/native-vl-envelope-v0.1.0-raw/"
+        "processor-probe.stderr.log"
+    ): (
+        "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        0,
+    ),
+    Path(
+        "benchmarks/results/native-vl-envelope-v0.1.0-raw/"
+        "processor-probe.stdout.log"
+    ): (
+        "058478823fa1d09b40fdd1587f469ae8355530b05fc31c3d56aa33011075bedd",
+        31,
+    ),
+    Path(
+        "benchmarks/results/native-vl-envelope-v0.1.0-raw/server.stderr.log"
+    ): (
+        "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        0,
+    ),
+    Path(
+        "benchmarks/results/native-vl-envelope-v0.1.0-raw/server.stdout.log"
+    ): (
+        "e39b4b98321c8ab4194dd7253fb2a54ad6d169d4440fb75ecba27f93063bfbea",
+        2153,
+    ),
+    Path(
+        "benchmarks/results/native-vl-envelope-v0.1.0-raw/"
+        "vision-probe.stderr.log"
+    ): (
+        "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        0,
+    ),
+    Path(
+        "benchmarks/results/native-vl-generation-current-head-v0.1.0-raw/"
+        "probe.stderr.log"
+    ): (
+        "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        0,
+    ),
+}
 RELEASE_RECORDS: dict[str, dict[str, Path]] = {
     NATIVE_VL_RELEASE: {
         "product_result": Path(
@@ -146,17 +194,30 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def evidence_tree(path: Path) -> dict[str, Any]:
+def evidence_tree(
+    path: Path,
+    *,
+    virtual_components: dict[Path, tuple[str, int]] | None = None,
+) -> dict[str, Any]:
     digest = hashlib.sha256()
-    total_bytes = 0
-    files = sorted(candidate for candidate in path.rglob("*") if candidate.is_file())
-    for candidate in files:
-        total_bytes += candidate.stat().st_size
-        line = f"{sha256(candidate)}  {candidate.relative_to(path).as_posix()}\n"
+    records = {
+        candidate.relative_to(path): (sha256(candidate), candidate.stat().st_size)
+        for candidate in path.rglob("*")
+        if candidate.is_file()
+    }
+    for relative, component in (virtual_components or {}).items():
+        if relative.is_absolute() or ".." in relative.parts:
+            raise ValueError(f"virtual evidence component escapes tree: {relative}")
+        records.setdefault(relative, component)
+
+    total_bytes = sum(size for _, size in records.values())
+    for relative in sorted(records):
+        component_digest, _ = records[relative]
+        line = f"{component_digest}  {relative.as_posix()}\n"
         digest.update(line.encode("utf-8"))
     return {
         "path": path.as_posix(),
-        "file_count": len(files),
+        "file_count": len(records),
         "bytes": total_bytes,
         "tree_sha256": digest.hexdigest(),
     }
@@ -273,11 +334,64 @@ def _recorded_artifact_paths(root: Path, owner: Path, value: Any) -> list[Path]:
     return paths
 
 
-def _verify_recorded_artifacts(root: Path, owner: Path, value: Any) -> list[str]:
+def _matches_archive_only_component(
+    root: Path,
+    path: Path,
+    expected_digest: str,
+    expected_bytes: Any,
+    archive_only_components: dict[Path, tuple[str, int]] | None,
+) -> bool:
+    if archive_only_components is None:
+        return False
+    try:
+        relative = path.resolve().relative_to(root.resolve())
+    except ValueError:
+        return False
+    component = archive_only_components.get(relative)
+    if component is None or component[0] != expected_digest:
+        return False
+    return expected_bytes is None or expected_bytes == component[1]
+
+
+def _virtual_components_for_tree(
+    root: Path,
+    tree: Path,
+    archive_only_components: dict[Path, tuple[str, int]] | None,
+) -> dict[Path, tuple[str, int]]:
+    if archive_only_components is None:
+        return {}
+    root = root.resolve()
+    tree = tree.resolve()
+    virtual: dict[Path, tuple[str, int]] = {}
+    for repository_relative, component in archive_only_components.items():
+        try:
+            tree_relative = (root / repository_relative).resolve().relative_to(tree)
+        except ValueError:
+            continue
+        virtual[tree_relative] = component
+    return virtual
+
+
+def _verify_recorded_artifacts(
+    root: Path,
+    owner: Path,
+    value: Any,
+    *,
+    archive_only_components: dict[Path, tuple[str, int]] | None = None,
+) -> list[str]:
+    root = root.resolve()
+    owner = owner.resolve()
     errors: list[str] = []
     if isinstance(value, list):
         for item in value:
-            errors.extend(_verify_recorded_artifacts(root, owner, item))
+            errors.extend(
+                _verify_recorded_artifacts(
+                    root,
+                    owner,
+                    item,
+                    archive_only_components=archive_only_components,
+                )
+            )
         return errors
     if not isinstance(value, dict):
         return errors
@@ -292,7 +406,16 @@ def _verify_recorded_artifacts(root: Path, owner: Path, value: Any) -> list[str]
         path = _resolve_recorded_path(root, owner, recorded_path)
         if path is not None:
             if not path.is_file():
-                errors.append(f"missing evidence artifact: {path.relative_to(root)}")
+                if not _matches_archive_only_component(
+                    root,
+                    path,
+                    component_digest,
+                    value.get("bytes"),
+                    archive_only_components,
+                ):
+                    errors.append(
+                        f"missing evidence artifact: {path.relative_to(root)}"
+                    )
             elif sha256(path) != component_digest:
                 errors.append(f"evidence hash mismatch: {path.relative_to(root)}")
 
@@ -334,11 +457,27 @@ def _verify_recorded_artifacts(root: Path, owner: Path, value: Any) -> list[str]
             if path is None:
                 continue
             if not path.is_file():
-                errors.append(f"missing evidence artifact: {path.relative_to(root)}")
+                if not _matches_archive_only_component(
+                    root,
+                    path,
+                    expected,
+                    None,
+                    archive_only_components,
+                ):
+                    errors.append(
+                        f"missing evidence artifact: {path.relative_to(root)}"
+                    )
             elif sha256(path) != expected:
                 errors.append(f"evidence hash mismatch: {path.relative_to(root)}")
     for nested in value.values():
-        errors.extend(_verify_recorded_artifacts(root, owner, nested))
+        errors.extend(
+            _verify_recorded_artifacts(
+                root,
+                owner,
+                nested,
+                archive_only_components=archive_only_components,
+            )
+        )
     return errors
 
 
@@ -347,12 +486,28 @@ def _release_record(release: str) -> dict[str, Path] | None:
 
 
 def verify_release_evidence(
-    root: Path, release: str = DEFAULT_RELEASE
+    root: Path,
+    release: str = DEFAULT_RELEASE,
+    *,
+    require_archived_components: bool = False,
 ) -> list[str]:
+    """Verify sealed evidence, optionally requiring archive-only raw components.
+
+    A Git source checkout can validate the completed native-VL evidence using
+    exact digest-bound projections for the six historical ``*.log`` components.
+    Evidence archive creation sets ``require_archived_components`` so the files
+    themselves must be mounted and pass their recorded hashes.
+    """
     root = root.resolve()
     release_record = _release_record(release)
     if release_record is None:
         return [f"unsupported release evidence: {release}"]
+
+    archive_only_components = (
+        NATIVE_VL_ARCHIVE_ONLY_COMPONENTS
+        if release == NATIVE_VL_RELEASE and not require_archived_components
+        else None
+    )
 
     public_result = _load(root / release_record["product_result"])
     bundle_result = _load(root / release_record["bundle_result"])
@@ -445,7 +600,12 @@ def verify_release_evidence(
                 and key in NATIVE_VL_RAW_IMMUTABLE_KEYS
             ):
                 errors.extend(
-                    _verify_recorded_artifacts(root, path, _load(path))
+                    _verify_recorded_artifacts(
+                        root,
+                        path,
+                        _load(path),
+                        archive_only_components=archive_only_components,
+                    )
                 )
 
     public_evidence = provenance.get("public_evidence")
@@ -498,7 +658,14 @@ def verify_release_evidence(
             continue
         path = root / record["path"]
         if path.is_file():
-            errors.extend(_verify_recorded_artifacts(root, path, _load(path)))
+            errors.extend(
+                _verify_recorded_artifacts(
+                    root,
+                    path,
+                    _load(path),
+                    archive_only_components=archive_only_components,
+                )
+            )
         tree_path = record.get("tree_path")
         directory = (
             root / tree_path
@@ -507,7 +674,14 @@ def verify_release_evidence(
         )
         if directory.is_dir():
             for raw_json in sorted(directory.rglob("*.json")):
-                errors.extend(_verify_recorded_artifacts(root, raw_json, _load(raw_json)))
+                errors.extend(
+                    _verify_recorded_artifacts(
+                        root,
+                        raw_json,
+                        _load(raw_json),
+                        archive_only_components=archive_only_components,
+                    )
+                )
 
     tree_records = provenance.get("public_evidence_trees")
     if not isinstance(tree_records, dict) or set(tree_records) != expected_keys:
@@ -522,7 +696,14 @@ def verify_release_evidence(
                 if isinstance(tree_path, str)
                 else (root / record["path"]).parent
             )
-            actual = evidence_tree(directory)
+            actual = evidence_tree(
+                directory,
+                virtual_components=_virtual_components_for_tree(
+                    root,
+                    directory,
+                    archive_only_components,
+                ),
+            )
             actual["path"] = directory.relative_to(root).as_posix()
             if tree_records.get(key) != actual:
                 errors.append(f"public evidence tree mismatch: {key}")

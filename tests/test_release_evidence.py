@@ -7,7 +7,9 @@ import unittest
 
 from aima_engine.release_evidence import (
     DEFAULT_RELEASE,
+    NATIVE_VL_ARCHIVE_ONLY_COMPONENTS,
     _verify_recorded_artifacts,
+    evidence_tree,
 )
 
 
@@ -82,6 +84,113 @@ class ReleaseEvidencePathResolutionTest(unittest.TestCase):
             errors = _verify_recorded_artifacts(root, owner, value)
             self.assertEqual(len(errors), 1)
             self.assertIn("malformed report/report_sha256 pair", errors[0])
+
+    def test_exact_archive_only_component_can_be_projected(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            relative = Path(
+                "benchmarks/results/native-vl-envelope-v0.1.0-raw/"
+                "processor-probe.stdout.log"
+            )
+            component_digest, component_bytes = NATIVE_VL_ARCHIVE_ONLY_COMPONENTS[
+                relative
+            ]
+            owner = root / "benchmarks/results/native-vl-envelope-v0.1.0.json"
+            value = {
+                "bytes": component_bytes,
+                "path": relative.relative_to("benchmarks/results").as_posix(),
+                "sha256": component_digest,
+            }
+
+            self.assertEqual(
+                _verify_recorded_artifacts(
+                    root,
+                    owner,
+                    value,
+                    archive_only_components=NATIVE_VL_ARCHIVE_ONLY_COMPONENTS,
+                ),
+                [],
+            )
+            self.assertIn(
+                "missing evidence artifact",
+                _verify_recorded_artifacts(root, owner, value)[0],
+            )
+
+    def test_archive_only_projection_rejects_changed_identity_or_content(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            relative = Path(
+                "benchmarks/results/native-vl-envelope-v0.1.0-raw/"
+                "processor-probe.stdout.log"
+            )
+            component_digest, component_bytes = NATIVE_VL_ARCHIVE_ONLY_COMPONENTS[
+                relative
+            ]
+            owner = root / "benchmarks/results/native-vl-envelope-v0.1.0.json"
+            value = {
+                "bytes": component_bytes + 1,
+                "path": relative.relative_to("benchmarks/results").as_posix(),
+                "sha256": component_digest,
+            }
+            errors = _verify_recorded_artifacts(
+                root,
+                owner,
+                value,
+                archive_only_components=NATIVE_VL_ARCHIVE_ONLY_COMPONENTS,
+            )
+            self.assertEqual(len(errors), 1)
+            self.assertIn("missing evidence artifact", errors[0])
+
+            value["bytes"] = component_bytes
+            value["sha256"] = "0" * 64
+            errors = _verify_recorded_artifacts(
+                root,
+                owner,
+                value,
+                archive_only_components=NATIVE_VL_ARCHIVE_ONLY_COMPONENTS,
+            )
+            self.assertEqual(len(errors), 1)
+            self.assertIn("missing evidence artifact", errors[0])
+
+            value["path"] = "unsealed-raw/processor-probe.stdout.log"
+            value["sha256"] = component_digest
+            errors = _verify_recorded_artifacts(
+                root,
+                owner,
+                value,
+                archive_only_components=NATIVE_VL_ARCHIVE_ONLY_COMPONENTS,
+            )
+            self.assertEqual(len(errors), 1)
+            self.assertIn("missing evidence artifact", errors[0])
+
+            target = root / relative
+            target.parent.mkdir(parents=True)
+            target.write_text("tampered\n", encoding="utf-8")
+            value["path"] = relative.relative_to("benchmarks/results").as_posix()
+            errors = _verify_recorded_artifacts(
+                root,
+                owner,
+                value,
+                archive_only_components=NATIVE_VL_ARCHIVE_ONLY_COMPONENTS,
+            )
+            self.assertEqual(len(errors), 1)
+            self.assertIn("evidence hash mismatch", errors[0])
+
+    def test_virtual_component_reproduces_materialized_tree(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            tree = Path(directory)
+            (tree / "present.json").write_text("{}\n", encoding="utf-8")
+            payload = b"archived component\n"
+            virtual = {
+                Path("archived.log"): (
+                    hashlib.sha256(payload).hexdigest(),
+                    len(payload),
+                )
+            }
+            projected = evidence_tree(tree, virtual_components=virtual)
+            (tree / "archived.log").write_bytes(payload)
+
+            self.assertEqual(projected, evidence_tree(tree))
 
 
 if __name__ == "__main__":

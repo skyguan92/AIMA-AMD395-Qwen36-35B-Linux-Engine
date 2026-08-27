@@ -44,7 +44,11 @@ def main() -> int:
     if output.exists() or checksum.exists():
         raise SystemExit(f"refusing to replace existing evidence asset: {output}")
 
-    errors = verify_release_evidence(root, release=args.release)
+    errors = verify_release_evidence(
+        root,
+        release=args.release,
+        require_archived_components=True,
+    )
     if errors:
         raise SystemExit("\n".join(errors))
     inputs = evidence_paths(root, release=args.release)

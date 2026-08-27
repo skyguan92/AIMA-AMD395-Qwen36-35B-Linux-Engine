@@ -17,8 +17,17 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=ROOT)
     parser.add_argument("--release", default=DEFAULT_RELEASE)
+    parser.add_argument(
+        "--require-archived-components",
+        action="store_true",
+        help="require raw components stored only in the public evidence archive",
+    )
     args = parser.parse_args()
-    errors = verify_release_evidence(args.root, release=args.release)
+    errors = verify_release_evidence(
+        args.root,
+        release=args.release,
+        require_archived_components=args.require_archived_components,
+    )
     if errors:
         for error in errors:
             print(error)
