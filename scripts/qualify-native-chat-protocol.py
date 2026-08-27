@@ -40,6 +40,22 @@ def sha256_text(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
+def seal_file(path: Path) -> str:
+    digest = sha256_file(path)
+    path.with_name(path.name + ".sha256").write_text(
+        f"{digest}  {path.name}\n", encoding="utf-8"
+    )
+    return digest
+
+
+def file_component(path: Path, relative_path: str) -> dict[str, Any]:
+    return {
+        "path": relative_path,
+        "bytes": path.stat().st_size,
+        "sha256": sha256_file(path),
+    }
+
+
 def sanitize_host_paths(
     value: Any, replacements: list[tuple[Path, str]]
 ) -> Any:
@@ -487,9 +503,15 @@ def main() -> None:
         "max_tokens": 128,
     }
 
+    raw_dir = output.with_name(output.stem + "-raw")
+    require(
+        not output.exists() and not raw_dir.exists(),
+        "refusing to reuse native chat protocol qualification output",
+    )
     output.parent.mkdir(parents=True, exist_ok=True)
-    stderr_path = output.with_suffix(".stderr.txt")
-    load_report = output.with_suffix(".load.json")
+    raw_dir.mkdir()
+    stderr_path = raw_dir / "stderr.txt"
+    load_report = raw_dir / "native-weight-load.json"
     command = [
         str(engine),
         "serve",
@@ -745,6 +767,18 @@ def main() -> None:
                 process.kill()
                 process.wait(timeout=10)
 
+    load_language_report = load_report.with_suffix(".language.json")
+    load_visual_report = load_report.with_suffix(".visual.json")
+    raw_artifacts = (
+        load_report,
+        load_language_report,
+        load_visual_report,
+        stderr_path,
+    )
+    for artifact in raw_artifacts:
+        require(artifact.is_file(), f"raw artifact is missing: {artifact.name}")
+        seal_file(artifact)
+
     qualified = bool(checks) and all(checks.values())
     result = {
         "schema": "aima.native-chat-protocol-qualification.v0.1.0",
@@ -775,8 +809,20 @@ def main() -> None:
                 for value in command
             ],
             "ready": ready,
-            "load_report": str(load_report.name),
-            "stderr": str(stderr_path.name),
+            "load_report": file_component(
+                load_report, f"{raw_dir.name}/{load_report.name}"
+            ),
+            "language_load_report": file_component(
+                load_language_report,
+                f"{raw_dir.name}/{load_language_report.name}",
+            ),
+            "visual_load_report": file_component(
+                load_visual_report,
+                f"{raw_dir.name}/{load_visual_report.name}",
+            ),
+            "stderr": file_component(
+                stderr_path, f"{raw_dir.name}/{stderr_path.name}"
+            ),
         },
         "checks": checks,
         "observations": observations,
@@ -789,13 +835,23 @@ def main() -> None:
             (model_dir, "${AIMA_MODEL_DIR}"),
             (image.parent, "${AIMA_IMAGE_DIR}"),
             (output.parent, "${AIMA_OUTPUT_DIR}"),
+            (raw_dir, "${AIMA_RAW_DIR}"),
             (ROOT, "${AIMA_SOURCE_ROOT}"),
         ],
     )
     private_prefixes = ("/home/", "/Users/", "/data/", "/tmp/")
     public_payload = json.dumps(result, ensure_ascii=False, sort_keys=True)
-    result["checks"]["artifact_paths_sanitized"] = not any(
-        prefix in public_payload for prefix in private_prefixes
+    result["checks"]["artifact_paths_sanitized"] = (
+        not any(prefix in public_payload for prefix in private_prefixes)
+        and all(
+            not any(
+                prefix in artifact.read_text(
+                    encoding="utf-8", errors="replace"
+                )
+                for prefix in private_prefixes
+            )
+            for artifact in raw_artifacts
+        )
     )
     checks = result["checks"]
     qualified = bool(checks) and all(checks.values())
@@ -814,10 +870,7 @@ def main() -> None:
         result, ensure_ascii=False, indent=2, sort_keys=True
     ) + "\n"
     output.write_text(serialized, encoding="utf-8")
-    output.with_suffix(output.suffix + ".sha256").write_text(
-        f"{hashlib.sha256(serialized.encode('utf-8')).hexdigest()}  {output.name}\n",
-        encoding="utf-8",
-    )
+    seal_file(output)
     print(json.dumps({"qualified": qualified, "checks": checks}, indent=2))
     if not qualified:
         raise SystemExit(1)
