@@ -10,7 +10,11 @@ from aima_engine.release_evidence import (
     NATIVE_VL_ARCHIVE_ONLY_COMPONENTS,
     _verify_recorded_artifacts,
     evidence_tree,
+    verify_release_evidence,
 )
+
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def digest(path: Path) -> str:
@@ -19,7 +23,10 @@ def digest(path: Path) -> str:
 
 class ReleaseEvidencePathResolutionTest(unittest.TestCase):
     def test_completed_native_vl_release_is_the_default(self) -> None:
-        self.assertEqual(DEFAULT_RELEASE, "1.5.1-native-vl.4")
+        self.assertEqual(DEFAULT_RELEASE, "1.5.1-native-vl.5")
+
+    def test_default_patch_release_evidence_verifies(self) -> None:
+        self.assertEqual(verify_release_evidence(ROOT), [])
 
     def test_inline_http_response_digest_is_not_treated_as_a_path(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -66,6 +73,27 @@ class ReleaseEvidencePathResolutionTest(unittest.TestCase):
             value = {
                 "path": "benchmarks/runs/native-vl-resident-soak/soak.json",
                 "sha256": digest(target),
+            }
+
+            self.assertEqual(
+                _verify_recorded_artifacts(root, owner, value), []
+            )
+
+    def test_matching_release_suffix_disambiguates_cross_run_reference(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            runs = root / "benchmarks/runs"
+            owner = runs / "native-vl-rollback-20260901-vl5-final/rollback.json"
+            old = runs / "native-vl-resident-soak-20260824-vl4-final/soak.json"
+            current = runs / "native-vl-resident-soak-20260901-vl5-final/soak.json"
+            owner.parent.mkdir(parents=True)
+            old.parent.mkdir(parents=True)
+            current.parent.mkdir(parents=True)
+            old.write_text('{"release":"old"}\n', encoding="utf-8")
+            current.write_text('{"release":"current"}\n', encoding="utf-8")
+            value = {
+                "path": "benchmarks/runs/native-vl-resident-soak/soak.json",
+                "sha256": digest(current),
             }
 
             self.assertEqual(

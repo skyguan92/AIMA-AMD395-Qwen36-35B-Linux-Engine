@@ -10,8 +10,18 @@ from typing import Any
 from aima_engine.vl_reference import verify_manifest_integrity
 
 
-DEFAULT_RELEASE = "1.5.1-native-vl.4"
+DEFAULT_RELEASE = "1.5.1-native-vl.5"
 NATIVE_VL_RELEASE = "1.5.1-native-vl.4"
+PATCH_VL_RELEASE = "1.5.1-native-vl.5"
+SEALED_RELEASES = {NATIVE_VL_RELEASE, PATCH_VL_RELEASE}
+PATCH_VL_RELEASE_COMMIT = "eb7d8ac30cea4401a068fd25f1f1379c72eaf448"
+PATCH_VL_NATIVE_COMMIT = "06a35e36269a9fe443c56e99c5fedf7ca25304cc"
+PATCH_VL_ENGINE_SHA256 = (
+    "1138a62b9515118a1237849bfe02ea8daeccec94d88a92e49c885775619bf829"
+)
+PATCH_VL_ARCHIVE_SHA256 = (
+    "59f30c4232b8459f3efcd7b8506cc71b957614c0aac1fa96a2eb4e15f52940a3"
+)
 NATIVE_VL_RAW_IMMUTABLE_KEYS = {
     "g1",
     "g2",
@@ -69,6 +79,49 @@ NATIVE_VL_ARCHIVE_ONLY_COMPONENTS: dict[Path, tuple[str, int]] = {
     ),
 }
 RELEASE_RECORDS: dict[str, dict[str, Path]] = {
+    PATCH_VL_RELEASE: {
+        "product_result": Path(
+            "benchmarks/results/native-vl-g5-release-v1.5.1-native-vl.5.json"
+        ),
+        "bundle_result": Path(
+            "benchmarks/results/"
+            "native-portable-bundle-v1.5.1-native-vl.5.json"
+        ),
+        "provenance": Path(
+            "benchmarks/results/"
+            "native-release-provenance-v1.5.1-native-vl.5.json"
+        ),
+        "product_contract": Path(
+            "native/product-contract-v1.5.1-native-vl.5.json"
+        ),
+        "package_input": Path(
+            "benchmarks/results/"
+            "native-portable-product-v1.5.1-native-vl.5.json"
+        ),
+        "chat_protocol": Path(
+            "benchmarks/results/"
+            "native-chat-protocol-v1.5.1-native-vl.5.json"
+        ),
+        "http_control_plane": Path(
+            "benchmarks/results/"
+            "native-http-control-plane-v1.5.1-native-vl.5.json"
+        ),
+        "archive_manifest": Path(
+            "benchmarks/results/"
+            "native-portable-manifest-v1.5.1-native-vl.5.json"
+        ),
+        "archive_checksum": Path(
+            "benchmarks/results/"
+            "aima-engine-native-portable-194f2a673904.tar.zst.sha256"
+        ),
+        "baseline_g5": Path(
+            "benchmarks/results/native-vl-g5-release-v1.5.1-native-vl.4.json"
+        ),
+        "baseline_package_input": Path(
+            "benchmarks/results/"
+            "native-portable-product-v1.5.1-native-vl.4.json"
+        ),
+    },
     NATIVE_VL_RELEASE: {
         "product_result": Path(
             "benchmarks/results/native-vl-g5-release-v1.5.1-native-vl.4.json"
@@ -160,6 +213,12 @@ CORE_PRODUCT_EVIDENCE_KEYS = {
     "openai_features",
 }
 PRODUCT_EVIDENCE_KEYS = {
+    PATCH_VL_RELEASE: {
+        "bundle",
+        "resident_soak",
+        "rollback",
+        "release_gates",
+    },
     "1.5.1-native-vl.4": {
         "primary_bundle",
         "second_bundle",
@@ -170,6 +229,10 @@ PRODUCT_EVIDENCE_KEYS = {
     "1.5.0": CORE_PRODUCT_EVIDENCE_KEYS | {"capability_eval"},
 }
 STANDALONE_EVIDENCE_KEYS = {
+    PATCH_VL_RELEASE: {
+        "chat_protocol",
+        "http_control_plane",
+    },
     "1.5.1-native-vl.4": {
         "g1_g2",
         "g1_generation_raw",
@@ -270,6 +333,30 @@ def _resolve_recorded_path(root: Path, owner: Path, value: str) -> Path | None:
             )
             if len(candidates) == 1:
                 return candidates[0]
+            if len(candidates) > 1:
+                owner_parts = owner_run.split("-")
+
+                def suffix_score(candidate: Path) -> int:
+                    candidate_run = candidate.relative_to(runs_root).parts[0]
+                    candidate_parts = candidate_run.split("-")
+                    score = 0
+                    for owner_part, candidate_part in zip(
+                        reversed(owner_parts), reversed(candidate_parts)
+                    ):
+                        if owner_part != candidate_part:
+                            break
+                        score += 1
+                    return score
+
+                scores = {candidate: suffix_score(candidate) for candidate in candidates}
+                maximum = max(scores.values())
+                matches = [
+                    candidate
+                    for candidate, score in scores.items()
+                    if score == maximum and score > 0
+                ]
+                if len(matches) == 1:
+                    return matches[0]
         return exact
 
     relative: Path
@@ -449,7 +536,9 @@ def _verify_recorded_artifacts(
         if not isinstance(digests, list) or len(paths) != len(digests):
             errors.append(f"{owner}: malformed {path_key}/{digest_key} pair")
             continue
-        for recorded_path, expected in zip(paths, digests, strict=True):
+        # Length equality is checked immediately above; avoid Python 3.10's
+        # ``zip(strict=...)`` so evidence verification also runs on Python 3.9.
+        for recorded_path, expected in zip(paths, digests):
             if not isinstance(recorded_path, str) or not isinstance(expected, str):
                 errors.append(f"{owner}: non-string {path_key}/{digest_key} value")
                 continue
@@ -514,7 +603,7 @@ def verify_release_evidence(
     provenance = _load(root / release_record["provenance"])
     errors: list[str] = []
 
-    if release == NATIVE_VL_RELEASE:
+    if release in SEALED_RELEASES:
         for label, value in (
             ("product result", public_result),
             ("portable bundle result", bundle_result),
@@ -522,19 +611,34 @@ def verify_release_evidence(
         ):
             for error in verify_manifest_integrity(value):
                 errors.append(f"{label} integrity failed: {error}")
-        sealed_paths = [
-            release_record["product_result"],
-            release_record["bundle_result"],
-            release_record["provenance"],
-            release_record["package_input"],
-            release_record["g1"],
-            release_record["g2"],
-            release_record["g3"],
-            release_record["g4"],
-            release_record["envelope"],
-            release_record["temperature_sampling"],
-        ]
-        for relative in sealed_paths:
+        if release == NATIVE_VL_RELEASE:
+            integrity_paths = [
+                release_record["product_result"],
+                release_record["bundle_result"],
+                release_record["provenance"],
+                release_record["package_input"],
+                release_record["g1"],
+                release_record["g2"],
+                release_record["g3"],
+                release_record["g4"],
+                release_record["envelope"],
+                release_record["temperature_sampling"],
+            ]
+            sidecar_paths = integrity_paths
+        else:
+            integrity_paths = [
+                release_record["product_result"],
+                release_record["bundle_result"],
+                release_record["provenance"],
+                release_record["package_input"],
+                release_record["chat_protocol"],
+                release_record["http_control_plane"],
+            ]
+            sidecar_paths = [
+                *integrity_paths,
+                release_record["archive_manifest"],
+            ]
+        for relative in sidecar_paths:
             path = root / relative
             sidecar = path.with_name(path.name + ".sha256")
             expected = f"{sha256(path)}  {path.name}\n" if path.is_file() else ""
@@ -542,7 +646,7 @@ def verify_release_evidence(
                 encoding="utf-8"
             ) != expected:
                 errors.append(f"sealed record sidecar differs: {relative}")
-            if path.is_file():
+            if path.is_file() and relative in integrity_paths:
                 for error in verify_manifest_integrity(_load(path)):
                     errors.append(f"sealed record integrity failed: {relative}: {error}")
 
@@ -559,6 +663,63 @@ def verify_release_evidence(
         errors.append("product result is not qualified")
     if bundle_result.get("qualified") is not True:
         errors.append("portable bundle result is not qualified")
+    if release == PATCH_VL_RELEASE:
+        source = public_result.get("source", {})
+        package_input = _load(root / release_record["package_input"])
+        manifest = _load(root / release_record["archive_manifest"])
+        manifest_files = {
+            str(item.get("path")): item
+            for item in manifest.get("files", [])
+            if isinstance(item, dict)
+        }
+        expected_source = {
+            "native_source_commit": PATCH_VL_NATIVE_COMMIT,
+            "native_source_dirty": False,
+            "release_commit": PATCH_VL_RELEASE_COMMIT,
+            "release_tag": f"v{PATCH_VL_RELEASE}",
+        }
+        if source != expected_source:
+            errors.append("patch release source identity differs")
+        if (
+            public_result.get("archive", {}).get("sha256")
+            != PATCH_VL_ARCHIVE_SHA256
+            or bundle_result.get("archive", {}).get("sha256")
+            != PATCH_VL_ARCHIVE_SHA256
+        ):
+            errors.append("patch release archive identity differs")
+        if (
+            public_result.get("candidate", {}).get("native_engine_sha256")
+            != PATCH_VL_ENGINE_SHA256
+            or package_input.get("components", {})
+            .get("native_engine", {})
+            .get("sha256")
+            != PATCH_VL_ENGINE_SHA256
+            or manifest_files.get("libexec/aima-engine.real", {}).get("sha256")
+            != PATCH_VL_ENGINE_SHA256
+        ):
+            errors.append("patch release engine identity differs")
+        if (
+            public_result.get("decision", {}).get("patch_release_promoted")
+            is not True
+            or manifest.get("complete") is not True
+            or manifest.get("release") != PATCH_VL_RELEASE
+            or manifest.get("source", {}).get("commit")
+            != PATCH_VL_RELEASE_COMMIT
+            or manifest.get("source", {}).get("native_commit")
+            != PATCH_VL_NATIVE_COMMIT
+            or manifest.get("source", {}).get("dirty") is not False
+        ):
+            errors.append("patch release promotion or manifest differs")
+        checksum = root / release_record["archive_checksum"]
+        expected_checksum = (
+            f"{PATCH_VL_ARCHIVE_SHA256}  "
+            "aima-engine-native-portable-194f2a673904.tar.zst\n"
+        )
+        if (
+            not checksum.is_file()
+            or checksum.read_text(encoding="utf-8") != expected_checksum
+        ):
+            errors.append("patch release archive checksum differs")
 
     expected_immutable = {
         "product_result": release_record["product_result"],
@@ -576,6 +737,16 @@ def verify_release_evidence(
         expected_immutable["temperature_sampling"] = release_record[
             "temperature_sampling"
         ]
+    if release == PATCH_VL_RELEASE:
+        for key in (
+            "chat_protocol",
+            "http_control_plane",
+            "archive_manifest",
+            "archive_checksum",
+            "baseline_g5",
+            "baseline_package_input",
+        ):
+            expected_immutable[key] = release_record[key]
     immutable_records = provenance.get("immutable_records")
     if not isinstance(immutable_records, dict):
         errors.append("immutable release records are missing")
@@ -627,12 +798,22 @@ def verify_release_evidence(
             errors.append(f"public evidence record is missing: {key}")
             continue
         recorded_path = result_record.get("path")
-        mirrored = (
-            _public_mirror_path(recorded_path)
-            if isinstance(recorded_path, str)
-            else None
-        )
-        if mirrored is None or mirrored.as_posix() != provenance_record.get("path"):
+        if release == PATCH_VL_RELEASE and isinstance(recorded_path, str):
+            provenance_path = provenance_record.get("path")
+            path_matches = isinstance(provenance_path, str) and Path(
+                recorded_path
+            ).name == Path(provenance_path).name
+        else:
+            mirrored = (
+                _public_mirror_path(recorded_path)
+                if isinstance(recorded_path, str)
+                else None
+            )
+            path_matches = (
+                mirrored is not None
+                and mirrored.as_posix() == provenance_record.get("path")
+            )
+        if not path_matches:
             errors.append(f"public result path mismatch: {key}")
         if result_record.get("sha256") != provenance_record.get("sha256"):
             errors.append(f"provenance evidence mismatch: {key}")
@@ -718,7 +899,7 @@ def evidence_paths(root: Path, release: str = DEFAULT_RELEASE) -> list[Path]:
     provenance_path = root / release_record["provenance"]
     provenance = _load(provenance_path)
     paths = [provenance_path]
-    if release == NATIVE_VL_RELEASE:
+    if release in SEALED_RELEASES:
         provenance_sidecar = provenance_path.with_name(
             provenance_path.name + ".sha256"
         )
@@ -727,11 +908,15 @@ def evidence_paths(root: Path, release: str = DEFAULT_RELEASE) -> list[Path]:
     for key, record in provenance["immutable_records"].items():
         path = root / record["path"]
         paths.append(path)
-        if release == NATIVE_VL_RELEASE:
+        if release in SEALED_RELEASES:
             sidecar = path.with_name(path.name + ".sha256")
             if sidecar.is_file():
                 paths.append(sidecar)
-            if key in NATIVE_VL_RAW_IMMUTABLE_KEYS and path.is_file():
+            if (
+                release == NATIVE_VL_RELEASE
+                and key in NATIVE_VL_RAW_IMMUTABLE_KEYS
+                and path.is_file()
+            ):
                 paths.extend(_recorded_artifact_paths(root, path, _load(path)))
     for record in provenance["public_evidence"].values():
         summary = root / record["path"]
