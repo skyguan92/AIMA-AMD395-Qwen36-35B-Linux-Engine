@@ -1,5 +1,36 @@
 # Release provenance and procedure
 
+## v1.5.1-native-vl.5 patch boundary
+
+The immutable `v1.5.1-native-vl.5` tag publishes the CPU protocol and HTTP
+control-plane patch on top of the complete `.4` native VL product. The engine
+embeds source commit `06a35e36269a9fe443c56e99c5fedf7ca25304cc` and has
+SHA-256
+`1138a62b9515118a1237849bfe02ea8daeccec94d88a92e49c885775619bf829`.
+It adds opt-in thinking, stream/non-stream reasoning separation, bounded
+no-progress tool-call retries and one bounded serial chat executor. Health,
+model-list and shutdown routing remains on the accept loop while exactly one
+chat owns the engine, tokenizer and caches. `SIGINT` and `SIGTERM` interrupt an
+incomplete request read even when request timeouts are disabled.
+
+This is an explicitly scoped patch qualification. The sealed `.4` G1-G4 and
+two-host portable-userspace results are inherited only when the source diff
+from `bd012874027defa528279a357609b713e9069df4` to the embedded `.5` source is
+exactly the seven CPU/control/build paths listed in
+[`product-contract-v1.5.1-native-vl.5.json`](../native/product-contract-v1.5.1-native-vl.5.json),
+the release checkout has the same runtime tree, and every provider/AOT image
+retains its `.4` hash. The release record must label those measurements as
+inherited; it must not imply that the `.4` engine or second-host run was the
+exact `.5` candidate.
+
+The exact `.5` engine must independently pass the native chat-protocol and
+HTTP control-plane qualifiers. The final archive must then pass isolated
+AMD395 bundle execution, the full one-hour/240-request mixed-workload soak,
+rollback to the exact v1.5.1 archive, and clean-tag `make check`,
+`make security-scan` and `make verify-evidence`. These patch-specific results,
+the archive manifest/checksum and the inherited baseline identities are bound
+into the additive public release evidence.
+
 ## v1.5.1-native-vl.4 boundary
 
 The immutable `v1.5.1-native-vl.4` tag is the first portable native release

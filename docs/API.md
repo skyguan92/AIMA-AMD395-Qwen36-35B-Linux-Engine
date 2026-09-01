@@ -1,6 +1,6 @@
 # Native CLI and HTTP API
 
-This page documents the v1.5.1-native-vl.4 native CLI and HTTP API. Earlier
+This page documents the v1.5.1-native-vl.5 native CLI and HTTP API. Earlier
 binaries do not include every command, multimodal surface and hardening control
 described here.
 
@@ -85,9 +85,11 @@ request-read and per-blocking-write socket timeouts, but the 1 MiB request-body
 limit remains. Disable timeouts only when slow clients and indefinitely blocked
 writes are operationally acceptable. In particular, request accept/read/routing
 is single-threaded: at `0`, an incomplete or slow request can block every HTTP
-endpoint, including `/health` and HTTP `/shutdown`, indefinitely. A blocked
-main-thread control write or queued-chat cancellation write can also delay
-shutdown. Use a finite positive timeout when liveness matters.
+endpoint, including `/health` and HTTP `/shutdown`, until it completes or the
+process receives `SIGINT`/`SIGTERM`. Signals interrupt that blocked read and
+begin graceful shutdown, but an HTTP-only operator still needs a finite
+positive timeout when liveness matters. A blocked main-thread control write or
+queued-chat cancellation write can also delay shutdown.
 
 The optional dependency-free Python client accepts the same protected API:
 

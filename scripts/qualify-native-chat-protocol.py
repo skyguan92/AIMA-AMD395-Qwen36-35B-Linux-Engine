@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 import hashlib
 import http.client
 import json
+import os
 from pathlib import Path
 import selectors
 import subprocess
@@ -93,6 +94,28 @@ def require_gpu_idle() -> None:
         return
     subprocess.run(["fuser", "-v", "/dev/kfd"], check=False)
     raise RuntimeError("/dev/kfd is owned by another process")
+
+
+def host_fingerprint_sha256() -> str:
+    """Return a non-reversible stable identity without publishing a hostname."""
+    components: list[bytes] = []
+    for label, path in (
+        (b"machine-id", Path("/etc/machine-id")),
+        (b"product-uuid", Path("/sys/class/dmi/id/product_uuid")),
+    ):
+        if not path.is_file():
+            continue
+        try:
+            value = path.read_bytes().strip().lower()
+        except OSError:
+            continue
+        if value:
+            components.append(label + b"\0" + value)
+    require(bool(components), "stable host identity inputs are unavailable")
+    payload = b"aima/native-chat/host-fingerprint/v1\0" + b"\0".join(
+        components
+    )
+    return hashlib.sha256(payload).hexdigest()
 
 
 def read_lifecycle(
@@ -304,6 +327,7 @@ def main() -> None:
     parser.add_argument("--port", type=int, default=18127)
     parser.add_argument("--expected-engine-sha256")
     parser.add_argument("--expected-source-commit")
+    parser.add_argument("--host-role", default="protocol_qualification_amd395")
     cli = parser.parse_args()
 
     engine = cli.engine.expanduser().resolve()
@@ -794,12 +818,10 @@ def main() -> None:
             "path": "${AIMA_MODEL_DIR}",
         },
         "host": {
-            "hostname": subprocess.run(
-                ["hostname"], capture_output=True, text=True, check=True
-            ).stdout.strip(),
-            "kernel": subprocess.run(
-                ["uname", "-r"], capture_output=True, text=True, check=True
-            ).stdout.strip(),
+            "role": cli.host_role,
+            "fingerprint_sha256": host_fingerprint_sha256(),
+            "kernel": os.uname().release,
+            "architecture": os.uname().machine,
         },
         "server": {
             "command": [

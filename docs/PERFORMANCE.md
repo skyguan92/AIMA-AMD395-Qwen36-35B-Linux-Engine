@@ -1,5 +1,23 @@
 # Performance and correctness
 
+## v1.5.1-native-vl.5 patch qualification
+
+The `.5` engine embeds source commit
+`06a35e36269a9fe443c56e99c5fedf7ca25304cc` and has SHA-256
+`1138a62b9515118a1237849bfe02ea8daeccec94d88a92e49c885775619bf829`.
+This patch changes CPU chat-protocol handling, HTTP admission/control routing
+and media-cache synchronization. It does not make a new throughput claim.
+
+The `.4` correctness and paired-performance results below are inherited only
+after a fail-closed diff proves the runtime change set equals the seven paths
+listed in the `.5` product contract, no AOT/generated GPU source changed, and
+all external provider and code-object hashes remain exact. The `.5` engine is
+separately exercised for thinking/tool stream parity, bounded no-progress
+calls, responsive health during stream/non-stream inference, serial queued
+chats, graceful shutdown and interruptible zero-timeout reads. Old `.4`
+measurements remain labeled as inherited baseline evidence rather than exact
+`.5` measurements.
+
 ## v1.5.1-native-vl.4 paired qualification
 
 The native VL release binds source commit
