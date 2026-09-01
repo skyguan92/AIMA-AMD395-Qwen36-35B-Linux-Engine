@@ -264,6 +264,7 @@ done < "${AOT_OBJECT_PLAN}"
   "${ROOT}/native/src/native_vision_rotary.hip.cpp" \
   "${ROOT}/native/src/native_vision_segmented_attention.hip.cpp" \
   "${ROOT}/native/src/native_doctor.cpp" \
+  "${ROOT}/native/src/native_http_support.cpp" \
   "${ROOT}/native/src/native_http_server.cpp" \
   "${ROOT}/native/src/native_pointwise.hip.cpp" \
   "${ROOT}/native/src/native_full_prefill.hip.cpp" \

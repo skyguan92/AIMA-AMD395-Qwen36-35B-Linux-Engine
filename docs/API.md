@@ -58,7 +58,7 @@ Options:
 | `--chunk-bytes N` | checkpoint read chunk | 128 MiB |
 | `--report PATH` | native weight-load report | working directory |
 | `--max-requests N` | stop after N successful chat requests | unlimited |
-| `--request-timeout-ms N` | absolute request-read deadline and per-write timeout (maximum 600000) | 15000 |
+| `--request-timeout-ms N` | request-read and blocking-write socket timeout; `0` disables both | 15000 |
 | `--api-key-file PATH` | read one bearer token from a non-symlink file with mode `0640` or stricter | disabled on loopback |
 | `--disable-http-shutdown` | remove the HTTP shutdown route | false |
 | `--allow-insecure-remote` | explicitly permit a non-loopback bind without a token | false |
@@ -73,9 +73,21 @@ Options:
 The process stays in the foreground and handles `SIGINT` / `SIGTERM`.
 Use systemd, a container runtime or another supervisor for detached operation.
 A non-loopback `--host` requires `--api-key-file` unless the explicit unsafe
-override is present. `/health` remains available for liveness; the model list,
+override is present. `/health` is unauthenticated for liveness; the model list,
 chat and enabled shutdown routes require `Authorization: Bearer TOKEN` whenever
 an API key is configured. The engine never logs the token or its file contents.
+
+Positive `--request-timeout-ms` values are accepted up to the platform's
+representable millisecond range; there is no 600-second product cap. It sets an
+absolute deadline for reading one HTTP request and bounds blocking socket
+writes, not an inference wall-clock deadline. `0` disables the absolute
+request-read and per-blocking-write socket timeouts, but the 1 MiB request-body
+limit remains. Disable timeouts only when slow clients and indefinitely blocked
+writes are operationally acceptable. In particular, request accept/read/routing
+is single-threaded: at `0`, an incomplete or slow request can block every HTTP
+endpoint, including `/health` and HTTP `/shutdown`, indefinitely. A blocked
+main-thread control write or queued-chat cancellation write can also delay
+shutdown. Use a finite positive timeout when liveness matters.
 
 The optional dependency-free Python client accepts the same protected API:
 
@@ -115,6 +127,8 @@ Returns:
 
 - status and model id;
 - whether the model is loaded and resident;
+- `busy`, a boolean that is true only while the single chat inference worker is
+  executing a chat;
 - successful request count and uptime;
 - total context capacity and selected static AOT prefill specialization;
 - selected FMHA provider;
@@ -131,7 +145,10 @@ Returns the single id `aima-amd395-qwen36-35b`.
 Returns `{"status":"shutting_down"}`, then exits after the response is sent.
 It requires the configured bearer token and returns 404 when
 `--disable-http-shutdown` is active. The packaged systemd unit disables this
-route; use `systemctl stop aima-engine` there.
+route; use `systemctl stop aima-engine` there. Shutdown stops new chat
+admission, cancels queued chats with a `503` OpenAI error (`code` `server_busy`,
+`type` `server_error`), lets an active inference finish, then joins its worker
+before tearing down the engine. It does not forcibly cancel active inference.
 
 ## `POST /v1/chat/completions`
 
@@ -185,7 +202,17 @@ Not supported:
 - deprecated `functions` or structured response formats;
 - unqualified media-I/O fields such as `video.frame_recovery` and
   `video.max_duration`, or video backends other than OpenCV;
-- batching or concurrent execution.
+- batching or concurrent inference execution.
+
+Chat execution/inference is serialized while routed control endpoints can be
+served during it. Those endpoints are health, model-list and shutdown, after
+their requests have been fully read and routed. The accept/read/routing loop
+itself is single-threaded, so this does not protect against a slow or incomplete
+request occupying that loop when the timeout is disabled. Accepted chats enter
+a bounded pending queue of 16; exactly one chat inference runs at a time, so
+the engine, tokenizer and cache are never used concurrently. Queue saturation
+or shutdown rejects/cancels a chat with HTTP 503 and an OpenAI error whose
+`code` is `server_busy` and `type` is `server_error`.
 
 The server applies the model's qualified Qwen tool/chat template. When
 `thinking.type` is `enabled`, the assistant suffix remains inside Qwen's
@@ -453,7 +480,9 @@ fatal.
 
 ## Concurrency
 
-One process owns one model and serializes requests. This preserves the measured
-batch-1 contract and the capacity-bounded exact-token prefix state. Run
-separate isolated processes only when the machine has enough memory; a normal
-128 GB AMD395 host does not have room for two copies of this BF16 model.
+One process owns one model and serializes chat execution/inference. Fully read
+and routed control endpoints can be served while a chat runs. This preserves
+the measured batch-1 contract and the capacity-bounded exact-token prefix
+state. Run separate isolated processes only when the machine has enough memory;
+a normal 128 GB AMD395 host does not have room for two copies of this BF16
+model.
