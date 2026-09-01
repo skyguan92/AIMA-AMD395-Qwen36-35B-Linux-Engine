@@ -1,0 +1,273 @@
+{
+  "baseline_inheritance": {
+    "claim_limit": "No .4 engine measurement is represented as an exact .5 measurement; inheritance applies only to unchanged GPU and portable userspace scope.",
+    "g5": {
+      "bytes": 6167,
+      "path": "benchmarks/results/native-vl-g5-release-v1.5.1-native-vl.4.json",
+      "sha256": "8e6bf3e6763b6b4972b10eb5d3e884ba0604e6080630ebc300615efb8c74a987"
+    },
+    "inherited_gates": {
+      "g1_full_vl_functional_parity": true,
+      "g2_vl_correctness_parity": true,
+      "g3_text_product_no_regression": true,
+      "g4_native_vl_performance": true,
+      "two_host_portability_baseline": true
+    },
+    "native_engine_sha256": "fb5cae0ca5ffaa4bc3d418d5fb1630d822eae9d60f639ba6cc143e427c0cd1e9",
+    "native_source_commit": "bd012874027defa528279a357609b713e9069df4",
+    "package_input": {
+      "bytes": 12180,
+      "path": "benchmarks/results/native-portable-product-v1.5.1-native-vl.4.json",
+      "sha256": "f11acfd07442663b74e6401422b450229d2dc96fb2ab2d43f06cfaef25a4d681"
+    },
+    "release": "1.5.1-native-vl.4",
+    "release_tag": "v1.5.1-native-vl.4"
+  },
+  "candidate_validation": {
+    "chat_protocol": {
+      "bytes": 30363,
+      "path": "candidate-validation/native-chat-protocol.json",
+      "sha256": "f89427b65e222896cf63e9326eb27a7e0793093bce1765252d561aa16dddd7b4"
+    },
+    "http_control_plane": {
+      "bytes": 12895,
+      "path": "candidate-validation/native-http-control-plane.json",
+      "sha256": "ed6f1930067a2fe6dc69e1287532c6dde1d06075c1ceaf20f0860a5b985e051f"
+    }
+  },
+  "complete": true,
+  "components": {
+    "aotriton_fmha_provider": {
+      "bytes": 22968,
+      "path": "build/native/libaima-fmha-aotriton.so",
+      "sha256": "e5336b2d66b36c5f17aeb07ab780fa8f60a6092910f9b01b3ebf4bc31f766bb4"
+    },
+    "aotriton_gfx1151_image": {
+      "bytes": 219800,
+      "path": "lib/aotriton.images/amd-gfx11xx/flash/attn_fwd/FONLY__\uff0abf16@16_256_F_F_3_0___gfx11xx.aks2",
+      "sha256": "0f3a6a2f9dee6620443ee2145ee1f8257bde65a378589952840d99bf3d485c10"
+    },
+    "aotriton_runtime": {
+      "bytes": 18174192,
+      "path": "build/native/libaotriton_v2.so.0.11.1",
+      "sha256": "e0638806efa5d35cef04fd7fb02c62cd038b3a38727ecb5d87a49045aa1b9aa5"
+    },
+    "ck_fmha_provider": {
+      "bytes": 93680,
+      "path": "build/native/libaima-fmha-ck.so",
+      "sha256": "0145e819869d3ea5b25661f8f11279f5e6bd3484b29e8c7910a8b30c927baa93"
+    },
+    "embedded_dense_vision_attention": {
+      "integrity_boundary": "embedded AOT registry inside native_engine",
+      "kernel_hash": "2bb5125141eea1b811395f9833de3077de68893bfebbbf1950ca26832db6bb52",
+      "sha256": "e8757f4464fdb39f5505241a1ffd0f40b74f18704318280e070015bd4302d71c"
+    },
+    "native_engine": {
+      "bytes": 39846272,
+      "path": "build/native/aima-engine-native",
+      "sha256": "1138a62b9515118a1237849bfe02ea8daeccec94d88a92e49c885775619bf829"
+    },
+    "q16384_hybrid_fmha_provider": {
+      "bytes": 162952,
+      "path": "build/native/libaima-fmha-q16384-hybrid.so",
+      "sha256": "e6b8c50e76c3c7d49b8c208275234d7f4607faff250019826866f86e37fedd29"
+    },
+    "source": {
+      "native_source_commit": "06a35e36269a9fe443c56e99c5fedf7ca25304cc",
+      "native_source_dirty": false,
+      "release_commit": "eb7d8ac30cea4401a068fd25f1f1379c72eaf448",
+      "release_tag": "v1.5.1-native-vl.5"
+    },
+    "static_launcher": {
+      "bytes": 706568,
+      "path": "build/native/aima-engine-launcher",
+      "sha256": "d913b44ff33ad3903470817793e5bf095bc3cc6fe5eda00fc1562ed818323a43"
+    },
+    "vision_attention_image": {
+      "bytes": 51056,
+      "path": "lib/aima-vision-attention.hsaco",
+      "sha256": "8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e"
+    }
+  },
+  "decision": {
+    "exact_candidate_chat_protocol": true,
+    "exact_candidate_http_control_plane": true,
+    "exact_component_closure": true,
+    "g1_full_vl_functional_parity": true,
+    "g2_vl_correctness_parity": true,
+    "g3_text_product_no_regression": true,
+    "g4_native_vl_performance": true,
+    "gpu_aot_and_generated_runtime_unchanged": true,
+    "next_blocking_boundary": "archive isolation, one-hour mixed-workload soak, rollback and clean-tag repository gates",
+    "package_input_qualified": true,
+    "runtime_delta_exactly_allowlisted": true,
+    "two_host_portability_baseline": true
+  },
+  "engine_version": "1.5.1-native",
+  "gates": {
+    "exact_candidate_chat_protocol": true,
+    "exact_candidate_http_control_plane": true,
+    "exact_component_closure": true,
+    "g1_full_vl_functional_parity": true,
+    "g2_vl_correctness_parity": true,
+    "g3_text_product_no_regression": true,
+    "g4_native_vl_performance": true,
+    "gpu_aot_and_generated_runtime_unchanged": true,
+    "runtime_delta_exactly_allowlisted": true,
+    "two_host_portability_baseline": true
+  },
+  "inputs": {
+    "baseline_g5": {
+      "bytes": 6167,
+      "path": "benchmarks/results/native-vl-g5-release-v1.5.1-native-vl.4.json",
+      "sha256": "8e6bf3e6763b6b4972b10eb5d3e884ba0604e6080630ebc300615efb8c74a987"
+    },
+    "baseline_product": {
+      "bytes": 12180,
+      "path": "benchmarks/results/native-portable-product-v1.5.1-native-vl.4.json",
+      "sha256": "f11acfd07442663b74e6401422b450229d2dc96fb2ab2d43f06cfaef25a4d681"
+    },
+    "bundle_closure": {
+      "bytes": 5083,
+      "path": "scripts/native_bundle_closure.py",
+      "sha256": "a376717fee882045269ec216f26f6d096e8e4606ebcf96005dbd05f7385ae0af"
+    },
+    "bundle_manifest_generator": {
+      "bytes": 12732,
+      "path": "scripts/generate-native-bundle-manifest.py",
+      "sha256": "5beb877b392b9ada9220b3b3999ec6199a0579509ff2b575b32f7f41929ed288"
+    },
+    "bundle_qualifier": {
+      "bytes": 36561,
+      "path": "scripts/qualify-native-portable-bundle.py",
+      "sha256": "5565039ee4e6fea03cb44175b640196f23b10e3ec03c9bab0f3ba1b77ecd8840"
+    },
+    "chat_protocol": {
+      "bytes": 30363,
+      "path": "candidate-validation/native-chat-protocol.json",
+      "sha256": "f89427b65e222896cf63e9326eb27a7e0793093bce1765252d561aa16dddd7b4"
+    },
+    "chat_protocol_qualifier": {
+      "bytes": 33187,
+      "path": "scripts/qualify-native-chat-protocol.py",
+      "sha256": "7dca5b3641754e679d9fd5c3351f096f6a65c6c4c81b8f3da8ea7c8b04d0927f"
+    },
+    "g5_qualification_generator": {
+      "bytes": 15923,
+      "path": "scripts/generate-native-vl-patch-g5-qualification.py",
+      "sha256": "3efb9880efc5dfad28b76cf821e9875b051dbe77a4b63aa963ac6dc400fe6c2e"
+    },
+    "http_control_plane": {
+      "bytes": 12895,
+      "path": "candidate-validation/native-http-control-plane.json",
+      "sha256": "ed6f1930067a2fe6dc69e1287532c6dde1d06075c1ceaf20f0860a5b985e051f"
+    },
+    "http_control_plane_qualifier": {
+      "bytes": 19367,
+      "path": "scripts/qualify-native-http-control-plane.py",
+      "sha256": "d2403c0667e80a411840d24ccf002a5a9495d7ac644b15d103b7bc4463a86305"
+    },
+    "makefile": {
+      "bytes": 13347,
+      "path": "Makefile",
+      "sha256": "7d7c30d464fc517dd80d99c2c069d07841ad3ea77a78e6342cebdf8a4424bc2f"
+    },
+    "package_input_verifier": {
+      "bytes": 1785,
+      "path": "scripts/verify-native-package-inputs.py",
+      "sha256": "5dc4f5af7b5648405955df277128f0a16d3e3dd891cefead24f007fa14553ed1"
+    },
+    "package_qualification": {
+      "bytes": 3860,
+      "path": "aima_engine/package_qualification.py",
+      "sha256": "a7bdbd15d3bd11f0fb5e6bec06c02bddba3ba965a11fe9bd40bf9624e6bc138c"
+    },
+    "package_script": {
+      "bytes": 21569,
+      "path": "scripts/package-native-foundation.sh",
+      "sha256": "4df06ad5923ebbea482174c1187c88fa3723f1f096ec6039e01dd0fd9ab7b9dd"
+    },
+    "product_contract": {
+      "bytes": 7121,
+      "path": "native/product-contract-v1.5.1-native-vl.5.json",
+      "sha256": "c7119cc767d55ec133039d5097e8dffa39c43b59d7063669a9713879b5cad0b2"
+    },
+    "product_qualification_generator": {
+      "bytes": 18630,
+      "path": "scripts/generate-native-vl-patch-product-qualification.py",
+      "sha256": "eb4f77ab40a530da095fa1a303d9ca60701b7c85fcd397135e32d5f6953435e9"
+    },
+    "public_hygiene": {
+      "bytes": 3333,
+      "path": "aima_engine/public_hygiene.py",
+      "sha256": "49b6450e7b9e0b8d9d396aea245babb668bb57167622691c7e52729b40567208"
+    },
+    "release_gates_qualifier": {
+      "bytes": 7763,
+      "path": "scripts/qualify-native-vl-release-gates.py",
+      "sha256": "23317707aec10644798fbe80b4493c5ba7d5d15d00536aeb3747910337655e09"
+    },
+    "resident_soak_qualifier": {
+      "bytes": 29032,
+      "path": "scripts/qualify-native-vl-resident-soak.py",
+      "sha256": "60f73e044de5c4f79338366be6c934add35ae9d5f44ad647825bf94ec56aaa69"
+    },
+    "rollback_qualifier": {
+      "bytes": 16094,
+      "path": "scripts/qualify-native-vl-rollback.py",
+      "sha256": "8917ddbefab1c4c08d39847fea296711628941d27a59921a9f17c9d51348fdf0"
+    },
+    "systemd_environment": {
+      "bytes": 222,
+      "path": "packaging/systemd/aima-engine.env.example",
+      "sha256": "8be7520d0818f6a9779cd54f42d2937b594e9e90432c54d2e8733f86a2f582eb"
+    },
+    "systemd_service": {
+      "bytes": 875,
+      "path": "packaging/systemd/aima-engine.service",
+      "sha256": "2799c6e57645a4f9e7a3a102fad5b0cd4915c5ffd1ce09b3f6b368c3cf68876d"
+    }
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "canonical_payload_sha256": "29aba3376d2d4bf862c43c74237d0efc4cd9459c8a41768ff15a8bf80d418d42"
+  },
+  "qualification_scope": "patch-delta qualification: exact .5 CPU protocol/HTTP candidate and package closure, with .4 G1-G4 and two-host portability inherited only because the fail-closed runtime diff leaves GPU math, AOT images and external providers unchanged",
+  "qualified": true,
+  "recorded_on": "2026-09-01",
+  "release": "1.5.1-native-vl.5",
+  "runtime_delta": {
+    "allowed_paths": [
+      "native/include/aima/native_chat_protocol.h",
+      "native/include/aima/native_http_support.h",
+      "native/src/native_chat_protocol.cpp",
+      "native/src/native_http_server.cpp",
+      "native/src/native_http_support.cpp",
+      "native/src/native_vl_request.cpp",
+      "scripts/build-native-runtime.sh"
+    ],
+    "base_commit": "bd012874027defa528279a357609b713e9069df4",
+    "candidate_commit": "06a35e36269a9fe443c56e99c5fedf7ca25304cc",
+    "checks": {
+      "candidate_runtime_tree_matches_release": true,
+      "candidate_source_is_release_ancestor": true,
+      "checkout_head_is_release_commit": true,
+      "gpu_aot_and_generated_runtime_unchanged": true,
+      "immutable_release_tag_exact": true,
+      "immutable_release_tag_resolves": true,
+      "release_checkout_clean": true,
+      "runtime_delta_exactly_allowlisted": true
+    },
+    "classification": "CPU chat protocol, HTTP control plane and cache synchronization"
+  },
+  "runtime_dependency_gate": {
+    "host_rocm_userspace_required": false,
+    "model_weights_bundled": false,
+    "runtime_python": false,
+    "runtime_torch": false,
+    "runtime_transformers": false,
+    "runtime_triton": false,
+    "runtime_vllm": false
+  },
+  "schema": "aima-amd395-qwen36/native-vl-product-qualification/v1"
+}

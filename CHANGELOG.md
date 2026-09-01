@@ -28,6 +28,9 @@ Versioning.
   portable-userspace evidence is inherited only through an exact runtime-diff
   allowlist and unchanged provider/AOT hashes; no `.4` measurement is reported
   as an exact `.5` result.
+- Published the checksum-bound portable archive and additive evidence for its
+  isolated AMD395 bundle run, 3600-second/360-request resident soak, exact
+  v1.5.1 rollback and repository/security/evidence gates.
 
 ## 1.5.1-native-vl.4 - 2026-08-25
 

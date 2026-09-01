@@ -125,6 +125,10 @@ Download the archive and checksum from the
 [upstream v1.5.1-native-vl.5 release](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.5.1-native-vl.5),
 then extract it anywhere:
 
+The qualified archive is
+`aima-engine-native-portable-194f2a673904.tar.zst`, SHA-256
+`59f30c4232b8459f3efcd7b8506cc71b957614c0aac1fa96a2eb4e15f52940a3`.
+
 ```bash
 sha256sum -c aima-engine-native-portable-*.tar.zst.sha256
 tar --zstd -xf aima-engine-native-portable-*.tar.zst
@@ -327,6 +331,10 @@ for the unchanged portable userspace/provider closure through the contract's
 fail-closed runtime-diff rule; it is not described as an exact `.5` host run.
 The frozen baseline and optional striped-startup evidence remain documented in
 [docs/PERFORMANCE.md](docs/PERFORMANCE.md).
+
+Run `make verify-evidence` to verify the mirrored `.5` summaries and every
+referenced raw tree. The `.4` baseline remains separately verifiable with
+`python3 scripts/verify-release-evidence.py --release 1.5.1-native-vl.4`.
 
 ## Build the archive
 

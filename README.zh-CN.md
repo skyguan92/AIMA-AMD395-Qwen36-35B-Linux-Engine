@@ -96,6 +96,9 @@ BF16/top-p 采样，并保证流式与非流式一致。音频、batching 与并
 先从[个人上游 v1.5.1-native-vl.5 Release](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.5.1-native-vl.5)
 下载运行包与校验文件：
 
+已验证的归档是 `aima-engine-native-portable-194f2a673904.tar.zst`，SHA-256 为
+`59f30c4232b8459f3efcd7b8506cc71b957614c0aac1fa96a2eb4e15f52940a3`。
+
 ```bash
 sha256sum -c aima-engine-native-portable-*.tar.zst.sha256
 tar --zstd -xf aima-engine-native-portable-*.tar.zst
@@ -281,6 +284,10 @@ aima-engine chat --messages-json conversation.json --tools-json tools.json
 单进程 text/image/video/mixed soak，随后回滚验证精确的 v1.5.1 基线包。`.4` 的
 双机结果只按 fail-closed runtime diff 规则继承未变化的 portable userspace 与
 provider closure，不会写成 `.5` 已在第二台机器实测。
+
+运行 `make verify-evidence` 可校验镜像进仓库的 `.5` 汇总记录与全部原始证据树；
+`.4` 基线仍可通过脚本 `scripts/verify-release-evidence.py` 的
+`--release 1.5.1-native-vl.4` 参数独立校验。
 
 ## 从源码构建
 

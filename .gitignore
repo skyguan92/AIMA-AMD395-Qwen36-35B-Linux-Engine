@@ -88,6 +88,19 @@ benchmarks/runs/*
 !benchmarks/runs/native-vl-rollback-20260824-bd01287-final/**
 !benchmarks/runs/native-vl-release-gates-20260824-bd01287-final/
 !benchmarks/runs/native-vl-release-gates-20260824-bd01287-final/**
+# v1.5.1-native-vl.5 additive public evidence
+!benchmarks/runs/native-chat-protocol-20260901-vl5-final/
+!benchmarks/runs/native-chat-protocol-20260901-vl5-final/**
+!benchmarks/runs/native-http-control-plane-20260901-vl5-final/
+!benchmarks/runs/native-http-control-plane-20260901-vl5-final/**
+!benchmarks/runs/native-portable-bundle-20260901-vl5-final/
+!benchmarks/runs/native-portable-bundle-20260901-vl5-final/**
+!benchmarks/runs/native-vl-resident-soak-20260901-vl5-final/
+!benchmarks/runs/native-vl-resident-soak-20260901-vl5-final/**
+!benchmarks/runs/native-vl-rollback-20260901-vl5-final/
+!benchmarks/runs/native-vl-rollback-20260901-vl5-final/**
+!benchmarks/runs/native-vl-release-gates-20260901-vl5-final/
+!benchmarks/runs/native-vl-release-gates-20260901-vl5-final/**
 *.pid
 *.so
 *.so.*

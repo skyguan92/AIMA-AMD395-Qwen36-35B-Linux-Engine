@@ -1,0 +1,44 @@
+{
+  "aggregate_ms": 201.206704,
+  "all_device_pointers_match": true,
+  "all_pointer_types_device": true,
+  "buffered_shards": 0,
+  "buffers_per_worker": 2,
+  "checksum_ms": 4.203536,
+  "checksum_tasks": 394,
+  "chunk_bytes": 134217728,
+  "cleanup_complete": true,
+  "complete": true,
+  "destination_freed_by_native": false,
+  "device": "Radeon 8060S Graphics",
+  "direct_io_shards": 2,
+  "expected_sum": "0xcbf21fe7cde36cdf",
+  "expected_xor": "0xedae72382a609c99",
+  "gpu_payload_checksum_equal": true,
+  "gpu_payload_sum": "0xcbf21fe7cde36cdf",
+  "gpu_payload_xor": "0xedae72382a609c99",
+  "host_alignment_mod_4096": [
+    0,
+    0
+  ],
+  "payload_bytes": 893142496,
+  "payload_gib_s": 4.134075815253227,
+  "read_chunks": 8,
+  "scheduled_payload_bytes": 893142496,
+  "schema": "aima-amd395-qwen36/direct-safetensors-scatter/v1",
+  "shard_count": 2,
+  "source_bytes_read": 893148624,
+  "tensor_count": 333,
+  "unique_destination_pointers": 333,
+  "worker_count": 1,
+  "workers": [
+    {
+      "bytes_read": 893148624,
+      "chunks": 8,
+      "elapsed_ms": 201.134023,
+      "payload_scheduled": 893142496,
+      "shards": 2,
+      "worker": 0
+    }
+  ]
+}

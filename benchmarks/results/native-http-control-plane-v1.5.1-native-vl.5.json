@@ -1,0 +1,352 @@
+{
+  "candidate": {
+    "engine_version": "1.5.1-native",
+    "native_engine_sha256": "1138a62b9515118a1237849bfe02ea8daeccec94d88a92e49c885775619bf829",
+    "native_source_commit": "06a35e36269a9fe443c56e99c5fedf7ca25304cc"
+  },
+  "checks": {
+    "active_chat_completes_during_shutdown": true,
+    "artifact_paths_sanitized": true,
+    "graceful_http_shutdown_exit_zero": true,
+    "health_latency_bounded": true,
+    "health_responsive_during_nonstream": true,
+    "health_responsive_during_stream": true,
+    "idle_health_reports_not_busy": true,
+    "large_timeout_preserved_exactly": true,
+    "raw_artifacts_public": true,
+    "shutdown_ack_responsive_during_chat": true,
+    "two_chats_execute_serially_without_rejection": true,
+    "zero_timeout_incomplete_read_is_interruptible": true
+  },
+  "commands": {
+    "live_server": [
+      "${AIMA_ENGINE}",
+      "serve",
+      "--model-dir",
+      "${AIMA_MODEL_DIR}",
+      "--context-tokens",
+      "8192",
+      "--host",
+      "127.0.0.1",
+      "--port",
+      "39469",
+      "--request-timeout-ms",
+      "600001",
+      "--report",
+      "${AIMA_OUTPUT_DIR}/raw/server.json"
+    ],
+    "zero_timeout": [
+      "${AIMA_ENGINE}",
+      "serve",
+      "--model-dir",
+      "${AIMA_MODEL_DIR}",
+      "--context-tokens",
+      "8192",
+      "--host",
+      "127.0.0.1",
+      "--port",
+      "58617",
+      "--request-timeout-ms",
+      "0",
+      "--report",
+      "${AIMA_OUTPUT_DIR}/raw/zero-timeout-server.json"
+    ]
+  },
+  "complete": true,
+  "decision": {
+    "chat_execution_remains_serial": true,
+    "health_remains_responsive_during_inference": true,
+    "http_control_plane_qualified": true,
+    "shutdown_interrupts_unbounded_reads": true
+  },
+  "host": {
+    "architecture": "x86_64",
+    "fingerprint_sha256": "cd1ed5e3fc474ea5d826f6c9cd0746ec7c5fde4ffadee2f76c7acc010608f8e5",
+    "kernel": "7.0.0-30-generic",
+    "role": "primary_amd395"
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "canonical_payload_sha256": "845e7e0d4c744a7a9294d8445c8349f1787a42c2fdf2143c2134af48a1691c41"
+  },
+  "limits": {
+    "maximum_health_latency_ms": 1000.0,
+    "maximum_shutdown_ack_latency_ms": 1000.0,
+    "maximum_signal_shutdown_latency_ms": 5000.0
+  },
+  "observations": {
+    "live_server": {
+      "active_during_shutdown": {
+        "content_sha256": "eb7908ae6c0374711e551038ef39cb91e654f9846ca15c3f3e7ac8c2f2688bc2",
+        "finish_reason": "length",
+        "request_index": 5,
+        "status": 200,
+        "usage": {
+          "completion_tokens": 256,
+          "prompt_tokens": 21,
+          "total_tokens": 277
+        }
+      },
+      "health_max_latency_ms": 1.5848899993216037,
+      "health_sample_count": 1290,
+      "initial_health": {
+        "admitted_prompt_tokens": 9216,
+        "authentication": "none",
+        "busy": false,
+        "command_to_ready_wall_ms": 20742.853804,
+        "context_capacity": 9216,
+        "fmha_provider_backend": "CK-Tile",
+        "http_shutdown_enabled": true,
+        "media_cache_capacity_bytes": 4294967296,
+        "media_cache_capacity_entries": 64,
+        "media_cache_entries": 0,
+        "media_cache_resident_bytes": 0,
+        "model": "aima-amd395-qwen36-35b",
+        "model_loaded": true,
+        "native_vl": true,
+        "prefix_cache_entries": 4,
+        "prompt_token_ids_extension": true,
+        "request_timeout_ms": 600001,
+        "resident": true,
+        "resident_prefill_buckets": [
+          1024,
+          2048,
+          4096,
+          8192
+        ],
+        "runtime": "native",
+        "secondary_fmha_layers": [],
+        "secondary_fmha_provider_backend": "",
+        "served": 0,
+        "static_prefill_tokens": 8192,
+        "status": "ok",
+        "structured_token_mask_bytes": 248320,
+        "uptime_ms": 20744.465305,
+        "vision_attention_image_sha256": "8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e",
+        "vision_dense_image_attention_image_sha256": "e8757f4464fdb39f5505241a1ffd0f40b74f18704318280e070015bd4302d71c",
+        "vision_image_count_warmup_encode_wall_ms": 193.196212,
+        "vision_image_count_warmup_patches": 4096,
+        "vision_image_count_warmup_plan_build_wall_ms": 9.912909,
+        "vision_image_count_warmup_visual_tokens": 1024,
+        "vision_plan_cache_capacity": 4,
+        "vision_plan_cache_entries_at_ready": 2,
+        "vision_warmup_completed": true,
+        "vision_warmup_encode_wall_ms": 69.818971,
+        "vision_warmup_patches": 1024,
+        "vision_warmup_plan_build_wall_ms": 11.385397,
+        "vision_warmup_visual_tokens": 256
+      },
+      "nonstream": {
+        "content_sha256": "9b62a6cbb0a43fe81b43edf9b2fcecd13ac7bbea56b1e72277355efed9037a43",
+        "finish_reason": "length",
+        "request_index": 1,
+        "status": 200,
+        "usage": {
+          "completion_tokens": 128,
+          "prompt_tokens": 21,
+          "total_tokens": 149
+        }
+      },
+      "queued": [
+        {
+          "content_sha256": "9b62a6cbb0a43fe81b43edf9b2fcecd13ac7bbea56b1e72277355efed9037a43",
+          "finish_reason": "length",
+          "request_index": 3,
+          "status": 200,
+          "usage": {
+            "completion_tokens": 128,
+            "prompt_tokens": 21,
+            "total_tokens": 149
+          }
+        },
+        {
+          "content_sha256": "f429a173a26eabc9772097f9abed72bfe8344e33e7f36cc6d5118b400a2bcef3",
+          "finish_reason": "length",
+          "request_index": 4,
+          "status": 200,
+          "usage": {
+            "completion_tokens": 64,
+            "prompt_tokens": 21,
+            "total_tokens": 85
+          }
+        }
+      ],
+      "ready": {
+        "allowed_local_media_roots": 0,
+        "allowed_media_domains": 0,
+        "authentication": "none",
+        "command_to_ready_wall_ms": 20742.853804,
+        "context_capacity": 9216,
+        "engine_load_wall_ms": 20421.847719,
+        "event": "ready",
+        "fmha_provider_backend": "CK-Tile",
+        "fmha_provider_path": "${AIMA_HOST_PATH}/libaima-fmha-ck.so",
+        "host": "127.0.0.1",
+        "http_shutdown_enabled": true,
+        "language_layout_manifest_sha256": "a1e192c1e60c3120023d95c40b9266d0086c87d60fae172d7a854f22f1a7b131",
+        "language_model_payload_bytes": 69321221376,
+        "language_model_tensor_count": 693,
+        "media_cache_capacity_bytes": 4294967296,
+        "media_cache_capacity_entries": 64,
+        "model": "aima-amd395-qwen36-35b",
+        "model_payload_bytes": 70214363872,
+        "model_shard_count": 26,
+        "model_tensor_count": 1026,
+        "mrope_position_state_bytes": 221184,
+        "native_vl": true,
+        "port": 39469,
+        "prefix_cache_entries": 4,
+        "prompt_token_ids_extension": true,
+        "request_timeout_ms": 600001,
+        "resident_prefill_buckets": [
+          1024,
+          2048,
+          4096,
+          8192
+        ],
+        "runtime_python": false,
+        "runtime_torch": false,
+        "runtime_triton": false,
+        "runtime_vllm": false,
+        "secondary_fmha_layers": [],
+        "secondary_fmha_provider_backend": "",
+        "secondary_fmha_provider_path": "",
+        "static_prefill_tokens": 8192,
+        "structured_token_mask_bytes": 248320,
+        "vision_attention_image_sha256": "8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e",
+        "vision_dense_image_attention_image_sha256": "e8757f4464fdb39f5505241a1ffd0f40b74f18704318280e070015bd4302d71c",
+        "vision_image_count_warmup_encode_wall_ms": 193.196212,
+        "vision_image_count_warmup_patches": 4096,
+        "vision_image_count_warmup_plan_build_wall_ms": 9.912909,
+        "vision_image_count_warmup_visual_tokens": 1024,
+        "vision_plan_cache_capacity": 4,
+        "vision_plan_cache_entries_at_ready": 2,
+        "vision_warmup_completed": true,
+        "vision_warmup_encode_wall_ms": 69.818971,
+        "vision_warmup_patches": 1024,
+        "vision_warmup_plan_build_wall_ms": 11.385397,
+        "vision_warmup_visual_tokens": 256,
+        "visual_layout_manifest_sha256": "abc5b3a0cc0881ba2d3e815b472eebe3404a6e3bc6438a430faccfbe8093c0aa",
+        "visual_model_payload_bytes": 893142496,
+        "visual_model_tensor_count": 333
+      },
+      "shutdown_latency_ms": 0.0854620002428419,
+      "stream": {
+        "bytes": 27736,
+        "content_type": "text/event-stream; charset=utf-8",
+        "done": true,
+        "sha256": "14b932f6bfe8dc3329adc6dc4730a70854bb3b5eede5ac5bf5ca462e7bb16e47",
+        "status": 200
+      }
+    },
+    "zero_timeout_signal": {
+      "exit_code": 0,
+      "ready": {
+        "allowed_local_media_roots": 0,
+        "allowed_media_domains": 0,
+        "authentication": "none",
+        "command_to_ready_wall_ms": 20753.600142,
+        "context_capacity": 9216,
+        "engine_load_wall_ms": 20405.184708,
+        "event": "ready",
+        "fmha_provider_backend": "CK-Tile",
+        "fmha_provider_path": "${AIMA_HOST_PATH}/libaima-fmha-ck.so",
+        "host": "127.0.0.1",
+        "http_shutdown_enabled": true,
+        "language_layout_manifest_sha256": "a1e192c1e60c3120023d95c40b9266d0086c87d60fae172d7a854f22f1a7b131",
+        "language_model_payload_bytes": 69321221376,
+        "language_model_tensor_count": 693,
+        "media_cache_capacity_bytes": 4294967296,
+        "media_cache_capacity_entries": 64,
+        "model": "aima-amd395-qwen36-35b",
+        "model_payload_bytes": 70214363872,
+        "model_shard_count": 26,
+        "model_tensor_count": 1026,
+        "mrope_position_state_bytes": 221184,
+        "native_vl": true,
+        "port": 58617,
+        "prefix_cache_entries": 4,
+        "prompt_token_ids_extension": true,
+        "request_timeout_ms": 0,
+        "resident_prefill_buckets": [
+          1024,
+          2048,
+          4096,
+          8192
+        ],
+        "runtime_python": false,
+        "runtime_torch": false,
+        "runtime_triton": false,
+        "runtime_vllm": false,
+        "secondary_fmha_layers": [],
+        "secondary_fmha_provider_backend": "",
+        "secondary_fmha_provider_path": "",
+        "static_prefill_tokens": 8192,
+        "structured_token_mask_bytes": 248320,
+        "vision_attention_image_sha256": "8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e",
+        "vision_dense_image_attention_image_sha256": "e8757f4464fdb39f5505241a1ffd0f40b74f18704318280e070015bd4302d71c",
+        "vision_image_count_warmup_encode_wall_ms": 194.239165,
+        "vision_image_count_warmup_patches": 4096,
+        "vision_image_count_warmup_plan_build_wall_ms": 9.969306,
+        "vision_image_count_warmup_visual_tokens": 1024,
+        "vision_plan_cache_capacity": 4,
+        "vision_plan_cache_entries_at_ready": 2,
+        "vision_warmup_completed": true,
+        "vision_warmup_encode_wall_ms": 70.651714,
+        "vision_warmup_patches": 1024,
+        "vision_warmup_plan_build_wall_ms": 11.229835,
+        "vision_warmup_visual_tokens": 256,
+        "visual_layout_manifest_sha256": "abc5b3a0cc0881ba2d3e815b472eebe3404a6e3bc6438a430faccfbe8093c0aa",
+        "visual_model_payload_bytes": 893142496,
+        "visual_model_tensor_count": 333
+      },
+      "signal_shutdown_latency_ms": 264.2888500004119
+    }
+  },
+  "qualified": true,
+  "raw_artifacts": {
+    "server.json": {
+      "bytes": 3250,
+      "path": "raw/server.json",
+      "sha256": "912a8207a602357a696bac31778746fd61325d3ec59477a979c167300f706696"
+    },
+    "server.language.json": {
+      "bytes": 1182,
+      "path": "raw/server.language.json",
+      "sha256": "d1ca3c4707868fd381fec5f4a7049756668e0a65e95f64fb191020a5d3ad1222"
+    },
+    "server.stderr": {
+      "bytes": 0,
+      "path": "raw/server.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "server.visual.json": {
+      "bytes": 1157,
+      "path": "raw/server.visual.json",
+      "sha256": "c786c09f72d4abd6ea69079e8f41f2bacbc73310b0618aefe7bc3d395999b32f"
+    },
+    "zero-timeout-server.json": {
+      "bytes": 3249,
+      "path": "raw/zero-timeout-server.json",
+      "sha256": "b015d9da5cff9ae2c2f96491e8342bcd2c2d0cedc25ffc77068a1260a5233dac"
+    },
+    "zero-timeout-server.language.json": {
+      "bytes": 1181,
+      "path": "raw/zero-timeout-server.language.json",
+      "sha256": "959c79f78bfeca940aa33f7bfaab8febf3d9b08350063d0921a8a882f73b0bfa"
+    },
+    "zero-timeout-server.stderr": {
+      "bytes": 0,
+      "path": "raw/zero-timeout-server.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "zero-timeout-server.visual.json": {
+      "bytes": 1157,
+      "path": "raw/zero-timeout-server.visual.json",
+      "sha256": "dfe234772e5581e9cee538534ea24168250a7328efb0cab80c4cbf03542baa7f"
+    }
+  },
+  "recorded_at": "2026-09-01T05:07:57+00:00",
+  "release": "1.5.1-native-vl.5",
+  "schema": "aima-amd395-qwen36/native-http-control-plane/v1"
+}

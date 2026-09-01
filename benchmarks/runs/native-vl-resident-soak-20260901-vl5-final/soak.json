@@ -1,0 +1,199 @@
+{
+  "archive": {
+    "bytes": 343779564,
+    "checksum_sidecar": "aima-engine-native-portable-194f2a673904.tar.zst.sha256",
+    "checksum_verified": true,
+    "name": "aima-engine-native-portable-194f2a673904.tar.zst",
+    "sha256": "59f30c4232b8459f3efcd7b8506cc71b957614c0aac1fa96a2eb4e15f52940a3"
+  },
+  "checks": {
+    "all_requests_qualified": true,
+    "cache_reuse_observed": true,
+    "clean_shutdown": true,
+    "every_case_repeated": true,
+    "gtt_within_96_gib": true,
+    "minimum_duration": true,
+    "minimum_requests": true,
+    "native_vl_ready": true,
+    "one_ready_event": true,
+    "one_stopped_event": true,
+    "public_hygiene": true,
+    "rss_growth_bounded": true,
+    "rss_within_96_gib": true,
+    "served_count_exact": true,
+    "single_model_load": true,
+    "stderr_empty": true
+  },
+  "command": [
+    "${AIMA_BUNDLE_ROOT}/bin/aima-engine",
+    "serve",
+    "--model-dir",
+    "${AIMA_MODEL_DIR}",
+    "--context-tokens",
+    "16384",
+    "--cache-capacity",
+    "17408",
+    "--allowed-local-media-path",
+    "${AIMA_VL_MEDIA_ROOT}",
+    "--host",
+    "127.0.0.1",
+    "--port",
+    "60329",
+    "--request-timeout-ms",
+    "600000",
+    "--report",
+    "${AIMA_OUTPUT_DIR}/raw/server.load.json"
+  ],
+  "complete": true,
+  "decision": {
+    "memory_growth_bounded": true,
+    "one_hour_resident_mixed_workload_passed": true,
+    "request_level_oracle_reads": 0,
+    "single_model_load_preserved": true
+  },
+  "host_role": "primary_amd395",
+  "inputs": {
+    "media": {
+      "image-minimum-1x1.png": {
+        "bytes": 69,
+        "path": "${AIMA_VL_MEDIA_ROOT}/vl-envelope-v0.1.0/image-minimum-1x1.png",
+        "sha256": "7721891a73c6cf8be659c0873626cc6bed443e8a0493864119032a869a99ab4a"
+      },
+      "image-portrait-256x1024.png": {
+        "bytes": 2192,
+        "path": "${AIMA_VL_MEDIA_ROOT}/vl-envelope-v0.1.0/image-portrait-256x1024.png",
+        "sha256": "419ba57fd5d1ec9b53285b8dc8d7eaad0270403484228a1eff6d84440d0652a6"
+      },
+      "video-minimum-2f-2fps-32x32.mp4": {
+        "bytes": 889,
+        "path": "${AIMA_VL_MEDIA_ROOT}/vl-envelope-v0.1.0/video-minimum-2f-2fps-32x32.mp4",
+        "sha256": "f3f3af9f7b666a7b0fd8f6cc6cf4a0ba63f5a56ee3e95dda3ccba298bf09fdb3"
+      },
+      "video-typical-4f-2fps-256x256.mp4": {
+        "bytes": 1691,
+        "path": "${AIMA_VL_MEDIA_ROOT}/vl-envelope-v0.1.0/video-typical-4f-2fps-256x256.mp4",
+        "sha256": "63a252dd2073844f1a2d354c77d73380dd191c578f16c5eab4a63e50654583b4"
+      }
+    },
+    "requests": {
+      "image_min_short_output1.json": {
+        "bytes": 463,
+        "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/image_min_short_output1.json",
+        "sha256": "eb50cafc84938cc2d3088ec6be62b75f1d375409211a66a959c679160460cf9d"
+      },
+      "mixed_multi_turn_q8k_output512.json": {
+        "bytes": 1109,
+        "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/mixed_multi_turn_q8k_output512.json",
+        "sha256": "76bb04a3dd6f260cbb5811dc9202d871608c5be4f5b1e67324dbd85cec93a7a6"
+      },
+      "video_min_short_output1.json": {
+        "bytes": 473,
+        "path": "benchmarks/fixtures/vl-performance-v0.1.0/requests/video_min_short_output1.json",
+        "sha256": "3b02bdbe30b0e895d0518a7790e4d52dbbb61225e16b91f72a50597feef4bb75"
+      }
+    }
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "canonical_payload_sha256": "77d38e278f28e7871af2d98ad1c3972294f9ded4a88467ee0586c85b754121a3"
+  },
+  "measurement": {
+    "case_counts": {
+      "image_a": 72,
+      "image_a_restored": 72,
+      "mixed": 72,
+      "text": 72,
+      "video_b": 72
+    },
+    "elapsed_seconds": 3600.0001254379995,
+    "gtt": {
+      "final_bytes": 84613021696,
+      "limit_bytes": 103079215104,
+      "peak_bytes": 84613021696,
+      "ready_bytes": 83730997248,
+      "samples": 361,
+      "source": "/sys/class/drm/card*/device/mem_info_gtt_used for PCI 1002:1586"
+    },
+    "request_count": 360,
+    "rss": {
+      "final_bytes": 577830912,
+      "growth_after_warm_bytes": 0,
+      "growth_limit_bytes": 1073741824,
+      "peak_bytes": 577830912,
+      "post_warm_peak_bytes": 577830912,
+      "ready_bytes": 549941248,
+      "samples": 361,
+      "warm_bytes": 577830912
+    }
+  },
+  "product_result": {
+    "bytes": 11099,
+    "path": "share/aima/qualification.json",
+    "sha256": "8d162c48e64edfa7590e8d943b48c8519778e611e26261f7a52b2a2e414d68a1"
+  },
+  "protocol": {
+    "interval_seconds": 10.0,
+    "isolated_environment_keys": [
+      "HOME",
+      "LANG",
+      "PATH"
+    ],
+    "minimum_duration_seconds": 3600.0,
+    "minimum_requests": 240,
+    "output_tokens": 1,
+    "requested_duration_seconds": 3600.0,
+    "requested_minimum_requests": 240,
+    "single_process": true,
+    "temperature": 0,
+    "workload_order": [
+      "text",
+      "image_a",
+      "video_b",
+      "mixed",
+      "image_a_restored"
+    ]
+  },
+  "qualified": true,
+  "raw_artifacts": {
+    "health_after": {
+      "bytes": 1646,
+      "path": "raw/health-after.json",
+      "sha256": "4a1dd537dfb989d6d6d14915afab6ca579ebc77ca125664580ce9f31d8066548"
+    },
+    "health_before": {
+      "bytes": 1636,
+      "path": "raw/health-before.json",
+      "sha256": "9ade68888fa66aa379ec91f17e24540a55e16b3376dade08a25f2fa2b1115872"
+    },
+    "load_report": {
+      "bytes": 3248,
+      "path": "raw/server.load.json",
+      "sha256": "0490f7623c9e837d4114c1b0d1310bcbbbde75322dca8ac279dc84ea7012aa32"
+    },
+    "requests": {
+      "bytes": 268529,
+      "path": "raw/requests.json",
+      "sha256": "e87eca2b0fa7dee5820b23dc89b96c1d78e19640d39a608cbd9c1c0336b9b69f"
+    },
+    "server_stderr": {
+      "bytes": 0,
+      "path": "raw/server.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "server_stdout": {
+      "bytes": 2132,
+      "path": "raw/server.stdout.jsonl",
+      "sha256": "da447b1b154da0dbcfddc838609765455999a0b0c95bcf2b4b659e7b85f9af0b"
+    }
+  },
+  "recorded_at": "2026-09-01T06:26:55+00:00",
+  "release": "1.5.1-native-vl.5",
+  "schema": "aima-amd395-qwen36/native-vl-resident-soak/v1",
+  "source": {
+    "native_source_commit": "06a35e36269a9fe443c56e99c5fedf7ca25304cc",
+    "native_source_dirty": false,
+    "release_commit": "eb7d8ac30cea4401a068fd25f1f1379c72eaf448",
+    "release_tag": "v1.5.1-native-vl.5"
+  },
+  "started_at": "2026-09-01T05:26:33+00:00"
+}

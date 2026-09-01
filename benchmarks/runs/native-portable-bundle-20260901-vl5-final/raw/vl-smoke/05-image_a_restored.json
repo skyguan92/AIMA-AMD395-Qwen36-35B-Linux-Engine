@@ -1,0 +1,151 @@
+{
+  "cache_reuse_signals": {
+    "media_cache_hit": true,
+    "prefix_cache_exact": true,
+    "vision_embedding_cache_hit": false
+  },
+  "case_id": "image_a_restored",
+  "checks": {
+    "a_b_a_cache_reuse_observed": true,
+    "a_b_a_output_exact": true,
+    "image_count_exact": true,
+    "one_completion_token": true,
+    "one_model_load": true,
+    "request_index_exact": true,
+    "status_200": true,
+    "video_count_exact": true,
+    "vl_enabled_exact": true
+  },
+  "qualified": true,
+  "response": {
+    "aima_amd395": {
+      "aot_prefill_bucket_tokens": 0,
+      "aot_prefill_segments": 0,
+      "aot_prefill_tokens": 0,
+      "client_cancelled": false,
+      "cold_prompt_decode_tokens": 0,
+      "cold_prompt_decode_wall_ms": 0.0,
+      "completion_tokens": 1,
+      "decode_tokens_per_second": 0.0,
+      "http_request_wall_ms": 3.430665,
+      "model_loads": 1,
+      "mrope": {
+        "decode_steps": 0,
+        "enabled": true,
+        "fmha_launches": 0,
+        "full_attention_launches": 0,
+        "position_delta": -56,
+        "position_upload_bytes": 0,
+        "unified_attention_launches": 0
+      },
+      "oracle_tensor_reads": 0,
+      "output_token_ids_canonical_sha256": "a9cf0c5bfacb7118d245ee1a31149cbb264f7138ee585445dd76cc681d755554",
+      "output_token_ids_sha256": "afccd937e6ac2d1b6d6e9f318bc5e8a179c977c7413b33b3e4d902ff8cec501e",
+      "padded_prefill_tokens": 0,
+      "prefill_tokens_per_second": 41877.60766628237,
+      "prefix_cache": {
+        "active_kv_reused": false,
+        "hits": 1,
+        "implemented": true,
+        "lookup": "exact",
+        "matched_tokens": 100,
+        "misses": 4,
+        "restore_wall_ms": 0.732589,
+        "scope": "capacity-bounded-variable-exact-or-append-lru",
+        "suffix_aot_launches": 0,
+        "suffix_decode_tokens": 0,
+        "suffix_native_launches": 0,
+        "suffix_tokens": 0,
+        "suffix_wall_ms": 0.0,
+        "transfer_bytes": 66437120
+      },
+      "prompt_execution": "prefix-cache-exact",
+      "prompt_source": "chat_template",
+      "prompt_token_ids_sha256": "3e2b589185b839ba212b706c95e8ad72e22ef8674140f6f2cd30d3fdaf514a57",
+      "prompt_tokens": 100,
+      "request_index": 5,
+      "request_wall_ms": 3.122549,
+      "runtime": "native-resident-q100",
+      "sampling": {
+        "logits_device_to_host_bytes": 0,
+        "logits_source": "certified-top1",
+        "mode": "argmax",
+        "seed": null,
+        "seed_provided": false,
+        "temperature": 0.0,
+        "token_selections": 0,
+        "top_p": 1.0,
+        "wall_ms": 0.0
+      },
+      "structured_decoding": {
+        "enabled": false,
+        "token_mask_upload_bytes": 0,
+        "token_selections": 0
+      },
+      "thinking": {
+        "budget_semantics": "declaration_within_total_max_tokens",
+        "budget_tokens": null,
+        "max_tokens": 1,
+        "mode": "default"
+      },
+      "ttft_ms": 2.387911,
+      "vl": {
+        "embedding_injection_wall_ms": 0.0,
+        "enabled": true,
+        "host_to_device_bytes": 0,
+        "image_count": 1,
+        "logical_projection_plan_build_wall_ms": 0.0,
+        "logical_projection_plan_count": 0,
+        "logical_projection_plan_reused": false,
+        "logical_projection_tokens": 0,
+        "logical_projection_workspace_bytes": 0,
+        "media_cache_entries": 4,
+        "media_cache_hits": 1,
+        "media_cache_misses": 0,
+        "media_cache_resident_bytes": 5555948,
+        "media_count": 1,
+        "media_decode_wall_ms": 0.0,
+        "media_load_decode_wall_ms": 0.039819,
+        "media_load_wall_ms": 0.039819,
+        "processor_wall_ms": 0.0,
+        "source_bytes": 69,
+        "video_count": 0,
+        "vision_attention_image_sha256s": [],
+        "vision_batch_count": 1,
+        "vision_embedding_cache_capacity_bytes": 536870912,
+        "vision_embedding_cache_entries": 3,
+        "vision_embedding_cache_hit": false,
+        "vision_embedding_cache_resident_bytes": 1851392,
+        "vision_encode_wall_ms": 0.0,
+        "vision_input_upload_wall_ms": 0.0,
+        "vision_max_batch_patches": 256,
+        "vision_max_batch_tokens": 64,
+        "vision_patches": 256,
+        "vision_plan_build_wall_ms": 0.0,
+        "vision_plan_cache_entries": 4,
+        "vision_plan_cache_hit": false,
+        "visual_tokens": 64
+      }
+    },
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "content": "The",
+          "role": "assistant"
+        }
+      }
+    ],
+    "created": 1788240037,
+    "id": "chatcmpl-native-5",
+    "model": "aima-amd395-qwen36-35b",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1,
+      "prompt_tokens": 100,
+      "total_tokens": 101
+    }
+  },
+  "status": 200
+}

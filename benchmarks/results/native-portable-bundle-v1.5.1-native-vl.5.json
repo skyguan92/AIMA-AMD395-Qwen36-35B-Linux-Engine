@@ -1,0 +1,431 @@
+{
+  "archive": {
+    "bytes": 343779564,
+    "checksum_sidecar": "aima-engine-native-portable-194f2a673904.tar.zst.sha256",
+    "checksum_verified": true,
+    "name": "aima-engine-native-portable-194f2a673904.tar.zst",
+    "root_mode": "0755",
+    "sha256": "59f30c4232b8459f3efcd7b8506cc71b957614c0aac1fa96a2eb4e15f52940a3"
+  },
+  "complete": true,
+  "doctor": {
+    "bundle_detected_complete": true,
+    "command": [
+      "${AIMA_BUNDLE_ROOT}/bin/aima-engine",
+      "doctor",
+      "--model-dir",
+      "${AIMA_MODEL_DIR}",
+      "--json"
+    ],
+    "complete": true,
+    "environment_keys": [
+      "HOME",
+      "LANG",
+      "PATH"
+    ],
+    "host": {
+      "architecture": "x86_64",
+      "fingerprint_sha256": "64e23e441a0fb18b250c2b2e88f6cfdcf370f1411dac32ddb6b954504989ae27",
+      "gpu": {
+        "architecture": "gfx1151",
+        "device": "Radeon 8060S Graphics"
+      },
+      "gtt_bytes": 103079215104,
+      "kernel": "7.0.0-30-generic",
+      "os": {
+        "id": "ubuntu",
+        "pretty_name": "Ubuntu 24.04.4 LTS",
+        "version_id": "24.04"
+      },
+      "role": "primary_amd395",
+      "vram_bytes": 536870912
+    },
+    "qualified": true,
+    "report": "raw/doctor.json",
+    "report_sha256": "0120aef37f78070b4504b7fa40fcf0819b4552ea256a264ef41bd1c70e51abe3",
+    "required_check_count": 14,
+    "required_checks_passed": true
+  },
+  "elf_closure": {
+    "complete": true,
+    "host_userspace_dependencies": [],
+    "launcher_static": true,
+    "maximum_bundled_glibc_abi": "2.39",
+    "non_relocatable_runpaths": {},
+    "provided_soname_count": 37,
+    "unresolved_userspace_dependencies": {},
+    "x86_64_dynamic_object_count": 37
+  },
+  "host_requirements": [
+    "Linux x86_64 kernel ABI",
+    "amdgpu kernel driver with KFD and render nodes",
+    "AMD gfx1151 GPU"
+  ],
+  "host_role": "primary_amd395",
+  "integrity": {
+    "algorithm": "sha256",
+    "canonical_payload_sha256": "3d2de0bbe9774651419036c79cd7fb3be741b0876aeb936a7d5b34a5c6c92718"
+  },
+  "isolated_environment": {
+    "expected_engine_version": "1.5.1-native",
+    "host_ld_library_path": false,
+    "host_python_path": false,
+    "host_rocm_path": false,
+    "keys": [
+      "HOME",
+      "LANG",
+      "PATH"
+    ],
+    "version": "aima-engine-native 1.5.1-native"
+  },
+  "manifest": {
+    "attention_providers": {
+      "1024": "lib/libaima-fmha-aotriton.so",
+      "16384": "lib/libaima-fmha-q16384-hybrid.so",
+      "2048": "lib/libaima-fmha-aotriton.so",
+      "32768": "lib/libaima-fmha-ck.so",
+      "4096": "lib/libaima-fmha-aotriton.so",
+      "8192": "lib/libaima-fmha-ck.so",
+      "aotriton_runtime": "lib/libaotriton_v2.so.0.11.1",
+      "long_context_layer39": "lib/libaima-fmha-aotriton.so",
+      "long_context_primary": "lib/libaima-fmha-ck.so",
+      "selection": "automatic by admitted static context"
+    },
+    "checked_files": 1716,
+    "checked_symlinks": 1,
+    "complete": true,
+    "native_vl": {
+      "dense_vision_attention": {
+        "embedded_in": "libexec/aima-engine.real",
+        "kernel_hash": "2bb5125141eea1b811395f9833de3077de68893bfebbbf1950ca26832db6bb52",
+        "sha256": "e8757f4464fdb39f5505241a1ffd0f40b74f18704318280e070015bd4302d71c"
+      },
+      "enabled": true,
+      "general_vision_attention": {
+        "path": "lib/aima-vision-attention.hsaco",
+        "sha256": "8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e"
+      },
+      "language_tensor_count": 693,
+      "model_tensor_count": 1026,
+      "ready_includes_language_and_vision": true,
+      "single_resident_process": true,
+      "visual_tensor_count": 333
+    },
+    "payload_bytes_excluding_manifest": 716126040,
+    "release": "1.5.1-native-vl.5",
+    "schema": "aima-amd395-qwen36/native-portable-bundle/v3",
+    "source": {
+      "commit": "eb7d8ac30cea4401a068fd25f1f1379c72eaf448",
+      "dirty": false,
+      "native_commit": "06a35e36269a9fe443c56e99c5fedf7ca25304cc",
+      "release_tag": "v1.5.1-native-vl.5"
+    }
+  },
+  "product_result": {
+    "bytes": 11099,
+    "path": "share/aima/qualification.json",
+    "sha256": "8d162c48e64edfa7590e8d943b48c8519778e611e26261f7a52b2a2e414d68a1"
+  },
+  "provider_smokes": [
+    {
+      "command_to_ready_wall_ms": 20233.006946,
+      "context_tokens": 1024,
+      "native_vl_ready": true,
+      "output_token_ids_sha256": "54363ddee68f4a5db81c9d37e5fb738d28f5b67dc7f725ad7333172b1ea157da",
+      "output_tokens": 1,
+      "prefill_tokens_per_second": 1732.3926132409858,
+      "primary_provider": "AOTriton 0.11.1",
+      "qualified": true,
+      "report": "raw/q1024-output1.json",
+      "report_sha256": "6d3687f94df107efe192b96521564a1ce3d9c0d9f705c943c9f63b031c856f8b",
+      "secondary_layers": [],
+      "secondary_provider": ""
+    },
+    {
+      "command_to_ready_wall_ms": 20493.220297,
+      "context_tokens": 16384,
+      "native_vl_ready": true,
+      "output_token_ids_sha256": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
+      "output_tokens": 1,
+      "prefill_tokens_per_second": 1476.277325318986,
+      "primary_provider": "packed-GQA/CK-Tile hybrid",
+      "qualified": true,
+      "report": "raw/q16384-output1.json",
+      "report_sha256": "68b232b5a28d13ec6cba73b6f081f735bcb12b12be71254f2e3c14fa2678f8c8",
+      "secondary_layers": [
+        39
+      ],
+      "secondary_provider": "CK-Tile"
+    },
+    {
+      "command_to_ready_wall_ms": 20401.4956,
+      "context_tokens": 65536,
+      "native_vl_ready": true,
+      "output_token_ids_sha256": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
+      "output_tokens": 1,
+      "prefill_tokens_per_second": 1214.6876546986123,
+      "primary_provider": "CK-Tile",
+      "qualified": true,
+      "report": "raw/q65536-output1.json",
+      "report_sha256": "9653f9439c390e401acdb410632e8a9a2a2e0cd8463b7cb0bc1809fe397bf737",
+      "secondary_layers": [
+        39
+      ],
+      "secondary_provider": "AOTriton 0.11.1"
+    }
+  ],
+  "public_hygiene": {
+    "checked_files": 23,
+    "finding_count": 0,
+    "passed": true
+  },
+  "qualified": true,
+  "recorded_at": "2026-09-01T05:20:38+00:00",
+  "release": "1.5.1-native-vl.5",
+  "schema": "aima-amd395-qwen36/native-portable-bundle-qualification/v1",
+  "source": {
+    "native_source_commit": "06a35e36269a9fe443c56e99c5fedf7ca25304cc",
+    "native_source_dirty": false,
+    "release_commit": "eb7d8ac30cea4401a068fd25f1f1379c72eaf448",
+    "release_tag": "v1.5.1-native-vl.5"
+  },
+  "vl_smoke": {
+    "checks": {
+      "five_requests_qualified": true,
+      "ready_includes_native_vl": true,
+      "ready_includes_vision_warmup": true,
+      "served_count_exact": true,
+      "shutdown_clean": true,
+      "single_model_load": true
+    },
+    "command": [
+      "${AIMA_BUNDLE_ROOT}/bin/aima-engine",
+      "serve",
+      "--model-dir",
+      "${AIMA_MODEL_DIR}",
+      "--context-tokens",
+      "16384",
+      "--cache-capacity",
+      "17408",
+      "--allowed-local-media-path",
+      "${AIMA_REPO_ROOT}/benchmarks/fixtures",
+      "--host",
+      "127.0.0.1",
+      "--port",
+      "34389",
+      "--request-timeout-ms",
+      "600000",
+      "--report",
+      "${AIMA_OUTPUT_DIR}/raw/vl-smoke/server.load.json"
+    ],
+    "complete": true,
+    "environment_keys": [
+      "HOME",
+      "LANG",
+      "PATH"
+    ],
+    "health_after": {
+      "admitted_prompt_tokens": 17408,
+      "authentication": "none",
+      "busy": false,
+      "command_to_ready_wall_ms": 20932.014943,
+      "context_capacity": 17408,
+      "fmha_provider_backend": "packed-GQA/CK-Tile hybrid",
+      "http_shutdown_enabled": true,
+      "media_cache_capacity_bytes": 4294967296,
+      "media_cache_capacity_entries": 64,
+      "media_cache_entries": 4,
+      "media_cache_resident_bytes": 5555948,
+      "model": "aima-amd395-qwen36-35b",
+      "model_loaded": true,
+      "native_vl": true,
+      "prefix_cache_entries": 4,
+      "prompt_token_ids_extension": true,
+      "request_timeout_ms": 600000,
+      "resident": true,
+      "resident_prefill_buckets": [
+        1024,
+        2048,
+        4096,
+        8192,
+        16384
+      ],
+      "runtime": "native",
+      "secondary_fmha_layers": [
+        39
+      ],
+      "secondary_fmha_provider_backend": "CK-Tile",
+      "served": 5,
+      "static_prefill_tokens": 16384,
+      "status": "ok",
+      "structured_token_mask_bytes": 248320,
+      "uptime_ms": 22772.921431,
+      "vision_attention_image_sha256": "8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e",
+      "vision_dense_image_attention_image_sha256": "e8757f4464fdb39f5505241a1ffd0f40b74f18704318280e070015bd4302d71c",
+      "vision_image_count_warmup_encode_wall_ms": 191.892194,
+      "vision_image_count_warmup_patches": 4096,
+      "vision_image_count_warmup_plan_build_wall_ms": 9.671794,
+      "vision_image_count_warmup_visual_tokens": 1024,
+      "vision_plan_cache_capacity": 4,
+      "vision_plan_cache_entries_at_ready": 2,
+      "vision_warmup_completed": true,
+      "vision_warmup_encode_wall_ms": 68.642292,
+      "vision_warmup_patches": 1024,
+      "vision_warmup_plan_build_wall_ms": 11.340177,
+      "vision_warmup_visual_tokens": 256
+    },
+    "health_before": {
+      "admitted_prompt_tokens": 17408,
+      "authentication": "none",
+      "busy": false,
+      "command_to_ready_wall_ms": 20932.014943,
+      "context_capacity": 17408,
+      "fmha_provider_backend": "packed-GQA/CK-Tile hybrid",
+      "http_shutdown_enabled": true,
+      "media_cache_capacity_bytes": 4294967296,
+      "media_cache_capacity_entries": 64,
+      "media_cache_entries": 0,
+      "media_cache_resident_bytes": 0,
+      "model": "aima-amd395-qwen36-35b",
+      "model_loaded": true,
+      "native_vl": true,
+      "prefix_cache_entries": 4,
+      "prompt_token_ids_extension": true,
+      "request_timeout_ms": 600000,
+      "resident": true,
+      "resident_prefill_buckets": [
+        1024,
+        2048,
+        4096,
+        8192,
+        16384
+      ],
+      "runtime": "native",
+      "secondary_fmha_layers": [
+        39
+      ],
+      "secondary_fmha_provider_backend": "CK-Tile",
+      "served": 0,
+      "static_prefill_tokens": 16384,
+      "status": "ok",
+      "structured_token_mask_bytes": 248320,
+      "uptime_ms": 21000.744794,
+      "vision_attention_image_sha256": "8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e",
+      "vision_dense_image_attention_image_sha256": "e8757f4464fdb39f5505241a1ffd0f40b74f18704318280e070015bd4302d71c",
+      "vision_image_count_warmup_encode_wall_ms": 191.892194,
+      "vision_image_count_warmup_patches": 4096,
+      "vision_image_count_warmup_plan_build_wall_ms": 9.671794,
+      "vision_image_count_warmup_visual_tokens": 1024,
+      "vision_plan_cache_capacity": 4,
+      "vision_plan_cache_entries_at_ready": 2,
+      "vision_warmup_completed": true,
+      "vision_warmup_encode_wall_ms": 68.642292,
+      "vision_warmup_patches": 1024,
+      "vision_warmup_plan_build_wall_ms": 11.340177,
+      "vision_warmup_visual_tokens": 256
+    },
+    "qualified": true,
+    "raw_artifacts": {
+      "load_report": {
+        "path": "raw/vl-smoke/server.load.json",
+        "sha256": "4e13e5940c03cb779f30e6354452c136f70eea3a68d5158efc603f483f08165f"
+      },
+      "server_stderr": {
+        "path": "raw/vl-smoke/server.stderr",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "server_stdout": {
+        "path": "raw/vl-smoke/server.stdout.jsonl",
+        "sha256": "1990a634c54239fc8dc9bbbe7e71a238619676bdc1aafc14424be661a8954865"
+      }
+    },
+    "responses": [
+      {
+        "cache_reuse_signals": null,
+        "case_id": "text",
+        "checks": {
+          "image_count_exact": true,
+          "one_completion_token": true,
+          "one_model_load": true,
+          "request_index_exact": true,
+          "status_200": true,
+          "video_count_exact": true,
+          "vl_enabled_exact": true
+        },
+        "qualified": true,
+        "response": "raw/vl-smoke/01-text.json",
+        "response_sha256": "98bb8086b6f03e9a676682ea67d7c72a21a627da5a07796d3b1f8e3899f83476"
+      },
+      {
+        "cache_reuse_signals": null,
+        "case_id": "image_a",
+        "checks": {
+          "image_count_exact": true,
+          "one_completion_token": true,
+          "one_model_load": true,
+          "request_index_exact": true,
+          "status_200": true,
+          "video_count_exact": true,
+          "vl_enabled_exact": true
+        },
+        "qualified": true,
+        "response": "raw/vl-smoke/02-image_a.json",
+        "response_sha256": "1825298e113ff2ba9d50318649ca511ac5ffa25856b6212f355634b761799e44"
+      },
+      {
+        "cache_reuse_signals": null,
+        "case_id": "video_b",
+        "checks": {
+          "image_count_exact": true,
+          "one_completion_token": true,
+          "one_model_load": true,
+          "request_index_exact": true,
+          "status_200": true,
+          "video_count_exact": true,
+          "vl_enabled_exact": true
+        },
+        "qualified": true,
+        "response": "raw/vl-smoke/03-video_b.json",
+        "response_sha256": "26111675492018b74cd49dbfb59bb0b52a6873d8ecfa9ec46f624e8ff8a63971"
+      },
+      {
+        "cache_reuse_signals": null,
+        "case_id": "mixed",
+        "checks": {
+          "image_count_exact": true,
+          "one_completion_token": true,
+          "one_model_load": true,
+          "request_index_exact": true,
+          "status_200": true,
+          "video_count_exact": true,
+          "vl_enabled_exact": true
+        },
+        "qualified": true,
+        "response": "raw/vl-smoke/04-mixed.json",
+        "response_sha256": "dfd40656197c4b686816ca0e574619400d36b67af201bbc572fa53b7ebb74079"
+      },
+      {
+        "cache_reuse_signals": {
+          "media_cache_hit": true,
+          "prefix_cache_exact": true,
+          "vision_embedding_cache_hit": false
+        },
+        "case_id": "image_a_restored",
+        "checks": {
+          "a_b_a_cache_reuse_observed": true,
+          "a_b_a_output_exact": true,
+          "image_count_exact": true,
+          "one_completion_token": true,
+          "one_model_load": true,
+          "request_index_exact": true,
+          "status_200": true,
+          "video_count_exact": true,
+          "vl_enabled_exact": true
+        },
+        "qualified": true,
+        "response": "raw/vl-smoke/05-image_a_restored.json",
+        "response_sha256": "db95b243fdd681ac94c1209f22def13a004d7859c4faa935411eec72edd0b21e"
+      }
+    ]
+  }
+}

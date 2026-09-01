@@ -31,6 +31,24 @@ rollback to the exact v1.5.1 archive, and clean-tag `make check`,
 the archive manifest/checksum and the inherited baseline identities are bound
 into the additive public release evidence.
 
+The published archive is
+`aima-engine-native-portable-194f2a673904.tar.zst` (343,779,564 bytes), with
+SHA-256
+`59f30c4232b8459f3efcd7b8506cc71b957614c0aac1fa96a2eb4e15f52940a3`.
+On the primary AMD395 it passed isolated bundle/provider/VL execution and a
+`3600.000125`-second, 360-request resident soak: 72 requests each for text,
+image, video, mixed media and restored image. The model loaded once, post-warm
+RSS growth was zero, shutdown was clean and the exact v1.5.1 rollback passed.
+
+The additive summaries and raw records are mirrored under
+[`benchmarks/results/`](../benchmarks/results/) and
+[`benchmarks/runs/`](../benchmarks/runs/). The default `make verify-evidence`
+target validates `.5`, including every sealed sidecar and raw evidence tree;
+`.4` remains independently verifiable by passing
+`--release 1.5.1-native-vl.4` to `scripts/verify-release-evidence.py`. The companion
+public-evidence archive and its checksum sidecar are published on the same
+GitHub release after the provenance record is sealed.
+
 ## v1.5.1-native-vl.4 boundary
 
 The immutable `v1.5.1-native-vl.4` tag is the first portable native release

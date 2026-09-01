@@ -1,0 +1,955 @@
+{
+  "checks": {
+    "artifact_paths_sanitized": true,
+    "bounded_history_no_progress_stream_parity": true,
+    "different_arguments_remain_parallel": true,
+    "invalid_and_unsupported_fields_fail_closed": true,
+    "omitted_thinking_is_backward_compatible": true,
+    "parallel_false_admits_at_most_one": true,
+    "same_response_duplicate_suppressed": true,
+    "thinking_before_tool_call": true,
+    "thinking_stream_nonstream_and_history": true,
+    "vl_thinking_prompt_and_response_split": true
+  },
+  "engine": {
+    "build_info": {
+      "source_commit": "06a35e36269a9fe443c56e99c5fedf7ca25304cc",
+      "version": "1.5.1-native"
+    },
+    "path": "${AIMA_ENGINE}",
+    "sha256": "1138a62b9515118a1237849bfe02ea8daeccec94d88a92e49c885775619bf829"
+  },
+  "generated_at": "2026-09-01T04:59:46.406849+00:00",
+  "host": {
+    "architecture": "x86_64",
+    "fingerprint_sha256": "e015f7853c489d9173c00ba06e02b7d8b3eeab49be061aab0509a9d9dde801bc",
+    "kernel": "7.0.0-30-generic",
+    "role": "primary_amd395"
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "canonical_payload_sha256": "1b7aabca3efccc453628e83139ef86e3da2c08479091dd4081396ec374df8470"
+  },
+  "model": {
+    "id": "aima-amd395-qwen36-35b",
+    "path": "${AIMA_MODEL_DIR}"
+  },
+  "observations": {
+    "default": {
+      "content": "你好！很高兴为您服务。请问有什么我可以帮您的吗？",
+      "finish_reason": "stop",
+      "output_token_ids_sha256": "097f07a26ddbb5f8cb5c26a0910146475ec15e20eaf0c65a063ad9dbc6bdf14c",
+      "reasoning_content_chars": 0,
+      "reasoning_content_present": false,
+      "reasoning_content_sha256": null,
+      "thinking": {
+        "budget_semantics": "declaration_within_total_max_tokens",
+        "budget_tokens": null,
+        "max_tokens": 64,
+        "mode": "default"
+      },
+      "tool_calls": [],
+      "tool_progress": null,
+      "usage": {
+        "completion_tokens": 13,
+        "prompt_tokens": 13,
+        "total_tokens": 26
+      }
+    },
+    "different_arguments": {
+      "content": null,
+      "finish_reason": "tool_calls",
+      "output_token_ids_sha256": "dfd0267d4b0dc0eb450a280834ca35a39029091812958860420c9d8f22ccb8f3",
+      "reasoning_content_chars": 0,
+      "reasoning_content_present": false,
+      "reasoning_content_sha256": null,
+      "thinking": {
+        "budget_semantics": "declaration_within_total_max_tokens",
+        "budget_tokens": null,
+        "max_tokens": 128,
+        "mode": "default"
+      },
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"city\": \"Paris\"}",
+            "name": "get_weather"
+          },
+          "id": "chatcmpl-native-9-call-0",
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"city\": \"Tokyo\"}",
+            "name": "get_weather"
+          },
+          "id": "chatcmpl-native-9-call-1",
+          "type": "function"
+        }
+      ],
+      "tool_progress": {
+        "caller_action": "continue",
+        "duplicate_calls_suppressed": 0,
+        "exhausted_history_calls_suppressed": 0,
+        "history_no_progress_results": 0,
+        "history_signature_occurrences": 0,
+        "no_progress": false,
+        "parallel_calls_suppressed": 0,
+        "parsed_calls": 2,
+        "reason": null,
+        "same_signature_retry_limit": 1
+      },
+      "usage": {
+        "completion_tokens": 53,
+        "prompt_tokens": 309,
+        "total_tokens": 362
+      }
+    },
+    "disabled": {
+      "content": "你好！很高兴为您服务。请问有什么我可以帮您的吗？",
+      "finish_reason": "stop",
+      "output_token_ids_sha256": "097f07a26ddbb5f8cb5c26a0910146475ec15e20eaf0c65a063ad9dbc6bdf14c",
+      "reasoning_content_chars": 0,
+      "reasoning_content_present": false,
+      "reasoning_content_sha256": null,
+      "thinking": {
+        "budget_semantics": "declaration_within_total_max_tokens",
+        "budget_tokens": 64,
+        "max_tokens": 64,
+        "mode": "disabled"
+      },
+      "tool_calls": [],
+      "tool_progress": null,
+      "usage": {
+        "completion_tokens": 13,
+        "prompt_tokens": 13,
+        "total_tokens": 26
+      }
+    },
+    "duplicate_nonstream": {
+      "content": null,
+      "finish_reason": "tool_calls",
+      "output_token_ids_sha256": "73e844753103e5cf3c7266d8863543e55a2a17c9c61a86bb20b41b0f29f6f5cb",
+      "reasoning_content_chars": 0,
+      "reasoning_content_present": false,
+      "reasoning_content_sha256": null,
+      "thinking": {
+        "budget_semantics": "declaration_within_total_max_tokens",
+        "budget_tokens": null,
+        "max_tokens": 128,
+        "mode": "default"
+      },
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"city\": \"Paris\"}",
+            "name": "get_weather"
+          },
+          "id": "chatcmpl-native-7-call-0",
+          "type": "function"
+        }
+      ],
+      "tool_progress": {
+        "caller_action": "continue",
+        "duplicate_calls_suppressed": 1,
+        "exhausted_history_calls_suppressed": 0,
+        "history_no_progress_results": 0,
+        "history_signature_occurrences": 0,
+        "no_progress": false,
+        "parallel_calls_suppressed": 0,
+        "parsed_calls": 2,
+        "reason": null,
+        "same_signature_retry_limit": 1
+      },
+      "usage": {
+        "completion_tokens": 52,
+        "prompt_tokens": 309,
+        "total_tokens": 361
+      }
+    },
+    "duplicate_stream": {
+      "content": "",
+      "content_type": "text/event-stream; charset=utf-8",
+      "delta_order": [
+        "tool_calls"
+      ],
+      "done": true,
+      "event_count": 4,
+      "finish_reason": "tool_calls",
+      "output_token_ids_sha256": "73e844753103e5cf3c7266d8863543e55a2a17c9c61a86bb20b41b0f29f6f5cb",
+      "reasoning_content_chars": 0,
+      "reasoning_content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "role_seen": true,
+      "status": 200,
+      "thinking": {
+        "budget_semantics": "declaration_within_total_max_tokens",
+        "budget_tokens": null,
+        "max_tokens": 128,
+        "mode": "default"
+      },
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"city\": \"Paris\"}",
+            "name": "get_weather"
+          },
+          "id": "chatcmpl-native-8-call-0",
+          "type": "function"
+        }
+      ],
+      "tool_progress": {
+        "caller_action": "continue",
+        "duplicate_calls_suppressed": 1,
+        "exhausted_history_calls_suppressed": 0,
+        "history_no_progress_results": 0,
+        "history_signature_occurrences": 0,
+        "no_progress": false,
+        "parallel_calls_suppressed": 0,
+        "parsed_calls": 2,
+        "reason": null,
+        "same_signature_retry_limit": 1
+      },
+      "transfer_encoding": "chunked",
+      "usage": {
+        "completion_tokens": 52,
+        "prompt_tokens": 309,
+        "total_tokens": 361
+      }
+    },
+    "exhausted_nonstream": {
+      "content": "",
+      "finish_reason": "stop",
+      "output_token_ids_sha256": "757fa13a81377a1a194c219da7b84a8fa1e93c7cca8294123a63db294adfa5f2",
+      "reasoning_content_chars": 0,
+      "reasoning_content_present": false,
+      "reasoning_content_sha256": null,
+      "thinking": {
+        "budget_semantics": "declaration_within_total_max_tokens",
+        "budget_tokens": null,
+        "max_tokens": 128,
+        "mode": "default"
+      },
+      "tool_calls": [],
+      "tool_progress": {
+        "caller_action": "change_strategy_or_return_blocked",
+        "duplicate_calls_suppressed": 0,
+        "exhausted_history_calls_suppressed": 1,
+        "history_no_progress_results": 2,
+        "history_signature_occurrences": 2,
+        "no_progress": true,
+        "parallel_calls_suppressed": 0,
+        "parsed_calls": 1,
+        "reason": "repeated_failed_or_empty_tool_call",
+        "same_signature_retry_limit": 1
+      },
+      "usage": {
+        "completion_tokens": 26,
+        "prompt_tokens": 411,
+        "total_tokens": 437
+      }
+    },
+    "exhausted_stream": {
+      "content": "",
+      "content_type": "text/event-stream; charset=utf-8",
+      "delta_order": [],
+      "done": true,
+      "event_count": 3,
+      "finish_reason": "stop",
+      "output_token_ids_sha256": "757fa13a81377a1a194c219da7b84a8fa1e93c7cca8294123a63db294adfa5f2",
+      "reasoning_content_chars": 0,
+      "reasoning_content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "role_seen": true,
+      "status": 200,
+      "thinking": {
+        "budget_semantics": "declaration_within_total_max_tokens",
+        "budget_tokens": null,
+        "max_tokens": 128,
+        "mode": "default"
+      },
+      "tool_calls": [],
+      "tool_progress": {
+        "caller_action": "change_strategy_or_return_blocked",
+        "duplicate_calls_suppressed": 0,
+        "exhausted_history_calls_suppressed": 1,
+        "history_no_progress_results": 2,
+        "history_signature_occurrences": 2,
+        "no_progress": true,
+        "parallel_calls_suppressed": 0,
+        "parsed_calls": 1,
+        "reason": "repeated_failed_or_empty_tool_call",
+        "same_signature_retry_limit": 1
+      },
+      "transfer_encoding": "chunked",
+      "usage": {
+        "completion_tokens": 26,
+        "prompt_tokens": 411,
+        "total_tokens": 437
+      }
+    },
+    "invalid_requests": {
+      "budget_above_max": {
+        "message": "thinking.budget_tokens must not exceed max_tokens",
+        "status": 400
+      },
+      "invalid_type": {
+        "message": "thinking.type must be enabled or disabled",
+        "status": 400
+      },
+      "raw_prompt_thinking": {
+        "message": "thinking cannot be combined with prompt_token_ids",
+        "status": 400
+      },
+      "unsupported_sampling": {
+        "message": "unsupported generation field: frequency_penalty",
+        "status": 400
+      },
+      "zero_budget": {
+        "message": "thinking.budget_tokens must be a positive integer",
+        "status": 400
+      }
+    },
+    "parallel_false": {
+      "content": null,
+      "finish_reason": "tool_calls",
+      "output_token_ids_sha256": "dfd0267d4b0dc0eb450a280834ca35a39029091812958860420c9d8f22ccb8f3",
+      "reasoning_content_chars": 0,
+      "reasoning_content_present": false,
+      "reasoning_content_sha256": null,
+      "thinking": {
+        "budget_semantics": "declaration_within_total_max_tokens",
+        "budget_tokens": null,
+        "max_tokens": 128,
+        "mode": "default"
+      },
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"city\": \"Paris\"}",
+            "name": "get_weather"
+          },
+          "id": "chatcmpl-native-10-call-0",
+          "type": "function"
+        }
+      ],
+      "tool_progress": {
+        "caller_action": "continue",
+        "duplicate_calls_suppressed": 0,
+        "exhausted_history_calls_suppressed": 0,
+        "history_no_progress_results": 0,
+        "history_signature_occurrences": 0,
+        "no_progress": false,
+        "parallel_calls_suppressed": 1,
+        "parsed_calls": 2,
+        "reason": null,
+        "same_signature_retry_limit": 1
+      },
+      "usage": {
+        "completion_tokens": 53,
+        "prompt_tokens": 316,
+        "total_tokens": 369
+      }
+    },
+    "thinking_history_nonstream": {
+      "content": "The weather in Paris is currently sunny with a temperature of 20°C.",
+      "finish_reason": "stop",
+      "output_token_ids_sha256": "283e4126a32421d3379b79f1d7fb0b3dbdfea34c5b42ad201fda69774a3c6d93",
+      "reasoning_content_chars": 602,
+      "reasoning_content_present": true,
+      "reasoning_content_sha256": "8c989687db204d9d7a67a4bfa88c129522b31834f466dfd24dc2589343fdb85b",
+      "thinking": {
+        "budget_semantics": "declaration_within_total_max_tokens",
+        "budget_tokens": 256,
+        "max_tokens": 256,
+        "mode": "enabled"
+      },
+      "tool_calls": [],
+      "tool_progress": {
+        "caller_action": "continue",
+        "duplicate_calls_suppressed": 0,
+        "exhausted_history_calls_suppressed": 0,
+        "history_no_progress_results": 0,
+        "history_signature_occurrences": 0,
+        "no_progress": false,
+        "parallel_calls_suppressed": 0,
+        "parsed_calls": 0,
+        "reason": null,
+        "same_signature_retry_limit": 1
+      },
+      "usage": {
+        "completion_tokens": 173,
+        "prompt_tokens": 340,
+        "total_tokens": 513
+      }
+    },
+    "thinking_history_stream": {
+      "content": "The weather in Paris is currently sunny with a temperature of 20°C.",
+      "content_type": "text/event-stream; charset=utf-8",
+      "delta_order": [
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "content",
+        "content",
+        "content",
+        "content",
+        "content",
+        "content",
+        "content",
+        "content",
+        "content",
+        "content",
+        "content",
+        "content",
+        "content",
+        "content",
+        "content",
+        "content"
+      ],
+      "done": true,
+      "event_count": 173,
+      "finish_reason": "stop",
+      "output_token_ids_sha256": "283e4126a32421d3379b79f1d7fb0b3dbdfea34c5b42ad201fda69774a3c6d93",
+      "reasoning_content_chars": 602,
+      "reasoning_content_sha256": "8c989687db204d9d7a67a4bfa88c129522b31834f466dfd24dc2589343fdb85b",
+      "role_seen": true,
+      "status": 200,
+      "thinking": {
+        "budget_semantics": "declaration_within_total_max_tokens",
+        "budget_tokens": 256,
+        "max_tokens": 256,
+        "mode": "enabled"
+      },
+      "tool_calls": [],
+      "tool_progress": {
+        "caller_action": "continue",
+        "duplicate_calls_suppressed": 0,
+        "exhausted_history_calls_suppressed": 0,
+        "history_no_progress_results": 0,
+        "history_signature_occurrences": 0,
+        "no_progress": false,
+        "parallel_calls_suppressed": 0,
+        "parsed_calls": 0,
+        "reason": null,
+        "same_signature_retry_limit": 1
+      },
+      "transfer_encoding": "chunked",
+      "usage": {
+        "completion_tokens": 173,
+        "prompt_tokens": 340,
+        "total_tokens": 513
+      }
+    },
+    "thinking_tool_nonstream": {
+      "content": null,
+      "finish_reason": "tool_calls",
+      "output_token_ids_sha256": "c4f2d21f72f71748c35f70473bfe63899e785794712bc5890221d9ca9d0af833",
+      "reasoning_content_chars": 497,
+      "reasoning_content_present": true,
+      "reasoning_content_sha256": "f19a0378199c84785ab2af185a7525604f9ecdefbb2a66e1f16584dc0d0cbdae",
+      "thinking": {
+        "budget_semantics": "declaration_within_total_max_tokens",
+        "budget_tokens": 512,
+        "max_tokens": 512,
+        "mode": "enabled"
+      },
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"city\": \"Paris\"}",
+            "name": "get_weather"
+          },
+          "id": "chatcmpl-native-5-call-0",
+          "type": "function"
+        }
+      ],
+      "tool_progress": {
+        "caller_action": "continue",
+        "duplicate_calls_suppressed": 0,
+        "exhausted_history_calls_suppressed": 0,
+        "history_no_progress_results": 0,
+        "history_signature_occurrences": 0,
+        "no_progress": false,
+        "parallel_calls_suppressed": 0,
+        "parsed_calls": 1,
+        "reason": null,
+        "same_signature_retry_limit": 1
+      },
+      "usage": {
+        "completion_tokens": 158,
+        "prompt_tokens": 303,
+        "total_tokens": 461
+      }
+    },
+    "thinking_tool_stream": {
+      "content": "",
+      "content_type": "text/event-stream; charset=utf-8",
+      "delta_order": [
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "reasoning_content",
+        "tool_calls"
+      ],
+      "done": true,
+      "event_count": 134,
+      "finish_reason": "tool_calls",
+      "output_token_ids_sha256": "c4f2d21f72f71748c35f70473bfe63899e785794712bc5890221d9ca9d0af833",
+      "reasoning_content_chars": 497,
+      "reasoning_content_sha256": "f19a0378199c84785ab2af185a7525604f9ecdefbb2a66e1f16584dc0d0cbdae",
+      "role_seen": true,
+      "status": 200,
+      "thinking": {
+        "budget_semantics": "declaration_within_total_max_tokens",
+        "budget_tokens": 512,
+        "max_tokens": 512,
+        "mode": "enabled"
+      },
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"city\": \"Paris\"}",
+            "name": "get_weather"
+          },
+          "id": "chatcmpl-native-6-call-0",
+          "type": "function"
+        }
+      ],
+      "tool_progress": {
+        "caller_action": "continue",
+        "duplicate_calls_suppressed": 0,
+        "exhausted_history_calls_suppressed": 0,
+        "history_no_progress_results": 0,
+        "history_signature_occurrences": 0,
+        "no_progress": false,
+        "parallel_calls_suppressed": 0,
+        "parsed_calls": 1,
+        "reason": null,
+        "same_signature_retry_limit": 1
+      },
+      "transfer_encoding": "chunked",
+      "usage": {
+        "completion_tokens": 158,
+        "prompt_tokens": 303,
+        "total_tokens": 461
+      }
+    },
+    "vl_disabled": {
+      "content": " A vibrant, diagonal striped pattern featuring a rainbow of colors in parallel bands.",
+      "finish_reason": "stop",
+      "output_token_ids_sha256": "e53dcab8f9bbdec20098bd9c4d48b72c6778e06381cade2f1d892f60670e0150",
+      "reasoning_content_chars": 0,
+      "reasoning_content_present": false,
+      "reasoning_content_sha256": null,
+      "thinking": {
+        "budget_semantics": "declaration_within_total_max_tokens",
+        "budget_tokens": 128,
+        "max_tokens": 128,
+        "mode": "disabled"
+      },
+      "tool_calls": [],
+      "tool_progress": null,
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 87,
+        "total_tokens": 103
+      }
+    },
+    "vl_enabled": {
+      "content": "",
+      "finish_reason": "length",
+      "output_token_ids_sha256": "6e63f39e983864a4c53bf0f164cd47e73a29f1be8c69377418d2a789b4b285ea",
+      "reasoning_content_chars": 491,
+      "reasoning_content_present": true,
+      "reasoning_content_sha256": "8f8eac0e920e40cb8ad05fd2b9529103ec92614123b437447651cef9163de00d",
+      "thinking": {
+        "budget_semantics": "declaration_within_total_max_tokens",
+        "budget_tokens": 128,
+        "max_tokens": 128,
+        "mode": "enabled"
+      },
+      "tool_calls": [],
+      "tool_progress": null,
+      "usage": {
+        "completion_tokens": 128,
+        "prompt_tokens": 85,
+        "total_tokens": 213
+      }
+    }
+  },
+  "qualified": true,
+  "schema": "aima.native-chat-protocol-qualification.v0.1.0",
+  "server": {
+    "command": [
+      "${AIMA_ENGINE}",
+      "serve",
+      "--model-dir",
+      "${AIMA_MODEL_DIR}",
+      "--context-tokens",
+      "8192",
+      "--host",
+      "127.0.0.1",
+      "--port",
+      "18332",
+      "--allowed-local-media-path",
+      "${AIMA_IMAGE_DIR}",
+      "--report",
+      "${AIMA_RAW_DIR}/native-weight-load.json"
+    ],
+    "language_load_report": {
+      "bytes": 1127,
+      "path": "chat-protocol-raw/native-weight-load.language.json",
+      "sha256": "5e46a13c9ef61f8468892354519ea8a23854513da1d5da92bd007cf928473a26"
+    },
+    "load_report": {
+      "bytes": 2990,
+      "path": "chat-protocol-raw/native-weight-load.json",
+      "sha256": "e07ee6ebe744b0866ffd6f25feeeecedbb5f96864f4e20dfe97c2e9800b05c0a"
+    },
+    "ready": {
+      "allowed_local_media_roots": 1,
+      "allowed_media_domains": 0,
+      "authentication": "none",
+      "command_to_ready_wall_ms": 20673.174468,
+      "context_capacity": 9216,
+      "engine_load_wall_ms": 20351.226091,
+      "event": "ready",
+      "fmha_provider_backend": "CK-Tile",
+      "fmha_provider_path": "${AIMA_HOST_PATH}/libaima-fmha-ck.so",
+      "host": "127.0.0.1",
+      "http_shutdown_enabled": true,
+      "language_layout_manifest_sha256": "a1e192c1e60c3120023d95c40b9266d0086c87d60fae172d7a854f22f1a7b131",
+      "language_model_payload_bytes": 69321221376,
+      "language_model_tensor_count": 693,
+      "media_cache_capacity_bytes": 4294967296,
+      "media_cache_capacity_entries": 64,
+      "model": "aima-amd395-qwen36-35b",
+      "model_payload_bytes": 70214363872,
+      "model_shard_count": 26,
+      "model_tensor_count": 1026,
+      "mrope_position_state_bytes": 221184,
+      "native_vl": true,
+      "port": 18332,
+      "prefix_cache_entries": 4,
+      "prompt_token_ids_extension": true,
+      "request_timeout_ms": 15000,
+      "resident_prefill_buckets": [
+        1024,
+        2048,
+        4096,
+        8192
+      ],
+      "runtime_python": false,
+      "runtime_torch": false,
+      "runtime_triton": false,
+      "runtime_vllm": false,
+      "secondary_fmha_layers": [],
+      "secondary_fmha_provider_backend": "",
+      "secondary_fmha_provider_path": "",
+      "static_prefill_tokens": 8192,
+      "structured_token_mask_bytes": 248320,
+      "vision_attention_image_sha256": "8327e42d99f5d34667b59d481dabc8e1d7cf9675361df974d85f5d6005109a9e",
+      "vision_dense_image_attention_image_sha256": "e8757f4464fdb39f5505241a1ffd0f40b74f18704318280e070015bd4302d71c",
+      "vision_image_count_warmup_encode_wall_ms": 192.823209,
+      "vision_image_count_warmup_patches": 4096,
+      "vision_image_count_warmup_plan_build_wall_ms": 10.238788,
+      "vision_image_count_warmup_visual_tokens": 1024,
+      "vision_plan_cache_capacity": 4,
+      "vision_plan_cache_entries_at_ready": 2,
+      "vision_warmup_completed": true,
+      "vision_warmup_encode_wall_ms": 68.287282,
+      "vision_warmup_patches": 1024,
+      "vision_warmup_plan_build_wall_ms": 11.345867,
+      "vision_warmup_visual_tokens": 256,
+      "visual_layout_manifest_sha256": "abc5b3a0cc0881ba2d3e815b472eebe3404a6e3bc6438a430faccfbe8093c0aa",
+      "visual_model_payload_bytes": 893142496,
+      "visual_model_tensor_count": 333
+    },
+    "stderr": {
+      "bytes": 0,
+      "path": "chat-protocol-raw/stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "visual_load_report": {
+      "bytes": 1122,
+      "path": "chat-protocol-raw/native-weight-load.visual.json",
+      "sha256": "95efc009a963ef18ac561e237e5b162c8eb33061db5f7ba6b01c41d0c93636f5"
+    }
+  }
+}
