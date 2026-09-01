@@ -13,6 +13,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <mutex>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -237,6 +238,7 @@ struct NativeVlMediaCache::Impl {
   }
 
   std::shared_ptr<const ProcessedMedia> find(const std::string& key_value) {
+    std::lock_guard<std::mutex> lock(mutex);
     for (Entry& entry : values) {
       if (entry.key != key_value) continue;
       entry.use = ++clock;
@@ -247,6 +249,7 @@ struct NativeVlMediaCache::Impl {
 
   void insert(const std::string& key_value,
               std::shared_ptr<const ProcessedMedia> media) {
+    std::lock_guard<std::mutex> lock(mutex);
     if (capacity_bytes == 0 || capacity_entries == 0 || !media) return;
     const std::uint64_t pixel_bytes =
         media->pixels.values.size() * sizeof(std::uint16_t);
@@ -274,6 +277,7 @@ struct NativeVlMediaCache::Impl {
 
   std::uint64_t capacity_bytes = 0;
   std::size_t capacity_entries = 0;
+  mutable std::mutex mutex;
   std::vector<Entry> values;
   std::uint64_t resident_bytes = 0;
   std::uint64_t clock = 0;
@@ -290,6 +294,7 @@ std::uint64_t NativeVlMediaCache::capacity_bytes() const {
 }
 
 std::uint64_t NativeVlMediaCache::resident_bytes() const {
+  std::lock_guard<std::mutex> lock(impl_->mutex);
   return impl_->resident_bytes;
 }
 
@@ -298,6 +303,7 @@ std::size_t NativeVlMediaCache::capacity_entries() const {
 }
 
 std::size_t NativeVlMediaCache::entries() const {
+  std::lock_guard<std::mutex> lock(impl_->mutex);
   return impl_->values.size();
 }
 

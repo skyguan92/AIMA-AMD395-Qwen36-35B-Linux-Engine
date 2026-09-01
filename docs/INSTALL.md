@@ -142,8 +142,19 @@ curl -fsS -X POST http://127.0.0.1:8000/shutdown
 For a bearer-protected foreground service, create a non-world-readable key
 file and add `--api-key-file PATH`. Binding a non-loopback address without a
 key fails closed. `--disable-http-shutdown` removes the lifecycle endpoint;
-`--request-timeout-ms` applies an absolute deadline to the complete request
-read and bounds each socket write.
+`--request-timeout-ms` defaults to 15000 and applies an absolute deadline to
+the complete request read and bounds each blocking socket write. It is not an
+inference wall-clock deadline. Positive values are accepted up to the
+platform-representable millisecond range, with no 600-second cap. Setting it to
+`0` disables the absolute request-read and per-blocking-write socket timeouts
+but not the 1 MiB request-body limit; use that only when slow clients and
+blocked writes are acceptable operationally. After a request is fully read and
+routed, health, model-list and shutdown do not wait for a running chat, but
+accept/read/routing itself is single-threaded. At `0`, an incomplete or slow
+request can block every HTTP endpoint, including `/health` and HTTP
+`/shutdown`, indefinitely; blocked main-thread control writes or queued-chat
+cancellation writes can also delay shutdown. Use a finite positive timeout when
+liveness matters.
 
 ## 5. Install the systemd service
 

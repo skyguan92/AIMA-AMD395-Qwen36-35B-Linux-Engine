@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import hashlib
 from pathlib import Path
+import re
 import subprocess
 import unittest
 
@@ -79,6 +80,87 @@ def sha256(path: Path) -> str:
     digest = hashlib.sha256()
     digest.update(path.read_bytes())
     return digest.hexdigest()
+
+
+def cpp_matching_brace(source: str, opening_brace: int) -> int:
+    if source[opening_brace] != "{":
+        raise ValueError("opening_brace must point to an opening brace")
+
+    depth = 0
+    index = opening_brace
+    state = "code"
+    while index < len(source):
+        character = source[index]
+        following = source[index + 1] if index + 1 < len(source) else ""
+        if state == "line_comment":
+            if character == "\n":
+                state = "code"
+        elif state == "block_comment":
+            if character == "*" and following == "/":
+                state = "code"
+                index += 1
+        elif state in {"string", "character"}:
+            if character == "\\":
+                index += 1
+            elif (state == "string" and character == '"') or (
+                state == "character" and character == "'"
+            ):
+                state = "code"
+        elif character == "/" and following == "/":
+            state = "line_comment"
+            index += 1
+        elif character == "/" and following == "*":
+            state = "block_comment"
+            index += 1
+        elif character == '"':
+            state = "string"
+        elif character == "'":
+            state = "character"
+        elif character == "{":
+            depth += 1
+        elif character == "}":
+            depth -= 1
+            if depth == 0:
+                return index
+        index += 1
+    raise ValueError("opening brace has no matching closing brace")
+
+
+def cpp_free_function_body(source: str, name: str) -> str | None:
+    signatures = re.finditer(
+        rf"(?m)^[ \t]*(?:[A-Za-z_]\w*[\w:<> ,*&\t]*\s+)"
+        rf"{re.escape(name)}\s*\(",
+        source,
+    )
+    for signature in signatures:
+        opening_brace = source.find("{", signature.end())
+        if opening_brace == -1:
+            continue
+        semicolon = source.find(";", signature.end(), opening_brace)
+        if semicolon != -1:
+            continue
+        return source[
+            opening_brace : cpp_matching_brace(source, opening_brace) + 1
+        ]
+    return None
+
+
+def contains_busy_response(source: str, body: str) -> bool:
+    def has_busy_response(candidate: str) -> bool:
+        return (
+            re.search(r"send_json\s*\(", candidate) is not None
+            and re.search(r"\b503\b", candidate) is not None
+            and '"server_busy"' in candidate
+            and '"server_error"' in candidate
+        )
+
+    if has_busy_response(body):
+        return True
+    for name in set(re.findall(r"\b([A-Za-z_]\w*)\s*\(", body)):
+        helper_body = cpp_free_function_body(source, name)
+        if helper_body is not None and has_busy_response(helper_body):
+            return True
+    return False
 
 
 class NativeRuntimeContractTest(unittest.TestCase):
@@ -702,6 +784,578 @@ class NativeRuntimeContractTest(unittest.TestCase):
         ):
             self.assertIn(option, server)
         self.assertLess(server.index("::bind("), server.index("engine.load("))
+
+    def test_cpp_matching_brace_ignores_cpp_literals_and_comments(self) -> None:
+        source = r'''void sample() {
+  const char* text = "{ ignored }";
+  const char closing = '}';
+  const char* escaped_quote = "quote: \" }";
+  // { ignored }
+  /* } ignored { */
+  if (true) { return; }
+}
+'''
+        self.assertEqual(
+            source.rfind("}"), cpp_matching_brace(source, source.index("{"))
+        )
+
+    def test_native_release_is_self_contained_and_secure(self) -> None:
+        server = (ROOT / "native/src/native_http_server.cpp").read_text(
+            encoding="utf-8"
+        )
+        normalized_server = re.sub(r"\s+", " ", server)
+
+        self.assertIn("#define _GNU_SOURCE", server)
+        self.assertLess(
+            server.index("#define _GNU_SOURCE"), server.index("#include")
+        )
+        self.assertIn('#include "aima/native_http_support.h"', server)
+        self.assertIn("#include <poll.h>", server)
+        self.assertIn("#include <pthread.h>", server)
+        self.assertRegex(
+            normalized_server,
+            r"std::atomic<std::size_t> served(?:\s|\{|=)",
+        )
+        self.assertRegex(
+            normalized_server,
+            r"volatile sig_atomic_t\s+g_signal_shutdown\s*=\s*0\s*;",
+        )
+        self.assertRegex(
+            normalized_server,
+            r"volatile sig_atomic_t\s+g_signal_wakeup_fd\s*=\s*-1\s*;",
+        )
+
+        signal_handler_body = cpp_free_function_body(server, "signal_handler")
+        self.assertIsNotNone(signal_handler_body)
+        assert signal_handler_body is not None
+        normalized_signal_handler = re.sub(r"\s+", " ", signal_handler_body)
+        saved_errno = normalized_signal_handler.index("saved_errno = errno")
+        signal_flag = normalized_signal_handler.index("g_signal_shutdown = 1")
+        signal_write = re.search(r"::write\s*\(", normalized_signal_handler)
+        self.assertIsNotNone(signal_write)
+        assert signal_write is not None
+        restored_errno = normalized_signal_handler.rindex("errno = saved_errno")
+        self.assertLess(saved_errno, signal_flag)
+        self.assertLess(signal_flag, signal_write.start())
+        self.assertLess(signal_write.start(), restored_errno)
+        self.assertNotIn("g_shutdown", normalized_signal_handler)
+
+        receive_body = cpp_free_function_body(server, "receive_before")
+        self.assertIsNotNone(receive_body)
+        assert receive_body is not None
+        normalized_receive = re.sub(r"\s+", " ", receive_body)
+        receive_poll_fds = re.search(
+            r"pollfd\s+(?P<name>[A-Za-z_]\w*)\s*\[\s*2\s*\]",
+            normalized_receive,
+        )
+        self.assertIsNotNone(receive_poll_fds)
+        assert receive_poll_fds is not None
+        receive_poll_name = receive_poll_fds.group("name")
+        self.assertIn(f"{receive_poll_name}[0].fd = fd", normalized_receive)
+        self.assertIn(
+            f"{receive_poll_name}[1].fd = wake_read_fd", normalized_receive
+        )
+        receive_poll = re.search(
+            rf"::ppoll\s*\(\s*{receive_poll_name}\s*,\s*2\s*,"
+            r"[^,]+,\s*&wait_signal_mask\s*\)",
+            normalized_receive,
+        )
+        receive_recv = re.search(
+            r"::recv\s*\(\s*fd\s*,\s*buffer\s*,\s*size\s*,"
+            r"\s*MSG_DONTWAIT\s*\)",
+            normalized_receive,
+        )
+        self.assertIsNotNone(receive_poll)
+        self.assertIsNotNone(receive_recv)
+        assert receive_poll is not None
+        assert receive_recv is not None
+        self.assertLess(receive_poll.start(), receive_recv.start())
+        self.assertNotIn("::poll(", normalized_receive)
+        self.assertIn("synchronize_signal_shutdown(wake_read_fd)", receive_body)
+        self.assertEqual(
+            1,
+            receive_body.count("::ppoll("),
+            "every receive ppoll site must share the guarded loop",
+        )
+        receive_ppoll_offset = receive_body.index("::ppoll")
+        pre_ppoll_shutdown = receive_body.rfind(
+            "if (g_shutdown.load())", 0, receive_ppoll_offset
+        )
+        self.assertNotEqual(
+            -1,
+            pre_ppoll_shutdown,
+            "a registered client read must reject worker shutdown before ppoll",
+        )
+        pre_ppoll_shutdown_opening = receive_body.index(
+            "{", pre_ppoll_shutdown
+        )
+        pre_ppoll_shutdown_closing = cpp_matching_brace(
+            receive_body, pre_ppoll_shutdown_opening
+        )
+        pre_ppoll_shutdown_body = receive_body[
+            pre_ppoll_shutdown_opening : pre_ppoll_shutdown_closing + 1
+        ]
+        self.assertIn("std::errc::operation_canceled", pre_ppoll_shutdown_body)
+        self.assertEqual(
+            "const int poll_result =",
+            re.sub(
+                r"\s+",
+                " ",
+                receive_body[
+                    pre_ppoll_shutdown_closing + 1 : receive_ppoll_offset
+                ],
+            ).strip(),
+            "the shutdown check must be immediately before ppoll",
+        )
+        receive_start = server.index("ssize_t receive_before")
+        receive_signature = server[
+            receive_start : server.index("{", receive_start)
+        ]
+        self.assertIn(
+            "const sigset_t& wait_signal_mask", receive_signature
+        )
+        self.assertRegex(
+            normalized_receive,
+            r"optional<timespec> poll_timeout = ppoll_timeout_before\("
+            r"deadline, timeout_message\)",
+        )
+        self.assertRegex(
+            normalized_receive,
+            r"poll_timeout\.has_value\(\) \? &\*poll_timeout : nullptr",
+        )
+
+        bounded_timeout_body = cpp_free_function_body(
+            server, "poll_timeout_before"
+        )
+        self.assertIsNotNone(bounded_timeout_body)
+        assert bounded_timeout_body is not None
+        normalized_bounded_timeout = re.sub(
+            r"\s+", " ", bounded_timeout_body
+        )
+        self.assertIn(
+            "std::numeric_limits<int>::max()", normalized_bounded_timeout
+        )
+        self.assertRegex(
+            normalized_bounded_timeout,
+            r"remaining_ms\.count\(\) > maximum\) return maximum",
+        )
+        ppoll_timeout_body = cpp_free_function_body(
+            server, "ppoll_timeout_before"
+        )
+        self.assertIsNotNone(ppoll_timeout_body)
+        assert ppoll_timeout_body is not None
+        normalized_ppoll_timeout = re.sub(r"\s+", " ", ppoll_timeout_body)
+        self.assertIn(
+            "poll_timeout_before(deadline, timeout_message)",
+            normalized_ppoll_timeout,
+        )
+        self.assertIn(
+            "if (timeout_ms < 0) return std::nullopt",
+            normalized_ppoll_timeout,
+        )
+        self.assertIn("timeout.tv_sec", normalized_ppoll_timeout)
+        self.assertIn("timeout.tv_nsec", normalized_ppoll_timeout)
+
+        poll_timeout_match = re.search(
+            r"if\s*\(\s*poll_result\s*==\s*0\s*\)", receive_body
+        )
+        self.assertIsNotNone(poll_timeout_match)
+        assert poll_timeout_match is not None
+        poll_timeout_opening = receive_body.index(
+            "{", poll_timeout_match.end()
+        )
+        poll_timeout_body = receive_body[
+            poll_timeout_opening
+            : cpp_matching_brace(receive_body, poll_timeout_opening) + 1
+        ]
+        normalized_poll_timeout = re.sub(r"\s+", " ", poll_timeout_body)
+        absolute_deadline_recheck = re.search(
+            r"deadline\.has_value\(\)\s*&&\s*"
+            r"std::chrono::steady_clock::now\(\)\s*>=\s*\*deadline",
+            normalized_poll_timeout,
+        )
+        self.assertIsNotNone(absolute_deadline_recheck)
+        assert absolute_deadline_recheck is not None
+        timeout_throw = normalized_poll_timeout.index("std::errc::timed_out")
+        retry_poll = normalized_poll_timeout.rindex("continue;")
+        self.assertLess(absolute_deadline_recheck.start(), timeout_throw)
+        self.assertLess(timeout_throw, retry_poll)
+
+        read_request_body = cpp_free_function_body(server, "read_request")
+        self.assertIsNotNone(read_request_body)
+        assert read_request_body is not None
+        read_request_start = server.index("HttpRequest read_request")
+        read_request_signature = server[
+            read_request_start : server.index("{", read_request_start)
+        ]
+        self.assertIn(
+            "const sigset_t& wait_signal_mask", read_request_signature
+        )
+        self.assertIn("wake_read_fd", read_request_body)
+        self.assertIn("wait_signal_mask", read_request_body)
+        normalized_read_request = re.sub(r"\s+", " ", read_request_body)
+        receive_forwarding = re.findall(
+            r"receive_before\( fd, wake_read_fd, wait_signal_mask,",
+            normalized_read_request,
+        )
+        self.assertEqual(2, len(receive_forwarding))
+
+        synchronize_body = cpp_free_function_body(
+            server, "synchronize_signal_shutdown"
+        )
+        self.assertIsNotNone(synchronize_body)
+        assert synchronize_body is not None
+        self.assertIn("g_signal_shutdown", synchronize_body)
+        self.assertIn("g_shutdown.store(true)", synchronize_body)
+        self.assertRegex(synchronize_body, r"::read\s*\(")
+
+        timeout_branch_start = server.index(
+            'else if (argument == "--request-timeout-ms")'
+        )
+        timeout_branch_end = server.index(
+            'else if (argument == "--api-key-file")', timeout_branch_start
+        )
+        timeout_branch = server[timeout_branch_start:timeout_branch_end]
+        normalized_timeout_branch = re.sub(r"\s+", " ", timeout_branch)
+        self.assertRegex(
+            normalized_timeout_branch,
+            r"options\.request_timeout_ms = parse_native_http_timeout_ms\(",
+        )
+        self.assertNotIn("parse_size", timeout_branch)
+        self.assertNotIn("600000", timeout_branch)
+        self.assertNotIn(
+            "--request-timeout-ms must not exceed 600000", server
+        )
+
+        health_route_start = server.index(
+            'request.method == "GET" && request.path == "/health"'
+        )
+        health_route_end = server.index(
+            'request.method == "GET" && request.path == "/v1/models"',
+            health_route_start,
+        )
+        health_route = server[health_route_start:health_route_end]
+        self.assertRegex(
+            re.sub(r"\s+", " ", health_route),
+            r'\{\s*"busy"\s*,\s*chat_executor\.busy\(\)\s*\}',
+        )
+        self.assertIn("served.load()", health_route)
+
+        chat_route_match = re.search(
+            r'request\.method\s*==\s*"POST"\s*&&\s*'
+            r'request\.path\s*==\s*"/v1/chat/completions"',
+            server,
+        )
+        self.assertIsNotNone(chat_route_match)
+        assert chat_route_match is not None
+        chat_route_end = server.index(
+            "const int status = request.path", chat_route_match.start()
+        )
+        chat_route = server[chat_route_match.start() : chat_route_end]
+        task_declaration = re.search(r"\bTask\s+\w+", chat_route)
+        self.assertIsNotNone(task_declaration)
+        assert task_declaration is not None
+        task_cancel_match = re.search(r"\.cancel\s*=", chat_route)
+        self.assertIsNotNone(task_cancel_match)
+        assert task_cancel_match is not None
+        cancel_assignment = task_cancel_match.start()
+        self.assertLess(task_declaration.start(), cancel_assignment)
+        cancel_lambda_opening = chat_route.index("{", task_cancel_match.end())
+        cancel_lambda_closing = cpp_matching_brace(
+            chat_route, cancel_lambda_opening
+        )
+        cancel_lambda_body = chat_route[
+            cancel_lambda_opening : cancel_lambda_closing + 1
+        ]
+        submit_match = re.search(
+            r"chat_executor\.submit\s*\(", chat_route[cancel_assignment:]
+        )
+        self.assertIsNotNone(submit_match)
+        assert submit_match is not None
+        submit_start = cancel_assignment + submit_match.start()
+        self.assertLess(cancel_assignment, submit_start)
+        self.assertTrue(
+            contains_busy_response(server, cancel_lambda_body),
+            "task cancellation must resolve to a 503 server_busy server_error response",
+        )
+
+        negative_submit_match = re.search(
+            r"if\s*\(\s*!\s*chat_executor\.submit\s*\(", chat_route
+        )
+        self.assertIsNotNone(negative_submit_match)
+        assert negative_submit_match is not None
+        self.assertGreater(negative_submit_match.start(), cancel_assignment)
+        negative_branch_opening = chat_route.index(
+            "{", negative_submit_match.end()
+        )
+        negative_submit_branch = chat_route[
+            negative_branch_opening : cpp_matching_brace(
+                chat_route, negative_branch_opening
+            )
+            + 1
+        ]
+        self.assertTrue(
+            contains_busy_response(server, negative_submit_branch),
+            "rejected chat submission must resolve to a 503 server_busy "
+            "server_error response",
+        )
+
+        self.assertRegex(
+            normalized_server,
+            r'case 503: return "Service Unavailable";',
+        )
+
+        run_server_start = server.index("int run_native_http_server")
+        run_server = server[run_server_start:]
+        normalized_run_server = re.sub(r"\s+", " ", run_server)
+        block_signals = re.search(
+            r"pthread_sigmask\(\s*SIG_BLOCK\s*,\s*&shutdown_signals\s*,"
+            r"\s*&original_signal_mask\s*\)",
+            normalized_run_server,
+        )
+        self.assertIsNotNone(block_signals)
+        assert block_signals is not None
+        for thread_source in (
+            "NativeTokenizer tokenizer",
+            "NativeResidentEngine engine",
+            "NativeSerialExecutor chat_executor",
+        ):
+            self.assertLess(
+                block_signals.start(), normalized_run_server.index(thread_source)
+            )
+        signal_handler_install = normalized_run_server.index(
+            "::sigaction(SIGTERM"
+        )
+        self.assertGreater(
+            signal_handler_install,
+            normalized_run_server.index("NativeSerialExecutor chat_executor"),
+        )
+        wait_mask_copy = normalized_run_server.index(
+            "sigset_t wait_signal_mask = original_signal_mask"
+        )
+        wait_mask_sigint = normalized_run_server.index(
+            "::sigdelset(&wait_signal_mask, SIGINT)"
+        )
+        wait_mask_sigterm = normalized_run_server.index(
+            "::sigdelset(&wait_signal_mask, SIGTERM)"
+        )
+        self.assertLess(block_signals.start(), wait_mask_copy)
+        self.assertLess(wait_mask_copy, wait_mask_sigint)
+        self.assertLess(wait_mask_copy, wait_mask_sigterm)
+        self.assertNotIn("SIG_UNBLOCK", normalized_run_server)
+
+        wake_pipe_start = server.index("class SignalWakePipe")
+        wake_pipe_opening = server.index("{", wake_pipe_start)
+        wake_pipe_body = server[
+            wake_pipe_opening
+            : cpp_matching_brace(server, wake_pipe_opening) + 1
+        ]
+        normalized_wake_pipe = re.sub(r"\s+", " ", wake_pipe_body)
+        self.assertIn("::pipe2(", normalized_wake_pipe)
+        self.assertIn("O_NONBLOCK", normalized_wake_pipe)
+        self.assertIn("O_CLOEXEC", normalized_wake_pipe)
+        self.assertGreaterEqual(normalized_wake_pipe.count("FileDescriptor"), 2)
+        wake_pipe_destructor = normalized_wake_pipe.index("~SignalWakePipe()")
+        self.assertIn(
+            "g_signal_wakeup_fd = -1",
+            normalized_wake_pipe[wake_pipe_destructor:],
+        )
+
+        wake_pipe_instance = normalized_run_server.index(
+            "SignalWakePipe signal_wakeup"
+        )
+        self.assertLess(wake_pipe_instance, signal_handler_install)
+        self.assertRegex(
+            normalized_run_server,
+            r"::socket\([^;]*SOCK_NONBLOCK[^;]*\)",
+        )
+
+        accept_loop_region = run_server[
+            run_server.index("while (!g_shutdown.load())") :
+        ]
+        normalized_accept_loop = re.sub(r"\s+", " ", accept_loop_region)
+        accept_poll_fds = re.search(
+            r"pollfd\s+(?P<name>[A-Za-z_]\w*)\s*\[\s*2\s*\]",
+            normalized_accept_loop,
+        )
+        self.assertIsNotNone(accept_poll_fds)
+        assert accept_poll_fds is not None
+        accept_poll_name = accept_poll_fds.group("name")
+        self.assertIn(
+            f"{accept_poll_name}[0].fd = server.get()", normalized_accept_loop
+        )
+        self.assertIn(
+            f"{accept_poll_name}[1].fd = signal_wakeup.read_fd()",
+            normalized_accept_loop,
+        )
+        accept_poll = re.search(
+            rf"::ppoll\s*\(\s*{accept_poll_name}\s*,\s*2\s*,"
+            r"\s*nullptr\s*,\s*&wait_signal_mask\s*\)",
+            normalized_accept_loop,
+        )
+        self.assertIsNotNone(accept_poll)
+        assert accept_poll is not None
+        self.assertLess(
+            accept_poll.start(), normalized_accept_loop.index("::accept4(")
+        )
+        self.assertNotIn("::poll(", normalized_accept_loop)
+
+        tracker_start = server.index("class ActiveClientReadTracker")
+        tracker_opening = server.index("{", tracker_start)
+        tracker_body = server[
+            tracker_opening : cpp_matching_brace(server, tracker_opening) + 1
+        ]
+        interrupt_start = tracker_body.index("void interrupt()")
+        interrupt_opening = tracker_body.index("{", interrupt_start)
+        interrupt_body = tracker_body[
+            interrupt_opening
+            : cpp_matching_brace(tracker_body, interrupt_opening) + 1
+        ]
+        normalized_interrupt = re.sub(r"\s+", " ", interrupt_body)
+        interrupt_lock = normalized_interrupt.index(
+            "std::lock_guard<std::mutex> lock(mutex_)"
+        )
+        interrupt_shutdown = normalized_interrupt.index(
+            "::shutdown(tracked_fd_, SHUT_RDWR)"
+        )
+        self.assertLess(interrupt_lock, interrupt_shutdown)
+
+        registration = re.search(
+            r"ActiveClientReadTracker::Registration\s+\w+\s*\(",
+            accept_loop_region,
+        )
+        self.assertIsNotNone(registration)
+        assert registration is not None
+        registration_scope_opening = accept_loop_region.rfind(
+            "{", 0, registration.start()
+        )
+        registration_scope_closing = cpp_matching_brace(
+            accept_loop_region, registration_scope_opening
+        )
+        read_call = accept_loop_region.index(
+            "read_request(", registration.start()
+        )
+        normalized_registration_scope = re.sub(
+            r"\s+",
+            " ",
+            accept_loop_region[
+                registration_scope_opening : registration_scope_closing + 1
+            ],
+        )
+        self.assertRegex(
+            normalized_registration_scope,
+            r"read_request\(client\.get\(\), signal_wakeup\.read_fd\(\), "
+            r"wait_signal_mask, options\.request_timeout_ms\)",
+        )
+        authentication = accept_loop_region.index(
+            "requires_authentication", read_call
+        )
+        self.assertLess(
+            registration.start(),
+            read_call,
+            "client tracking must begin before read_request can reach the "
+            "pre-ppoll shutdown check",
+        )
+        self.assertLess(read_call, registration_scope_closing)
+        self.assertLess(registration_scope_closing, authentication)
+
+        wake_body = cpp_free_function_body(server, "interrupt_server_io")
+        self.assertIsNotNone(wake_body)
+        assert wake_body is not None
+        self.assertIn("::shutdown(listener_fd, SHUT_RDWR)", wake_body)
+        self.assertIn("active_client_reads.interrupt()", wake_body)
+
+        maximum_requests = run_server.index("if (maximum_requests != 0")
+        maximum_requests_opening = run_server.index("{", maximum_requests)
+        maximum_requests_body = run_server[
+            maximum_requests_opening
+            : cpp_matching_brace(run_server, maximum_requests_opening) + 1
+        ]
+        self.assertLess(
+            maximum_requests_body.index("g_shutdown.store(true)"),
+            maximum_requests_body.index("interrupt_server_io("),
+        )
+        shutdown_route_start = run_server.index(
+            'request.method == "POST" && request.path == "/shutdown"'
+        )
+        shutdown_route_end = run_server.index(
+            'request.path == "/v1/chat/completions"', shutdown_route_start
+        )
+        self.assertIn(
+            "interrupt_server_io(",
+            run_server[shutdown_route_start:shutdown_route_end],
+        )
+
+        server_return = run_server.index("return 0;")
+        wake_fd_clear = run_server.rfind(
+            "g_signal_wakeup_fd = -1", 0, server_return
+        )
+        self.assertNotEqual(-1, wake_fd_clear)
+        restore_original_mask = re.search(
+            r"const\s+int\s+(?P<error>\w+)\s*=\s*"
+            r"::pthread_sigmask\(\s*SIG_SETMASK\s*,"
+            r"\s*&original_signal_mask\s*,\s*nullptr\s*\)",
+            run_server[:server_return],
+        )
+        self.assertIsNotNone(restore_original_mask)
+        assert restore_original_mask is not None
+        restore_tail = run_server[
+            restore_original_mask.end() : server_return
+        ]
+        self.assertRegex(
+            restore_tail,
+            rf"if\s*\(\s*{restore_original_mask.group('error')}\s*!=\s*0\s*\)",
+        )
+        final_executor_shutdown = run_server.rfind(
+            "chat_executor.shutdown();", 0, server_return
+        )
+        self.assertLess(final_executor_shutdown, wake_fd_clear)
+        self.assertLess(wake_fd_clear, restore_original_mask.start())
+        self.assertLess(restore_original_mask.start(), server_return)
+
+        stopped_event = run_server.index('{"event", "stopped"}')
+        accept_loop = run_server.index("while (!g_shutdown.load())")
+        accept_loop_closing = cpp_matching_brace(
+            run_server, run_server.index("{", accept_loop)
+        )
+        shutdown_call = run_server.rfind(
+            "chat_executor.shutdown();", 0, stopped_event
+        )
+        self.assertNotEqual(-1, shutdown_call)
+        self.assertGreater(shutdown_call, accept_loop_closing)
+        self.assertLess(shutdown_call, stopped_event)
+        stopped_event_region = run_server[
+            shutdown_call : run_server.index("return 0;", stopped_event)
+        ]
+        self.assertIn("served.load()", stopped_event_region)
+
+        http_support = ROOT / "native/src/native_http_support.cpp"
+        self.assertTrue(http_support.is_file())
+        native_build = (ROOT / "scripts/build-native-runtime.sh").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("native/src/native_http_support.cpp", native_build)
+        makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
+        syntax_recipe_match = re.search(
+            r"^check-native-syntax:[^\n]*\n(?P<body>(?:\t.*\n?)*)",
+            makefile,
+            re.MULTILINE,
+        )
+        self.assertIsNotNone(syntax_recipe_match)
+        assert syntax_recipe_match is not None
+        syntax_recipe = re.sub(
+            r"\\\n[ \t]*", " ", syntax_recipe_match.group("body")
+        )
+        syntax_command_match = re.search(
+            r"^\s*(?:g\+\+|\$\(CXX\)).*-fsyntax-only.*$",
+            syntax_recipe,
+            re.MULTILINE,
+        )
+        self.assertIsNotNone(syntax_command_match)
+        assert syntax_command_match is not None
+        syntax_command = syntax_command_match.group(0)
+        self.assertIn("native/src/native_http_support.cpp", syntax_command)
+        self.assertIn("native/src/native_http_server.cpp", syntax_command)
 
     def test_variable_prompt_prefill_is_part_of_the_native_contract(self) -> None:
         server = (ROOT / "native/src/native_http_server.cpp").read_text(
