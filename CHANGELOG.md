@@ -5,6 +5,8 @@ Versioning.
 
 ## Unreleased
 
+## 1.5.1-native-vl.5 - 2026-09-01
+
 - Added opt-in Qwen reasoning through the validated top-level `thinking`
   request object, with non-stream and SSE `reasoning_content` separation,
   answer-only backward compatibility, text/VL prompt control, and a declared
@@ -15,6 +17,17 @@ Versioning.
   strategy changes or blocked results.
 - Rejected known unsupported sampling and anti-repetition request fields
   instead of silently ignoring them.
+- Moved chat inference to one bounded serial executor so `/health`, model-list
+  and shutdown requests stay responsive while preserving batch-1 execution and
+  tokenizer/engine/cache serialization.
+- Made signal shutdown interrupt a blocked zero-timeout request read, retained
+  request deadlines above 600 seconds, and completed an admitted chat before
+  graceful shutdown.
+- Qualified the exact patch engine for thinking/tool behavior and HTTP
+  concurrency. The sealed `.4` GPU correctness, performance and two-host
+  portable-userspace evidence is inherited only through an exact runtime-diff
+  allowlist and unchanged provider/AOT hashes; no `.4` measurement is reported
+  as an exact `.5` result.
 
 ## 1.5.1-native-vl.4 - 2026-08-25
 
