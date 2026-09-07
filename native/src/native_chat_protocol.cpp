@@ -1059,6 +1059,13 @@ void validate_native_thinking_budget(const NativePreparedChat& chat,
   }
 }
 
+bool native_thinking_enabled(const NativePreparedChat& chat) {
+  if (chat.thinking_mode == NativeThinkingMode::kEnabled) return true;
+  if (chat.thinking_mode == NativeThinkingMode::kDisabled) return false;
+  return !chat.media.empty() &&
+         chat.tool_choice != NativeToolChoiceMode::kRequired;
+}
+
 NativePreparedChat prepare_native_chat(const NativeOrderedJson& request) {
   if (!request.is_object()) {
     throw std::invalid_argument("request body must be a JSON object");
@@ -1476,7 +1483,7 @@ NativeAssistantOutput parse_native_assistant_output(
     std::string_view model_output, const NativePreparedChat& chat,
     std::string_view call_id_prefix) {
   const NativeThinkingOutput thinking = split_qwen_thinking_output(
-      model_output, chat.thinking_mode == NativeThinkingMode::kEnabled);
+      model_output, native_thinking_enabled(chat));
   NativeAssistantOutput output;
   if (chat.tool_choice != NativeToolChoiceMode::kNone &&
       !chat.prompt_tools.empty()) {

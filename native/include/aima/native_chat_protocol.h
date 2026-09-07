@@ -125,6 +125,11 @@ NativePreparedChat prepare_native_chat(const NativeOrderedJson& request);
 void validate_native_thinking_budget(const NativePreparedChat& chat,
                                      std::size_t max_tokens);
 
+// Resolves the request mode to the template's effective behavior. Omitted
+// thinking remains answer-only for text, while VL retains its frozen default
+// unless required XML tool choice closes the thinking region.
+bool native_thinking_enabled(const NativePreparedChat& chat);
+
 // Parses Qwen3 XML function calls and converts parameter values according to
 // the supplied JSON schemas. Plain assistant text is preserved when no
 // complete function call is present.

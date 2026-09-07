@@ -1253,8 +1253,7 @@ ParsedCompletionRequest parse_completion_request(
     }
     parsed.raw_prompt_tokens = true;
   } else if (parsed.chat.media.empty()) {
-    const bool disable_thinking =
-        parsed.chat.thinking_mode != NativeThinkingMode::kEnabled;
+    const bool disable_thinking = !native_thinking_enabled(parsed.chat);
     parsed.prompt = tokenizer.encode_chat(
         parsed.chat.messages, parsed.chat.prompt_tools, disable_thinking);
   }
@@ -1484,7 +1483,7 @@ bool stream_chat_completion(
 
   NativeIncrementalUtf8Decoder utf8;
   const bool split_thinking =
-      parsed.chat.thinking_mode == NativeThinkingMode::kEnabled &&
+      native_thinking_enabled(parsed.chat) &&
       parsed.named_tool_json_constraint == nullptr;
   NativeThinkingStreamGate thinking_gate(split_thinking);
   NativeToolStreamGate gate;

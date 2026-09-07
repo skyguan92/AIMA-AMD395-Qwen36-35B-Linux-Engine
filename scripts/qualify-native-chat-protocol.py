@@ -524,6 +524,7 @@ def main() -> None:
         ],
         "temperature": 0,
         "top_p": 1,
+        "seed": 1515,
         "max_tokens": 128,
     }
 
@@ -747,6 +748,10 @@ def main() -> None:
             vl_enabled_status, vl_enabled_response = request_json(
                 cli.port, "POST", "/v1/chat/completions", vl_enabled
             )
+            vl_default_status, vl_default_response = request_json(
+                cli.port, "POST", "/v1/chat/completions", vl
+            )
+            vl_default_stream = request_stream(cli.port, vl)
             checks["vl_thinking_prompt_and_response_split"] = (
                 vl_disabled_status == 200
                 and vl_enabled_status == 200
@@ -760,6 +765,45 @@ def main() -> None:
                 is True
                 and vl_enabled_response["aima_amd395"]["vl"]["enabled"]
                 is True
+            )
+            vl_default_message = vl_default_response["choices"][0]["message"]
+            vl_enabled_message = vl_enabled_response["choices"][0]["message"]
+            vl_default_delta_order = vl_default_stream["delta_order"]
+            checks["vl_default_thinking_stream_nonstream_parity"] = (
+                vl_default_status == 200
+                and vl_default_stream["status"] == 200
+                and vl_default_stream["done"] is True
+                and vl_default_message.get("reasoning_content")
+                == vl_enabled_message.get("reasoning_content")
+                and vl_default_message.get("content")
+                == vl_enabled_message.get("content")
+                and vl_default_response["aima_amd395"]["prompt_token_ids_sha256"]
+                == vl_enabled_response["aima_amd395"]["prompt_token_ids_sha256"]
+                and vl_default_response["aima_amd395"]["output_token_ids_sha256"]
+                == vl_enabled_response["aima_amd395"]["output_token_ids_sha256"]
+                and vl_default_stream["reasoning_content"]
+                == vl_default_message.get("reasoning_content")
+                and vl_default_stream["content"]
+                == vl_default_message.get("content")
+                and vl_default_stream["metrics"]["output_token_ids_sha256"]
+                == vl_default_response["aima_amd395"]["output_token_ids_sha256"]
+                and "<think>" not in (
+                    (vl_default_message.get("reasoning_content") or "")
+                    + (vl_default_message.get("content") or "")
+                )
+                and "</think>" not in (
+                    (vl_default_message.get("reasoning_content") or "")
+                    + (vl_default_message.get("content") or "")
+                )
+                and (
+                    "content" not in vl_default_delta_order
+                    or all(
+                        delta == "reasoning_content"
+                        for delta in vl_default_delta_order[
+                            : vl_default_delta_order.index("content")
+                        ]
+                    )
+                )
             )
 
             observations = {
@@ -776,6 +820,8 @@ def main() -> None:
                 "parallel_false": response_summary(serial_response),
                 "exhausted_nonstream": response_summary(exhausted_response),
                 "exhausted_stream": stream_summary(exhausted_stream),
+                "vl_default": response_summary(vl_default_response),
+                "vl_default_stream": stream_summary(vl_default_stream),
                 "vl_disabled": response_summary(vl_disabled_response),
                 "vl_enabled": response_summary(vl_enabled_response),
             }

@@ -5,6 +5,10 @@ Versioning.
 
 ## Unreleased
 
+- Fixed omitted-thinking VL responses so the frozen thinking-enabled prompt
+  default is routed through `reasoning_content` for both non-stream and SSE
+  responses instead of leaking reasoning and `</think>` into `content`.
+
 ## 1.5.1-native-vl.5 - 2026-09-01
 
 - Added opt-in Qwen reasoning through the validated top-level `thinking`

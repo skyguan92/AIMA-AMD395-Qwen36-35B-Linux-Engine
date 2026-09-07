@@ -73,6 +73,8 @@ int main() {
   require(prepared.thinking_mode == aima::NativeThinkingMode::kDefault &&
               !prepared.thinking_budget_tokens.has_value(),
           "omitted thinking did not preserve the default contract");
+  require(!aima::native_thinking_enabled(prepared),
+          "omitted text thinking did not remain answer-only");
 
   NativeOrderedJson thinking_request = request;
   thinking_request["thinking"] = {
@@ -83,6 +85,8 @@ int main() {
               aima::NativeThinkingMode::kEnabled &&
               thinking_enabled.thinking_budget_tokens == 8,
           "enabled thinking request was not prepared");
+  require(aima::native_thinking_enabled(thinking_enabled),
+          "explicit thinking was not effectively enabled");
   aima::validate_native_thinking_budget(thinking_enabled, 8);
   require_invalid(
       [&]() { aima::validate_native_thinking_budget(thinking_enabled, 7); },
@@ -95,6 +99,8 @@ int main() {
               aima::NativeThinkingMode::kDisabled &&
               thinking_disabled.thinking_budget_tokens == 8,
           "disabled thinking request lost its accepted budget declaration");
+  require(!aima::native_thinking_enabled(thinking_disabled),
+          "explicitly disabled thinking remained effectively enabled");
 
   for (const NativeOrderedJson& invalid_thinking :
        std::vector<NativeOrderedJson>{
@@ -513,6 +519,19 @@ int main() {
       "VL content did not match vLLM string rendering");
   require(media.media.size() == 2,
           "image/video parts were not retained");
+  require(aima::native_thinking_enabled(media),
+          "omitted VL thinking did not preserve the frozen default");
+  const auto default_vl_output = aima::parse_native_assistant_output(
+      "visual reasoning</think>\n\nfinal answer", media, "call_vl_");
+  require(default_vl_output.reasoning_content_provided &&
+              default_vl_output.reasoning_content == "visual reasoning" &&
+              default_vl_output.content == "final answer" &&
+              default_vl_output.content.find("</think>") == std::string::npos,
+          "omitted VL thinking leaked into assistant content");
+  auto required_media = media;
+  required_media.tool_choice = aima::NativeToolChoiceMode::kRequired;
+  require(!aima::native_thinking_enabled(required_media),
+          "default required VL tool choice unexpectedly enabled thinking");
   require(media.media[0].kind == aima::NativeMediaKind::kImage &&
               media.media[0].message_index == 0 &&
               media.media[0].content_part_index == 1 &&
