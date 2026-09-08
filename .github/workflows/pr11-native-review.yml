@@ -1,0 +1,33 @@
+name: PR 11 native protocol review
+
+on:
+  push:
+    branches: [review/pr11-native-check-20260908]
+
+permissions:
+  contents: read
+
+jobs:
+  native-protocol:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: 66d9ab5a278f02b9d837fb569b966f5cbef46319
+          persist-credentials: false
+      - name: Install native protocol build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++ pkg-config libicu-dev nlohmann-json3-dev
+      - name: Build and execute the exact PR native protocol tests
+        run: |
+          test "$(git rev-parse HEAD)" = 66d9ab5a278f02b9d837fb569b966f5cbef46319
+          mkdir -p build
+          g++ -std=c++17 -Wall -Wextra -Wpedantic -Werror -O2 \
+            -I native/include -I native/generated \
+            tests/native_chat_protocol_test.cpp native/src/native_chat_protocol.cpp \
+            native/src/native_tokenizer.cpp native/src/sha256.cpp \
+            $(pkg-config --cflags --libs icu-i18n) \
+            -o build/native_chat_protocol_test
+          ./build/native_chat_protocol_test
