@@ -97,8 +97,8 @@ BF16/top-p 采样，并保证流式与非流式一致。音频、batching 与并
 先从[个人上游 v1.5.1-native-vl.6 Release](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.5.1-native-vl.6)
 下载运行包与校验文件：
 
-已验证的归档是 `aima-engine-native-portable-194f2a673904.tar.zst`，SHA-256 为
-`59f30c4232b8459f3efcd7b8506cc71b957614c0aac1fa96a2eb4e15f52940a3`。
+使用该版本的运行包和配套 `.tar.zst.sha256` 文件；校验文件记录精确的包名与
+SHA-256。
 
 ```bash
 sha256sum -c aima-engine-native-portable-*.tar.zst.sha256

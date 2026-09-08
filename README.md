@@ -127,9 +127,8 @@ Download the archive and checksum from the
 [upstream v1.5.1-native-vl.6 release](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.5.1-native-vl.6),
 then extract it anywhere:
 
-The qualified archive is
-`aima-engine-native-portable-194f2a673904.tar.zst`, SHA-256
-`59f30c4232b8459f3efcd7b8506cc71b957614c0aac1fa96a2eb4e15f52940a3`.
+Use the runtime archive and its matching `.tar.zst.sha256` sidecar from that
+release. The sidecar records the exact filename and SHA-256.
 
 ```bash
 sha256sum -c aima-engine-native-portable-*.tar.zst.sha256

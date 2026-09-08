@@ -8,13 +8,18 @@ with the version you deploy.
 
 ## 1. Qualified platform
 
-The v1.5.1-native-vl.6 profile is qualified on:
+The v1.5.1-native-vl.6 release qualification uses:
 
 - AMD Ryzen AI Max+ 395 with Radeon 8060S (`gfx1151`);
 - 128 GB installed unified memory;
 - 512 MiB fixed BIOS VRAM plus a 96 GiB AMDGPU GTT pool;
-- Linux x86-64, Ubuntu 24.04.3, kernel 6.14;
+- Linux x86-64, Ubuntu 24.04.4 LTS, kernel 7.0.0-31-generic;
 - the pinned ROCm 7.2 userspace shipped in the archive.
+
+The earlier `.4` GPU and two-host portability measurements are inherited
+under the patch contract's source and component hash checks. They are recorded
+separately from the exact `.6` archive's primary-host qualification; see
+[RELEASE.md](RELEASE.md).
 
 The deployment host does not need `/opt/rocm`, Python, PyTorch, vLLM, Triton,
 Transformers, a compiler or a C++ runtime package. It does need a compatible
