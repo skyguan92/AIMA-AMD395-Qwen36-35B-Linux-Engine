@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from pathlib import Path
+import shutil
 import tempfile
 import unittest
 
@@ -9,6 +11,7 @@ from aima_engine.release_evidence import (
     DEFAULT_RELEASE,
     NATIVE_VL_ARCHIVE_ONLY_COMPONENTS,
     _verify_recorded_artifacts,
+    evidence_paths,
     evidence_tree,
     verify_release_evidence,
 )
@@ -23,10 +26,13 @@ def digest(path: Path) -> str:
 
 class ReleaseEvidencePathResolutionTest(unittest.TestCase):
     def test_completed_native_vl_release_is_the_default(self) -> None:
-        self.assertEqual(DEFAULT_RELEASE, "1.5.1-native-vl.5")
+        self.assertEqual(DEFAULT_RELEASE, "1.5.1-native-vl.6")
 
     def test_default_patch_release_evidence_verifies(self) -> None:
         self.assertEqual(verify_release_evidence(ROOT), [])
+
+    def test_previous_patch_release_remains_independently_verifiable(self) -> None:
+        self.assertEqual(verify_release_evidence(ROOT, "1.5.1-native-vl.5"), [])
 
     def test_inline_http_response_digest_is_not_treated_as_a_path(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -219,6 +225,59 @@ class ReleaseEvidencePathResolutionTest(unittest.TestCase):
             (tree / "archived.log").write_bytes(payload)
 
             self.assertEqual(projected, evidence_tree(tree))
+
+
+class NativeVlThinkingPatchEvidenceTest(unittest.TestCase):
+    release = "1.5.1-native-vl.6"
+
+    def copy_public_evidence(self, destination: Path) -> None:
+        for source in evidence_paths(ROOT, self.release):
+            target = destination / source.relative_to(ROOT)
+            if source.is_dir():
+                shutil.copytree(source, target, dirs_exist_ok=True)
+            else:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(source, target)
+
+    def test_standalone_evidence_verifies_and_rejects_inherited_raw_tampering(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.copy_public_evidence(root)
+            self.assertEqual(
+                verify_release_evidence(
+                    root, self.release, require_archived_components=True
+                ),
+                [],
+            )
+            inherited = root / (
+                "benchmarks/runs/native-vl-resident-soak-20260901-vl5-final/"
+                "raw/health-after.json"
+            )
+            inherited.write_bytes(inherited.read_bytes() + b"\n")
+            errors = verify_release_evidence(root, self.release)
+            self.assertTrue(
+                any(error.startswith("inherited patch baseline:") for error in errors),
+                errors,
+            )
+
+    def test_changed_runtime_cannot_reuse_the_frozen_userspace_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.copy_public_evidence(root)
+            manifest_path = root / (
+                "benchmarks/results/native-portable-manifest-v1.5.1-native-vl.6.json"
+            )
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            library = next(
+                item for item in manifest["files"]
+                if item["path"] == "lib/libamdhip64.so.7"
+            )
+            library["sha256"] = "0" * 64
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+            self.assertIn(
+                "patch portable userspace differs from its frozen baseline",
+                verify_release_evidence(root, self.release),
+            )
 
 
 if __name__ == "__main__":

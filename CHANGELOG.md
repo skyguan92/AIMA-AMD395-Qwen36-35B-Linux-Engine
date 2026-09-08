@@ -13,6 +13,10 @@ Versioning.
 - Bound patch qualification to the exact clean native source and binary,
   required the default-VL stream/non-stream regression check, and retained
   the previous release's complete portable userspace and launcher by hash.
+- Qualified the exact archive on AMD395 with 11 chat-protocol checks,
+  12 HTTP checks, isolated provider/VL execution, a 3600-second/360-request
+  resident soak and exact v1.5.1 rollback. Published the sealed raw evidence
+  and made `.6` the default evidence-verification target.
 
 ## 1.5.1-native-vl.5 - 2026-09-01
 

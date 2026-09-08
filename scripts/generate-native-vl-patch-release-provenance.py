@@ -402,6 +402,9 @@ def configure_release(release: str, recorded_on: str) -> None:
     ARCHIVE_NAME = final["archive"]["name"]
     ARCHIVE_SHA256 = final["archive"]["sha256"]
     IMMUTABLE_PATHS["archive_checksum"] = RESULTS / f"{ARCHIVE_NAME}.sha256"
+    IMMUTABLE_PATHS["baseline_runtime_manifest"] = (
+        RESULTS / "native-portable-manifest-v1.5.1-native-vl.5.json"
+    )
     PUBLIC_EVIDENCE_NAME = f"aima-engine-v{release}-public-evidence.tar.zst"
     RELEASE_URL = RELEASE_URL.replace(previous, release)
     DEFAULT_OUTPUT = RESULTS / f"native-release-provenance-v{release}.json"

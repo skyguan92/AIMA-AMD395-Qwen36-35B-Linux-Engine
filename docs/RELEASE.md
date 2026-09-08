@@ -31,6 +31,27 @@ verified previous bundle's libraries instead of the host's library cache;
 verified pinned artifacts. A mismatched or incomplete runtime inventory
 blocks final promotion.
 
+The immutable source tag points to
+`1aac61df50cc686b9982cff4c9023b68237652d0`. The archive is
+`aima-engine-native-portable-290d1d084f9b.tar.zst` (345,433,534 bytes), with
+SHA-256
+`9acc3f91c5d7f7ebff617dcb642489a39c249d1d7ddece67bc3a0de1fcbd0f4c`.
+Its exact engine passed all 11 chat-protocol and 12 HTTP checks. The archive
+passed isolated q1024/q16384/q65536 provider and five-case VL execution on
+Ubuntu 24.04.4 LTS, kernel 7.0.0-31-generic, followed by a
+`3600.000584173`-second resident soak with 360 requests, 72 each for text,
+image, video, mixed media and restored image. The model loaded once,
+post-warm RSS growth was zero, shutdown was clean and exact v1.5.1 rollback
+passed. The release, security and evidence gates also passed.
+
+The additive `.6` provenance, summaries and raw records are mirrored under
+[`benchmarks/results/`](../benchmarks/results/) and
+[`benchmarks/runs/`](../benchmarks/runs/). `make verify-evidence` now validates
+`.6`, including its inherited `.5` runtime evidence. The companion public
+evidence archive includes that complete verification closure. Both `.5` and
+`.4` remain independently verifiable with the corresponding `--release`
+argument to `scripts/verify-release-evidence.py`.
+
 ## v1.5.1-native-vl.5 patch boundary
 
 The immutable `v1.5.1-native-vl.5` tag publishes the CPU protocol and HTTP
@@ -73,8 +94,8 @@ RSS growth was zero, shutdown was clean and the exact v1.5.1 rollback passed.
 
 The additive summaries and raw records are mirrored under
 [`benchmarks/results/`](../benchmarks/results/) and
-[`benchmarks/runs/`](../benchmarks/runs/). The default `make verify-evidence`
-target validates `.5`, including every sealed sidecar and raw evidence tree;
+[`benchmarks/runs/`](../benchmarks/runs/). Verify `.5`, including every sealed
+sidecar and raw evidence tree, with `--release 1.5.1-native-vl.5`;
 `.4` remains independently verifiable by passing
 `--release 1.5.1-native-vl.4` to `scripts/verify-release-evidence.py`. The companion
 public-evidence archive and its checksum sidecar are published on the same

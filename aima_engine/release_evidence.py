@@ -10,10 +10,9 @@ from typing import Any
 from aima_engine.vl_reference import verify_manifest_integrity
 
 
-DEFAULT_RELEASE = "1.5.1-native-vl.5"
+DEFAULT_RELEASE = "1.5.1-native-vl.6"
 NATIVE_VL_RELEASE = "1.5.1-native-vl.4"
 PATCH_VL_RELEASE = "1.5.1-native-vl.5"
-SEALED_RELEASES = {NATIVE_VL_RELEASE, PATCH_VL_RELEASE}
 PATCH_VL_RELEASE_COMMIT = "eb7d8ac30cea4401a068fd25f1f1379c72eaf448"
 PATCH_VL_NATIVE_COMMIT = "06a35e36269a9fe443c56e99c5fedf7ca25304cc"
 PATCH_VL_ENGINE_SHA256 = (
@@ -22,6 +21,23 @@ PATCH_VL_ENGINE_SHA256 = (
 PATCH_VL_ARCHIVE_SHA256 = (
     "59f30c4232b8459f3efcd7b8506cc71b957614c0aac1fa96a2eb4e15f52940a3"
 )
+PATCH_VL_IDENTITIES = {
+    PATCH_VL_RELEASE: {
+        "release_commit": PATCH_VL_RELEASE_COMMIT,
+        "native_source_commit": PATCH_VL_NATIVE_COMMIT,
+        "engine_sha256": PATCH_VL_ENGINE_SHA256,
+        "archive_sha256": PATCH_VL_ARCHIVE_SHA256,
+        "archive_name": "aima-engine-native-portable-194f2a673904.tar.zst",
+    },
+    "1.5.1-native-vl.6": {
+        "release_commit": "1aac61df50cc686b9982cff4c9023b68237652d0",
+        "native_source_commit": "66c6cf5ad8b3337dca9b85b0f46b23a0d222cdaa",
+        "engine_sha256": "f224f79b86c4dac14402e893da0e6a07ca383e1afd905c1e070b7fcd104f46f4",
+        "archive_sha256": "9acc3f91c5d7f7ebff617dcb642489a39c249d1d7ddece67bc3a0de1fcbd0f4c",
+        "archive_name": "aima-engine-native-portable-290d1d084f9b.tar.zst",
+    },
+}
+SEALED_RELEASES = {NATIVE_VL_RELEASE, *PATCH_VL_IDENTITIES}
 NATIVE_VL_RAW_IMMUTABLE_KEYS = {
     "g1",
     "g2",
@@ -247,6 +263,26 @@ STANDALONE_EVIDENCE_KEYS = {
     },
     "1.5.0": {"portable_bundle", "second_host_compat"},
 }
+
+for _patch_release, _patch_identity in PATCH_VL_IDENTITIES.items():
+    if _patch_release == PATCH_VL_RELEASE:
+        continue
+    RELEASE_RECORDS[_patch_release] = {
+        key: Path(str(path).replace(PATCH_VL_RELEASE, _patch_release))
+        for key, path in RELEASE_RECORDS[PATCH_VL_RELEASE].items()
+    }
+    RELEASE_RECORDS[_patch_release]["archive_checksum"] = Path(
+        "benchmarks/results/" + _patch_identity["archive_name"] + ".sha256"
+    )
+    RELEASE_RECORDS[_patch_release]["baseline_runtime_manifest"] = (
+        RELEASE_RECORDS[PATCH_VL_RELEASE]["archive_manifest"]
+    )
+    PRODUCT_EVIDENCE_KEYS[_patch_release] = (
+        PRODUCT_EVIDENCE_KEYS[PATCH_VL_RELEASE].copy()
+    )
+    STANDALONE_EVIDENCE_KEYS[_patch_release] = (
+        STANDALONE_EVIDENCE_KEYS[PATCH_VL_RELEASE].copy()
+    )
 
 
 def sha256(path: Path) -> str:
@@ -663,7 +699,8 @@ def verify_release_evidence(
         errors.append("product result is not qualified")
     if bundle_result.get("qualified") is not True:
         errors.append("portable bundle result is not qualified")
-    if release == PATCH_VL_RELEASE:
+    if release in PATCH_VL_IDENTITIES:
+        identity = PATCH_VL_IDENTITIES[release]
         source = public_result.get("source", {})
         package_input = _load(root / release_record["package_input"])
         manifest = _load(root / release_record["archive_manifest"])
@@ -673,53 +710,93 @@ def verify_release_evidence(
             if isinstance(item, dict)
         }
         expected_source = {
-            "native_source_commit": PATCH_VL_NATIVE_COMMIT,
+            "native_source_commit": identity["native_source_commit"],
             "native_source_dirty": False,
-            "release_commit": PATCH_VL_RELEASE_COMMIT,
-            "release_tag": f"v{PATCH_VL_RELEASE}",
+            "release_commit": identity["release_commit"],
+            "release_tag": f"v{release}",
         }
         if source != expected_source:
             errors.append("patch release source identity differs")
         if (
             public_result.get("archive", {}).get("sha256")
-            != PATCH_VL_ARCHIVE_SHA256
+            != identity["archive_sha256"]
             or bundle_result.get("archive", {}).get("sha256")
-            != PATCH_VL_ARCHIVE_SHA256
+            != identity["archive_sha256"]
         ):
             errors.append("patch release archive identity differs")
         if (
             public_result.get("candidate", {}).get("native_engine_sha256")
-            != PATCH_VL_ENGINE_SHA256
+            != identity["engine_sha256"]
             or package_input.get("components", {})
             .get("native_engine", {})
             .get("sha256")
-            != PATCH_VL_ENGINE_SHA256
+            != identity["engine_sha256"]
             or manifest_files.get("libexec/aima-engine.real", {}).get("sha256")
-            != PATCH_VL_ENGINE_SHA256
+            != identity["engine_sha256"]
         ):
             errors.append("patch release engine identity differs")
         if (
             public_result.get("decision", {}).get("patch_release_promoted")
             is not True
             or manifest.get("complete") is not True
-            or manifest.get("release") != PATCH_VL_RELEASE
+            or manifest.get("release") != release
             or manifest.get("source", {}).get("commit")
-            != PATCH_VL_RELEASE_COMMIT
+            != identity["release_commit"]
             or manifest.get("source", {}).get("native_commit")
-            != PATCH_VL_NATIVE_COMMIT
+            != identity["native_source_commit"]
             or manifest.get("source", {}).get("dirty") is not False
         ):
             errors.append("patch release promotion or manifest differs")
         checksum = root / release_record["archive_checksum"]
         expected_checksum = (
-            f"{PATCH_VL_ARCHIVE_SHA256}  "
-            "aima-engine-native-portable-194f2a673904.tar.zst\n"
+            f"{identity['archive_sha256']}  {identity['archive_name']}\n"
         )
         if (
             not checksum.is_file()
             or checksum.read_text(encoding="utf-8") != expected_checksum
         ):
             errors.append("patch release archive checksum differs")
+        if release == "1.5.1-native-vl.6":
+            baseline_errors = verify_release_evidence(
+                root,
+                PATCH_VL_RELEASE,
+                require_archived_components=require_archived_components,
+            )
+            errors.extend(
+                f"inherited patch baseline: {error}" for error in baseline_errors
+            )
+            baseline_manifest = _load(
+                root / release_record["baseline_runtime_manifest"]
+            )
+
+            def runtime_files(value: dict[str, Any]) -> dict[str, Any]:
+                return {
+                    item["path"]: item
+                    for item in value.get("files", [])
+                    if item["path"].startswith(
+                        ("lib/", "amdgcn/", "share/hip/", "share/certs/")
+                    )
+                    or item["path"] == "bin/aima-engine"
+                }
+
+            if runtime_files(manifest) != runtime_files(baseline_manifest):
+                errors.append(
+                    "patch portable userspace differs from its frozen baseline"
+                )
+            chat = _load(root / release_record["chat_protocol"])
+            if (
+                chat.get("checks", {}).get(
+                    "vl_default_thinking_stream_nonstream_parity"
+                )
+                is not True
+                or public_result.get("bundle_checks", {}).get(
+                    "pinned_userspace_and_launcher_unchanged"
+                )
+                is not True
+            ):
+                errors.append(
+                    "patch default VL reasoning or pinned userspace gate is missing"
+                )
 
     expected_immutable = {
         "product_result": release_record["product_result"],
@@ -737,7 +814,7 @@ def verify_release_evidence(
         expected_immutable["temperature_sampling"] = release_record[
             "temperature_sampling"
         ]
-    if release == PATCH_VL_RELEASE:
+    if release in PATCH_VL_IDENTITIES:
         for key in (
             "chat_protocol",
             "http_control_plane",
@@ -747,6 +824,10 @@ def verify_release_evidence(
             "baseline_package_input",
         ):
             expected_immutable[key] = release_record[key]
+        if "baseline_runtime_manifest" in release_record:
+            expected_immutable["baseline_runtime_manifest"] = release_record[
+                "baseline_runtime_manifest"
+            ]
     immutable_records = provenance.get("immutable_records")
     if not isinstance(immutable_records, dict):
         errors.append("immutable release records are missing")
@@ -798,7 +879,7 @@ def verify_release_evidence(
             errors.append(f"public evidence record is missing: {key}")
             continue
         recorded_path = result_record.get("path")
-        if release == PATCH_VL_RELEASE and isinstance(recorded_path, str):
+        if release in PATCH_VL_IDENTITIES and isinstance(recorded_path, str):
             provenance_path = provenance_record.get("path")
             path_matches = isinstance(provenance_path, str) and Path(
                 recorded_path
@@ -934,4 +1015,6 @@ def evidence_paths(root: Path, release: str = DEFAULT_RELEASE) -> list[Path]:
             sidecar = summary.with_name(summary.name + ".sha256")
             if sidecar.is_file():
                 paths.append(sidecar)
+    if release == "1.5.1-native-vl.6":
+        paths.extend(evidence_paths(root, PATCH_VL_RELEASE))
     return list(dict.fromkeys(paths))
