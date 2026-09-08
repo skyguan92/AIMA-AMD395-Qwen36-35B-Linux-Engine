@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import copy
 import json
 from pathlib import Path
 import subprocess
@@ -100,7 +101,51 @@ class NativeVlPatchReleaseTest(unittest.TestCase):
         self.assertIn("two_chats_execute_serially_without_rejection", http_source)
         g5_source = G5_GENERATOR.read_text(encoding="utf-8")
         self.assertIn("inherited_two_host_portable_userspace", g5_source)
-        self.assertIn("not exact .5 measurements", g5_source)
+        self.assertIn("results are inherited baseline", g5_source)
+
+
+class NativeVlThinkingPatchReleaseTest(unittest.TestCase):
+    def test_new_contract_retains_the_frozen_runtime_allowlist(self) -> None:
+        generator = load_generator()
+        contract_path = ROOT / "native/product-contract-v1.5.1-native-vl.6.json"
+        generator.configure_release(contract_path)
+        self.assertEqual(generator.RELEASE, "1.5.1-native-vl.6")
+        delta = subprocess.check_output(
+            ["git", "diff", "--name-only",
+             f"{generator.BASELINE_NATIVE_SOURCE_COMMIT}..{generator.NATIVE_SOURCE_COMMIT}",
+             "--", *generator.RUNTIME_PATHS], cwd=ROOT, text=True,
+        )
+        self.assertEqual(set(delta.splitlines()), generator.ALLOWED_RUNTIME_DELTA)
+
+    def test_old_protocol_success_cannot_qualify_the_new_default_vl_fix(self) -> None:
+        generator = load_generator()
+        generator.configure_release(ROOT / "native/product-contract-v1.5.1-native-vl.6.json")
+        old = json.loads((ROOT / "benchmarks/results/native-chat-protocol-v1.5.1-native-vl.5.json").read_text())
+        for marker in (None, False):
+            with self.subTest(marker=marker):
+                candidate = copy.deepcopy(old)
+                if marker is not None:
+                    candidate["checks"]["vl_default_thinking_stream_nonstream_parity"] = marker
+                with self.assertRaises(ValueError):
+                    generator.require_chat_protocol(candidate)
+
+    def test_userspace_inventory_rejects_changed_missing_and_extra_files(self) -> None:
+        spec = importlib.util.spec_from_file_location("vl6_g5_test", G5_GENERATOR)
+        generator = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(generator)
+        baseline = json.loads((ROOT / "benchmarks/results/native-portable-manifest-v1.5.1-native-vl.5.json").read_text())
+        self.assertTrue(all(generator.unchanged_userspace_checks(baseline).values()))
+        for mode in ("changed", "missing", "extra"):
+            with self.subTest(mode=mode):
+                candidate = copy.deepcopy(baseline)
+                record = next(item for item in candidate["files"] if item["path"] == "lib/libamdhip64.so.7")
+                if mode == "changed":
+                    record["sha256"] = "0" * 64
+                elif mode == "missing":
+                    candidate["files"].remove(record)
+                else:
+                    candidate["files"].append({**record, "path": "lib/unqualified.so"})
+                self.assertFalse(all(generator.unchanged_userspace_checks(candidate).values()))
 
 
 if __name__ == "__main__":

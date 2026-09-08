@@ -273,6 +273,7 @@ def main() -> int:
     parser.add_argument("--expected-engine-sha256", required=True)
     parser.add_argument("--expected-source-commit", required=True)
     parser.add_argument("--host-role", default="patch_qualification_amd395")
+    parser.add_argument("--release", default="1.5.1-native-vl.5")
     args = parser.parse_args()
 
     engine = args.engine.expanduser().resolve()
@@ -479,7 +480,7 @@ def main() -> int:
     payload = seal_manifest(
         {
             "schema": SCHEMA,
-            "release": "1.5.1-native-vl.5",
+            "release": args.release,
             "recorded_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "complete": True,
             "qualified": qualified,

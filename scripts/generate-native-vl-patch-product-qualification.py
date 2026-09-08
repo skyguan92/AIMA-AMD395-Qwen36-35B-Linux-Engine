@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the exact package-input qualification for native VL patch .5."""
+"""Generate the exact package-input qualification for a native VL patch."""
 
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2026 Approaching AI Authors
@@ -175,6 +175,10 @@ def require_chat_protocol(payload: Mapping[str, Any]) -> None:
         or not all(payload.get("checks", {}).values())
     ):
         raise ValueError("chat protocol qualification failed")
+    if RELEASE == "1.5.1-native-vl.6" and payload["checks"].get(
+        "vl_default_thinking_stream_nonstream_parity"
+    ) is not True:
+        raise ValueError("default VL thinking qualification is missing or failed")
     integrity = payload.get("integrity", {})
     unsigned = dict(payload)
     unsigned.pop("integrity", None)
@@ -374,7 +378,7 @@ def build_payload(
         "complete": True,
         "qualified": all(gates.values()),
         "qualification_scope": (
-            "patch-delta qualification: exact .5 CPU protocol/HTTP candidate and "
+            f"patch-delta qualification: exact {RELEASE} CPU protocol/HTTP candidate and "
             "package closure, with .4 G1-G4 and two-host portability inherited "
             "only because the fail-closed runtime diff leaves GPU math, AOT "
             "images and external providers unchanged"
@@ -409,7 +413,7 @@ def build_payload(
             ),
             "inherited_gates": inherited,
             "claim_limit": (
-                "No .4 engine measurement is represented as an exact .5 "
+                f"No .4 engine measurement is represented as an exact {RELEASE} "
                 "measurement; inheritance applies only to unchanged GPU and "
                 "portable userspace scope."
             ),
@@ -451,16 +455,38 @@ def build_payload(
     }
 
 
+def configure_release(contract_path: Path) -> None:
+    global RELEASE, RELEASE_TAG, NATIVE_SOURCE_COMMIT, ENGINE_SHA256
+    global DEFAULT_OUTPUT
+    contract = load_object(contract_path)
+    release = contract.get("release")
+    if release not in {"1.5.1-native-vl.5", "1.5.1-native-vl.6"}:
+        raise ValueError("unsupported native VL patch release")
+    if set(contract.get("patch_scope", {}).get("allowed_runtime_paths", [])) != ALLOWED_RUNTIME_DELTA:
+        raise ValueError("patch contract changes the runtime inheritance allowlist")
+    if contract.get("frozen_baseline", {}).get("native_source_commit") != BASELINE_NATIVE_SOURCE_COMMIT:
+        raise ValueError("patch contract changes the frozen baseline")
+    RELEASE = release
+    RELEASE_TAG = f"v{release}"
+    NATIVE_SOURCE_COMMIT = contract["candidate"]["native_source_commit"]
+    ENGINE_SHA256 = contract["candidate"]["native_engine_sha256"]
+    COMPONENT_SHA256["native_engine"] = ENGINE_SHA256
+    DEFAULT_INPUTS["product_contract"] = contract_path
+    DEFAULT_OUTPUT = ROOT / f"output/native-portable-product-v{release}.json"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--release-commit", required=True)
     parser.add_argument("--chat-protocol", type=Path, required=True)
     parser.add_argument("--http-control-plane", type=Path, required=True)
     parser.add_argument("--recorded-on", default="2026-09-01")
-    parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument("--product-contract", type=Path, default=DEFAULT_INPUTS["product_contract"])
+    parser.add_argument("--output", type=Path)
     for name in COMPONENT_SHA256:
         parser.add_argument("--" + name.replace("_", "-"), type=Path, required=True)
     args = parser.parse_args()
+    configure_release(args.product_contract.expanduser().resolve())
     for name, path in DEFAULT_INPUTS.items():
         if not path.is_file():
             raise SystemExit(f"input is missing: {name}: {path}")
@@ -482,7 +508,7 @@ def main() -> int:
             recorded_on=args.recorded_on,
         )
     )
-    output = args.output.expanduser().resolve()
+    output = (args.output or DEFAULT_OUTPUT).expanduser().resolve()
     digest = atomic_json(output, sealed)
     print(json.dumps({"qualified": True, "output": str(output), "sha256": digest}))
     return 0

@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![CI](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/actions/workflows/ci.yml/badge.svg)](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/release-v1.5.1--native--vl.5-green.svg)](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.5.1-native-vl.5)
+[![Release](https://img.shields.io/badge/release-v1.5.1--native--vl.6-green.svg)](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.5.1-native-vl.6)
 [![Hardware](https://img.shields.io/badge/GPU-gfx1151-orange.svg)](docs/INSTALL.md)
 
 A batch-1 BF16 inference engine specialized for
@@ -21,7 +21,7 @@ cross-request cache disabled, and real SSE arrival timing.
 This recording is a visual comparison; the versioned performance and
 qualification evidence below remain authoritative.
 
-Version 1.5.1-native-vl.5 includes the complete fixed-model image, video, mixed-media
+Version 1.5.1-native-vl.6 includes the complete fixed-model image, video, mixed-media
 and multimodal conversation surface to the relocatable native package. One
 resident process performs media processing, the 27-block vision tower and the
 language model while retaining live SSE streaming and OpenAI function tools.
@@ -42,6 +42,8 @@ weights are not redistributed.
 > text product under strict paired no-regression gates. v1.5.1-native-vl.5 adds
 > opt-in thinking, bounded tool-call progress and a serial chat executor that
 > keeps HTTP health and shutdown control traffic responsive during inference.
+> v1.5.1-native-vl.6 fixes default VL reasoning/content separation in ordinary
+> and SSE responses while preserving the pinned runtime closure.
 
 中文说明见 [README.zh-CN.md](README.zh-CN.md).
 
@@ -89,7 +91,7 @@ never an admission requirement. Input plus generated tokens may not exceed
 262,144. The native runtime now replaces the published v1.1 performance
 envelope; the Python implementation remains only as a compatibility and
 provenance reference. See
-[native/product-contract-v1.5.1-native-vl.5.json](native/product-contract-v1.5.1-native-vl.5.json).
+[native/product-contract-v1.5.1-native-vl.6.json](native/product-contract-v1.5.1-native-vl.6.json).
 
 The same process accepts single/multiple images, single/multiple videos,
 image-video mixtures, ordered text/media interleaving, multi-turn media reuse
@@ -122,7 +124,7 @@ Configure memory before loading the model:
 ## Quick start
 
 Download the archive and checksum from the
-[upstream v1.5.1-native-vl.5 release](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.5.1-native-vl.5),
+[upstream v1.5.1-native-vl.6 release](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.5.1-native-vl.6),
 then extract it anywhere:
 
 The qualified archive is
@@ -245,7 +247,7 @@ then `systemctl start|status|stop aima-engine` provides the lifecycle.
 
 ## Native CLI
 
-The published v1.5.1-native-vl.5 CLI provides:
+The published v1.5.1-native-vl.6 CLI provides:
 
 ```text
 aima-engine --build-info
@@ -325,17 +327,17 @@ Other gates:
   AOT buckets, and an A/B/A request sequence proved four-entry LRU reuse.
 
 The auditable source of truth is the
-[patch product contract](native/product-contract-v1.5.1-native-vl.5.json) and
+[patch product contract](native/product-contract-v1.5.1-native-vl.6.json) and
 the hash-bound release evidence mirrored after publication. Its package-input
-qualification is embedded as `share/aima/qualification.json`. The `.5`
+qualification is embedded as `share/aima/qualification.json`. The `.6`
 archive is isolated and soaked for one hour on AMD395, then rolled back to the
 exact v1.5.1 archive. The `.4` two-host portability result is inherited only
 for the unchanged portable userspace/provider closure through the contract's
-fail-closed runtime-diff rule; it is not described as an exact `.5` host run.
+fail-closed runtime-diff rule; it is not described as an exact `.6` host run.
 The frozen baseline and optional striped-startup evidence remain documented in
 [docs/PERFORMANCE.md](docs/PERFORMANCE.md).
 
-Run `make verify-evidence` to verify the mirrored `.5` summaries and every
+Run `make verify-evidence` to verify the mirrored `.6` summaries and every
 referenced raw tree. The `.4` baseline remains separately verifiable with
 `python3 scripts/verify-release-evidence.py --release 1.5.1-native-vl.4`.
 

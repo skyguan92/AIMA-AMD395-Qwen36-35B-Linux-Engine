@@ -133,6 +133,7 @@ def verify_manifest(bundle: Path) -> dict[str, Any]:
         checked_files += 1
     return {
         "schema": manifest["schema"],
+        "sha256": sha256(bundle / "manifest.json"),
         "complete": True,
         "release": manifest["release"],
         "source": manifest["source"],

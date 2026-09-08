@@ -14,6 +14,7 @@ if [[ "${SOURCE_DIRTY}" == true && "${AIMA_ALLOW_DIRTY_PACKAGE:-0}" != 1 ]]; the
   exit 1
 fi
 ROCM_ROOT="$(readlink -f "${ROCM_ROOT:-/opt/rocm}")"
+SYSTEM_LIBRARY_ROOT="${SYSTEM_LIBRARY_ROOT:-}"
 BINARY="${BINARY:-${ROOT}/build/native/aima-engine-native}"
 LAUNCHER="${LAUNCHER:-${ROOT}/build/native/aima-engine-launcher}"
 VISION_ATTENTION_IMAGE="${VISION_ATTENTION_IMAGE:-$(dirname "${BINARY}")/aima-vision-attention.hsaco}"
@@ -334,8 +335,12 @@ system_libraries=(
   libcrypto.so.3
 )
 for soname in "${system_libraries[@]}"; do
-  source_path="$(ldconfig -p | awk -v soname="${soname}" \
-    '$1 == soname && /x86-64/ {path=$NF} END {print path}')"
+  if [[ -n "${SYSTEM_LIBRARY_ROOT}" ]]; then
+    source_path="${SYSTEM_LIBRARY_ROOT}/${soname}"
+  else
+    source_path="$(ldconfig -p | awk -v soname="${soname}" \
+      '$1 == soname && /x86-64/ {path=$NF} END {print path}')"
+  fi
   if [[ -z "${source_path}" || ! -e "${source_path}" ]]; then
     echo "qualified system userspace library is missing: ${soname}" >&2
     exit 1

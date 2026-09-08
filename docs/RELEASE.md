@@ -1,5 +1,36 @@
 # Release provenance and procedure
 
+## v1.5.1-native-vl.6 patch boundary
+
+This patch fixes the response routing for VL requests that omit `thinking`.
+The existing thinking-enabled VL prompt now returns reasoning through
+`reasoning_content` in both ordinary and SSE responses. Explicit thinking
+settings, answer-only text defaults and tool-choice prompt behavior remain
+unchanged.
+
+The native source is `66c6cf5ad8b3337dca9b85b0f46b23a0d222cdaa`; the exact
+binary is pinned in
+[`product-contract-v1.5.1-native-vl.6.json`](../native/product-contract-v1.5.1-native-vl.6.json).
+The source delta from the frozen `.4` GPU baseline still matches the same
+seven CPU/control/build paths admitted by `.5`. All published `.4` GPU
+correctness, performance and two-host measurements remain explicitly inherited.
+
+The exact `.6` candidate must pass the native chat and HTTP qualifiers,
+including `vl_default_thinking_stream_nonstream_parity`. Promotion also
+requires isolated execution of the final archive on AMD395, a full one-hour
+mixed-workload soak with at least 240 requests, exact v1.5.1 rollback and
+the repository, security and evidence gates. The final G5 record compares
+the complete runtime file inventory against `.5`: the launcher, GPU assets,
+ROCm/system libraries and CA certificate store must remain byte-identical.
+
+Pass the `.6` contract through `--product-contract` to the patch product and
+G5 generators, and use `--release 1.5.1-native-vl.6` for the HTTP qualifier.
+When packaging on an updated builder, `SYSTEM_LIBRARY_ROOT` selects the
+verified previous bundle's libraries instead of the host's library cache;
+`ROCM_ROOT` and the remaining component inputs must likewise reference the
+verified pinned artifacts. A mismatched or incomplete runtime inventory
+blocks final promotion.
+
 ## v1.5.1-native-vl.5 patch boundary
 
 The immutable `v1.5.1-native-vl.5` tag publishes the CPU protocol and HTTP

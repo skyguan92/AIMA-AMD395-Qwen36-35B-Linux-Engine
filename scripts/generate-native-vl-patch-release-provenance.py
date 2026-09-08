@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the additive, tree-bound v1.5.1-native-vl.5 evidence record."""
+"""Generate the additive, tree-bound native VL patch evidence record."""
 
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2026 Approaching AI Authors
@@ -189,6 +189,7 @@ def build_payload(recorded_on: str) -> dict[str, Any]:
 
     final_result = require_sealed(
         IMMUTABLE_PATHS["product_result"],
+        release=RELEASE,
         schema=(
             "aima-amd395-qwen36/"
             "native-vl-patch-g5-release-qualification/v1"
@@ -196,10 +197,12 @@ def build_payload(recorded_on: str) -> dict[str, Any]:
     )
     package_input = require_sealed(
         IMMUTABLE_PATHS["package_input_qualification"],
+        release=RELEASE,
         schema="aima-amd395-qwen36/native-vl-product-qualification/v1",
     )
     bundle = require_sealed(
         IMMUTABLE_PATHS["portable_bundle_result"],
+        release=RELEASE,
         schema="aima-amd395-qwen36/native-portable-bundle-qualification/v1",
     )
     chat = require_sealed(
@@ -210,6 +213,7 @@ def build_payload(recorded_on: str) -> dict[str, Any]:
     )
     http = require_sealed(
         IMMUTABLE_PATHS["http_control_plane"],
+        release=RELEASE,
         schema="aima-amd395-qwen36/native-http-control-plane/v1",
     )
 
@@ -258,7 +262,7 @@ def build_payload(recorded_on: str) -> dict[str, Any]:
         ),
         "product_contract": file_component(
             IMMUTABLE_PATHS["product_contract"],
-            "native/product-contract-v1.5.1-native-vl.5.json",
+            f"native/product-contract-v{RELEASE}.json",
         ),
     }
     for name, expected in expected_inputs.items():
@@ -314,6 +318,8 @@ def build_payload(recorded_on: str) -> dict[str, Any]:
         value["path"] = record["tree_path"]
         public_trees[name] = value
 
+    patch_label = "." + RELEASE.rsplit(".", 1)[-1]
+    soak = load_object(PUBLIC_EVIDENCE["resident_soak"][0])["measurement"]
     return {
         "schema": "aima-amd395-qwen36/native-release-provenance/v1",
         "release": RELEASE,
@@ -336,7 +342,7 @@ def build_payload(recorded_on: str) -> dict[str, Any]:
             },
         },
         "clarification": (
-            "The immutable .5 tag binds the exact patch runtime, tooling and "
+            f"The immutable {patch_label} tag binds the exact patch runtime, tooling and "
             "product contract. The final archive, exact-candidate chat/HTTP "
             "qualifications, one-hour soak, rollback and release gates are "
             "additive hash-bound evidence and do not move that tag."
@@ -349,11 +355,11 @@ def build_payload(recorded_on: str) -> dict[str, Any]:
         "public_evidence": public_evidence,
         "public_evidence_trees": public_trees,
         "claim_effect": (
-            "The exact .5 archive passed isolated AMD395 bundle execution, "
-            "3600 seconds and 360 requests of resident mixed traffic, exact "
+            f"The exact {patch_label} archive passed isolated AMD395 bundle execution, "
+            f"{int(soak['elapsed_seconds'])} seconds and {soak['request_count']} requests of resident mixed traffic, exact "
             "v1.5.1 rollback and repository/security/evidence gates. The .4 "
             "G1-G4 and two-host results remain inherited baseline evidence, "
-            "not exact .5 measurements or a second exact .5 host run."
+            f"not exact {patch_label} measurements or a second exact {patch_label} host run."
         ),
     }
 
@@ -369,14 +375,53 @@ def verify_exact(path: Path, expected: Mapping[str, Any]) -> None:
         raise SystemExit(f"native VL patch provenance sidecar is stale: {sidecar}")
 
 
+def configure_release(release: str, recorded_on: str) -> None:
+    global RELEASE, RELEASE_TAG, RELEASE_COMMIT, NATIVE_SOURCE_COMMIT
+    global ENGINE_SHA256, ARCHIVE_NAME, ARCHIVE_SHA256, PUBLIC_EVIDENCE_NAME
+    global RELEASE_URL, DEFAULT_OUTPUT, IMMUTABLE_PATHS, PUBLIC_EVIDENCE
+    if release == "1.5.1-native-vl.5":
+        return
+    if release != "1.5.1-native-vl.6":
+        raise ValueError("unsupported native VL patch release")
+    previous = RELEASE
+    RELEASE = release
+    RELEASE_TAG = f"v{release}"
+    IMMUTABLE_PATHS = {
+        name: Path(str(path).replace(previous, release))
+        for name, path in IMMUTABLE_PATHS.items()
+    }
+    contract = load_object(IMMUTABLE_PATHS["product_contract"])
+    NATIVE_SOURCE_COMMIT = contract["candidate"]["native_source_commit"]
+    ENGINE_SHA256 = contract["candidate"]["native_engine_sha256"]
+    final = require_sealed(
+        IMMUTABLE_PATHS["product_result"],
+        schema="aima-amd395-qwen36/native-vl-patch-g5-release-qualification/v1",
+        release=release,
+    )
+    RELEASE_COMMIT = final["source"]["release_commit"]
+    ARCHIVE_NAME = final["archive"]["name"]
+    ARCHIVE_SHA256 = final["archive"]["sha256"]
+    IMMUTABLE_PATHS["archive_checksum"] = RESULTS / f"{ARCHIVE_NAME}.sha256"
+    PUBLIC_EVIDENCE_NAME = f"aima-engine-v{release}-public-evidence.tar.zst"
+    RELEASE_URL = RELEASE_URL.replace(previous, release)
+    DEFAULT_OUTPUT = RESULTS / f"native-release-provenance-v{release}.json"
+    suffix = recorded_on.replace("-", "") + "-vl6-final"
+    PUBLIC_EVIDENCE = {
+        name: tuple(Path(str(path).replace("20260901-vl5-final", suffix)) for path in paths)
+        for name, paths in PUBLIC_EVIDENCE.items()
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--recorded-on", default="2026-09-01")
-    parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument("--release", choices=("1.5.1-native-vl.5", "1.5.1-native-vl.6"), default=RELEASE)
+    parser.add_argument("--output", type=Path)
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
+    configure_release(args.release, args.recorded_on)
     sealed = seal_manifest(build_payload(args.recorded_on))
-    output = args.output.expanduser().resolve()
+    output = (args.output or DEFAULT_OUTPUT).expanduser().resolve()
     if args.check:
         verify_exact(output, sealed)
         print(f"native VL patch release provenance: PASS ({output})")

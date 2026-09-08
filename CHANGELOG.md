@@ -5,9 +5,14 @@ Versioning.
 
 ## Unreleased
 
+## 1.5.1-native-vl.6 - 2026-09-08
+
 - Fixed omitted-thinking VL responses so the frozen thinking-enabled prompt
   default is routed through `reasoning_content` for both non-stream and SSE
   responses instead of leaking reasoning and `</think>` into `content`.
+- Bound patch qualification to the exact clean native source and binary,
+  required the default-VL stream/non-stream regression check, and retained
+  the previous release's complete portable userspace and launcher by hash.
 
 ## 1.5.1-native-vl.5 - 2026-09-01
 

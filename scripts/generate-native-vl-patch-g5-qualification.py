@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the final native VL .5 patch-release qualification."""
+"""Generate the final native VL patch-release qualification."""
 
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2026 Approaching AI Authors
@@ -185,6 +185,23 @@ def exact_bundle_checks(
     }
 
 
+def unchanged_userspace_checks(manifest: Mapping[str, Any]) -> dict[str, bool]:
+    baseline = load_object(
+        ROOT / "benchmarks/results/native-portable-manifest-v1.5.1-native-vl.5.json"
+    )
+
+    def runtime_files(value: Mapping[str, Any]) -> dict[str, Any]:
+        return {
+            item["path"]: item
+            for item in value.get("files", [])
+            if item["path"].startswith(("lib/", "amdgcn/", "share/hip/", "share/certs/"))
+            or item["path"] == "bin/aima-engine"
+        }
+
+    expected = runtime_files(baseline)
+    return {"pinned_userspace_and_launcher_unchanged": bool(expected) and runtime_files(manifest) == expected}
+
+
 def build_payload(
     *, paths: Mapping[str, Path], archive: Path, recorded_at: str
 ) -> dict[str, Any]:
@@ -274,6 +291,15 @@ def build_payload(
     ):
         raise RuntimeError("candidate archive checksum differs")
     bundle_checks = exact_bundle_checks(payloads["bundle"], archive_sha256=archive_digest)
+    if RELEASE == "1.5.1-native-vl.6":
+        manifest_path = paths.get("archive_manifest")
+        if manifest_path is None:
+            raise RuntimeError("patch .6 requires the exact archive manifest")
+        manifest = load_object(manifest_path)
+        expected_manifest = payloads["bundle"].get("manifest", {})
+        if sha256(manifest_path) != expected_manifest.get("sha256"):
+            raise RuntimeError("archive manifest differs from isolated bundle evidence")
+        bundle_checks.update(unchanged_userspace_checks(manifest))
 
     soak = payloads["soak"]
     soak_checks = {
@@ -374,7 +400,7 @@ def build_payload(
             "scope": "unchanged GPU math, providers, AOT images and portable userspace",
             "claim_limit": (
                 "The .4 G1-G4 and two-host results are inherited baseline "
-                "evidence, not exact .5 measurements or a second .5 host run."
+                f"evidence, not exact {RELEASE} measurements or a second {RELEASE} host run."
             ),
         },
         "evidence": {
@@ -394,6 +420,21 @@ def build_payload(
     }
 
 
+def configure_release(contract_path: Path) -> None:
+    global RELEASE, RELEASE_TAG, NATIVE_SOURCE_COMMIT, ENGINE_SHA256
+    global PRODUCT_CONTRACT, DEFAULT_OUTPUT
+    contract = load_object(contract_path)
+    release = contract.get("release")
+    if release not in {"1.5.1-native-vl.5", "1.5.1-native-vl.6"}:
+        raise ValueError("unsupported native VL patch release")
+    RELEASE = release
+    RELEASE_TAG = f"v{release}"
+    NATIVE_SOURCE_COMMIT = contract["candidate"]["native_source_commit"]
+    ENGINE_SHA256 = contract["candidate"]["native_engine_sha256"]
+    PRODUCT_CONTRACT = contract_path
+    DEFAULT_OUTPUT = ROOT / f"output/native-vl-g5-release-v{release}.json"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--archive", type=Path, required=True)
@@ -402,13 +443,18 @@ def main() -> int:
     parser.add_argument("--soak", type=Path, required=True)
     parser.add_argument("--rollback", type=Path, required=True)
     parser.add_argument("--release-gates", type=Path, required=True)
+    parser.add_argument("--archive-manifest", type=Path)
+    parser.add_argument("--product-contract", type=Path, default=PRODUCT_CONTRACT)
     parser.add_argument("--recorded-at", default="2026-09-01")
-    parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument("--output", type=Path)
     args = parser.parse_args()
+    configure_release(args.product_contract.expanduser().resolve())
     paths = {
         name: getattr(args, name).expanduser().resolve()
         for name in ("product_result", "bundle", "soak", "rollback", "release_gates")
     }
+    if args.archive_manifest is not None:
+        paths["archive_manifest"] = args.archive_manifest.expanduser().resolve()
     for name, path in paths.items():
         if not path.is_file():
             raise SystemExit(f"input is missing: {name}: {path}")
@@ -418,7 +464,7 @@ def main() -> int:
     sealed = seal_manifest(
         build_payload(paths=paths, archive=archive, recorded_at=args.recorded_at)
     )
-    output = args.output.expanduser().resolve()
+    output = (args.output or DEFAULT_OUTPUT).expanduser().resolve()
     digest = atomic_json(output, sealed)
     output.with_name(output.name + ".sha256").write_text(
         f"{digest}  {output.name}\n", encoding="utf-8"
