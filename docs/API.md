@@ -177,8 +177,9 @@ Supported request fields:
 - `thinking`: optional object with `type` exactly `enabled` or `disabled` and
   an optional positive-integer `budget_tokens`. Omission preserves the prior
   product behavior (answer-only text prompts and the frozen VL template
-  default). Explicit `enabled` returns Qwen reasoning separately; explicit
-  `disabled` selects the answer-only template for both text and VL;
+  default). Whenever that effective template enables thinking, Qwen reasoning
+  is returned separately. Explicit `disabled` selects the answer-only template
+  for both text and VL;
 - `n`: exactly `1`;
 - `stream`: boolean;
 - `stream_options.include_usage`: boolean when `stream` is true;
@@ -311,8 +312,9 @@ input/output pairs `262143/1`, `261632/512` and `261120/1024`.
 
 With `stream:false`, the response follows the OpenAI shape: `id`, `object`,
 `created`, `model`, `choices` and `usage`. Plain generations return assistant
-`content`. With explicit thinking enabled, the same message also returns
-`reasoning_content`; `content` contains only bytes after `</think>`. If the
+`content`. When thinking is effectively enabled, including the omitted-field
+VL default, the same message also returns `reasoning_content`; `content`
+contains only bytes after `</think>`. If the
 generation limit is reached before that marker, all visible bytes are
 reasoning and `content` is empty. Neither thinking marker is returned. A
 function generation returns `message.tool_calls` and ends with
@@ -366,8 +368,8 @@ is not exposed as a valid call. A terminal EOS token counts in
 `Content-Type: text/event-stream`. The sequence is:
 
 1. an assistant-role `chat.completion.chunk`;
-2. when thinking is explicitly enabled, `delta.reasoning_content` chunks until
-   the closing marker, which is withheld even across token boundaries;
+2. when thinking is effectively enabled, `delta.reasoning_content` chunks
+   until the closing marker, which is withheld even across token boundaries;
 3. content deltas as soon as post-thinking token bytes form valid UTF-8;
 4. a structured `delta.tool_calls` when Qwen completes a function call;
 5. a terminal chunk with `stop`, `length` or `tool_calls`;

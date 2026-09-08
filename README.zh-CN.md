@@ -142,14 +142,16 @@ curl -fsS http://127.0.0.1:8000/v1/chat/completions \
 `seed`。实际 seed 和采样开销记录在 `aima_amd395.sampling`；显式 seed 在流式和
 非流式请求中复现同一 token 序列。
 
-Qwen 推理能力采用显式开启并保持向后兼容：
+Qwen 推理能力支持显式控制，同时保留现有文本和 VL prompt 默认行为：
 
 ```json
 "thinking": {"type": "enabled", "budget_tokens": 4608}
 ```
 
-非流式返回将 `message.reasoning_content` 与最终 `message.content` 分离；SSE 先
-发送 `delta.reasoning_content`，再发送 `delta.content`。`budget_tokens` 是
+当实际 prompt 开启推理时，非流式返回将 `message.reasoning_content` 与最终
+`message.content` 分离；SSE 先发送 `delta.reasoning_content`，再发送
+`delta.content`。这也适用于省略 `thinking` 时保留的 VL 默认行为；省略该字段的
+文本请求仍仅返回答案。`budget_tokens` 是
 `max_tokens` 组合上限内经过校验的声明，不是第二个硬停止点。显式设置
 `type:"disabled"` 可让文本或 VL 请求使用仅答案模板。默认行为、校验规则和原始
 token 限制详见 [docs/API.md](docs/API.md)。

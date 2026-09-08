@@ -174,14 +174,17 @@ and optionally a non-negative `seed`. The effective seed and sampling work are
 reported under `aima_amd395.sampling`; an explicit seed reproduces the same
 token sequence across stream and non-stream requests.
 
-Qwen reasoning is opt-in and backward compatible:
+Qwen reasoning can be controlled explicitly while preserving the existing
+text and VL prompt defaults:
 
 ```json
 "thinking": {"type": "enabled", "budget_tokens": 4608}
 ```
 
-The non-stream response separates `message.reasoning_content` from final
-`message.content`; SSE emits `delta.reasoning_content` before `delta.content`.
+When the effective prompt enables reasoning, the non-stream response separates
+`message.reasoning_content` from final `message.content`; SSE emits
+`delta.reasoning_content` before `delta.content`. This includes the frozen VL
+default when `thinking` is omitted; omitted text requests remain answer-only.
 `budget_tokens` is a validated declaration inside the combined `max_tokens`
 limit, not an additional hard stop. Use `type:"disabled"` for an explicit
 answer-only text or VL request. See [docs/API.md](docs/API.md) for the exact
