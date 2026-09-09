@@ -22,6 +22,13 @@ Versioning.
   19-cell text matrix. These measurements require the exact portable engine,
   static launcher and pinned userspace, not the host ROCm libraries.
   Corpus qualification does not imply universal BF16 bitwise equivalence.
+- Passed both pinned-runtime profiles and all 19 text-matrix cells. Public raw
+  data independently reproduces all 52 generation pairs and 68 logits
+  comparisons (maximum KLD 0.0035071). Long shared-system median TTFT improves
+  about 3.37x without observed decode regression, within the 96 GiB GTT limit.
+- Qualified the exact portable archive with isolated provider/VL execution,
+  a full one-hour/360-request soak (one model load, zero post-warm RSS growth,
+  clean shutdown), and exact v1.5.1 rollback.
 
 ## 1.5.1-native-vl.6 - 2026-09-08
 

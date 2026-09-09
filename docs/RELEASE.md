@@ -27,6 +27,17 @@ shared-system requests must show median partial-hit TTFT improvement, decode
 retention at least 0.97, and peak GTT below 96 GiB. Exact timings and memory
 measurements are recorded in the checksum-bound public evidence for this release.
 
+The pinned portable measurements pass at both capacities: the long shared-system
+corpus gives median TTFT speedups of 3.37112x / 3.37115x and decode retention of
+1.00069 / 1.00346. Peak GTT is 83,342,831,616 / 90,926,133,248 bytes. The short
+issue reproduction restores 64,696,320 bytes in 0.756 ms, with TTFT 472.45 ms
+versus 504.37 ms cold. All 52 generation pairs and 68 full-vocabulary comparisons
+pass; maximum KLD is 0.0035070673. Independent recomputation from the public raw
+FP32 files reproduces these comparisons. The fresh 19-cell text matrix also
+passes, with minimum prefill/decode retention 1.03246 / 1.03405 against its
+published v1.0.0 baseline. These are measurements through the frozen portable
+userspace, not the earlier host-ROCm diagnostic runs.
+
 Both profiles must pass 26 full-generation comparisons, 34 comparisons of all
 248320 FP32 logits (top-1 equal, KLD strictly below 0.005),
 and an eight-step short-checkpoint/full-owner replay that verifies actual KV
@@ -63,6 +74,17 @@ summaries. Public prefix exports verify the original sealed raw files, redact
 host paths only and reseal the derivative with its source summary hash. The
 additive release provenance binds both complete raw prefix trees and the fresh
 matrix to the exact package input. The immutable source tag is never moved.
+
+The immutable source tag points to
+`9bd8a0fabcf2fc6ef1b882c10b04390c0e31fb00`. The final archive is
+`aima-engine-native-portable-5a699d1600cc.tar.zst` (345,552,799 bytes), with SHA-256
+`fb88242d52b6d3a1c152c8c7119c641275090fb7210e672d6c3fae358d215303`.
+It passed isolated provider/VL execution and a 3600.000502-second resident soak:
+360 requests, 72 each for text, image, video, mixed media and restored image.
+All requests qualified, the model loaded once, post-warm RSS growth was zero,
+peak GTT was 85,384,773,632 bytes, and shutdown was clean. Exact v1.5.1 rollback
+also passed. The complete public records are published separately so they can
+bind the final archive without rewriting the immutable source tag.
 
 ## v1.5.1-native-vl.6 patch boundary
 

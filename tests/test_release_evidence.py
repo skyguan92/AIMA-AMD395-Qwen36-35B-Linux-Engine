@@ -26,7 +26,7 @@ def digest(path: Path) -> str:
 
 class ReleaseEvidencePathResolutionTest(unittest.TestCase):
     def test_completed_native_vl_release_is_the_default(self) -> None:
-        self.assertEqual(DEFAULT_RELEASE, "1.5.1-native-vl.6")
+        self.assertEqual(DEFAULT_RELEASE, "1.5.1-native-vl.7")
 
     def test_default_patch_release_evidence_verifies(self) -> None:
         self.assertEqual(verify_release_evidence(ROOT), [])
@@ -278,6 +278,37 @@ class NativeVlThinkingPatchEvidenceTest(unittest.TestCase):
                 "patch portable userspace differs from its frozen baseline",
                 verify_release_evidence(root, self.release),
             )
+
+
+class NativeVlSafePrefixEvidenceTest(unittest.TestCase):
+    release = "1.5.1-native-vl.7"
+    copy_public_evidence = NativeVlThinkingPatchEvidenceTest.copy_public_evidence
+
+    def test_standalone_checkpoint_evidence_verifies_and_rejects_raw_logits_tampering(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.copy_public_evidence(root)
+            self.assertEqual(verify_release_evidence(
+                root, self.release, require_archived_components=True
+            ), [])
+            raw = next((root / "benchmarks/runs/native-safe-prefix-20260909-vl7-final").rglob("*.f32"))
+            value = bytearray(raw.read_bytes())
+            value[0] ^= 1
+            raw.write_bytes(value)
+            errors = verify_release_evidence(root, self.release)
+            self.assertTrue(any(error.startswith("safe-prefix raw artifact differs: prefix/")
+                                for error in errors), errors)
+
+    def test_checkpoint_measurement_cannot_be_detached_from_package_input(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.copy_public_evidence(root)
+            path = root / "benchmarks/results/native-portable-product-v1.5.1-native-vl.7.json"
+            value = json.loads(path.read_text())
+            value["candidate_validation"]["one_owner"]["sha256"] = "0" * 64
+            path.write_text(json.dumps(value))
+            self.assertIn("safe-prefix package input binding differs: one_owner",
+                          verify_release_evidence(root, self.release))
 
 
 if __name__ == "__main__":
