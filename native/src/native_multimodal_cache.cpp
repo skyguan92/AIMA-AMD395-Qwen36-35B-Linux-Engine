@@ -130,10 +130,21 @@ std::vector<std::size_t> native_chat_prefix_checkpoint_tokens(
   std::vector<std::size_t> boundaries;
   for (std::size_t index = 1; index < tokens.size(); ++index) {
     if (tokens[index] != kMessageEnd) continue;
-    if (boundaries.size() < kNativePrefixCacheCheckpointCount) {
+    if (boundaries.size() < 2) {
       boundaries.push_back(index);
     } else {
       boundaries.back() = index;
+    }
+  }
+  // The assistant header is also common when the generated answer is later
+  // supplied as conversation history, before an empty-thinking stub diverges.
+  // Keep only a header after the final completed message, never an arbitrary
+  // earlier assistant header from a long transcript.
+  const std::size_t final_message = boundaries.empty() ? 0 : boundaries.back();
+  for (std::size_t index = final_message; index + 3 < tokens.size(); ++index) {
+    if (tokens[index] == 248045 && tokens[index + 1] == 74455 && tokens[index + 2] == 198) {
+      boundaries.push_back(index + 3);
+      break;
     }
   }
   return boundaries;

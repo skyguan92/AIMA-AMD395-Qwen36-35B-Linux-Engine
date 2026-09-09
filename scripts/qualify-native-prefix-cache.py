@@ -25,7 +25,8 @@ import zlib
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from aima_engine.vl_reference import canonical_json_sha256, seal_manifest
+from aima_engine.vl_reference import canonical_json_sha256, seal_manifest, verify_manifest_integrity
+from aima_engine.public_hygiene import scan_bytes
 
 spec = importlib.util.spec_from_file_location(
     "prefix_protocol", ROOT / "scripts/qualify-native-chat-protocol.py"
@@ -100,7 +101,7 @@ def build_cases(engine: Path, model: Path, output: Path, performance: bool,
         {"role": "user", "content": "你好"},
         {"role": "assistant", "content": "你好！"},
     ]
-    add("multi_turn", history, "prefix")
+    add("multi_turn", history, "prefix", tokens.index(74455) + 2)
     add("append_seed", short)
     append_tokens = json.loads(subprocess.run(
         [str(engine), "tokenizer-probe", "--model-dir", str(model), "--text", "Hello"],
@@ -109,7 +110,9 @@ def build_cases(engine: Path, model: Path, output: Path, performance: bool,
         "max_tokens": 64, "prompt_token_ids": tokens + append_tokens}, "prefix", len(tokens))
     add("checkpoint_as_complete_prompt", {"model": protocol.MODEL_ID, "temperature": 0,
         "max_tokens": 64, "prompt_token_ids": tokens[:matched]}, "exact", matched)
-    add("full_owner_after_short_checkpoint", short, "exact", len(tokens))
+    full_owner_retained = cache_capacity <= 131072
+    add("full_owner_after_short_checkpoint", short,
+        "exact" if full_owner_retained else "prefix", len(tokens) if full_owner_retained else matched)
     # Five unrelated owners exceed the four-entry promoted q8192 LRU.
     for index in range(5):
         add(f"eviction_fill_{index}", {"model": protocol.MODEL_ID, "temperature": 0,
@@ -392,6 +395,40 @@ def source_binding(engine_commit: str) -> dict:
             "protocol_helper_sha256": protocol.sha256_file(ROOT / "scripts/qualify-native-chat-protocol.py")}
 
 
+def export_public_evidence(source: Path, destination: Path) -> None:
+    """Create a sanitized derivative; retain the private run's immutable seal."""
+    source = source.resolve()
+    original = source / "qualification.json"
+    result = json.loads(original.read_text())
+    protocol.require(not verify_manifest_integrity(result), "original qualification seal differs")
+    destination.mkdir(parents=True, exist_ok=False)
+    records = []
+    for record in result["artifacts"]:
+        path = (source / record["path"]).resolve()
+        protocol.require(path.is_relative_to(source) and path.is_file()
+                         and path.stat().st_size == record["bytes"]
+                         and protocol.sha256_file(path) == record["sha256"],
+                         "original raw evidence differs")
+        target = destination / record["path"]
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if path.suffix == ".json":
+            value = json.loads(path.read_text())
+            write_json(target, value)
+        else:
+            target.write_bytes(path.read_bytes())
+            protocol.seal_file(target)
+        protocol.require(not scan_bytes(record["path"], target.read_bytes()),
+                         f"public evidence contains private data: {record['path']}")
+        records.append(protocol.file_component(target, record["path"]))
+    result.pop("integrity", None)
+    result["artifacts"] = records
+    result["publicization"] = {"original_qualification_sha256": protocol.sha256_file(original),
+                              "exporter_sha256": protocol.sha256_file(Path(__file__)),
+                              "operation": "host-path redaction only; inference metrics and logits unchanged"}
+    result = seal_manifest(result)
+    write_json(destination / "qualification.json", result)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--engine", type=Path, required=True)
@@ -432,7 +469,7 @@ def main() -> int:
               "source": source, "case_input_sha256": canonical_json_sha256(cases),
               "build_info": build_info, "engine_sha256": protocol.sha256_file(cli.engine),
               "configuration": {"context_tokens": cli.context_tokens,
-                                "cache_capacity": cli.cache_capacity, "checkpoint_limit_per_entry": 2},
+                                "cache_capacity": cli.cache_capacity, "checkpoint_limit_per_entry": 3},
               "cold_peak_memory": cold["peak_memory"], "cached_peak_memory": cached["peak_memory"],
               "host": {"system": platform.system(), "kernel": platform.release(),
                        "architecture": platform.machine()},

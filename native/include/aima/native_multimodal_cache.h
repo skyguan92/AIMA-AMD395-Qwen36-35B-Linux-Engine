@@ -61,8 +61,10 @@ std::size_t native_prefix_cache_matched_tokens(
 // Checkpoints stop immediately before the first and last message terminators.
 // The first preserves a shared system message; the last admits extensions of
 // the final message before its old terminator. Full request snapshots remain
-// independently reusable. Media requests retain whole-request snapshots.
-constexpr std::size_t kNativePrefixCacheCheckpointCount = 2;
+// independently reusable. A third boundary after the final assistant header
+// preserves the shared prefix when its generated content becomes history.
+// Media requests retain whole-request snapshots.
+constexpr std::size_t kNativePrefixCacheCheckpointCount = 3;
 std::vector<std::size_t> native_chat_prefix_checkpoint_tokens(
     const std::vector<std::uint32_t>& tokens,
     std::string_view multimodal_namespace);

@@ -163,6 +163,16 @@ int main() {
   const auto checkpoints = aima::native_chat_prefix_checkpoint_tokens(chat, "");
   require(checkpoints == std::vector<std::size_t>({4, 10}),
           "message checkpoints included the divergent terminator");
+  auto generation_prompt = chat;
+  generation_prompt.insert(generation_prompt.end(), {248068, 271, 248069, 271});
+  const auto generation_checkpoints = aima::native_chat_prefix_checkpoint_tokens(generation_prompt, "");
+  require(generation_checkpoints == std::vector<std::size_t>({4, 10, 15}),
+          "assistant generation header was not checkpointed");
+  auto completed_answer = chat;
+  completed_answer.insert(completed_answer.end(), {109266, 248046});
+  require(aima::native_prefix_cache_matched_tokens(generation_prompt, "", completed_answer, "",
+                                                  generation_checkpoints) == 15,
+          "answer history failed to reuse the complete assistant header");
   auto longer_chat = chat;
   longer_chat.insert(longer_chat.begin() + 10, {3709, 144810});
   require(aima::native_prefix_cache_matched_tokens(

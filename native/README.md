@@ -146,7 +146,7 @@ manifest, and writes the relocatable archive under `dist/`.
 The native process owns all 693 checkpoint tensors, derived layouts, AOT
 modules, hipBLASLt plans, KV/recurrent state, scratch and a capacity-bounded
 prefix LRU. A normal q8192 service retains four request-prefix owners, each
-with a complete snapshot and up to two text message-boundary checkpoints;
+with a complete snapshot and up to three text message/header checkpoints;
 long-window profiles reduce that count to preserve the 96 GiB GTT contract.
 The engine implements cold prefill, resident certified greedy decode, seeded
 positive-temperature full-vocabulary BF16/top-p sampling, exact-prefix restore

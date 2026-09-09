@@ -99,7 +99,7 @@ Layer 39 supplies the hidden row at each checkpoint. The prompt is not split
 into extra projection or MoE passes to collect checkpoints.
 
 Each checkpoint costs 64,393,216 bytes for 30 recurrent/convolution pairs and
-one BF16 hidden row. Two checkpoints per owner add at most 515,145,728 bytes
+one BF16 hidden row. Three checkpoints per owner add at most 772,718,592 bytes
 with four owners; the existing long-window owner limits reduce that bound.
 Full-attention KV remains shared with the complete prompt snapshot. A capture
 is published only after all 30 state pairs and its hidden row are complete;

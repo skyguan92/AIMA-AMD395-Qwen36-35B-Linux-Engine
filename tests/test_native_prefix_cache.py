@@ -1,6 +1,7 @@
 from pathlib import Path
 import copy
 import importlib.util
+import json
 import shutil
 import subprocess
 import tempfile
@@ -14,6 +15,29 @@ SPEC.loader.exec_module(QUALIFICATION)
 
 
 class NativePrefixCacheTest(unittest.TestCase):
+    def test_public_export_preserves_failed_result_and_checks_raw_hashes(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="aima-prefix-export-") as temporary:
+            root = Path(temporary)
+            private = root / "private"
+            private.mkdir()
+            raw = private / "raw.json"
+            raw.write_text(json.dumps({"metric": 0.012, "path": "/" + "home" + "/fixture/model"}))
+            record = QUALIFICATION.protocol.file_component(raw, "raw.json")
+            payload = QUALIFICATION.seal_manifest({"qualified": False, "release_eligible": False,
+                                                   "artifacts": [record]})
+            (private / "qualification.json").write_text(json.dumps(payload))
+            QUALIFICATION.export_public_evidence(private, root / "public")
+            published = json.loads((root / "public/qualification.json").read_text())
+            self.assertFalse(published["qualified"])
+            self.assertFalse(published["release_eligible"])
+            self.assertFalse(QUALIFICATION.verify_manifest_integrity(published))
+            sanitized = json.loads((root / "public/raw.json").read_text())
+            self.assertEqual(sanitized["metric"], 0.012)
+            self.assertEqual(sanitized["path"], "${AIMA_HOST_PATH}/model")
+            raw.write_text("{}")
+            with self.assertRaises(RuntimeError):
+                QUALIFICATION.export_public_evidence(private, root / "tampered")
+
     def test_resident_qualification_fails_closed(self) -> None:
         case = {"id": "divergent", "lookup": "prefix", "matched_tokens": 15}
         metrics = {"output_token_ids_sha256": "a" * 64, "completion_tokens": 64,

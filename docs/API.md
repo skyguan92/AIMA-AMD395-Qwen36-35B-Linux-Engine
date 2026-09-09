@@ -276,14 +276,17 @@ After tokenization:
   fall back to cold execution instead of being rejected;
 - the absolute model/runtime window remains 262,144 tokens.
 
-Each text request owner keeps its complete prompt snapshot and up to two
-checkpoints immediately before the first and last message terminators. The
+Each text request owner keeps its complete prompt snapshot and up to three
+checkpoints: before the first and last message terminators, and after the final
+assistant header when an answer/thinking suffix follows it. The
 first checkpoint preserves a shared system message; the last also permits
 extending the final user's content before its old terminator. For example,
 system `You are a helpful assistant.` with user `你好` and then `你好，你是谁`
 shares a 15-token saved boundary. Lookup reports the saved boundary actually
 restored, which can be shorter than the raw common token prefix. A boundary
-without a saved recurrent and convolution state cannot be restored.
+without a saved recurrent and convolution state cannot be restored. The
+assistant-header checkpoint also reuses the shared prefix when generated
+assistant content becomes the next request's conversation history.
 
 Checkpoint state includes all 30 linear layers and the final hidden row; KV
 is shared with its complete request owner and only the matched range is
