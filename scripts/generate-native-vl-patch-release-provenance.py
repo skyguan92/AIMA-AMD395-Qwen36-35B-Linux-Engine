@@ -281,6 +281,30 @@ def build_payload(recorded_on: str) -> dict[str, Any]:
     ):
         raise RuntimeError("exact-candidate patch evidence differs")
 
+    if RELEASE == "1.5.1-native-vl.7":
+        for name in ("prefix", "one_owner", "text_matrix"):
+            summary = PUBLIC_EVIDENCE[name][0]
+            expected = file_component(
+                summary, f"candidate-validation/{name}/{summary.name}"
+            )
+            if package_input.get("candidate_validation", {}).get(name) != expected:
+                raise RuntimeError(f"package input no longer binds {name}")
+            result = load_object(summary)
+            if (result.get("complete") is not True
+                or result.get("qualified") is not True
+                or (result.get("engine", {}).get("sha256") if name == "text_matrix"
+                    else result.get("engine_sha256")) != ENGINE_SHA256):
+                raise RuntimeError(f"exact safe-prefix evidence differs: {name}")
+            if name != "text_matrix":
+                require_sidecar(summary)
+                if (verify_manifest_integrity(result)
+                    or result.get("release_eligible") is not True):
+                    raise RuntimeError(f"safe-prefix evidence is not release eligible: {name}")
+        for gate in ("exact_safe_prefix_generation_logits", "exact_safe_prefix_one_owner",
+                     "exact_text_19_cell_matrix"):
+            if package_input.get("gates", {}).get(gate) is not True:
+                raise RuntimeError(f"safe-prefix release gate is missing: {gate}")
+
     manifest_path = IMMUTABLE_PATHS["archive_manifest"]
     require_sidecar(manifest_path)
     manifest = load_object(manifest_path)
@@ -360,6 +384,10 @@ def build_payload(recorded_on: str) -> dict[str, Any]:
             "v1.5.1 rollback and repository/security/evidence gates. The .4 "
             "G1-G4 and two-host results remain inherited baseline evidence, "
             f"not exact {patch_label} measurements or a second exact {patch_label} host run."
+            + (" New text checkpoint paths additionally have exact-candidate cold/cache "
+               "generation and 248320-element logits comparisons at both cache capacities, "
+               "active-KV replay, memory/TTFT/decode checks and a fresh 19-cell text matrix."
+               if RELEASE == "1.5.1-native-vl.7" else "")
         ),
     }
 
@@ -381,7 +409,7 @@ def configure_release(release: str, recorded_on: str) -> None:
     global RELEASE_URL, DEFAULT_OUTPUT, IMMUTABLE_PATHS, PUBLIC_EVIDENCE
     if release == "1.5.1-native-vl.5":
         return
-    if release != "1.5.1-native-vl.6":
+    if release not in ("1.5.1-native-vl.6", "1.5.1-native-vl.7"):
         raise ValueError("unsupported native VL patch release")
     previous = RELEASE
     RELEASE = release
@@ -408,17 +436,25 @@ def configure_release(release: str, recorded_on: str) -> None:
     PUBLIC_EVIDENCE_NAME = f"aima-engine-v{release}-public-evidence.tar.zst"
     RELEASE_URL = RELEASE_URL.replace(previous, release)
     DEFAULT_OUTPUT = RESULTS / f"native-release-provenance-v{release}.json"
-    suffix = recorded_on.replace("-", "") + "-vl6-final"
+    suffix = recorded_on.replace("-", "") + f"-vl{release.rsplit('.', 1)[-1]}-final"
     PUBLIC_EVIDENCE = {
         name: tuple(Path(str(path).replace("20260901-vl5-final", suffix)) for path in paths)
         for name, paths in PUBLIC_EVIDENCE.items()
     }
+    if release == "1.5.1-native-vl.7":
+        for name, directory, filename in (
+            ("prefix", "native-safe-prefix", "qualification.json"),
+            ("one_owner", "native-safe-prefix-one-owner", "qualification.json"),
+            ("text_matrix", "native-full-matrix", "matrix.json"),
+        ):
+            tree = ROOT / "benchmarks/runs" / f"{directory}-{suffix}"
+            PUBLIC_EVIDENCE[name] = (tree / filename, tree)
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--recorded-on", default="2026-09-01")
-    parser.add_argument("--release", choices=("1.5.1-native-vl.5", "1.5.1-native-vl.6"), default=RELEASE)
+    parser.add_argument("--release", choices=("1.5.1-native-vl.5", "1.5.1-native-vl.6", "1.5.1-native-vl.7"), default=RELEASE)
     parser.add_argument("--output", type=Path)
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()

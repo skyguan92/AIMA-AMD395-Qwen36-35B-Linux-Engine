@@ -1,5 +1,60 @@
 # Release provenance and procedure
 
+## v1.5.1-native-vl.7 safe-prefix boundary
+
+This release addresses organization issue
+[#12](https://github.com/Approaching-AI/AIMA-AMD395-Qwen36-35B-Linux-Engine/issues/12).
+The native source is `edb584ee16f0ee1fc5f902459598b9446d96387e`, with engine SHA-256
+`1de6f8f1b1300ef9ecd300a783e87b289b520a78e00429c2da04e404a3d7d850`.
+The [product contract](../native/product-contract-v1.5.1-native-vl.7.json)
+binds fourteen runtime paths, unchanged GPU kernel/provider artifacts and
+fresh qualification of the new text checkpoint host schedule. This is not
+the seven-path CPU-only scope of `.5` and `.6`.
+
+Each text LRU owner retains at most three complete state checkpoints selected
+near its first/final message and final assistant header. Boundaries at or
+above 32 tokens are rounded down to a 32-token FLA block. Short unaligned
+boundaries are eligible only while the new request stays in that same block;
+otherwise the request falls back to cold prefill. The longest **saved eligible**
+prefix is restored, not an arbitrary token LCP. Full-owner exact/append reuse
+remains available. Media-bearing owners keep whole-prompt snapshots and their
+canonical media namespace; matching token IDs never authorize cross-media reuse.
+
+The issue's `你好` → `你好，你是谁` reproduction restores 15 of 26 tokens and
+prefills only the remaining 11 logical tokens. At the 32768-token cache capacity,
+its measured restore is 64,696,320 bytes / 0.940 ms and TTFT is 472.59 ms versus
+505.89 ms cold. Five longer shared-system requests show median TTFT speedup
+3.367x and decode retention 0.99981. The one-owner 262144-token capacity profile
+shows 3.371x / 0.99986 and peak GTT 90,926,133,248 bytes, below 96 GiB.
+
+Both profiles pass 26 full-generation comparisons, 34 comparisons of all
+248320 FP32 logits (top-1 equal, KLD strictly below 0.005; maximum 0.0035071),
+and an eight-step short-checkpoint/full-owner replay that verifies actual KV
+extent after intervening decode. Raw logits and generation hashes are retained.
+These tests do not establish universal bitwise identity across BF16 partition
+choices: long free-form generations can diverge, and arbitrary raw-token append
+continuations already diverged in the `.6` control. Use `--disable-prefix-cache`
+when the same cold partition is required. Unsafe unaligned-cross-block candidates
+were rejected during qualification; their failed development results are not
+used as passing release evidence.
+
+In addition to these new tests, promotion requires the fresh complete 19-cell
+text matrix, exact-candidate chat/HTTP checks, isolated final-archive execution,
+a full one-hour mixed-workload soak with at least 240 requests, exact v1.5.1
+rollback and clean-tag repository/security/evidence gates. `.4` cold/VL kernel
+and two-host results remain explicitly inherited only for unchanged arithmetic
+and portable userspace; they do not qualify new checkpoint paths or represent
+a second exact `.7` host run.
+
+Run `qualify-native-prefix-cache.py --performance --logits` at cache capacities
+32768 and 262144, then `qualify-native-full-matrix.py --include-window-endpoints`.
+Use the `.7` contract with the patch product/G5 generators and supply the
+product generator's `--safe-prefix`, `--safe-prefix-one-owner` and `--text-matrix`
+summaries. Public prefix exports verify the original sealed raw files, redact
+host paths only and reseal the derivative with its source summary hash. The
+additive release provenance binds both complete raw prefix trees and the fresh
+matrix to the exact package input. The immutable source tag is never moved.
+
 ## v1.5.1-native-vl.6 patch boundary
 
 This patch fixes the response routing for VL requests that omit `thinking`.

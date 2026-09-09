@@ -105,6 +105,48 @@ class NativeVlPatchReleaseTest(unittest.TestCase):
         self.assertIn("inherited_two_host_portable_userspace", g5_source)
         self.assertIn("results are inherited baseline", g5_source)
 
+    def test_checkpoint_public_evidence_binds_raw_files_and_both_capacities(self) -> None:
+        from aima_engine.release_evidence import _verify_checkpoint_validation
+        from aima_engine.vl_reference import atomic_json, file_component, seal_manifest
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            identity = {"engine_sha256": "e" * 64, "native_source_commit": "a" * 40}
+            inputs = {"gates": dict.fromkeys(("exact_safe_prefix_generation_logits",
+                      "exact_safe_prefix_one_owner", "exact_text_19_cell_matrix"), True),
+                      "candidate_validation": {}}
+            public = {}
+            for name, capacity in (("prefix", 32768), ("one_owner", 262144), ("text_matrix", None)):
+                directory = root / name
+                directory.mkdir()
+                raw = directory / "raw.json"
+                raw.write_text('{"complete": true}\n')
+                artifact = file_component(raw, raw.name)
+                result = {"complete": True, "qualified": True}
+                if capacity is None:
+                    result.update(engine={"sha256": identity["engine_sha256"]},
+                                  cells=[{"pass": True, "reports": [raw.name, raw.name],
+                                          "report_sha256": [artifact["sha256"]] * 2}] * 19)
+                else:
+                    result.update(release_eligible=True, engine_sha256=identity["engine_sha256"],
+                                  build_info={"source_commit": identity["native_source_commit"]},
+                                  configuration={"cache_capacity": capacity}, artifacts=[artifact])
+                    result = seal_manifest(result)
+                summary = directory / "summary.json"
+                atomic_json(summary, result)
+                inputs["candidate_validation"][name] = file_component(
+                    summary, f"candidate-validation/{name}/{summary.name}"
+                )
+                public[name] = file_component(summary, f"{name}/{summary.name}")
+            self.assertEqual(_verify_checkpoint_validation(root, inputs, public, identity), [])
+            for key in ("prefix", "one_owner", "text_matrix"):
+                changed = copy.deepcopy(inputs)
+                changed["candidate_validation"][key]["sha256"] = "0" * 64
+                self.assertTrue(_verify_checkpoint_validation(root, changed, public, identity))
+            (root / "prefix/raw.json").write_text("tampered\n")
+            self.assertIn("safe-prefix raw artifact differs: prefix/raw.json",
+                          _verify_checkpoint_validation(root, inputs, public, identity))
+
 
 class NativeVlThinkingPatchReleaseTest(unittest.TestCase):
     def test_new_contract_retains_the_frozen_runtime_allowlist(self) -> None:

@@ -283,6 +283,10 @@ for _patch_release, _patch_identity in PATCH_VL_IDENTITIES.items():
     STANDALONE_EVIDENCE_KEYS[_patch_release] = (
         STANDALONE_EVIDENCE_KEYS[PATCH_VL_RELEASE].copy()
     )
+    if _patch_release == "1.5.1-native-vl.7":
+        STANDALONE_EVIDENCE_KEYS[_patch_release].update(
+            {"prefix", "one_owner", "text_matrix"}
+        )
 
 
 def sha256(path: Path) -> str:
@@ -756,7 +760,7 @@ def verify_release_evidence(
             or checksum.read_text(encoding="utf-8") != expected_checksum
         ):
             errors.append("patch release archive checksum differs")
-        if release == "1.5.1-native-vl.6":
+        if release in ("1.5.1-native-vl.6", "1.5.1-native-vl.7"):
             baseline_errors = verify_release_evidence(
                 root,
                 PATCH_VL_RELEASE,
@@ -872,6 +876,11 @@ def verify_release_evidence(
         errors.append("public evidence records are missing or incomplete")
         public_evidence = {}
 
+    if release == "1.5.1-native-vl.7":
+        errors.extend(_verify_checkpoint_validation(
+            root, package_input, public_evidence, PATCH_VL_IDENTITIES[release]
+        ))
+
     for key in product_evidence_keys:
         provenance_record = public_evidence.get(key)
         result_record = public_result.get("evidence", {}).get(key)
@@ -940,7 +949,7 @@ def verify_release_evidence(
                     _verify_recorded_artifacts(
                         root,
                         raw_json,
-                        _load(raw_json),
+                        json.loads(raw_json.read_text(encoding="utf-8")),
                         archive_only_components=archive_only_components,
                     )
                 )
@@ -1015,6 +1024,71 @@ def evidence_paths(root: Path, release: str = DEFAULT_RELEASE) -> list[Path]:
             sidecar = summary.with_name(summary.name + ".sha256")
             if sidecar.is_file():
                 paths.append(sidecar)
-    if release == "1.5.1-native-vl.6":
+    if release in ("1.5.1-native-vl.6", "1.5.1-native-vl.7"):
         paths.extend(evidence_paths(root, PATCH_VL_RELEASE))
     return list(dict.fromkeys(paths))
+
+
+def _verify_checkpoint_validation(
+    root: Path,
+    package_input: dict[str, Any],
+    public_evidence: dict[str, Any],
+    identity: dict[str, str],
+) -> list[str]:
+    """Bind new checkpoint measurements separately from inherited kernel gates."""
+    errors = []
+    for gate in ("exact_safe_prefix_generation_logits", "exact_safe_prefix_one_owner",
+                 "exact_text_19_cell_matrix"):
+        if package_input.get("gates", {}).get(gate) is not True:
+            errors.append(f"safe-prefix release gate is missing: {gate}")
+    for name, capacity in (("prefix", 32768), ("one_owner", 262144), ("text_matrix", None)):
+        record = public_evidence.get(name, {})
+        summary = (root / str(record.get("path", ""))).resolve()
+        if not summary.is_relative_to(root.resolve()) or not summary.is_file():
+            errors.append(f"safe-prefix measurement is missing: {name}")
+            continue
+        expected = {
+            "path": f"candidate-validation/{name}/{summary.name}",
+            "sha256": sha256(summary), "bytes": summary.stat().st_size,
+        }
+        if package_input.get("candidate_validation", {}).get(name) != expected:
+            errors.append(f"safe-prefix package input binding differs: {name}")
+        result = _load(summary)
+        engine = (result.get("engine", {}).get("sha256") if capacity is None
+                  else result.get("engine_sha256"))
+        if (result.get("complete") is not True or result.get("qualified") is not True
+            or engine != identity["engine_sha256"]):
+            errors.append(f"safe-prefix candidate measurement differs: {name}")
+        if capacity is not None:
+            if (result.get("release_eligible") is not True
+                or result.get("build_info", {}).get("source_commit") != identity["native_source_commit"]
+                or result.get("configuration", {}).get("cache_capacity") != capacity
+                or verify_manifest_integrity(result)):
+                errors.append(f"safe-prefix source/capacity/integrity differs: {name}")
+            sidecar = summary.with_name(summary.name + ".sha256")
+            if (not sidecar.is_file()
+                or sidecar.read_text() != f"{sha256(summary)}  {summary.name}\n"):
+                errors.append(f"safe-prefix checksum sidecar differs: {name}")
+            artifacts = result.get("artifacts", [])
+            if not artifacts:
+                errors.append(f"safe-prefix raw artifacts are missing: {name}")
+            for artifact in artifacts:
+                path = (summary.parent / artifact["path"]).resolve()
+                if (not path.is_relative_to(summary.parent) or not path.is_file()
+                    or path.stat().st_size != artifact["bytes"]
+                    or sha256(path) != artifact["sha256"]):
+                    errors.append(f"safe-prefix raw artifact differs: {name}/{artifact['path']}")
+        else:
+            cells = result.get("cells", [])
+            if len(cells) != 19 or not all(cell.get("pass") is True for cell in cells):
+                errors.append("safe-prefix 19-cell matrix is incomplete")
+            for cell in cells:
+                reports, digests = cell.get("reports", []), cell.get("report_sha256", [])
+                if len(reports) != len(digests) or len(reports) < 2:
+                    errors.append("safe-prefix matrix raw bindings are incomplete")
+                for report, digest in zip(reports, digests):
+                    path = (summary.parent / report).resolve()
+                    if (not path.is_relative_to(summary.parent) or not path.is_file()
+                        or sha256(path) != digest):
+                        errors.append(f"safe-prefix matrix raw report differs: {report}")
+    return errors
