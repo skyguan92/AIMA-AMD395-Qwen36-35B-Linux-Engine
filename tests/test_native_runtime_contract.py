@@ -1461,7 +1461,7 @@ class NativeRuntimeContractTest(unittest.TestCase):
         reuse = resident.index(
             "const bool reuse_active_prefix_kv ="
         )
-        partial_restore = resident.index(".restore_linear_state();", reuse)
+        partial_restore = resident.index(".restore_linear_state(matched_prefix_tokens);", reuse)
         active_restore = resident.index(
             "hipStreamSynchronize active-KV exact-prefix restore",
             partial_restore,

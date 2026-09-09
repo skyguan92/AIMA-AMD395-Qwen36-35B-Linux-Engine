@@ -5,6 +5,16 @@ Versioning.
 
 ## Unreleased
 
+- Added bounded text message checkpoints to the native prefix LRU, allowing
+  divergent Chat Completions requests to reuse a saved common token prefix.
+  Checkpoints preserve recurrent, convolution and hidden state while sharing
+  their request owner's KV and eviction lifetime. Media identities remain
+  isolated, and cache misses retain the resident AOT prefill path.
+- Reported restoration bytes separately from cache capture/inheritance traffic
+  and measured restoration time for partial hits.
+- Added CPU boundary/LRU tests and a resident cold/cache A/B qualifier for
+  exact, append, divergent, multi-turn, eviction and media-identity requests.
+
 ## 1.5.1-native-vl.6 - 2026-09-08
 
 - Fixed omitted-thinking VL responses so the frozen thinking-enabled prompt

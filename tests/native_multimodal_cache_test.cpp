@@ -121,6 +121,93 @@ int main() {
               cached, "", std::vector<std::uint32_t>{1, 9, 3}, "") == 0,
           "changed text tokens reused a prefix");
 
+  // A common token is reusable only if a complete hybrid-state checkpoint
+  // exists at that boundary. Never rewind a full-request recurrent snapshot.
+  require(aima::native_prefix_cache_matched_tokens(
+              cached, "", {1, 9, 3}, "", {1, 2}) == 1,
+          "safe common-prefix checkpoint was not selected");
+  require(aima::native_prefix_cache_matched_tokens(
+              cached, "", {1, 2, 9}, "", {1}) == 1,
+          "matched count exceeded the captured state boundary");
+  require(aima::native_prefix_cache_matched_tokens(
+              cached, "", {1, 2}, "", {1, 2}) == 2,
+          "a shorter request failed to select its exact checkpoint");
+  require(aima::native_prefix_cache_matched_tokens(
+              cached, "", extended, "", {1, 2}) == 3,
+          "whole-request append hit regressed with checkpoints");
+  require(aima::native_prefix_cache_matched_tokens(
+              cached, "", cached, "", {1, 2}) == 3,
+          "exact-repeat hit regressed with checkpoints");
+  require(aima::native_prefix_cache_matched_tokens(
+              cached, "", {9, 2, 3}, "", {1, 2}) == 0,
+          "divergent first token was matched");
+  require(aima::native_prefix_cache_matched_tokens(
+              cached, "", {}, "", {1, 2}) == 0,
+          "an empty request matched a checkpoint");
+  require(aima::native_prefix_cache_matched_tokens(
+              cached, "", cached, identity, {1, 2}) == 0,
+          "text and media namespaces shared a checkpoint");
+  require(aima::native_prefix_cache_matched_tokens(
+              cached, identity, {1, 2, 9}, std::string(64, 'f'), {1, 2}) == 0,
+          "changed media identity shared a checkpoint");
+  for (const std::vector<std::size_t>& boundaries :
+       std::vector<std::vector<std::size_t>>{{0}, {3}, {4}, {2, 1}, {1, 1}}) {
+    require_invalid([&]() {
+      (void)aima::native_prefix_cache_matched_tokens(cached, "", extended, "", boundaries);
+    }, "invalid checkpoint set was admitted");
+  }
+
+  const std::vector<std::uint32_t> chat = {
+      248045, 8948, 198, 111, 248046, 198,
+      248045, 872, 198, 109266, 248046, 198, 248045, 74455, 198};
+  const auto checkpoints = aima::native_chat_prefix_checkpoint_tokens(chat, "");
+  require(checkpoints == std::vector<std::size_t>({4, 10}),
+          "message checkpoints included the divergent terminator");
+  auto longer_chat = chat;
+  longer_chat.insert(longer_chat.begin() + 10, {3709, 144810});
+  require(aima::native_prefix_cache_matched_tokens(
+              chat, "", longer_chat, "", checkpoints) == 10,
+          "divergent final chat message missed its content checkpoint");
+  longer_chat[9] = 999;
+  require(aima::native_prefix_cache_matched_tokens(
+              chat, "", longer_chat, "", checkpoints) == 4,
+          "a different user message failed to reuse the shared system state");
+  auto multi_turn = chat;
+  multi_turn.insert(multi_turn.end(), {123, 248046, 198, 248045, 872, 198, 999, 248046});
+  require(aima::native_chat_prefix_checkpoint_tokens(multi_turn, "") ==
+              std::vector<std::size_t>({4, multi_turn.size() - 1}),
+          "multi-turn checkpoint count was not bounded to first and last");
+  require(aima::native_chat_prefix_checkpoint_tokens(chat, identity).empty(),
+          "media requests were admitted to text-only partial checkpoints");
+  require(aima::native_chat_prefix_checkpoint_tokens({1, 2, 3}, "").empty(),
+          "raw tokens invented a message checkpoint");
+
+  // Longest restored boundary wins across owners, regardless of full prompt
+  // length; eviction uses request-owner LRU and also removes its checkpoints.
+  const std::vector<std::vector<std::uint32_t>> owners = {{1, 2, 7}, {1, 2, 3, 4, 5}};
+  const std::vector<std::vector<std::size_t>> owner_checkpoints = {{1}, {1, 3}};
+  std::size_t best_tokens = 0;
+  std::size_t best_owner = owners.size();
+  for (std::size_t index = 0; index < owners.size(); ++index) {
+    const auto matched = aima::native_prefix_cache_matched_tokens(
+        owners[index], "", {1, 2, 3, 9}, "", owner_checkpoints[index]);
+    if (matched > best_tokens) {
+      best_tokens = matched;
+      best_owner = index;
+    }
+  }
+  require(best_tokens == 3 && best_owner == 1, "longest safe owner selection failed");
+  require(aima::native_prefix_cache_capture_index({true, false, true}, {9, 4, 1}) == 1,
+          "LRU evicted a live owner before using an empty slot");
+  require(aima::native_prefix_cache_capture_index({true, true, true}, {9, 4, 1}) == 2,
+          "LRU did not evict the oldest request owner");
+  require(aima::native_prefix_cache_capture_index({true}, {9}) == 0,
+          "one-entry long-window cache cannot be replaced");
+  require_invalid([&]() { (void)aima::native_prefix_cache_capture_index({}, {}); },
+                  "zero-capacity cache admitted a capture");
+  require_invalid([&]() { (void)aima::native_prefix_cache_capture_index({true}, {}); },
+                  "mismatched LRU metadata was admitted");
+
   auto invalid = input;
   invalid.media[0].content_sha256 = std::string(64, 'A');
   require_invalid(

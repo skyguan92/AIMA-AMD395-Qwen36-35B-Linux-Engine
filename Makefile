@@ -9,6 +9,7 @@ check: check-cpu
 	fi
 
 check-cpu: check-native-http-support
+	python3 -m py_compile scripts/qualify-native-prefix-cache.py
 	python3 -m compileall -q aima_engine tools benchmarks/shape-lab tests
 	bash -n scripts/bisect-native-text-correctness.sh
 	bash -n scripts/package-native-foundation.sh

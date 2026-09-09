@@ -37,6 +37,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <filesystem>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -4193,6 +4194,8 @@ int run_resident_session_probe(int argc, char** argv) {
   std::vector<std::uint32_t> expected_token_ids;
   std::vector<std::size_t> max_new_tokens_sequence;
   std::vector<std::vector<std::size_t>> secondary_fmha_layer_sets;
+  std::vector<std::vector<std::uint32_t>> input_sequences;
+  std::filesystem::path output_logits_dir;
   std::filesystem::path reference_logits;
   std::filesystem::path layer_tail_oracle_dir;
   std::filesystem::path layer_sequence_oracle_dir;
@@ -4307,6 +4310,28 @@ int run_resident_session_probe(int argc, char** argv) {
       cached_suffix_token_ids = parse_ids(
           next("--cached-suffix-token-ids"),
           "--cached-suffix-token-ids");
+    } else if (argument == "--input-token-ids-sequence-file") {
+      std::ifstream input(next("--input-token-ids-sequence-file"));
+      if (!input) throw std::runtime_error("cannot open prompt sequence file");
+      const auto sequence = aima::NativeOrderedJson::parse(input);
+      if (!sequence.is_array() || sequence.empty() || sequence.size() > 1024) {
+        throw std::runtime_error("prompt sequence must contain 1..1024 token arrays");
+      }
+      for (const auto& row : sequence) {
+        if (!row.is_array() || row.empty() || row.size() > 262144) {
+          throw std::runtime_error("prompt sequence contains invalid prompt geometry");
+        }
+        std::vector<std::uint32_t> tokens;
+        for (const auto& token : row) {
+          if (!token.is_number_integer() || token < 0 || token >= 248320) {
+            throw std::runtime_error("prompt sequence contains an invalid token id");
+          }
+          tokens.push_back(token.get<std::uint32_t>());
+        }
+        input_sequences.push_back(std::move(tokens));
+      }
+    } else if (argument == "--output-logits-dir") {
+      output_logits_dir = std::filesystem::absolute(next("--output-logits-dir"));
     } else if (argument == "--expected-token-ids") {
       expected_token_ids = parse_ids(next("--expected-token-ids"),
                                      "--expected-token-ids");
@@ -4397,8 +4422,20 @@ int run_resident_session_probe(int argc, char** argv) {
     }
     disable_prefix_cache = true;
   }
-  if (!have_model_dir || request_count == 0 ||
-      max_new_tokens == 0 || have_uniform_token == !input_cycle.empty()) {
+  if (!input_sequences.empty()) {
+    if (have_uniform_token || !input_cycle.empty() || request_count_explicit ||
+        request_prompt_tokens != 0 || !cached_suffix_token_ids.empty() ||
+        !max_new_tokens_sequence.empty() || !secondary_fmha_layer_sets.empty() ||
+        !expected_token_ids.empty() || !reference_logits.empty()) {
+      throw std::runtime_error("prompt sequence cannot be combined with other prompt or oracle selectors");
+    }
+    request_count = input_sequences.size();
+    for (const auto& tokens : input_sequences) {
+      request_prompt_tokens = std::max(request_prompt_tokens, tokens.size());
+    }
+  }
+  if (!have_model_dir || request_count == 0 || max_new_tokens == 0 ||
+      (input_sequences.empty() && have_uniform_token == !input_cycle.empty())) {
     throw std::runtime_error(
         "resident session requires a model, one input token source, and non-zero request/output counts");
   }
@@ -4410,6 +4447,13 @@ int run_resident_session_probe(int argc, char** argv) {
   if (!reference_logits.empty() && max_new_tokens != 1) {
     throw std::runtime_error(
         "--reference-logits requires --max-new-tokens 1 so the compared buffer is the prefill distribution");
+  }
+  if (!output_logits_dir.empty()) {
+    if (max_new_tokens != 1 || !max_new_tokens_sequence.empty() ||
+        std::filesystem::exists(output_logits_dir)) {
+      throw std::runtime_error("--output-logits-dir requires one output token and a new directory");
+    }
+    std::filesystem::create_directories(output_logits_dir);
   }
   if (!cached_suffix_token_ids.empty() && request_count < 2) {
     throw std::runtime_error(
@@ -4437,7 +4481,7 @@ int run_resident_session_probe(int argc, char** argv) {
   std::vector<std::uint32_t> prompt(request_prompt_tokens);
   if (have_uniform_token) {
     std::fill(prompt.begin(), prompt.end(), uniform_token);
-  } else {
+  } else if (!input_cycle.empty()) {
     for (std::size_t index = 0; index < prompt.size(); ++index) {
       prompt[index] = input_cycle[index % input_cycle.size()];
     }
@@ -4451,7 +4495,7 @@ int run_resident_session_probe(int argc, char** argv) {
   request_logits_comparisons.reserve(request_count);
   for (std::size_t index = 0; index < request_count; ++index) {
     aima::NativeResidentRequestOptions request;
-    request.input_token_ids = prompt;
+    request.input_token_ids = input_sequences.empty() ? prompt : input_sequences[index];
     if (index != 0) {
       request.input_token_ids.insert(request.input_token_ids.end(),
                                      cached_suffix_token_ids.begin(),
@@ -4470,6 +4514,10 @@ int run_resident_session_probe(int argc, char** argv) {
           secondary_fmha_layer_sets[index];
     }
     requests.push_back(engine.run(request));
+    if (!output_logits_dir.empty()) {
+      engine.save_current_logits(output_logits_dir /
+                                 ("request-" + std::to_string(index) + ".f32"));
+    }
     if (!reference_logits.empty()) {
       request_logits_comparisons.push_back(
           engine.compare_current_logits(reference_logits));
@@ -4526,7 +4574,7 @@ int run_resident_session_probe(int argc, char** argv) {
   }
   const bool success =
       all_requests_complete &&
-      (!max_new_tokens_sequence.empty() ||
+      (!input_sequences.empty() || !max_new_tokens_sequence.empty() ||
        !cached_suffix_token_ids.empty() || repeat_tokens_identical) &&
       (expected_token_ids.empty() || expected_tokens_match) &&
       (!reference_logits_provided || logits_qualified);
@@ -4823,6 +4871,8 @@ int run_resident_session_probe(int argc, char** argv) {
               << request.prefix_cache_misses
               << ",\"prefix_cache_transfer_bytes\":"
               << request.prefix_cache_transfer_bytes
+              << ",\"prefix_cache_restore_bytes\":"
+              << request.prefix_cache_restore_bytes
               << ",\"prefix_cache_active_kv_reused\":"
               << (request.prefix_cache_active_kv_reused ? "true" : "false")
               << ",\"prefix_cache_restore_wall_ms\":"

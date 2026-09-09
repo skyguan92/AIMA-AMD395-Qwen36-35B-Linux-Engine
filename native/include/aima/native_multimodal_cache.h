@@ -55,6 +55,21 @@ std::size_t native_prefix_cache_matched_tokens(
     const std::vector<std::uint32_t>& cached_tokens,
     std::string_view cached_multimodal_namespace,
     const std::vector<std::uint32_t>& request_tokens,
-    std::string_view request_multimodal_namespace);
+    std::string_view request_multimodal_namespace,
+    const std::vector<std::size_t>& checkpoint_tokens = {});
+
+// Checkpoints stop immediately before the first and last message terminators.
+// The first preserves a shared system message; the last admits extensions of
+// the final message before its old terminator. Full request snapshots remain
+// independently reusable. Media requests retain whole-request snapshots.
+constexpr std::size_t kNativePrefixCacheCheckpointCount = 2;
+std::vector<std::size_t> native_chat_prefix_checkpoint_tokens(
+    const std::vector<std::uint32_t>& tokens,
+    std::string_view multimodal_namespace);
+
+// Prefer an empty slot, then the least recently used complete request owner.
+std::size_t native_prefix_cache_capture_index(
+    const std::vector<bool>& valid,
+    const std::vector<std::uint64_t>& last_use);
 
 }  // namespace aima
