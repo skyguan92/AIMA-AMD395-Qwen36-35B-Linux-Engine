@@ -65,6 +65,7 @@ std::size_t native_prefix_cache_matched_tokens(
 // preserves the shared prefix when its generated content becomes history.
 // Media requests retain whole-request snapshots.
 constexpr std::size_t kNativePrefixCacheCheckpointCount = 3;
+constexpr std::size_t kNativePrefixCacheBlockTokens = 32;
 std::vector<std::size_t> native_chat_prefix_checkpoint_tokens(
     const std::vector<std::uint32_t>& tokens,
     std::string_view multimodal_namespace);

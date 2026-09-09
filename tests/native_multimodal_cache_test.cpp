@@ -191,6 +191,17 @@ int main() {
           "media requests were admitted to text-only partial checkpoints");
   require(aima::native_chat_prefix_checkpoint_tokens({1, 2, 3}, "").empty(),
           "raw tokens invented a message checkpoint");
+  std::vector<std::uint32_t> short_owner(30, 1);
+  short_owner.back() = 2;
+  require(aima::native_prefix_cache_matched_tokens(short_owner, "",
+              std::vector<std::uint32_t>(39, 1), "", {9, 20}) == 0,
+          "unaligned short checkpoint crossed an FLA chunk boundary");
+  std::vector<std::uint32_t> long_owner(80, 1);
+  long_owner[47] = 248046;
+  long_owner[70] = 248046;
+  require(aima::native_chat_prefix_checkpoint_tokens(long_owner, "") ==
+              std::vector<std::size_t>({32, 64}),
+          "long message checkpoints were not aligned to FLA chunk state");
 
   // Longest restored boundary wins across owners, regardless of full prompt
   // length; eviction uses request-owner LRU and also removes its checkpoints.

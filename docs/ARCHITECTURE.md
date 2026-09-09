@@ -90,7 +90,9 @@ linear-attention convolution window and replays the state-producing recurrent
 kernel at the logical token count before decode begins.
 
 Text prefix owners additionally retain the state immediately before the first
-and last message terminators. During each linear layer, the existing
+and last message terminators and after the final assistant header. Boundaries
+at or beyond 32 tokens round down to a 32-token FLA chunk; short unaligned
+boundaries cannot resume a prompt crossing into another chunk. During each linear layer, the existing
 state-producing FLA launch writes those boundaries into separate cache-owned
 buffers, and convolution windows are reconstructed from the segment's raw
 projections plus its initial window. The ordinary full-segment FLA launch then

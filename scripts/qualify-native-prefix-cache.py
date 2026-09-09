@@ -101,7 +101,9 @@ def build_cases(engine: Path, model: Path, output: Path, performance: bool,
         {"role": "user", "content": "你好"},
         {"role": "assistant", "content": "你好！"},
     ]
-    add("multi_turn", history, "prefix", tokens.index(74455) + 2)
+    # All retained owners here are shorter than one FLA chunk. No aligned
+    # intermediate state exists for this longer history, so resume cold.
+    add("multi_turn", history, "miss", 0)
     add("append_seed", short)
     append_tokens = json.loads(subprocess.run(
         [str(engine), "tokenizer-probe", "--model-dir", str(model), "--text", "Hello"],
@@ -112,7 +114,8 @@ def build_cases(engine: Path, model: Path, output: Path, performance: bool,
         "max_tokens": 64, "prompt_token_ids": tokens[:matched]}, "exact", matched)
     full_owner_retained = cache_capacity <= 131072
     add("full_owner_after_short_checkpoint", short,
-        "exact" if full_owner_retained else "prefix", len(tokens) if full_owner_retained else matched)
+        "exact" if full_owner_retained else "prefix",
+        len(tokens) if full_owner_retained else tokens.index(74455) + 2)
     # Five unrelated owners exceed the four-entry promoted q8192 LRU.
     for index in range(5):
         add(f"eviction_fill_{index}", {"model": protocol.MODEL_ID, "temperature": 0,
@@ -343,7 +346,10 @@ def qualify_logits(cli, cases: list[dict]) -> dict:
         matched = reports["cached"]["requests"][index]["prefix_cache_matched_tokens"]
         comparison["matched_tokens"] = matched
         if name.startswith("boundary_") and name.endswith("_partial"):
-            comparison["boundary_restored"] = matched == int(name.split("_")[1])
+            # The changed user token follows five shared template tokens;
+            # select the longest saved aligned state within that common range.
+            expected = (int(name.split("_")[1]) + 5) // 32 * 32
+            comparison["boundary_restored"] = matched == expected
             comparison["pass"] &= comparison["boundary_restored"]
         comparisons.append(comparison)
     # Unlike HTTP this native probe deliberately continues after EOS. Decode
@@ -469,7 +475,8 @@ def main() -> int:
               "source": source, "case_input_sha256": canonical_json_sha256(cases),
               "build_info": build_info, "engine_sha256": protocol.sha256_file(cli.engine),
               "configuration": {"context_tokens": cli.context_tokens,
-                                "cache_capacity": cli.cache_capacity, "checkpoint_limit_per_entry": 3},
+                                "cache_capacity": cli.cache_capacity, "checkpoint_limit_per_entry": 3,
+                                "checkpoint_block_tokens": 32},
               "cold_peak_memory": cold["peak_memory"], "cached_peak_memory": cached["peak_memory"],
               "host": {"system": platform.system(), "kernel": platform.release(),
                        "architecture": platform.machine()},

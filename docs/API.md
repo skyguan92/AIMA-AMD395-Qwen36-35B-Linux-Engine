@@ -288,6 +288,13 @@ without a saved recurrent and convolution state cannot be restored. The
 assistant-header checkpoint also reuses the shared prefix when generated
 assistant content becomes the next request's conversation history.
 
+For longer prefixes these boundaries round down to 32-token FLA chunk
+boundaries, with duplicates removed. An unaligned short-message checkpoint
+is eligible only while the new prompt ends in that same chunk; crossing a
+chunk without an aligned saved state falls back to cold prefill. This keeps
+non-aligned continuation rounding outside the promoted long-prefix path.
+Whole-request exact/append snapshots retain their existing matching rules.
+
 Checkpoint state includes all 30 linear layers and the final hidden row; KV
 is shared with its complete request owner and only the matched range is
 restored. Evicting a request also evicts its checkpoints. Text checkpoints do

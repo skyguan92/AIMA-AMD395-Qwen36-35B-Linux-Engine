@@ -114,9 +114,20 @@ std::size_t native_prefix_cache_matched_tokens(
   if (common == cached_tokens.size()) return common;
   // A token match alone cannot rewind the hybrid recurrent state. Only
   // advertise a boundary for which the owner has captured complete state.
-  const auto upper = std::upper_bound(
+  auto upper = std::upper_bound(
       checkpoint_tokens.begin(), checkpoint_tokens.end(), common);
-  return upper == checkpoint_tokens.begin() ? 0 : *std::prev(upper);
+  while (upper != checkpoint_tokens.begin()) {
+    const std::size_t boundary = *--upper;
+    // Repartitioning a partial FLA chunk across a later chunk can amplify
+    // BF16 rounding. Long continuations resume only aligned chunk state;
+    // a single-chunk short chat can still reuse its exact message boundary.
+    if (boundary % kNativePrefixCacheBlockTokens == 0 ||
+        request_tokens.size() <=
+            (boundary / kNativePrefixCacheBlockTokens + 1) * kNativePrefixCacheBlockTokens) {
+      return boundary;
+    }
+  }
+  return 0;
 }
 
 std::vector<std::size_t> native_chat_prefix_checkpoint_tokens(
@@ -147,6 +158,13 @@ std::vector<std::size_t> native_chat_prefix_checkpoint_tokens(
       break;
     }
   }
+  for (std::size_t& boundary : boundaries) {
+    if (boundary >= kNativePrefixCacheBlockTokens) {
+      boundary -= boundary % kNativePrefixCacheBlockTokens;
+    }
+  }
+  std::sort(boundaries.begin(), boundaries.end());
+  boundaries.erase(std::unique(boundaries.begin(), boundaries.end()), boundaries.end());
   return boundaries;
 }
 
