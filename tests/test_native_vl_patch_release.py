@@ -5,7 +5,9 @@ import copy
 import json
 from pathlib import Path
 import subprocess
+import tempfile
 import unittest
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -103,6 +105,58 @@ class NativeVlPatchReleaseTest(unittest.TestCase):
         self.assertIn("inherited_two_host_portable_userspace", g5_source)
         self.assertIn("results are inherited baseline", g5_source)
 
+    def test_checkpoint_public_evidence_binds_raw_files_and_both_capacities(self) -> None:
+        from aima_engine.release_evidence import _verify_checkpoint_validation
+        from aima_engine.qualification_runtime import BASELINE, expected_binding
+        from aima_engine.vl_reference import atomic_json, file_component, seal_manifest
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            identity = {"engine_sha256": "e" * 64, "native_source_commit": "a" * 40}
+            baseline = root / BASELINE.relative_to(ROOT)
+            baseline.parent.mkdir(parents=True)
+            baseline.write_bytes(BASELINE.read_bytes())
+            runtime = expected_binding(identity["engine_sha256"], baseline)
+            inputs = {"gates": dict.fromkeys(("exact_safe_prefix_generation_logits",
+                      "exact_safe_prefix_one_owner", "exact_text_19_cell_matrix"), True),
+                      "inputs": {"qualification_runtime_verifier": {"sha256": runtime["verifier_sha256"]}},
+                      "candidate_validation": {}}
+            public = {}
+            for name, capacity in (("prefix", 32768), ("one_owner", 262144), ("text_matrix", None)):
+                directory = root / name
+                directory.mkdir()
+                raw = directory / "raw.json"
+                raw.write_text(json.dumps({"complete": True, "qualification": {"runtime_binding": runtime}}))
+                artifact = file_component(raw, raw.name)
+                result = {"complete": True, "qualified": True, "runtime_binding": runtime}
+                if capacity is None:
+                    result.update(engine={"sha256": identity["engine_sha256"]},
+                                  cells=[{"pass": True, "reports": [raw.name, raw.name],
+                                          "report_sha256": [artifact["sha256"]] * 2}] * 19)
+                else:
+                    result.update(release_eligible=True, engine_sha256=identity["engine_sha256"],
+                                  build_info={"source_commit": identity["native_source_commit"]},
+                                  configuration={"cache_capacity": capacity}, artifacts=[artifact])
+                    result = seal_manifest(result)
+                summary = directory / "summary.json"
+                atomic_json(summary, result)
+                inputs["candidate_validation"][name] = file_component(
+                    summary, f"candidate-validation/{name}/{summary.name}"
+                )
+                public[name] = file_component(summary, f"{name}/{summary.name}")
+            self.assertEqual(_verify_checkpoint_validation(root, inputs, public, identity), [])
+            changed = copy.deepcopy(inputs)
+            changed["inputs"]["qualification_runtime_verifier"]["sha256"] = "0" * 64
+            self.assertIn("safe-prefix pinned runtime binding differs: prefix",
+                          _verify_checkpoint_validation(root, changed, public, identity))
+            for key in ("prefix", "one_owner", "text_matrix"):
+                changed = copy.deepcopy(inputs)
+                changed["candidate_validation"][key]["sha256"] = "0" * 64
+                self.assertTrue(_verify_checkpoint_validation(root, changed, public, identity))
+            (root / "prefix/raw.json").write_text("tampered\n")
+            self.assertIn("safe-prefix raw artifact differs: prefix/raw.json",
+                          _verify_checkpoint_validation(root, inputs, public, identity))
+
 
 class NativeVlThinkingPatchReleaseTest(unittest.TestCase):
     def test_new_contract_retains_the_frozen_runtime_allowlist(self) -> None:
@@ -146,6 +200,90 @@ class NativeVlThinkingPatchReleaseTest(unittest.TestCase):
                 else:
                     candidate["files"].append({**record, "path": "lib/unqualified.so"})
                 self.assertFalse(all(generator.unchanged_userspace_checks(candidate).values()))
+
+
+class NativeVlSafePrefixReleaseTest(unittest.TestCase):
+    def test_checkpoint_release_has_its_own_exact_runtime_boundary(self) -> None:
+        generator = load_generator()
+        generator.configure_release(ROOT / "native/product-contract-v1.5.1-native-vl.7.json")
+        delta = subprocess.check_output(
+            ["git", "diff", "--name-only",
+             f"{generator.BASELINE_NATIVE_SOURCE_COMMIT}..{generator.NATIVE_SOURCE_COMMIT}",
+             "--", *generator.RUNTIME_PATHS], cwd=ROOT, text=True,
+        )
+        self.assertEqual(set(delta.splitlines()), generator.ALLOWED_RUNTIME_DELTA)
+        self.assertGreater(len(generator.ALLOWED_RUNTIME_DELTA), len(generator.CPU_RUNTIME_DELTA))
+        generator.configure_release(ROOT / "native/product-contract-v1.5.1-native-vl.6.json")
+        self.assertEqual(generator.ALLOWED_RUNTIME_DELTA, generator.CPU_RUNTIME_DELTA)
+
+    def test_prefix_gate_rejects_incomplete_unbound_and_out_of_tolerance_records(self) -> None:
+        from aima_engine.qualification_runtime import expected_binding
+        generator = load_generator()
+        generator.configure_release(ROOT / "native/product-contract-v1.5.1-native-vl.7.json")
+        names = ["short_cold", "short_exact", "divergent_chat", "divergent_exact_sse",
+                 "shared_system", "multi_turn", "append_seed", "whole_prompt_append",
+                 "checkpoint_as_complete_prompt", "full_owner_after_short_checkpoint", "evicted_short",
+                 "media_a", "media_b_same_geometry", "media_a_restored", "text_after_media", "performance_seed"]
+        names += [f"eviction_fill_{index}" for index in range(5)]
+        names += [f"performance_partial_{index}" for index in range(5)]
+        boundaries = [f"boundary_{index}_partial" for index in (31, 32, 33, 1023, 1024, 1025, 8192, 8193)]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            raw = root / "raw.json"
+            raw.write_text("{}\n")
+            value = {
+                "schema": "aima-amd395-qwen36/native-safe-prefix-cache/v1",
+                "complete": True, "qualified": True, "release_eligible": True,
+                "engine_sha256": generator.ENGINE_SHA256,
+                "runtime_binding": expected_binding(generator.ENGINE_SHA256),
+                "build_info": {"source_commit": generator.NATIVE_SOURCE_COMMIT},
+                "source": {"checkout_clean": True, "engine_runtime_matches_checkout": True,
+                           "native_source_commit": generator.NATIVE_SOURCE_COMMIT,
+                           "generator_sha256": generator.sha256(ROOT / "scripts/qualify-native-prefix-cache.py"),
+                           "protocol_helper_sha256": generator.sha256(ROOT / "scripts/qualify-native-chat-protocol.py")},
+                "configuration": {"context_tokens": 8192, "cache_capacity": 32768,
+                                  "checkpoint_limit_per_entry": 3, "checkpoint_block_tokens": 32},
+                "cached_peak_memory": {"gtt_bytes": 80 * 1024**3},
+                "cases": [{"case_id": name, "pass": True, "checks": {key: True for key in generator.SAFE_PREFIX_CASE_CHECKS},
+                           "prefix_cache": {"matched_tokens": 15}, "suffix_aot_tokens": 11} for name in names],
+                "logits": {"qualified": True,
+                           "cases": [{"case_id": name, "pass": True, "top1_match": True,
+                                      "elements": 248320, "kl_divergence": 0.001}
+                                     for name in boundaries + [f"other_{index}" for index in range(26)]],
+                           "short_checkpoint_replay": {str(index): True for index in range(4)}},
+                "performance": {"median_partial_ttft_speedup": 3, "median_decode_retention": 1},
+                "artifacts": [{"path": "raw.json", "bytes": raw.stat().st_size,
+                               "sha256": generator.sha256(raw)}],
+            }
+            def check(payload):
+                with patch.object(generator, "load_object", return_value=generator.seal_manifest(payload)):
+                    return generator.require_safe_prefix(root / "qualification.json", 32768)
+            check(value)
+            for field, replacement in (("release_eligible", False), ("engine_sha256", "0" * 64),
+                                       ("cases", value["cases"][:-1]), ("artifacts", []),
+                                       ("runtime_binding", None), ("runtime_binding", {})):
+                mutated = copy.deepcopy(value)
+                mutated[field] = replacement
+                with self.subTest(field=field), self.assertRaises(ValueError):
+                    check(mutated)
+            for path, replacement in ((["logits", "cases", 0, "kl_divergence"], 0.005),
+                                      (["source", "checkout_clean"], False),
+                                      (["source", "generator_sha256"], "0" * 64),
+                                      (["runtime_binding", "runtime_inventory_sha256"], "0" * 64),
+                                      (["configuration", "checkpoint_block_tokens"], 16),
+                                      (["performance", "median_decode_retention"], 0.969),
+                                      (["performance", "median_partial_ttft_speedup"], float("nan")),
+                                      (["cached_peak_memory", "gtt_bytes"], 97 * 1024**3)):
+                mutated = copy.deepcopy(value)
+                target = mutated
+                for key in path[:-1]:
+                    target = target[key]
+                target[path[-1]] = replacement
+                with self.subTest(path=path), self.assertRaises(ValueError):
+                    check(mutated)
+            raw.write_text("modified")
+            with self.assertRaises(ValueError):
+                check(value)
 
 
 if __name__ == "__main__":

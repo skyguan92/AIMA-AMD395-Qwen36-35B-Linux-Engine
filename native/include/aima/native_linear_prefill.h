@@ -21,6 +21,12 @@ class NativeQ8192PrefillGemmPlans;
 class NativeDecodeBindings;
 class Bf16GemmPlan;
 
+struct NativeLinearPrefillCheckpoint {
+  std::size_t tokens = 0;
+  void* convolution_state = nullptr;
+  void* recurrent_state = nullptr;
+};
+
 struct NativeLinearPrefillMetrics {
   std::size_t layer_index = 0;
   std::size_t tokens = 0;
@@ -73,6 +79,10 @@ struct NativeLinearPrefillOracleOptions {
   // Layer-major long-context execution carries the resident convolution and
   // recurrent states from the preceding chunk of the same layer.
   bool has_initial_state = false;
+  // Optional text message checkpoints, relative to this prefill segment.
+  // Destinations are owned by the prefix cache and never alias live state.
+  const void* checkpoint_initial_conv_state = nullptr;
+  std::vector<NativeLinearPrefillCheckpoint> checkpoints;
   // Product owners retain all fixed-shape hipBLASLt plans across layers and
   // requests. A null pointer preserves focused-probe ownership semantics.
   NativeQ8192PrefillGemmPlans* gemm_plans = nullptr;

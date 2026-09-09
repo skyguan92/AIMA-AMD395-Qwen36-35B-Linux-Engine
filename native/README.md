@@ -145,12 +145,14 @@ manifest, and writes the relocatable archive under `dist/`.
 
 The native process owns all 693 checkpoint tensors, derived layouts, AOT
 modules, hipBLASLt plans, KV/recurrent state, scratch and a capacity-bounded
-prefix LRU. A normal q8192 service retains four exact request-prefix snapshots;
+prefix LRU. A normal q8192 service retains four request-prefix owners, each
+with a complete snapshot and up to three text message/header checkpoints;
 long-window profiles reduce that count to preserve the 96 GiB GTT contract.
 The engine implements cold prefill, resident certified greedy decode, seeded
 positive-temperature full-vocabulary BF16/top-p sampling, exact-prefix restore
-and one-token-or-longer prefix extension. On a hit it restores the cached state
-and executes only the suffix through the native decode path; cold-prefill
+and one-token-or-longer prefix extension. On a hit it restores the longest
+complete state within the common token prefix and executes only the suffix
+through resident AOT prefill; cold-prefill
 launch count is zero for an exact hit. Stochastic sampling reuses dead
 certificate scratch and leaves the temperature-zero launch path unchanged.
 
@@ -172,3 +174,22 @@ The final v1.5.1 qualification established:
 
 Full values and component hashes live in the qualification JSON; rounded values
 in prose are not the source of truth.
+
+Safe-prefix checkpoint qualification is separate from those historical results:
+
+```bash
+python3 scripts/qualify-native-prefix-cache.py \
+  --engine build/native/aima-engine-native --model-dir "$AIMA_MODEL_DIR" \
+  --output output/safe-prefix --performance --logits
+```
+
+It runs resident cold/cache generation pairs, eviction/media isolation,
+full-vocabulary KLD/top-1 comparisons at message/chunk/segment boundaries,
+and measures TTFT, restored bytes/time, suffix work, decode retention and
+peak RSS/GTT. `--cache-capacity 262144` also exercises one-owner replacement.
+Release eligibility requires a clean bound executable/checkout, the logits
+gate, faster long-prefix TTFT and at least 97% decode retention. Development
+results are explicitly ineligible. The qualification-only
+`resident-session-probe --input-token-ids-sequence-file PATH --max-new-tokens 1
+--output-logits-dir NEW_DIRECTORY` writes per-request FP32 distributions;
+HTTP serving never reads or writes these oracle files.

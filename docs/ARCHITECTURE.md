@@ -89,6 +89,26 @@ segment is padded. Causal hidden rows remain unchanged; the runtime repairs the
 linear-attention convolution window and replays the state-producing recurrent
 kernel at the logical token count before decode begins.
 
+Text prefix owners additionally retain the state immediately before the first
+and last message terminators and after the final assistant header. Boundaries
+at or beyond 32 tokens round down to a 32-token FLA chunk; short unaligned
+boundaries cannot resume a prompt crossing into another chunk. During each linear layer, the existing
+state-producing FLA launch writes those boundaries into separate cache-owned
+buffers, and convolution windows are reconstructed from the segment's raw
+projections plus its initial window. The ordinary full-segment FLA launch then
+restores transient outputs before the attention output and MoE consume them.
+Layer 39 supplies the hidden row at each checkpoint. The prompt is not split
+into extra projection or MoE passes to collect checkpoints.
+
+Each checkpoint costs 64,393,216 bytes for 30 recurrent/convolution pairs and
+one BF16 hidden row. Three checkpoints per owner add at most 772,718,592 bytes
+with four owners; the existing long-window owner limits reduce that bound.
+Full-attention KV remains shared with the complete prompt snapshot. A capture
+is published only after all 30 state pairs and its hidden row are complete;
+exceptions invalidate the destination owner. New owners inherit any skipped
+prefix checkpoints from the exact matched source, including self-replacement
+in a one-owner long-window configuration.
+
 ## Correctness-sensitive arithmetic
 
 The native q1024 full-attention input path reproduces PyTorch's vectorized

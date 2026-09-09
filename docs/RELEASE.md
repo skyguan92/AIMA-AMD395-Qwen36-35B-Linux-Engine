@@ -1,5 +1,91 @@
 # Release provenance and procedure
 
+## v1.5.1-native-vl.7 safe-prefix boundary
+
+This release addresses organization issue
+[#12](https://github.com/Approaching-AI/AIMA-AMD395-Qwen36-35B-Linux-Engine/issues/12).
+The native source is `edb584ee16f0ee1fc5f902459598b9446d96387e`, with engine SHA-256
+`1de6f8f1b1300ef9ecd300a783e87b289b520a78e00429c2da04e404a3d7d850`.
+The [product contract](../native/product-contract-v1.5.1-native-vl.7.json)
+binds fourteen runtime paths, unchanged GPU kernel/provider artifacts and
+fresh qualification of the new text checkpoint host schedule. This is not
+the seven-path CPU-only scope of `.5` and `.6`.
+
+Each text LRU owner retains at most three complete state checkpoints selected
+near its first/final message and final assistant header. Boundaries at or
+above 32 tokens are rounded down to a 32-token FLA block. Short unaligned
+boundaries are eligible only while the new request stays in that same block;
+otherwise the request falls back to cold prefill. The longest **saved eligible**
+prefix is restored, not an arbitrary token LCP. Full-owner exact/append reuse
+remains available. Media-bearing owners keep whole-prompt snapshots and their
+canonical media namespace; matching token IDs never authorize cross-media reuse.
+
+The issue's `你好` → `你好，你是谁` reproduction restores 15 of 26 tokens and
+prefills only the remaining 11 logical tokens. Qualification covers the
+32768-token four-owner and 262144-token one-owner cache capacities. Five longer
+shared-system requests must show median partial-hit TTFT improvement, decode
+retention at least 0.97, and peak GTT below 96 GiB. Exact timings and memory
+measurements are recorded in the checksum-bound public evidence for this release.
+
+The pinned portable measurements pass at both capacities: the long shared-system
+corpus gives median TTFT speedups of 3.37112x / 3.37115x and decode retention of
+1.00069 / 1.00346. Peak GTT is 83,342,831,616 / 90,926,133,248 bytes. The short
+issue reproduction restores 64,696,320 bytes in 0.756 ms, with TTFT 472.45 ms
+versus 504.37 ms cold. All 52 generation pairs and 68 full-vocabulary comparisons
+pass; maximum KLD is 0.0035070673. Independent recomputation from the public raw
+FP32 files reproduces these comparisons. The fresh 19-cell text matrix also
+passes, with minimum prefill/decode retention 1.03246 / 1.03405 against its
+published v1.0.0 baseline. These are measurements through the frozen portable
+userspace, not the earlier host-ROCm diagnostic runs.
+
+Both profiles must pass 26 full-generation comparisons, 34 comparisons of all
+248320 FP32 logits (top-1 equal, KLD strictly below 0.005),
+and an eight-step short-checkpoint/full-owner replay that verifies actual KV
+extent after intervening decode. Raw logits and generation hashes are retained.
+These tests do not establish universal bitwise identity across BF16 partition
+choices: long free-form generations can diverge, and arbitrary raw-token append
+continuations already diverged in the `.6` control. Use `--disable-prefix-cache`
+when the same cold partition is required. Unsafe unaligned-cross-block candidates
+were rejected during qualification; their failed development results are not
+used as passing release evidence.
+
+In addition to these new tests, promotion requires the fresh complete 19-cell
+text matrix, exact-candidate chat/HTTP checks, isolated final-archive execution,
+a full one-hour mixed-workload soak with at least 240 requests, exact v1.5.1
+rollback and clean-tag repository/security/evidence gates. `.4` cold/VL kernel
+and two-host results remain explicitly inherited only for unchanged arithmetic
+and portable userspace; they do not qualify new checkpoint paths or represent
+a second exact `.7` host run.
+
+Run `qualify-native-prefix-cache.py --performance --logits` at cache capacities
+32768 and 262144, then `qualify-native-full-matrix.py --include-window-endpoints`.
+Both commands must receive `--runtime-root` pointing to a verified portable
+capsule containing the exact candidate engine and frozen `.5` userspace.
+The qualifier verifies the recursive manifest, rejects unlisted dependencies,
+and executes through the frozen static launcher and bundled loader with the
+host library cache inhibited. All 209 runtime entries, the launcher, native
+payload and verifier are checksum-bound in each summary (and every matrix
+raw report). Packaging may replace documentation and qualification metadata,
+but the final G5 gate requires the same byte-identical runtime inventory.
+Host-ROCm development measurements are not portable release evidence.
+Use the `.7` contract with the patch product/G5 generators and supply the
+product generator's `--safe-prefix`, `--safe-prefix-one-owner` and `--text-matrix`
+summaries. Public prefix exports verify the original sealed raw files, redact
+host paths only and reseal the derivative with its source summary hash. The
+additive release provenance binds both complete raw prefix trees and the fresh
+matrix to the exact package input. The immutable source tag is never moved.
+
+The immutable source tag points to
+`9bd8a0fabcf2fc6ef1b882c10b04390c0e31fb00`. The final archive is
+`aima-engine-native-portable-5a699d1600cc.tar.zst` (345,552,799 bytes), with SHA-256
+`fb88242d52b6d3a1c152c8c7119c641275090fb7210e672d6c3fae358d215303`.
+It passed isolated provider/VL execution and a 3600.000502-second resident soak:
+360 requests, 72 each for text, image, video, mixed media and restored image.
+All requests qualified, the model loaded once, post-warm RSS growth was zero,
+peak GTT was 85,384,773,632 bytes, and shutdown was clean. Exact v1.5.1 rollback
+also passed. The complete public records are published separately so they can
+bind the final archive without rewriting the immutable source tag.
+
 ## v1.5.1-native-vl.6 patch boundary
 
 This patch fixes the response routing for VL requests that omit `thinking`.

@@ -297,12 +297,16 @@ class NativeExactPrefixCache {
           throw std::runtime_error(
               "native exact-prefix linear state geometry is incomplete");
         }
+        checkpoint_layer_offsets_[layer] = checkpoint_linear_bytes_;
         add_slice(conv->device_pointer, kConvBytes, 0);
         add_slice(recurrent->device_pointer, kRecurrentBytes, 0);
       }
     }
     terminal_offset_ = bytes_;
     bytes_ += kHidden * sizeof(std::uint16_t);
+    checkpoint_base_offset_ = bytes_;
+    checkpoint_bytes_ = checkpoint_linear_bytes_ + kHidden * sizeof(std::uint16_t);
+    bytes_ += kNativePrefixCacheCheckpointCount * checkpoint_bytes_;
     check_hip(hipSetDevice(device_), "hipSetDevice exact-prefix cache");
     check_hip(hipMalloc(&allocation_, bytes_),
               "hipMalloc exact-prefix cache");
@@ -316,7 +320,117 @@ class NativeExactPrefixCache {
       std::string_view multimodal_namespace) const {
     if (!valid_) return 0;
     return native_prefix_cache_matched_tokens(
-        tokens_, multimodal_namespace_, tokens, multimodal_namespace);
+        tokens_, multimodal_namespace_, tokens, multimodal_namespace,
+        checkpoint_tokens_);
+  }
+
+  // Reserve checkpoints before layer-major prefill. An inherited boundary is
+  // copied only from a complete matching snapshot, never from live decode
+  // state or a later recurrent boundary. Eviction invalidates the whole owner.
+  std::uint64_t prepare_capture(
+      const std::vector<std::uint32_t>& tokens,
+      std::string_view multimodal_namespace,
+      const NativeExactPrefixCache* source, std::size_t matched_tokens) {
+    const auto desired = native_chat_prefix_checkpoint_tokens(tokens, multimodal_namespace);
+    if (source != nullptr &&
+        source->matched_prefix_tokens(tokens, multimodal_namespace) != matched_tokens) {
+      throw std::invalid_argument("native checkpoint inheritance is not a safe prefix");
+    }
+    // Any failed copy must leave the destination unusable. Its old metadata
+    // remains readable when a one-entry cache inherits from itself.
+    valid_ = false;
+    std::vector<std::size_t> boundaries;
+    std::vector<std::uint32_t> captured;
+    std::uint64_t copied = 0;
+    for (const std::size_t boundary : desired) {
+      const std::size_t destination_index = boundaries.size();
+      if (boundary > matched_tokens) {
+        boundaries.push_back(boundary);
+        captured.push_back(0);
+        continue;
+      }
+      if (source == nullptr) continue;
+      const auto found = std::find(source->checkpoint_tokens_.begin(),
+                                   source->checkpoint_tokens_.end(), boundary);
+      if (boundary != source->tokens_.size() &&
+          found == source->checkpoint_tokens_.end()) continue;
+      auto* destination = checkpoint_pointer(destination_index);
+      if (boundary == source->tokens_.size()) {
+        const auto* allocation = static_cast<const unsigned char*>(source->allocation_);
+        for (const Slice& slice : source->slices_) {
+          if (slice.bytes_per_token != 0) continue;
+          check_hip(hipMemcpyAsync(destination + slice.checkpoint_offset,
+                                   allocation + slice.offset, slice.capacity_bytes,
+                                   hipMemcpyDeviceToDevice, nullptr),
+                    "hipMemcpyAsync inherited checkpoint linear state");
+          copied += slice.capacity_bytes;
+        }
+        check_hip(hipMemcpyAsync(destination + checkpoint_linear_bytes_,
+                                 allocation + source->terminal_offset_,
+                                 kHidden * sizeof(std::uint16_t),
+                                 hipMemcpyDeviceToDevice, nullptr),
+                  "hipMemcpyAsync inherited checkpoint hidden state");
+        copied += kHidden * sizeof(std::uint16_t);
+      } else {
+        const auto source_index = static_cast<std::size_t>(
+            found - source->checkpoint_tokens_.begin());
+        const void* state = source->checkpoint_pointer(source_index);
+        if (state != destination) {
+          check_hip(hipMemcpyAsync(destination, state, checkpoint_bytes_,
+                                   hipMemcpyDeviceToDevice, nullptr),
+                    "hipMemcpyAsync inherited checkpoint");
+          copied += checkpoint_bytes_;
+        }
+      }
+      boundaries.push_back(boundary);
+      captured.push_back(kCompleteCheckpoint);
+    }
+    // On a one-entry long-window cache, source may be this same owner. Keep
+    // its metadata intact until all inherited source pointers are resolved.
+    checkpoint_tokens_ = std::move(boundaries);
+    checkpoint_captured_ = std::move(captured);
+    return copied;
+  }
+
+  std::vector<NativeLinearPrefillCheckpoint> checkpoint_targets(
+      std::size_t layer, std::size_t segment_start, std::size_t segment_tokens) {
+    std::vector<NativeLinearPrefillCheckpoint> result;
+    for (std::size_t index = 0; index < checkpoint_tokens_.size(); ++index) {
+      const std::size_t boundary = checkpoint_tokens_[index];
+      if (boundary <= segment_start || boundary - segment_start > segment_tokens) continue;
+      auto* state = checkpoint_pointer(index) + checkpoint_layer_offsets_[layer];
+      result.push_back({boundary - segment_start, state,
+                        state + 8192ULL * 3ULL * sizeof(std::uint16_t)});
+    }
+    return result;
+  }
+
+  void mark_checkpoint_layer(std::size_t layer, std::size_t segment_start,
+                             std::size_t segment_tokens) {
+    for (std::size_t index = 0; index < checkpoint_tokens_.size(); ++index) {
+      const std::size_t boundary = checkpoint_tokens_[index];
+      if (boundary > segment_start && boundary - segment_start <= segment_tokens) {
+        checkpoint_captured_[index] |= std::uint32_t{1} << (layer - layer / 4);
+      }
+    }
+  }
+
+  std::uint64_t capture_checkpoint_hidden(
+      std::size_t segment_start, std::size_t segment_tokens, const void* output) {
+    std::uint64_t copied = 0;
+    for (std::size_t index = 0; index < checkpoint_tokens_.size(); ++index) {
+      const std::size_t boundary = checkpoint_tokens_[index];
+      if (boundary <= segment_start || boundary - segment_start > segment_tokens) continue;
+      const auto* row = static_cast<const unsigned char*>(output) +
+          (boundary - segment_start - 1) * kHidden * sizeof(std::uint16_t);
+      check_hip(hipMemcpyAsync(checkpoint_pointer(index) + checkpoint_linear_bytes_,
+                               row, kHidden * sizeof(std::uint16_t),
+                               hipMemcpyDeviceToDevice, nullptr),
+                "hipMemcpyAsync checkpoint terminal hidden");
+      checkpoint_captured_[index] |= std::uint32_t{1} << 30;
+      copied += kHidden * sizeof(std::uint16_t);
+    }
+    return copied;
   }
 
   std::uint64_t capture(const std::vector<std::uint32_t>& tokens,
@@ -331,6 +445,11 @@ class NativeExactPrefixCache {
     if (!valid_native_multimodal_cache_namespace(multimodal_namespace)) {
       throw std::invalid_argument(
           "native exact-prefix multimodal namespace is invalid");
+    }
+    for (const std::uint32_t captured : checkpoint_captured_) {
+      if (captured != kCompleteCheckpoint) {
+        throw std::runtime_error("native prefix checkpoint is missing layer state");
+      }
     }
     hipStream_t stream = static_cast<hipStream_t>(stream_value);
     auto* destination = static_cast<unsigned char*>(allocation_);
@@ -358,30 +477,35 @@ class NativeExactPrefixCache {
     return transfer_bytes + kHidden * sizeof(std::uint16_t);
   }
 
-  std::uint64_t restore(void* stream_value = nullptr) const {
-    return restore_slices(true, stream_value);
+  std::uint64_t restore(std::size_t matched_tokens, void* stream_value = nullptr) const {
+    return restore_slices(true, matched_tokens, stream_value);
   }
 
-  std::uint64_t restore_linear_state(void* stream_value = nullptr) const {
-    return restore_slices(false, stream_value);
+  std::uint64_t restore_linear_state(
+      std::size_t matched_tokens, void* stream_value = nullptr) const {
+    return restore_slices(false, matched_tokens, stream_value);
   }
 
  private:
   std::uint64_t restore_slices(bool include_attention_kv,
-                               void* stream_value) const {
+                               std::size_t matched_tokens, void* stream_value) const {
     if (!valid_ || allocation_ == nullptr) {
       throw std::runtime_error("native exact-prefix cache is empty");
     }
     hipStream_t stream = static_cast<hipStream_t>(stream_value);
     const auto* source = static_cast<const unsigned char*>(allocation_);
+    const unsigned char* checkpoint = checkpoint_state(matched_tokens);
     std::uint64_t transfer_bytes = 0;
     for (const Slice& slice : slices_) {
       if (!include_attention_kv && slice.bytes_per_token != 0) continue;
       const std::uint64_t copy_bytes = slice.bytes_per_token == 0
                                            ? slice.capacity_bytes
-                                           : tokens_.size() *
+                                           : matched_tokens *
                                                  slice.bytes_per_token;
-      check_hip(hipMemcpyAsync(slice.live, source + slice.offset,
+      const void* slice_source = checkpoint != nullptr && slice.bytes_per_token == 0
+                                    ? checkpoint + slice.checkpoint_offset
+                                    : source + slice.offset;
+      check_hip(hipMemcpyAsync(slice.live, slice_source,
                                copy_bytes, hipMemcpyDeviceToDevice, stream),
                 "hipMemcpyAsync exact-prefix restore");
       transfer_bytes += copy_bytes;
@@ -390,8 +514,10 @@ class NativeExactPrefixCache {
   }
 
  public:
-  const void* terminal_hidden() const {
+  const void* terminal_hidden(std::size_t matched_tokens) const {
     if (!valid_) throw std::runtime_error("native exact-prefix cache is empty");
+    const unsigned char* checkpoint = checkpoint_state(matched_tokens);
+    if (checkpoint != nullptr) return checkpoint + checkpoint_linear_bytes_;
     return static_cast<const unsigned char*>(allocation_) + terminal_offset_;
   }
 
@@ -401,6 +527,7 @@ class NativeExactPrefixCache {
     std::uint64_t capacity_bytes = 0;
     std::uint64_t bytes_per_token = 0;
     std::uint64_t offset = 0;
+    std::uint64_t checkpoint_offset = 0;
   };
   void add_slice(void* live, std::uint64_t capacity_bytes,
                  std::uint64_t bytes_per_token) {
@@ -410,14 +537,37 @@ class NativeExactPrefixCache {
       throw std::invalid_argument("native exact-prefix slice is invalid");
     }
     slices_.push_back(
-        {live, capacity_bytes, bytes_per_token, bytes_});
+        {live, capacity_bytes, bytes_per_token, bytes_, checkpoint_linear_bytes_});
     bytes_ += capacity_bytes;
+    if (bytes_per_token == 0) checkpoint_linear_bytes_ += capacity_bytes;
   }
 
+  unsigned char* checkpoint_pointer(std::size_t index) const {
+    return static_cast<unsigned char*>(allocation_) + checkpoint_base_offset_ +
+           index * checkpoint_bytes_;
+  }
+
+  const unsigned char* checkpoint_state(std::size_t matched_tokens) const {
+    if (matched_tokens == tokens_.size() && matched_tokens != 0) return nullptr;
+    const auto found = std::find(checkpoint_tokens_.begin(), checkpoint_tokens_.end(),
+                                 matched_tokens);
+    if (found == checkpoint_tokens_.end()) {
+      throw std::invalid_argument("native prefix restore has no complete checkpoint");
+    }
+    return checkpoint_pointer(static_cast<std::size_t>(found - checkpoint_tokens_.begin()));
+  }
+
+  static constexpr std::uint32_t kCompleteCheckpoint = 0x7fffffffU;
   int device_ = 0;
   void* allocation_ = nullptr;
   std::uint64_t bytes_ = 0;
   std::uint64_t terminal_offset_ = 0;
+  std::uint64_t checkpoint_base_offset_ = 0;
+  std::uint64_t checkpoint_linear_bytes_ = 0;
+  std::uint64_t checkpoint_bytes_ = 0;
+  std::array<std::uint64_t, 40> checkpoint_layer_offsets_{};
+  std::vector<std::size_t> checkpoint_tokens_;
+  std::vector<std::uint32_t> checkpoint_captured_;
   std::size_t max_cache_tokens_ = 0;
   std::vector<Slice> slices_;
   std::vector<std::uint32_t> tokens_;
@@ -607,6 +757,7 @@ struct NativeResidentEngine::Impl {
   std::uint64_t prefix_cache_clock = 0;
   std::size_t prefix_cache_entries = 0;
   std::size_t active_kv_prefix_cache_index = kPrefixCacheEntries;
+  std::size_t active_kv_prefix_tokens = 0;
   NativeResidentLoadMetrics metrics;
   int device = 0;
   int cu_count = 0;
@@ -1901,9 +2052,19 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
       }
     }
   }
-  const NativePromptExecutionPlan prompt_plan = plan_native_prompt_execution(
+  NativePromptExecutionPlan prompt_plan = plan_native_prompt_execution(
       request.input_token_ids.size(), matched_prefix_tokens,
       impl_->resident_prefill_buckets);
+  if (matched_prefix_tokens != 0 &&
+      matched_prefix_tokens + prompt_plan.aot_bucket_tokens >
+          impl_->attention_state.cache_capacity()) {
+    // A checkpoint can change suffix padding at a maximum-window endpoint.
+    // Preserve admission by falling back to the qualified cold plan.
+    matched_prefix_tokens = 0;
+    matched_prefix_cache_index = impl_->prefix_cache_entries;
+    prompt_plan = plan_native_prompt_execution(
+        request.input_token_ids.size(), 0, impl_->resident_prefill_buckets);
+  }
   if (matched_prefix_tokens + prompt_plan.aot_bucket_tokens >
       impl_->attention_state.cache_capacity()) {
     throw std::invalid_argument(
@@ -1914,10 +2075,12 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
   const bool prefix_extension_hit = prompt_plan.prefix_extension_hit;
   const bool reuse_active_prefix_kv =
       exact_prefix_hit &&
-      impl_->active_kv_prefix_cache_index == matched_prefix_cache_index;
+      impl_->active_kv_prefix_cache_index == matched_prefix_cache_index &&
+      matched_prefix_tokens <= impl_->active_kv_prefix_tokens;
   // A request may overwrite the live attention cache. Re-establish ownership
   // only after the selected cache state has been restored or captured.
   impl_->active_kv_prefix_cache_index = impl_->prefix_cache_entries;
+  impl_->active_kv_prefix_tokens = 0;
   if (prompt_plan.prompt_decode_required(request.input_token_ids.size())) {
     throw std::runtime_error(
         "native prompt planner left an unexpected serial decode tail");
@@ -2180,30 +2343,40 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
         ++impl_->prefix_cache_clock;
     if (exact_prefix_hit) {
       last_hidden =
-          impl_->prefix_caches[matched_prefix_cache_index].terminal_hidden();
+          impl_->prefix_caches[matched_prefix_cache_index].terminal_hidden(matched_prefix_tokens);
       if (reuse_active_prefix_kv) {
-        // Decode only appends after the prompt, so a consecutive exact hit
-        // still owns byte-identical prompt KV in the live attention cache.
+        // Decode only appends after the previous request's matched range.
+        // An exact checkpoint request can be shorter than its owner: its
+        // decode overwrites the owner's later KV, so the active extent must
+        // cover this entire hit before skipping KV restoration.
         // Restore only the mutable linear recurrent/conv state. This avoids
         // copying the prompt KV a second time without changing cache state.
         const auto restore_started = std::chrono::steady_clock::now();
         metrics.prefix_cache_transfer_bytes =
             impl_->prefix_caches[matched_prefix_cache_index]
-                .restore_linear_state();
+                .restore_linear_state(matched_prefix_tokens);
         check_hip(hipStreamSynchronize(nullptr),
                   "hipStreamSynchronize active-KV exact-prefix restore");
         metrics.prefix_cache_restore_wall_ms = elapsed_ms(restore_started);
+        metrics.prefix_cache_restore_bytes = metrics.prefix_cache_transfer_bytes;
         metrics.prefix_cache_active_kv_reused = true;
         impl_->active_kv_prefix_cache_index = matched_prefix_cache_index;
+        impl_->active_kv_prefix_tokens = matched_prefix_tokens;
       } else {
         // The cached terminal hidden is sufficient to publish the first
         // token. Restore a non-active KV owner before the next decode step.
         exact_prefix_restore_pending = true;
       }
     } else {
+      const auto restore_started = std::chrono::steady_clock::now();
       metrics.prefix_cache_transfer_bytes =
-          impl_->prefix_caches[matched_prefix_cache_index].restore();
+          impl_->prefix_caches[matched_prefix_cache_index].restore(matched_prefix_tokens);
+      check_hip(hipStreamSynchronize(nullptr),
+                "hipStreamSynchronize prefix checkpoint restore");
+      metrics.prefix_cache_restore_bytes = metrics.prefix_cache_transfer_bytes;
+      metrics.prefix_cache_restore_wall_ms = elapsed_ms(restore_started);
       impl_->active_kv_prefix_cache_index = matched_prefix_cache_index;
+      impl_->active_kv_prefix_tokens = matched_prefix_tokens;
     }
   } else {
     metrics.prefix_cache_lookup =
@@ -2211,6 +2384,26 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
     metrics.prefix_cache_matched_tokens = 0;
     metrics.prefix_cache_suffix_tokens = request.input_token_ids.size();
     if (!request.disable_prefix_cache) ++impl_->prefix_cache_misses;
+  }
+
+  NativeExactPrefixCache* capture_cache = nullptr;
+  std::size_t capture_index = impl_->prefix_cache_entries;
+  if (!request.disable_prefix_cache && !exact_prefix_hit) {
+    std::vector<bool> valid;
+    std::vector<std::uint64_t> last_use;
+    for (std::size_t index = 0; index < impl_->prefix_cache_entries; ++index) {
+      valid.push_back(impl_->prefix_caches[index].valid());
+      last_use.push_back(impl_->prefix_cache_use[index]);
+    }
+    capture_index = native_prefix_cache_capture_index(valid, last_use);
+    capture_cache = &impl_->prefix_caches[capture_index];
+    metrics.prefix_cache_transfer_bytes += capture_cache->prepare_capture(
+        request.input_token_ids, request.multimodal_cache_namespace,
+        prefix_hit ? &impl_->prefix_caches[matched_prefix_cache_index] : nullptr,
+        matched_prefix_tokens);
+    // The live KV is only a restored prefix until the full new owner commits.
+    impl_->active_kv_prefix_cache_index = impl_->prefix_cache_entries;
+    impl_->active_kv_prefix_tokens = 0;
   }
 
   if (!prompt_plan.aot_segments.empty()) {
@@ -2490,11 +2683,15 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
             attention_options.sequence_oracle_label_prefix = prefix.str();
           }
           NativeQ8192CkProvider* segment_provider = owner.fmha_provider;
-          if (mrope_plan != nullptr && segment.input_offset != 0) {
+          if ((mrope_plan != nullptr && segment.input_offset != 0) ||
+              (prefix_hit && vl_input == nullptr &&
+               matched_prefix_tokens >= kNativePrefixCacheBlockTokens)) {
             // The short AOTriton owner is qualified for standalone q1024-
             // q4096 buckets, but its selected image rejects a short query
             // against a longer prefix. Continuation M-RoPE segments use the
             // generic rectangular CK owner shared by the long-context path.
+            // Block-prefix continuations likewise have a rectangular Q/K
+            // boundary. Single-chunk short chat retains its frozen provider.
             segment_provider = &impl_->ck_provider;
           }
           NativeQ8192CkProvider& attention_provider =
@@ -2520,7 +2717,11 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
               attention.boundary_comparisons.end());
         } else {
           const bool has_initial_state = prefix_hit || segment_index != 0;
-          if (segment.padded()) {
+          const std::vector<NativeLinearPrefillCheckpoint> checkpoints =
+              capture_cache == nullptr ? std::vector<NativeLinearPrefillCheckpoint>{}
+                  : capture_cache->checkpoint_targets(
+                        layer_index, segment.input_offset, segment.input_tokens);
+          if (segment.padded() || !checkpoints.empty()) {
             const NativeDecodeWorkspaceView* conv_state =
                 impl_->decode_workspace.find(
                     "linear_attention_initial_conv_states." +
@@ -2562,6 +2763,9 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
           }
           attention_options.decode_state_workspace = &impl_->decode_workspace;
           attention_options.has_initial_state = has_initial_state;
+          attention_options.checkpoints = checkpoints;
+          attention_options.checkpoint_initial_conv_state =
+              checkpoints.empty() ? nullptr : impl_->padded_prefill_initial_conv_state;
           attention_options.gemm_plans = chunk_gemm_plans;
           if (logical_vl_segment) {
             attention_options.active_tokens = segment.input_tokens;
@@ -2603,6 +2807,10 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
               attention.layer.dense_gemm_launches;
           metrics.prefill_native_pointwise_launches +=
               attention.layer.native_pointwise_launches;
+          if (capture_cache != nullptr) {
+            capture_cache->mark_checkpoint_layer(
+                layer_index, segment.input_offset, segment.input_tokens);
+          }
           if (segment.padded()) {
             const NativeLinearPrefillStateRepairMetrics repair =
                 repair_native_linear_prefill_padded_state(
@@ -2679,6 +2887,12 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
             moe.comparisons.end());
         if (moe.chain_output_comparison_provided) {
           metrics.layer_tail_comparisons.push_back(moe.chain_output_comparison);
+        }
+        if (layer_index == 39 && capture_cache != nullptr) {
+          metrics.prefix_cache_transfer_bytes += capture_cache->capture_checkpoint_hidden(
+              segment.input_offset, segment.input_tokens,
+              native_prefill_layer_output_pointer(
+                  chunk_workspace, chunk_invocations, layer_index));
         }
         if (composed_prefill) {
           check_hip(hipMemcpyAsync(
@@ -2764,30 +2978,14 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
               "hipDeviceSynchronize after first-token LM head");
     first_token_wall_ms = elapsed_ms(first_token_started);
   }
-  if (!request.disable_prefix_cache && !exact_prefix_hit) {
-    std::size_t capture_index = impl_->prefix_cache_entries;
-    for (std::size_t index = 0; index < impl_->prefix_cache_entries; ++index) {
-      if (!impl_->prefix_caches[index].valid()) {
-        capture_index = index;
-        break;
-      }
-    }
-    if (capture_index == impl_->prefix_cache_entries) {
-      capture_index = 0;
-      for (std::size_t index = 1; index < impl_->prefix_cache_entries;
-           ++index) {
-        if (impl_->prefix_cache_use[index] <
-            impl_->prefix_cache_use[capture_index]) {
-          capture_index = index;
-        }
-      }
-    }
+  if (capture_cache != nullptr) {
     metrics.prefix_cache_transfer_bytes +=
-        impl_->prefix_caches[capture_index].capture(
+        capture_cache->capture(
             request.input_token_ids, request.multimodal_cache_namespace,
             prompt_terminal_hidden);
     impl_->prefix_cache_use[capture_index] = ++impl_->prefix_cache_clock;
     impl_->active_kv_prefix_cache_index = capture_index;
+    impl_->active_kv_prefix_tokens = request.input_token_ids.size();
   }
   metrics.output_token_ids.push_back(first_token_id);
   metrics.prefill_wall_ms = elapsed_ms(request_started);
@@ -2807,11 +3005,13 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
   if (exact_prefix_restore_pending) {
     const auto restore_started = std::chrono::steady_clock::now();
     metrics.prefix_cache_transfer_bytes =
-        impl_->prefix_caches[matched_prefix_cache_index].restore();
+        impl_->prefix_caches[matched_prefix_cache_index].restore(matched_prefix_tokens);
     check_hip(hipStreamSynchronize(nullptr),
               "hipStreamSynchronize deferred exact-prefix restore");
     metrics.prefix_cache_restore_wall_ms = elapsed_ms(restore_started);
+    metrics.prefix_cache_restore_bytes = metrics.prefix_cache_transfer_bytes;
     impl_->active_kv_prefix_cache_index = matched_prefix_cache_index;
+    impl_->active_kv_prefix_tokens = matched_prefix_tokens;
   }
   if (timeline_enabled) {
     double linear_attention_ms = 0.0;
@@ -2980,6 +3180,28 @@ NativeLogitsComparison NativeResidentEngine::compare_current_logits(
   }
   return compare_native_logits_fp32(logits->device_pointer, kVocabulary,
                                     reference_path);
+}
+
+void NativeResidentEngine::save_current_logits(
+    const std::filesystem::path& output_path) const {
+  if (!impl_->ready || impl_->request_count == 0 || output_path.empty() ||
+      std::filesystem::exists(output_path)) {
+    throw std::invalid_argument("native logits snapshot requires a request and a new file");
+  }
+  const NativeDecodeWorkspaceView* logits =
+      impl_->decode_workspace.find("certified_lm_head_logits_output");
+  const std::size_t bytes = kVocabulary * sizeof(float);
+  if (logits == nullptr || logits->device_pointer == nullptr ||
+      logits->payload_bytes < bytes) {
+    throw std::runtime_error("native resident full-vocabulary logits buffer is missing");
+  }
+  std::vector<float> host(kVocabulary);
+  check_hip(hipMemcpy(host.data(), logits->device_pointer, bytes,
+                       hipMemcpyDeviceToHost), "hipMemcpy qualification logits snapshot");
+  std::ofstream output(output_path, std::ios::binary);
+  output.write(reinterpret_cast<const char*>(host.data()), bytes);
+  output.close();
+  if (!output) throw std::runtime_error("could not write qualification logits snapshot");
 }
 
 bool NativeResidentEngine::loaded() const { return impl_->ready; }

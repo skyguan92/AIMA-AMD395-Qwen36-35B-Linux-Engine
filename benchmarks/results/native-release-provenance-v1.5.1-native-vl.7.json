@@ -1,0 +1,208 @@
+{
+  "claim_effect": "The exact .7 archive passed isolated AMD395 bundle execution, 3600 seconds and 360 requests of resident mixed traffic, exact v1.5.1 rollback and repository/security/evidence gates. The .4 G1-G4 and two-host results remain inherited baseline evidence, not exact .7 measurements or a second exact .7 host run. New text checkpoint paths additionally have exact-candidate cold/cache generation and 248320-element logits comparisons at both cache capacities, active-KV replay, memory/TTFT/decode checks and a fresh 19-cell text matrix.",
+  "clarification": "The immutable .7 tag binds the exact patch runtime, tooling and product contract. The final archive, exact-candidate chat/HTTP qualifications, one-hour soak, rollback and release gates are additive hash-bound evidence and do not move that tag.",
+  "complete": true,
+  "immutable_records": {
+    "archive_checksum": {
+      "bytes": 115,
+      "path": "benchmarks/results/aima-engine-native-portable-5a699d1600cc.tar.zst.sha256",
+      "sha256": "989934ed6ccc882509d96d75760262439858c5d560258dcb614050e1d482bfdf"
+    },
+    "archive_manifest": {
+      "bytes": 454800,
+      "path": "benchmarks/results/native-portable-manifest-v1.5.1-native-vl.7.json",
+      "sha256": "27962871f4d99910780fd53f33086d52078b976e150eeba11eebeffc1ef6f944"
+    },
+    "baseline_g5": {
+      "bytes": 6167,
+      "path": "benchmarks/results/native-vl-g5-release-v1.5.1-native-vl.4.json",
+      "sha256": "8e6bf3e6763b6b4972b10eb5d3e884ba0604e6080630ebc300615efb8c74a987"
+    },
+    "baseline_package_input": {
+      "bytes": 12180,
+      "path": "benchmarks/results/native-portable-product-v1.5.1-native-vl.4.json",
+      "sha256": "f11acfd07442663b74e6401422b450229d2dc96fb2ab2d43f06cfaef25a4d681"
+    },
+    "baseline_runtime_manifest": {
+      "bytes": 448060,
+      "path": "benchmarks/results/native-portable-manifest-v1.5.1-native-vl.5.json",
+      "sha256": "d79c0d87f4d9fe0241d3d01ec5e61c04ea4a64531d9968a5342973e320c21287"
+    },
+    "chat_protocol": {
+      "bytes": 35306,
+      "path": "benchmarks/results/native-chat-protocol-v1.5.1-native-vl.7.json",
+      "sha256": "d7139d5adb84e267b0b4c258d48363ac36db02af4f6bb10a34729e103f8d6b19"
+    },
+    "http_control_plane": {
+      "bytes": 12971,
+      "path": "benchmarks/results/native-http-control-plane-v1.5.1-native-vl.7.json",
+      "sha256": "be7498da4e7fa55c4173defe5c0c07af4d64e5679cf7fc7428c4fcbd0d6085e0"
+    },
+    "package_input_qualification": {
+      "bytes": 13012,
+      "path": "benchmarks/results/native-portable-product-v1.5.1-native-vl.7.json",
+      "sha256": "d2c07f9ab0206776f8f9c7e1026d88337dcf689622f54b37ef7f11d8d8f893de"
+    },
+    "portable_bundle_result": {
+      "bytes": 14624,
+      "path": "benchmarks/results/native-portable-bundle-v1.5.1-native-vl.7.json",
+      "sha256": "4d0596c441daf26cfd0d99229889d2c0e3ed1342505e3e49d8bb1e7d093f20cc"
+    },
+    "product_contract": {
+      "bytes": 9502,
+      "path": "native/product-contract-v1.5.1-native-vl.7.json",
+      "sha256": "d296ec225db26c15c54f05dfc240f38793aae28c14e29cc16f770f2e1f86e258"
+    },
+    "product_result": {
+      "bytes": 4901,
+      "path": "benchmarks/results/native-vl-g5-release-v1.5.1-native-vl.7.json",
+      "sha256": "0134af99bd849f81cdefdd15f72769f09d0cd0b8fde130ae3a99b6312e919bdd"
+    }
+  },
+  "inheritance": {
+    "baseline_release": "1.5.1-native-vl.4",
+    "checks": {
+      "baseline_engine_exact": true,
+      "baseline_fully_promoted": true,
+      "baseline_g1_g4_all": true,
+      "baseline_two_host_portability": true
+    },
+    "claim_limit": "The .4 G1-G4 and two-host results are inherited baseline evidence, not exact 1.5.1-native-vl.7 measurements or a second 1.5.1-native-vl.7 host run.",
+    "scope": "unchanged cold/VL arithmetic, providers, AOT images and portable userspace; new text checkpoint paths are separately qualified"
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "canonical_payload_sha256": "6ed2579f501ec041e14867b01156da425cf9cd3b0a4082dc47986ccee0bb4061"
+  },
+  "native_source_commit": "edb584ee16f0ee1fc5f902459598b9446d96387e",
+  "public_evidence": {
+    "bundle": {
+      "bytes": 14624,
+      "path": "benchmarks/runs/native-portable-bundle-20260909-vl7-final/bundle.json",
+      "sha256": "4d0596c441daf26cfd0d99229889d2c0e3ed1342505e3e49d8bb1e7d093f20cc",
+      "tree_path": "benchmarks/runs/native-portable-bundle-20260909-vl7-final"
+    },
+    "chat_protocol": {
+      "bytes": 35306,
+      "path": "benchmarks/runs/native-chat-protocol-20260909-vl7-final/chat-protocol.json",
+      "sha256": "d7139d5adb84e267b0b4c258d48363ac36db02af4f6bb10a34729e103f8d6b19",
+      "tree_path": "benchmarks/runs/native-chat-protocol-20260909-vl7-final"
+    },
+    "http_control_plane": {
+      "bytes": 12971,
+      "path": "benchmarks/runs/native-http-control-plane-20260909-vl7-final/http-control-plane.json",
+      "sha256": "be7498da4e7fa55c4173defe5c0c07af4d64e5679cf7fc7428c4fcbd0d6085e0",
+      "tree_path": "benchmarks/runs/native-http-control-plane-20260909-vl7-final"
+    },
+    "one_owner": {
+      "bytes": 71070,
+      "path": "benchmarks/runs/native-safe-prefix-one-owner-20260909-vl7-final/qualification.json",
+      "sha256": "d15f32ae52672e3fa86d0b78c9364d1c30c59aed4a12268d232fdd2fd4c6d692",
+      "tree_path": "benchmarks/runs/native-safe-prefix-one-owner-20260909-vl7-final"
+    },
+    "prefix": {
+      "bytes": 70991,
+      "path": "benchmarks/runs/native-safe-prefix-20260909-vl7-final/qualification.json",
+      "sha256": "f27d93c8934f6abcec96da76b024e2f65825908701303aec84ba706f6bc10609",
+      "tree_path": "benchmarks/runs/native-safe-prefix-20260909-vl7-final"
+    },
+    "release_gates": {
+      "bytes": 3045,
+      "path": "benchmarks/runs/native-vl-release-gates-20260909-vl7-final/release-gates.json",
+      "sha256": "1c79af168f93bf5c6d3a20ad78fa748f890e60fbd6e4f933d1d63edbee520ebb",
+      "tree_path": "benchmarks/runs/native-vl-release-gates-20260909-vl7-final"
+    },
+    "resident_soak": {
+      "bytes": 6352,
+      "path": "benchmarks/runs/native-vl-resident-soak-20260909-vl7-final/soak.json",
+      "sha256": "34f6fec78ec23301051e70d6a5cd4a968d11b0297ecdfcdfc9c996621780250e",
+      "tree_path": "benchmarks/runs/native-vl-resident-soak-20260909-vl7-final"
+    },
+    "rollback": {
+      "bytes": 4137,
+      "path": "benchmarks/runs/native-vl-rollback-20260909-vl7-final/rollback.json",
+      "sha256": "7827c067a73ed50f8666e8ee44a77f020a0acedecfddba866ef3c1cea69a903c",
+      "tree_path": "benchmarks/runs/native-vl-rollback-20260909-vl7-final"
+    },
+    "text_matrix": {
+      "bytes": 21496,
+      "path": "benchmarks/runs/native-full-matrix-20260909-vl7-final/matrix.json",
+      "sha256": "0c51bf17824944b7865527f51b0f4cd9937cfe6bd53131679d19efcd9958920a",
+      "tree_path": "benchmarks/runs/native-full-matrix-20260909-vl7-final"
+    }
+  },
+  "public_evidence_trees": {
+    "bundle": {
+      "bytes": 88209,
+      "file_count": 25,
+      "path": "benchmarks/runs/native-portable-bundle-20260909-vl7-final",
+      "tree_sha256": "0606a1b37f97ba48ef859e0910b178112e578aa3d8776cc8c4893777536caf33"
+    },
+    "chat_protocol": {
+      "bytes": 41023,
+      "file_count": 10,
+      "path": "benchmarks/runs/native-chat-protocol-20260909-vl7-final",
+      "tree_sha256": "b5990bd22ae71b7c427716ee1a3a4df87a5bb3b7fbd741f85f272de3c164ac35"
+    },
+    "http_control_plane": {
+      "bytes": 24233,
+      "file_count": 10,
+      "path": "benchmarks/runs/native-http-control-plane-20260909-vl7-final",
+      "tree_sha256": "d2db953518519ef5dc93b36aadd7eba99de0f8642bc142285726a3e20ace6d6a"
+    },
+    "one_owner": {
+      "bytes": 68757589,
+      "file_count": 312,
+      "path": "benchmarks/runs/native-safe-prefix-one-owner-20260909-vl7-final",
+      "tree_sha256": "2695402db842a144a8c48cc83484c587b2fcc4c0690e144c9604fe5ce411f66e"
+    },
+    "prefix": {
+      "bytes": 68757340,
+      "file_count": 312,
+      "path": "benchmarks/runs/native-safe-prefix-20260909-vl7-final",
+      "tree_sha256": "33334ca6175626b543e45499313e11963861fc4b7a33d0d329eaa9e6827d4e50"
+    },
+    "release_gates": {
+      "bytes": 15666,
+      "file_count": 5,
+      "path": "benchmarks/runs/native-vl-release-gates-20260909-vl7-final",
+      "tree_sha256": "dae0cf41be7649fef19a8dedca366e765a2a88733b2b937cc265e1de15fec112"
+    },
+    "resident_soak": {
+      "bytes": 286418,
+      "file_count": 14,
+      "path": "benchmarks/runs/native-vl-resident-soak-20260909-vl7-final",
+      "tree_sha256": "c17eec74348c1d0a5edaa32f85e12f82567c08d3a4a94b2c37e76e90920e9ce7"
+    },
+    "rollback": {
+      "bytes": 16111,
+      "file_count": 8,
+      "path": "benchmarks/runs/native-vl-rollback-20260909-vl7-final",
+      "tree_sha256": "cd473f3efadc3b02049282de3d56658c272208654fcc0aab197d0e67d0383465"
+    },
+    "text_matrix": {
+      "bytes": 677141,
+      "file_count": 89,
+      "path": "benchmarks/runs/native-full-matrix-20260909-vl7-final",
+      "tree_sha256": "b187f2fef62be8bc4b27e0632f80f656ed7cbdbcc5bd079852a6e99b4addc150"
+    }
+  },
+  "recorded_on": "2026-09-09",
+  "release": "1.5.1-native-vl.7",
+  "release_assets": {
+    "portable_archive": {
+      "bytes": 345552799,
+      "name": "aima-engine-native-portable-5a699d1600cc.tar.zst",
+      "sha256": "fb88242d52b6d3a1c152c8c7119c641275090fb7210e672d6c3fae358d215303"
+    },
+    "public_evidence": {
+      "checksum_sidecar_required": true,
+      "contains_this_provenance_record": true,
+      "name": "aima-engine-v1.5.1-native-vl.7-public-evidence.tar.zst"
+    }
+  },
+  "release_commit": "9bd8a0fabcf2fc6ef1b882c10b04390c0e31fb00",
+  "release_tag": "v1.5.1-native-vl.7",
+  "release_url": "https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.5.1-native-vl.7",
+  "schema": "aima-amd395-qwen36/native-release-provenance/v1"
+}

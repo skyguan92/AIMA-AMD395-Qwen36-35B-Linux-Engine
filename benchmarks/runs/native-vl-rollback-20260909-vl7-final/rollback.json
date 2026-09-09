@@ -1,0 +1,107 @@
+{
+  "candidate": {
+    "archive": {
+      "bytes": 345552799,
+      "checksum_sidecar": "aima-engine-native-portable-5a699d1600cc.tar.zst.sha256",
+      "checksum_verified": true,
+      "name": "aima-engine-native-portable-5a699d1600cc.tar.zst",
+      "sha256": "fb88242d52b6d3a1c152c8c7119c641275090fb7210e672d6c3fae358d215303"
+    },
+    "clean_shutdown": true,
+    "release": "1.5.1-native-vl.7",
+    "soak": {
+      "bytes": 6352,
+      "path": "benchmarks/runs/native-vl-resident-soak/soak.json",
+      "sha256": "34f6fec78ec23301051e70d6a5cd4a968d11b0297ecdfcdfc9c996621780250e"
+    }
+  },
+  "checks": {
+    "baseline_archive_exact": true,
+    "baseline_build_info_exact": true,
+    "baseline_version_exact": true,
+    "candidate_shutdown_clean": true,
+    "candidate_soak_completed_before_rollback": true,
+    "doctor_qualified": true,
+    "isolated_environment": true,
+    "probe_qualified": true,
+    "public_hygiene": true,
+    "q8192_exact128_restored": true,
+    "recursive_manifest_exact": true
+  },
+  "commands": {
+    "doctor": [
+      "${AIMA_BASELINE_BUNDLE_ROOT}/bin/aima-engine",
+      "doctor",
+      "--model-dir",
+      "${AIMA_MODEL_DIR}",
+      "--json"
+    ],
+    "exact_q8192_output128": [
+      "${AIMA_BASELINE_BUNDLE_ROOT}/bin/aima-engine",
+      "resident-session-probe",
+      "--model-dir",
+      "${AIMA_MODEL_DIR}",
+      "--context-tokens",
+      "8192",
+      "--uniform-input-token-id",
+      "1000",
+      "--max-new-tokens",
+      "128",
+      "--requests",
+      "1",
+      "--disable-prefix-cache",
+      "--expected-token-ids",
+      "1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000",
+      "--report",
+      "${AIMA_OUTPUT_DIR}/raw/q8192-exact128.load.json"
+    ]
+  },
+  "complete": true,
+  "decision": {
+    "baseline_exact_output_restored": true,
+    "baseline_portable_doctor_passed": true,
+    "rollback_to_exact_v1_5_1_passed": true
+  },
+  "host_role": "primary_amd395",
+  "integrity": {
+    "algorithm": "sha256",
+    "canonical_payload_sha256": "26e70d7d244825960ee8c04489c234dcefedce9179f77ae75bfcc8f676b78134"
+  },
+  "qualified": true,
+  "raw_artifacts": {
+    "doctor": {
+      "bytes": 4611,
+      "path": "raw/doctor.json",
+      "sha256": "63f11b551755c8e5deed1d1d36b5fb907ba0df37e50e176d5e1089cb20d0e53e"
+    },
+    "exact_q8192_output128": {
+      "bytes": 5847,
+      "path": "raw/q8192-exact128.json",
+      "sha256": "5c66384c146b1d6c62a0cc1657f65f442b9550cd832692e091c89830676a47c4"
+    },
+    "load_report": {
+      "bytes": 1181,
+      "path": "raw/q8192-exact128.load.json",
+      "sha256": "1dddb22cb2d825fc920aec4b8e390a0f0db47e4f0e90c1631b5063f762692159"
+    }
+  },
+  "recorded_at": "2026-09-09T13:16:38+00:00",
+  "release": "1.5.1-native-vl.7",
+  "rollback_target": {
+    "archive": {
+      "bytes": 111502897,
+      "checksum_sidecar": "aima-engine-native-portable-c12eb036ad77.tar.zst.sha256",
+      "checksum_verified": true,
+      "name": "aima-engine-native-portable-c12eb036ad77.tar.zst",
+      "sha256": "4e38f90fce3feb7bccf1965d87a3ec2bebddc439ce62e75fe1bc797c6ce1a5bc"
+    },
+    "native_engine_sha256": "a9f18771175757af080c8a1d8d7e3fb3906c9aa41b43a496686103b626f80262",
+    "native_source_commit": "65c198415709dad6d046c247acab3dc9df2a95a0",
+    "release": "1.5.1",
+    "release_commit": "6f3e669ac897eaabfeceb7f193a5e02708a4d95e",
+    "release_tag": "v1.5.1",
+    "static_launcher_sha256": "ac43fb95a8bad8f9fb4e0f4eac9cadc4fb92f22189f4f35ce21a81f1d56fcf98"
+  },
+  "schema": "aima-amd395-qwen36/native-vl-rollback/v1",
+  "started_at": "2026-09-09T13:16:08+00:00"
+}

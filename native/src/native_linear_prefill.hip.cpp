@@ -1112,6 +1112,51 @@ probe_native_q8192_linear_prefill_layer0_oracle(
                         kStateElements * sizeof(float)),
               "hipMemset prefill initial SSM state");
   }
+  if (!options.checkpoints.empty()) {
+    if (options.use_vl_rmsnorm_semantics ||
+        options.checkpoint_initial_conv_state == nullptr) {
+      throw std::invalid_argument("native prefix checkpoint owner is invalid");
+    }
+    // Copy convolution windows before FLA can reuse projection storage.
+    for (const NativeLinearPrefillCheckpoint& checkpoint : options.checkpoints) {
+      if (checkpoint.tokens == 0 || checkpoint.tokens > comparison_tokens ||
+          checkpoint.convolution_state == nullptr ||
+          checkpoint.recurrent_state == nullptr ||
+          checkpoint.recurrent_state == final_state) {
+        throw std::invalid_argument("native prefix checkpoint geometry is invalid");
+      }
+      constexpr unsigned kThreads = 256;
+      hipLaunchKernelGGL(
+          repair_padded_conv_state_kernel,
+          dim3((kLinearConvChannels + kThreads - 1) / kThreads),
+          dim3(kThreads), 0, nullptr,
+          static_cast<const __hip_bfloat16*>(qkv),
+          static_cast<const __hip_bfloat16*>(options.checkpoint_initial_conv_state),
+          static_cast<__hip_bfloat16*>(checkpoint.convolution_state),
+          checkpoint.tokens, split_projections ? kLinearConvChannels : 12352);
+      check_hip(hipGetLastError(), "prefix checkpoint convolution capture");
+      ++result.layer.native_pointwise_launches;
+    }
+    // The state-producing FLA launch consumes the same initial state and
+    // causal projections as this request, but stops at each saved boundary.
+    // Its transient h/v_new outputs are restored by the ordinary full-length
+    // launch below before attention output or MoE consumes them.
+    try {
+      for (const NativeLinearPrefillCheckpoint& checkpoint : options.checkpoints) {
+        invocations.rebind_tensor(base + 7, "ht", checkpoint.recurrent_state);
+        invocations.set_int32_argument(
+            base + 7, "T", static_cast<std::int32_t>(checkpoint.tokens));
+        executor.launch(invocations.launches()[base + 7]);
+        ++result.layer.aot_launches;
+      }
+    } catch (...) {
+      invocations.rebind_tensor(base + 7, "ht", final_state);
+      invocations.set_int32_argument(base + 7, "T", static_cast<std::int32_t>(tokens));
+      throw;
+    }
+    invocations.rebind_tensor(base + 7, "ht", final_state);
+    invocations.set_int32_argument(base + 7, "T", static_cast<std::int32_t>(tokens));
+  }
   launch_attention_aot(7);
   compare_optional_sequence_storage(
       "fla_chunk_state_storage", "bfloat16",

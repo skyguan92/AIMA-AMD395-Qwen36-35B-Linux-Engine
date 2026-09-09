@@ -79,7 +79,12 @@ class NativeVlG1CoverageAuditTest(unittest.TestCase):
 
     def test_all_audit_inputs_are_content_bound(self) -> None:
         for component in self.result["inputs"].values():
-            if component["path"] == SCRIPT.relative_to(ROOT).as_posix():
+            # This sealed audit records the tests at its qualified source.
+            # New prefix-cache regressions do not rewrite historical evidence.
+            if component["path"] in {
+                SCRIPT.relative_to(ROOT).as_posix(),
+                "tests/native_multimodal_cache_test.cpp",
+            }:
                 assert_component_at_commit(
                     self, component, AUDIT_SOURCE_COMMIT
                 )

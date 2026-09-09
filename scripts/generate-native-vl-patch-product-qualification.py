@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 from pathlib import Path
 import subprocess
 import sys
@@ -24,6 +25,7 @@ from aima_engine.vl_reference import (  # noqa: E402
     seal_manifest,
     verify_manifest_integrity,
 )
+from aima_engine.qualification_runtime import require_runtime_binding
 
 
 SCHEMA = "aima-amd395-qwen36/native-vl-product-qualification/v1"
@@ -85,6 +87,18 @@ ALLOWED_RUNTIME_DELTA = {
     "native/src/native_vl_request.cpp",
     "scripts/build-native-runtime.sh",
 }
+CPU_RUNTIME_DELTA = frozenset(ALLOWED_RUNTIME_DELTA)
+SAFE_PREFIX_RUNTIME_DELTA = CPU_RUNTIME_DELTA | {
+    "native/include/aima/native_linear_prefill.h",
+    "native/include/aima/native_multimodal_cache.h",
+    "native/include/aima/native_resident_engine.h",
+    "native/src/main.cpp",
+    "native/src/native_linear_prefill.hip.cpp",
+    "native/src/native_multimodal_cache.cpp",
+    "native/src/native_resident_engine.hip.cpp",
+}
+SAFE_PREFIX_CASE_CHECKS = {"token_identity", "completion_count", "prompt_count", "cold_disabled",
+                           "lookup", "matched_boundary", "suffix_only", "no_serial_prefill", "restore_measured"}
 DEFAULT_INPUTS = {
     "baseline_g5": (
         ROOT
@@ -175,7 +189,7 @@ def require_chat_protocol(payload: Mapping[str, Any]) -> None:
         or not all(payload.get("checks", {}).values())
     ):
         raise ValueError("chat protocol qualification failed")
-    if RELEASE == "1.5.1-native-vl.6" and payload["checks"].get(
+    if RELEASE in {"1.5.1-native-vl.6", "1.5.1-native-vl.7"} and payload["checks"].get(
         "vl_default_thinking_stream_nonstream_parity"
     ) is not True:
         raise ValueError("default VL thinking qualification is missing or failed")
@@ -244,6 +258,69 @@ def exact_component(path: Path, logical_path: str, expected: str) -> dict[str, A
     return record
 
 
+def require_safe_prefix(path: Path, capacity: int) -> dict[str, Any]:
+    payload = load_object(path)
+    require_runtime_binding(payload.get("runtime_binding"), ENGINE_SHA256)
+    require_sealed("safe prefix", payload, "aima-amd395-qwen36/native-safe-prefix-cache/v1")
+    if (payload.get("release_eligible") is not True
+        or payload.get("engine_sha256") != ENGINE_SHA256
+        or payload.get("build_info", {}).get("source_commit") != NATIVE_SOURCE_COMMIT
+        or payload.get("source", {}).get("checkout_clean") is not True
+        or payload.get("source", {}).get("engine_runtime_matches_checkout") is not True
+        or payload.get("source", {}).get("native_source_commit") != NATIVE_SOURCE_COMMIT
+        or payload.get("source", {}).get("generator_sha256") != sha256(ROOT / "scripts/qualify-native-prefix-cache.py")
+        or payload.get("source", {}).get("protocol_helper_sha256") != sha256(ROOT / "scripts/qualify-native-chat-protocol.py")
+        or payload.get("configuration", {}).get("context_tokens") != 8192
+        or payload.get("configuration", {}).get("cache_capacity") != capacity
+        or payload.get("configuration", {}).get("checkpoint_limit_per_entry") != 3
+        or payload.get("configuration", {}).get("checkpoint_block_tokens") != 32
+        or payload.get("cached_peak_memory", {}).get("gtt_bytes", 0) <= 0
+        or payload["cached_peak_memory"]["gtt_bytes"] > 96 * 1024**3):
+        raise ValueError("safe-prefix candidate identity, capacity or memory gate differs")
+    cases = payload.get("cases", [])
+    expected = {"short_cold", "short_exact", "divergent_chat", "divergent_exact_sse",
+                "shared_system", "multi_turn", "append_seed", "whole_prompt_append",
+                "checkpoint_as_complete_prompt", "full_owner_after_short_checkpoint",
+                "evicted_short", "media_a", "media_b_same_geometry", "media_a_restored",
+                "text_after_media", "performance_seed"}
+    expected.update(f"eviction_fill_{index}" for index in range(5))
+    expected.update(f"performance_partial_{index}" for index in range(5))
+    if (len(cases) != len(expected) or {case.get("case_id") for case in cases} != expected
+        or not all(case.get("pass") is True and set(case.get("checks", {})) == SAFE_PREFIX_CASE_CHECKS
+                   and all(case["checks"].values()) for case in cases)):
+        raise ValueError("safe-prefix generation/isolation coverage is incomplete")
+    reproduction = next(case for case in cases if case["case_id"] == "divergent_chat")
+    if (reproduction["prefix_cache"]["matched_tokens"] != 15
+        or reproduction["suffix_aot_tokens"] != 11):
+        raise ValueError("issue 12 reproduction did not restore the saved boundary")
+    logits = payload.get("logits", {})
+    rows = logits.get("cases", [])
+    boundaries = {f"boundary_{boundary}_partial" for boundary in (31, 32, 33, 1023, 1024, 1025, 8192, 8193)}
+    if (logits.get("qualified") is not True or len(rows) != 34
+        or not boundaries.issubset({row.get("case_id") for row in rows})
+        or not all(row.get("pass") is True and row.get("top1_match") is True
+                   and row.get("elements") == 248320 and 0 <= row.get("kl_divergence", 1) < 0.005
+                   for row in rows)
+        or len(logits.get("short_checkpoint_replay", {})) != 4
+        or not all(logits["short_checkpoint_replay"].values())):
+        raise ValueError("safe-prefix full-vocabulary or active-KV extent gate failed")
+    performance = payload.get("performance", {})
+    speedup = performance.get("median_partial_ttft_speedup", 0)
+    retention = performance.get("median_decode_retention", 0)
+    if not (math.isfinite(speedup) and math.isfinite(retention) and speedup > 1 and retention >= 0.97):
+        raise ValueError("safe-prefix TTFT/decode retention gate failed")
+    artifacts = payload.get("artifacts", [])
+    if not artifacts:
+        raise ValueError("safe-prefix raw evidence is missing")
+    root = path.parent.resolve()
+    for record in artifacts:
+        artifact = (root / record["path"]).resolve()
+        if (not artifact.is_relative_to(root) or not artifact.is_file()
+            or artifact.stat().st_size != record["bytes"] or sha256(artifact) != record["sha256"]):
+            raise ValueError("safe-prefix raw evidence differs")
+    return payload
+
+
 def build_payload(
     *,
     inputs: Mapping[str, Path],
@@ -252,6 +329,7 @@ def build_payload(
     http_control_plane_path: Path,
     release_commit: str,
     recorded_on: str,
+    safe_prefix_paths: Mapping[str, Path] | None = None,
 ) -> dict[str, Any]:
     baseline_g5 = load_object(inputs["baseline_g5"])
     baseline_product = load_object(inputs["baseline_product"])
@@ -371,6 +449,38 @@ def build_payload(
         "exact_component_closure": True,
     }
     gates = {**inherited, **patch_checks}
+    extra_validation = {}
+    if RELEASE == "1.5.1-native-vl.7":
+        if safe_prefix_paths is None or set(safe_prefix_paths) != {"prefix", "one_owner", "text_matrix"}:
+            raise ValueError("safe-prefix release requires fresh prefix/capacity/performance evidence")
+        require_safe_prefix(safe_prefix_paths["prefix"], 32768)
+        require_safe_prefix(safe_prefix_paths["one_owner"], 262144)
+        matrix = load_object(safe_prefix_paths["text_matrix"])
+        require_runtime_binding(matrix.get("runtime_binding"), ENGINE_SHA256)
+        if (matrix.get("schema") != "aima-amd395-qwen36/native-full-matrix-qualification/v1"
+            or matrix.get("complete") is not True or matrix.get("qualified") is not True
+            or matrix.get("engine", {}).get("sha256") != ENGINE_SHA256
+            or matrix.get("baseline", {}).get("sha256") != sha256(ROOT / "benchmarks/results/v1.0.0.json")
+            or matrix.get("measurement_protocol", {}).get("minimum_retention", 0) < 0.97
+            or len(matrix.get("cells", [])) != 19
+            or not all(cell.get("pass") is True and cell.get("prefill_retention", 0) >= 0.97
+                       and (cell.get("output_tokens") == 1 or cell.get("decode_retention", 0) >= 0.97)
+                       and cell.get("sample_count", 0) >= 2 for cell in matrix["cells"])):
+            raise ValueError("safe-prefix release requires the exact 19-cell text matrix")
+        root = safe_prefix_paths["text_matrix"].parent.resolve()
+        for cell in matrix["cells"]:
+            if len(cell["reports"]) != len(cell["report_sha256"]):
+                raise ValueError("text matrix raw report bindings are incomplete")
+            for report, digest in zip(cell["reports"], cell["report_sha256"], strict=True):
+                path = (root / report).resolve()
+                if not path.is_relative_to(root) or not path.is_file() or sha256(path) != digest:
+                    raise ValueError("text matrix raw report differs")
+                require_runtime_binding(load_object(path).get("qualification", {}).get("runtime_binding"),
+                                        ENGINE_SHA256)
+        gates.update(exact_safe_prefix_generation_logits=True,
+                     exact_safe_prefix_one_owner=True, exact_text_19_cell_matrix=True)
+        extra_validation = {name: file_component(path, f"candidate-validation/{name}/{path.name}")
+                            for name, path in safe_prefix_paths.items()}
     return {
         "schema": SCHEMA,
         "release": RELEASE,
@@ -378,6 +488,11 @@ def build_payload(
         "complete": True,
         "qualified": all(gates.values()),
         "qualification_scope": (
+            "Safe-prefix host-schedule delta: new text checkpoint capture/restore, active-KV extent, "
+            "generation and full-vocabulary correctness, capacity and performance are qualified on "
+            "the exact candidate. Frozen .4 VL/cold arithmetic and portable-userspace evidence "
+            "is inherited only for unchanged kernels/providers; it does not qualify new checkpoint paths."
+            if RELEASE == "1.5.1-native-vl.7" else
             f"patch-delta qualification: exact {RELEASE} CPU protocol/HTTP candidate and "
             "package closure, with .4 G1-G4 and two-host portability inherited "
             "only because the fail-closed runtime diff leaves GPU math, AOT "
@@ -423,9 +538,12 @@ def build_payload(
             "candidate_commit": NATIVE_SOURCE_COMMIT,
             "allowed_paths": sorted(ALLOWED_RUNTIME_DELTA),
             "checks": source_checks,
-            "classification": "CPU chat protocol, HTTP control plane and cache synchronization",
+            "classification": ("text checkpoint host scheduling, cache ownership and diagnostics"
+                               if RELEASE == "1.5.1-native-vl.7" else
+                               "CPU chat protocol, HTTP control plane and cache synchronization"),
         },
         "candidate_validation": {
+            **extra_validation,
             "chat_protocol": file_component(
                 chat_protocol_path, "candidate-validation/native-chat-protocol.json"
             ),
@@ -457,11 +575,12 @@ def build_payload(
 
 def configure_release(contract_path: Path) -> None:
     global RELEASE, RELEASE_TAG, NATIVE_SOURCE_COMMIT, ENGINE_SHA256
-    global DEFAULT_OUTPUT
+    global DEFAULT_OUTPUT, ALLOWED_RUNTIME_DELTA
     contract = load_object(contract_path)
     release = contract.get("release")
-    if release not in {"1.5.1-native-vl.5", "1.5.1-native-vl.6"}:
+    if release not in {"1.5.1-native-vl.5", "1.5.1-native-vl.6", "1.5.1-native-vl.7"}:
         raise ValueError("unsupported native VL patch release")
+    ALLOWED_RUNTIME_DELTA = set(SAFE_PREFIX_RUNTIME_DELTA if release == "1.5.1-native-vl.7" else CPU_RUNTIME_DELTA)
     if set(contract.get("patch_scope", {}).get("allowed_runtime_paths", [])) != ALLOWED_RUNTIME_DELTA:
         raise ValueError("patch contract changes the runtime inheritance allowlist")
     if contract.get("frozen_baseline", {}).get("native_source_commit") != BASELINE_NATIVE_SOURCE_COMMIT:
@@ -472,6 +591,16 @@ def configure_release(contract_path: Path) -> None:
     ENGINE_SHA256 = contract["candidate"]["native_engine_sha256"]
     COMPONENT_SHA256["native_engine"] = ENGINE_SHA256
     DEFAULT_INPUTS["product_contract"] = contract_path
+    if release == "1.5.1-native-vl.7":
+        DEFAULT_INPUTS["qualification_runtime_verifier"] = ROOT / "aima_engine/qualification_runtime.py"
+    else:
+        DEFAULT_INPUTS.pop("qualification_runtime_verifier", None)
+    for key, filename in (("safe_prefix_qualifier", "qualify-native-prefix-cache.py"),
+                          ("text_matrix_qualifier", "qualify-native-full-matrix.py")):
+        if release == "1.5.1-native-vl.7":
+            DEFAULT_INPUTS[key] = ROOT / "scripts" / filename
+        else:
+            DEFAULT_INPUTS.pop(key, None)
     DEFAULT_OUTPUT = ROOT / f"output/native-portable-product-v{release}.json"
 
 
@@ -480,6 +609,9 @@ def main() -> int:
     parser.add_argument("--release-commit", required=True)
     parser.add_argument("--chat-protocol", type=Path, required=True)
     parser.add_argument("--http-control-plane", type=Path, required=True)
+    parser.add_argument("--safe-prefix", type=Path)
+    parser.add_argument("--safe-prefix-one-owner", type=Path)
+    parser.add_argument("--text-matrix", type=Path)
     parser.add_argument("--recorded-on", default="2026-09-01")
     parser.add_argument("--product-contract", type=Path, default=DEFAULT_INPUTS["product_contract"])
     parser.add_argument("--output", type=Path)
@@ -506,6 +638,9 @@ def main() -> int:
             http_control_plane_path=http_control_plane,
             release_commit=args.release_commit,
             recorded_on=args.recorded_on,
+            safe_prefix_paths=({"prefix": args.safe_prefix, "one_owner": args.safe_prefix_one_owner,
+                                "text_matrix": args.text_matrix}
+                               if all((args.safe_prefix, args.safe_prefix_one_owner, args.text_matrix)) else None),
         )
     )
     output = (args.output or DEFAULT_OUTPUT).expanduser().resolve()

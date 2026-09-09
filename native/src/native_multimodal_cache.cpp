@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <iterator>
 #include <limits>
 #include <sstream>
 #include <stdexcept>
@@ -87,20 +88,96 @@ std::size_t native_prefix_cache_matched_tokens(
     const std::vector<std::uint32_t>& cached_tokens,
     std::string_view cached_multimodal_namespace,
     const std::vector<std::uint32_t>& request_tokens,
-    std::string_view request_multimodal_namespace) {
+    std::string_view request_multimodal_namespace,
+    const std::vector<std::size_t>& checkpoint_tokens) {
   if (!valid_native_multimodal_cache_namespace(cached_multimodal_namespace) ||
       !valid_native_multimodal_cache_namespace(request_multimodal_namespace)) {
     throw std::invalid_argument(
         "prefix cache multimodal namespace is not canonical SHA-256");
   }
+  std::size_t previous = 0;
+  for (const std::size_t boundary : checkpoint_tokens) {
+    if (boundary <= previous || boundary >= cached_tokens.size()) {
+      throw std::invalid_argument("prefix cache checkpoint boundaries are invalid");
+    }
+    previous = boundary;
+  }
   if (cached_tokens.empty() ||
-      cached_multimodal_namespace != request_multimodal_namespace ||
-      request_tokens.size() < cached_tokens.size() ||
-      !std::equal(cached_tokens.begin(), cached_tokens.end(),
-                  request_tokens.begin())) {
+      cached_multimodal_namespace != request_multimodal_namespace) {
     return 0;
   }
-  return cached_tokens.size();
+  const std::size_t limit = std::min(cached_tokens.size(), request_tokens.size());
+  std::size_t common = 0;
+  while (common < limit && cached_tokens[common] == request_tokens[common]) {
+    ++common;
+  }
+  if (common == cached_tokens.size()) return common;
+  // A token match alone cannot rewind the hybrid recurrent state. Only
+  // advertise a boundary for which the owner has captured complete state.
+  auto upper = std::upper_bound(
+      checkpoint_tokens.begin(), checkpoint_tokens.end(), common);
+  while (upper != checkpoint_tokens.begin()) {
+    const std::size_t boundary = *--upper;
+    // Repartitioning a partial FLA chunk across a later chunk can amplify
+    // BF16 rounding. Long continuations resume only aligned chunk state;
+    // a single-chunk short chat can still reuse its exact message boundary.
+    if (boundary % kNativePrefixCacheBlockTokens == 0 ||
+        request_tokens.size() <=
+            (boundary / kNativePrefixCacheBlockTokens + 1) * kNativePrefixCacheBlockTokens) {
+      return boundary;
+    }
+  }
+  return 0;
+}
+
+std::vector<std::size_t> native_chat_prefix_checkpoint_tokens(
+    const std::vector<std::uint32_t>& tokens,
+    std::string_view multimodal_namespace) {
+  if (!valid_native_multimodal_cache_namespace(multimodal_namespace)) {
+    throw std::invalid_argument("prefix cache multimodal namespace is invalid");
+  }
+  if (!multimodal_namespace.empty()) return {};
+  constexpr std::uint32_t kMessageEnd = 248046;
+  std::vector<std::size_t> boundaries;
+  for (std::size_t index = 1; index < tokens.size(); ++index) {
+    if (tokens[index] != kMessageEnd) continue;
+    if (boundaries.size() < 2) {
+      boundaries.push_back(index);
+    } else {
+      boundaries.back() = index;
+    }
+  }
+  // The assistant header is also common when the generated answer is later
+  // supplied as conversation history, before an empty-thinking stub diverges.
+  // Keep only a header after the final completed message, never an arbitrary
+  // earlier assistant header from a long transcript.
+  const std::size_t final_message = boundaries.empty() ? 0 : boundaries.back();
+  for (std::size_t index = final_message; index + 3 < tokens.size(); ++index) {
+    if (tokens[index] == 248045 && tokens[index + 1] == 74455 && tokens[index + 2] == 198) {
+      boundaries.push_back(index + 3);
+      break;
+    }
+  }
+  for (std::size_t& boundary : boundaries) {
+    if (boundary >= kNativePrefixCacheBlockTokens) {
+      boundary -= boundary % kNativePrefixCacheBlockTokens;
+    }
+  }
+  std::sort(boundaries.begin(), boundaries.end());
+  boundaries.erase(std::unique(boundaries.begin(), boundaries.end()), boundaries.end());
+  return boundaries;
+}
+
+std::size_t native_prefix_cache_capture_index(
+    const std::vector<bool>& valid,
+    const std::vector<std::uint64_t>& last_use) {
+  if (valid.empty() || valid.size() != last_use.size()) {
+    throw std::invalid_argument("prefix cache LRU geometry is invalid");
+  }
+  const auto empty = std::find(valid.begin(), valid.end(), false);
+  if (empty != valid.end()) return static_cast<std::size_t>(empty - valid.begin());
+  return static_cast<std::size_t>(
+      std::min_element(last_use.begin(), last_use.end()) - last_use.begin());
 }
 
 }  // namespace aima

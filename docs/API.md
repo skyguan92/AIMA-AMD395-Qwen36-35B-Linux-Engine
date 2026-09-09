@@ -263,8 +263,8 @@ After tokenization:
 
 - every positive prompt length is admitted when prompt plus requested output
   fits `--cache-capacity`;
-- the capacity-bounded LRU cache reuses exact or genuine token-prefix request
-  snapshots, restoring state before executing only the suffix (four entries at
+- the capacity-bounded LRU cache selects the longest saved state boundary in
+  the exact common token prefix, restoring state before executing only the suffix (four entries at
   q8192, fewer at very long windows to preserve the 96 GiB memory contract);
 - a q8192 process keeps q1024/q2048/q4096/q8192 AOT prefill buckets resident;
 - a cold cache miss composes the smallest resident bucket total covering the
@@ -276,12 +276,44 @@ After tokenization:
   fall back to cold execution instead of being rejected;
 - the absolute model/runtime window remains 262,144 tokens.
 
-Prefix matching is exact token matching, not a text-prefix heuristic. It only
-changes latency. Cache entries are completed request-prefix snapshots, not
-arbitrary token checkpoints. For peak cold-prefill throughput, select a
+Each text request owner keeps its complete prompt snapshot and up to three
+checkpoints: before the first and last message terminators, and after the final
+assistant header when an answer/thinking suffix follows it. The
+first checkpoint preserves a shared system message; the last also permits
+extending the final user's content before its old terminator. For example,
+system `You are a helpful assistant.` with user `你好` and then `你好，你是谁`
+shares a 15-token saved boundary. Lookup reports the saved boundary actually
+restored, which can be shorter than the raw common token prefix. A boundary
+without a saved recurrent and convolution state cannot be restored. The
+assistant-header checkpoint also reuses the shared prefix when generated
+assistant content becomes the next request's conversation history.
+
+For longer prefixes these boundaries round down to 32-token FLA chunk
+boundaries, with duplicates removed. An unaligned short-message checkpoint
+is eligible only while the new prompt ends in that same chunk; crossing a
+chunk without an aligned saved state falls back to cold prefill. This keeps
+non-aligned continuation rounding outside the promoted long-prefix path.
+Whole-request exact/append snapshots retain their existing matching rules.
+
+Checkpoint state includes all 30 linear layers and the final hidden row; KV
+is shared with its complete request owner and only the matched range is
+restored. Evicting a request also evicts its checkpoints. Text checkpoints do
+not cross into multimodal namespaces: media requests retain complete-prompt
+reuse under exact media/processor identity. A partial hit that would require
+padding beyond cache capacity falls back to the cold execution plan.
+
+Prefix matching compares token IDs exactly. For peak cold-prefill throughput, select a
 published standard context matching the workload. Non-bucket prompts perform
 fixed-shape padding or more than one resident prefill pass, but never ingest
 prompt tokens at serial decode throughput.
+
+Exact matching does not imply bitwise-equivalent BF16 arithmetic across
+different prefill partitions. Exact replay and the fixed partial-hit regression
+corpus require output-token identity; the numerical gate additionally compares
+all 248,320 logits against cold execution (matching top-1 and KLD < 0.005).
+Free-form generation can choose different later tokens after a partition
+change. Use `--disable-prefix-cache` when comparing runs that require identical
+prefill partitioning.
 
 ### Frozen-token eval extension
 
@@ -360,7 +392,10 @@ is not exposed as a valid call. A terminal EOS token counts in
   media/plan cache state, transfer bytes and per-stage media/decode/processor/
   vision/injection timings;
 - prefix lookup type, matched/suffix token counts, cumulative hits/misses,
-  state-transfer bytes, suffix launch counts and suffix wall time.
+  total state-transfer bytes, separate `restore_bytes` and `restore_wall_ms`,
+  suffix launch counts and suffix wall time. `transfer_bytes` includes capture
+  and checkpoint inheritance as well as restoration; `restore_bytes` measures
+  only the state copied back to the live engine.
 
 ### Streaming
 

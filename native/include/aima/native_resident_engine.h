@@ -309,6 +309,7 @@ struct NativeResidentRequestMetrics {
   std::size_t prefix_cache_hits = 0;
   std::size_t prefix_cache_misses = 0;
   std::uint64_t prefix_cache_transfer_bytes = 0;
+  std::uint64_t prefix_cache_restore_bytes = 0;
   bool prefix_cache_active_kv_reused = false;
   double prefix_cache_restore_wall_ms = 0.0;
   std::size_t prefix_cache_suffix_decode_tokens = 0;
@@ -344,6 +345,9 @@ class NativeResidentEngine {
   // reads an oracle and does not call this method.
   NativeLogitsComparison compare_current_logits(
       const std::filesystem::path& reference_path) const;
+  // Qualification-only FP32 snapshot for paired cold/cache comparisons.
+  // The caller must use a one-token request to observe the prefill logits.
+  void save_current_logits(const std::filesystem::path& output_path) const;
   bool loaded() const;
   std::size_t request_count() const;
   const NativeResidentLoadMetrics& load_metrics() const;

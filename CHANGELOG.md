@@ -3,7 +3,32 @@
 All notable changes are documented here. This project follows Semantic
 Versioning.
 
-## Unreleased
+## 1.5.1-native-vl.7 - 2026-09-09
+
+- Added bounded text message checkpoints to the native prefix LRU, allowing
+  divergent Chat Completions requests to reuse a saved common token prefix.
+  Checkpoints preserve recurrent, convolution and hidden state while sharing
+  their request owner's KV and eviction lifetime. Media identities remain
+  isolated, and cache misses retain the resident AOT prefill path.
+- Reported restoration bytes separately from cache capture/inheritance traffic
+  and measured restoration time for partial hits.
+- Added CPU boundary/LRU tests and a resident cold/cache A/B qualifier for
+  exact, append, divergent, multi-turn, eviction and media-identity requests.
+- Bound longer checkpoints to 32-token FLA block boundaries and cold-fallback
+  when an unaligned short checkpoint would cross a new block. Restored active
+  KV extent is tracked independently from the cache owner's full prompt.
+- Added release gates for 26 generation and 34 full-vocabulary logits cases at
+  both cache capacities, partial-hit TTFT/decode retention and the complete
+  19-cell text matrix. These measurements require the exact portable engine,
+  static launcher and pinned userspace, not the host ROCm libraries.
+  Corpus qualification does not imply universal BF16 bitwise equivalence.
+- Passed both pinned-runtime profiles and all 19 text-matrix cells. Public raw
+  data independently reproduces all 52 generation pairs and 68 logits
+  comparisons (maximum KLD 0.0035071). Long shared-system median TTFT improves
+  about 3.37x without observed decode regression, within the 96 GiB GTT limit.
+- Qualified the exact portable archive with isolated provider/VL execution,
+  a full one-hour/360-request soak (one model load, zero post-warm RSS growth,
+  clean shutdown), and exact v1.5.1 rollback.
 
 ## 1.5.1-native-vl.6 - 2026-09-08
 

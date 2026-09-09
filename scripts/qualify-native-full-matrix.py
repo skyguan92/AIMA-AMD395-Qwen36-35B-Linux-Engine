@@ -18,6 +18,8 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from aima_engine.qualification_runtime import bind_runtime
 STANDARD_CONTEXTS = (1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072)
 WINDOW_ENDPOINTS = (
     (262143, 1),
@@ -97,6 +99,7 @@ def complete_report(
     context: int,
     outputs: tuple[int, ...],
     engine_sha256: str | None = None,
+    runtime_binding: dict | None = None,
 ) -> bool:
     if not path.is_file():
         return False
@@ -117,6 +120,8 @@ def complete_report(
                 and payload.get("qualification", {}).get("engine_sha256")
                 == engine_sha256
             )
+        if runtime_binding is not None:
+            complete = complete and payload.get("qualification", {}).get("runtime_binding") == runtime_binding
         return complete
     except (KeyError, TypeError, ValueError, json.JSONDecodeError):
         return False
@@ -130,6 +135,7 @@ def run_report(
     outputs: tuple[int, ...],
     uniform_token_id: int,
     engine_sha256: str,
+    runtime_binding: dict | None = None,
 ) -> None:
     report.parent.mkdir(parents=True, exist_ok=True)
     load_report = report.with_name(report.stem + ".load.json")
@@ -188,6 +194,7 @@ def run_report(
         raise RuntimeError(f"native matrix run emitted non-object JSON: {report}")
     payload["qualification"] = {
         "engine_sha256": engine_sha256,
+        "runtime_binding": runtime_binding,
         "command": command,
         "load_report": str(load_report),
         "load_report_sha256": (
@@ -197,7 +204,7 @@ def run_report(
     payload = publicize(payload, model_dir)
     atomic_json(report, payload)
     if completed.returncode != 0 or not complete_report(
-        report, context, outputs, engine_sha256
+        report, context, outputs, engine_sha256, runtime_binding
     ):
         raise RuntimeError(
             f"native matrix run failed with exit {completed.returncode}: "
@@ -261,6 +268,7 @@ def build_result(
     raw_dir: Path,
     requested: list[tuple[int, tuple[int, ...], list[Path]]],
     minimum_retention: float,
+    runtime_binding: dict | None = None,
 ) -> dict[str, Any]:
     baselines = baseline_cells(baseline_path)
     cells: list[dict[str, Any]] = []
@@ -316,13 +324,14 @@ def build_result(
         "schema": "aima-amd395-qwen36/native-full-matrix-qualification/v1",
         "complete": True,
         "qualified": all_pass,
+        "runtime_binding": runtime_binding,
         "engine": {
             "path": "${AIMA_REPO_ROOT}/build/native/aima-engine-native",
             "sha256": sha256(engine),
         },
         "model_dir": "${AIMA_MODEL_DIR}",
         "host": {
-            "hostname": os.uname().nodename,
+            "fingerprint_sha256": hashlib.sha256(os.uname().nodename.encode()).hexdigest(),
             "sysname": os.uname().sysname,
             "release": os.uname().release,
             "machine": os.uname().machine,
@@ -352,6 +361,8 @@ def main() -> None:
         "--engine", type=Path, default=Path("build/native/aima-engine-native")
     )
     parser.add_argument("--model-dir", type=Path, required=True)
+    parser.add_argument("--runtime-root", type=Path,
+                        help="Verified portable capsule for pinned-userspace measurements")
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument(
         "--baseline", type=Path, default=Path("benchmarks/results/v1.0.0.json")
@@ -377,6 +388,7 @@ def main() -> None:
     if not 0 <= cli.uniform_input_token_id < 248320:
         raise SystemExit("--uniform-input-token-id is invalid")
     engine_sha256 = sha256(engine)
+    execution_engine, runtime_binding = bind_runtime(engine, cli.runtime_root)
 
     jobs: list[tuple[int, tuple[int, ...]]] = [
         (context, (512, 1024)) for context in cli.contexts
@@ -392,16 +404,17 @@ def main() -> None:
             path = raw_dir / f"{stem}-r{run_index}.json"
             if not (
                 cli.resume
-                and complete_report(path, context, outputs, engine_sha256)
+                and complete_report(path, context, outputs, engine_sha256, runtime_binding)
             ):
                 run_report(
-                    engine,
+                    execution_engine,
                     model_dir,
                     path,
                     context,
                     outputs,
                     cli.uniform_input_token_id,
                     engine_sha256,
+                    runtime_binding,
                 )
             reports.append(path)
         samples = report_samples(reports, context, outputs)
@@ -409,16 +422,17 @@ def main() -> None:
             path = raw_dir / f"{stem}-r3.json"
             if not (
                 cli.resume
-                and complete_report(path, context, outputs, engine_sha256)
+                and complete_report(path, context, outputs, engine_sha256, runtime_binding)
             ):
                 run_report(
-                    engine,
+                    execution_engine,
                     model_dir,
                     path,
                     context,
                     outputs,
                     cli.uniform_input_token_id,
                     engine_sha256,
+                    runtime_binding,
                 )
             reports.append(path)
         requested.append((context, outputs, reports))
@@ -431,6 +445,7 @@ def main() -> None:
                 raw_dir,
                 requested,
                 cli.minimum_retention,
+                runtime_binding,
             ),
         )
 
@@ -441,6 +456,7 @@ def main() -> None:
         raw_dir,
         requested,
         cli.minimum_retention,
+        runtime_binding,
     )
     atomic_json(output_dir / "matrix.json", result)
     print(
