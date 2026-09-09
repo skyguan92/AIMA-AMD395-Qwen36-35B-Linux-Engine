@@ -291,10 +291,10 @@ def build_payload(
     ):
         raise RuntimeError("candidate archive checksum differs")
     bundle_checks = exact_bundle_checks(payloads["bundle"], archive_sha256=archive_digest)
-    if RELEASE == "1.5.1-native-vl.6":
+    if RELEASE in {"1.5.1-native-vl.6", "1.5.1-native-vl.7"}:
         manifest_path = paths.get("archive_manifest")
         if manifest_path is None:
-            raise RuntimeError("patch .6 requires the exact archive manifest")
+            raise RuntimeError("patch requires the exact archive manifest")
         manifest = load_object(manifest_path)
         expected_manifest = payloads["bundle"].get("manifest", {})
         if sha256(manifest_path) != expected_manifest.get("sha256"):
@@ -397,7 +397,7 @@ def build_payload(
         "inheritance": {
             "baseline_release": BASELINE_RELEASE,
             "checks": inherited_checks,
-            "scope": "unchanged GPU math, providers, AOT images and portable userspace",
+            "scope": "unchanged cold/VL arithmetic, providers, AOT images and portable userspace; new text checkpoint paths are separately qualified",
             "claim_limit": (
                 "The .4 G1-G4 and two-host results are inherited baseline "
                 f"evidence, not exact {RELEASE} measurements or a second {RELEASE} host run."
@@ -425,7 +425,7 @@ def configure_release(contract_path: Path) -> None:
     global PRODUCT_CONTRACT, DEFAULT_OUTPUT
     contract = load_object(contract_path)
     release = contract.get("release")
-    if release not in {"1.5.1-native-vl.5", "1.5.1-native-vl.6"}:
+    if release not in {"1.5.1-native-vl.5", "1.5.1-native-vl.6", "1.5.1-native-vl.7"}:
         raise ValueError("unsupported native VL patch release")
     RELEASE = release
     RELEASE_TAG = f"v{release}"

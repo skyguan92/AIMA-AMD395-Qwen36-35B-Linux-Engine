@@ -5,7 +5,9 @@ import copy
 import json
 from pathlib import Path
 import subprocess
+import tempfile
 import unittest
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -146,6 +148,80 @@ class NativeVlThinkingPatchReleaseTest(unittest.TestCase):
                 else:
                     candidate["files"].append({**record, "path": "lib/unqualified.so"})
                 self.assertFalse(all(generator.unchanged_userspace_checks(candidate).values()))
+
+
+class NativeVlSafePrefixReleaseTest(unittest.TestCase):
+    def test_checkpoint_release_has_its_own_exact_runtime_boundary(self) -> None:
+        generator = load_generator()
+        generator.configure_release(ROOT / "native/product-contract-v1.5.1-native-vl.7.json")
+        delta = subprocess.check_output(
+            ["git", "diff", "--name-only",
+             f"{generator.BASELINE_NATIVE_SOURCE_COMMIT}..{generator.NATIVE_SOURCE_COMMIT}",
+             "--", *generator.RUNTIME_PATHS], cwd=ROOT, text=True,
+        )
+        self.assertEqual(set(delta.splitlines()), generator.ALLOWED_RUNTIME_DELTA)
+        self.assertGreater(len(generator.ALLOWED_RUNTIME_DELTA), len(generator.CPU_RUNTIME_DELTA))
+        generator.configure_release(ROOT / "native/product-contract-v1.5.1-native-vl.6.json")
+        self.assertEqual(generator.ALLOWED_RUNTIME_DELTA, generator.CPU_RUNTIME_DELTA)
+
+    def test_prefix_gate_rejects_incomplete_unbound_and_out_of_tolerance_records(self) -> None:
+        generator = load_generator()
+        generator.configure_release(ROOT / "native/product-contract-v1.5.1-native-vl.7.json")
+        names = ["short_cold", "short_exact", "divergent_chat", "divergent_exact_sse",
+                 "shared_system", "multi_turn", "append_seed", "whole_prompt_append",
+                 "checkpoint_as_complete_prompt", "full_owner_after_short_checkpoint", "evicted_short",
+                 "media_a", "media_b_same_geometry", "media_a_restored", "text_after_media", "performance_seed"]
+        names += [f"eviction_fill_{index}" for index in range(5)]
+        names += [f"performance_partial_{index}" for index in range(5)]
+        boundaries = [f"boundary_{index}_partial" for index in (31, 32, 33, 1023, 1024, 1025, 8192, 8193)]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            raw = root / "raw.json"
+            raw.write_text("{}\n")
+            value = {
+                "schema": "aima-amd395-qwen36/native-safe-prefix-cache/v1",
+                "complete": True, "qualified": True, "release_eligible": True,
+                "engine_sha256": generator.ENGINE_SHA256,
+                "build_info": {"source_commit": generator.NATIVE_SOURCE_COMMIT},
+                "configuration": {"context_tokens": 8192, "cache_capacity": 32768,
+                                  "checkpoint_limit_per_entry": 3, "checkpoint_block_tokens": 32},
+                "cached_peak_memory": {"gtt_bytes": 80 * 1024**3},
+                "cases": [{"case_id": name, "pass": True, "checks": {key: True for key in generator.SAFE_PREFIX_CASE_CHECKS},
+                           "prefix_cache": {"matched_tokens": 15}, "suffix_aot_tokens": 11} for name in names],
+                "logits": {"qualified": True,
+                           "cases": [{"case_id": name, "pass": True, "top1_match": True,
+                                      "elements": 248320, "kl_divergence": 0.001}
+                                     for name in boundaries + [f"other_{index}" for index in range(26)]],
+                           "short_checkpoint_replay": {str(index): True for index in range(4)}},
+                "performance": {"median_partial_ttft_speedup": 3, "median_decode_retention": 1},
+                "artifacts": [{"path": "raw.json", "bytes": raw.stat().st_size,
+                               "sha256": generator.sha256(raw)}],
+            }
+            def check(payload):
+                with patch.object(generator, "load_object", return_value=generator.seal_manifest(payload)):
+                    return generator.require_safe_prefix(root / "qualification.json", 32768)
+            check(value)
+            for field, replacement in (("release_eligible", False), ("engine_sha256", "0" * 64),
+                                       ("cases", value["cases"][:-1]), ("artifacts", [])):
+                mutated = copy.deepcopy(value)
+                mutated[field] = replacement
+                with self.subTest(field=field), self.assertRaises(ValueError):
+                    check(mutated)
+            for path, replacement in ((["logits", "cases", 0, "kl_divergence"], 0.005),
+                                      (["configuration", "checkpoint_block_tokens"], 16),
+                                      (["performance", "median_decode_retention"], 0.969),
+                                      (["performance", "median_partial_ttft_speedup"], float("nan")),
+                                      (["cached_peak_memory", "gtt_bytes"], 97 * 1024**3)):
+                mutated = copy.deepcopy(value)
+                target = mutated
+                for key in path[:-1]:
+                    target = target[key]
+                target[path[-1]] = replacement
+                with self.subTest(path=path), self.assertRaises(ValueError):
+                    check(mutated)
+            raw.write_text("modified")
+            with self.assertRaises(ValueError):
+                check(value)
 
 
 if __name__ == "__main__":
