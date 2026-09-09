@@ -2684,13 +2684,14 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
           }
           NativeQ8192CkProvider* segment_provider = owner.fmha_provider;
           if ((mrope_plan != nullptr && segment.input_offset != 0) ||
-              (prefix_hit && vl_input == nullptr)) {
+              (prefix_hit && vl_input == nullptr &&
+               matched_prefix_tokens >= kNativePrefixCacheBlockTokens)) {
             // The short AOTriton owner is qualified for standalone q1024-
             // q4096 buckets, but its selected image rejects a short query
             // against a longer prefix. Continuation M-RoPE segments use the
             // generic rectangular CK owner shared by the long-context path.
-            // Text prefix continuations likewise have a rectangular Q/K
-            // boundary, independent of their admitted suffix bucket.
+            // Block-prefix continuations likewise have a rectangular Q/K
+            // boundary. Single-chunk short chat retains its frozen provider.
             segment_provider = &impl_->ck_provider;
           }
           NativeQ8192CkProvider& attention_provider =
