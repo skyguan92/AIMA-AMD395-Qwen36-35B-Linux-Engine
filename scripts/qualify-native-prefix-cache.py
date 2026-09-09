@@ -109,6 +109,7 @@ def build_cases(engine: Path, model: Path, output: Path, performance: bool,
         "max_tokens": 64, "prompt_token_ids": tokens + append_tokens}, "prefix", len(tokens))
     add("checkpoint_as_complete_prompt", {"model": protocol.MODEL_ID, "temperature": 0,
         "max_tokens": 64, "prompt_token_ids": tokens[:matched]}, "exact", matched)
+    add("full_owner_after_short_checkpoint", short, "exact", len(tokens))
     # Five unrelated owners exceed the four-entry promoted q8192 LRU.
     for index in range(5):
         add(f"eviction_fill_{index}", {"model": protocol.MODEL_ID, "temperature": 0,
@@ -342,9 +343,38 @@ def qualify_logits(cli, cases: list[dict]) -> dict:
             comparison["boundary_restored"] = matched == int(name.split("_")[1])
             comparison["pass"] &= comparison["boundary_restored"]
         comparisons.append(comparison)
+    # Unlike HTTP this native probe deliberately continues after EOS. Decode
+    # from a shorter checkpoint must invalidate the later part of live KV,
+    # even though both requests refer to the same persistent snapshot owner.
+    replay_sequence = cli.output / "checkpoint-replay-prompts.json"
+    boundary = short.index(248046, system_end + 1)
+    replay_sequence.write_text(json.dumps([short, short[:boundary], short, short]) + "\n")
+    protocol.seal_file(replay_sequence)
+    replays = {}
+    for mode in ("cold", "cached"):
+        protocol.require_gpu_idle()
+        command = [str(cli.engine), "resident-session-probe", "--model-dir", str(cli.model_dir),
+                   "--context-tokens", str(cli.context_tokens), "--cache-capacity", str(cli.cache_capacity),
+                   "--input-token-ids-sequence-file", str(replay_sequence), "--max-new-tokens", "8",
+                   "--report", str(cli.output / f"checkpoint-replay-{mode}-weights.json")]
+        if mode == "cold":
+            command.append("--disable-prefix-cache")
+        with (cli.output / f"checkpoint-replay-{mode}.json").open("w") as stdout, \
+                (cli.output / f"checkpoint-replay-{mode}.stderr").open("w") as stderr:
+            subprocess.run(command, stdout=stdout, stderr=stderr, check=True)
+        replays[mode] = json.loads((cli.output / f"checkpoint-replay-{mode}.json").read_text())
+        write_json(cli.output / f"checkpoint-replay-{mode}.json", replays[mode])
+    replay_checks = {
+        "outputs_identical": all(left["output_token_ids"] == right["output_token_ids"]
+                                 for left, right in zip(replays["cold"]["requests"], replays["cached"]["requests"])),
+        "short_checkpoint_restored": replays["cached"]["requests"][1]["prefix_cache_matched_tokens"] == boundary,
+        "later_owner_kv_restored": not replays["cached"]["requests"][2]["prefix_cache_active_kv_reused"],
+        "full_owner_consecutive_reuse": replays["cached"]["requests"][3]["prefix_cache_active_kv_reused"],
+    }
     return {"gate": {"vocabulary": 248320, "kld_strictly_less_than": 0.005,
                      "top1_match": True}, "cases": comparisons,
-            "qualified": all(item["pass"] for item in comparisons)}
+            "short_checkpoint_replay": replay_checks,
+            "qualified": all(item["pass"] for item in comparisons) and all(replay_checks.values())}
 
 
 def source_binding(engine_commit: str) -> dict:
@@ -352,7 +382,8 @@ def source_binding(engine_commit: str) -> dict:
     status = subprocess.check_output(
         ["git", "status", "--porcelain", "--untracked-files=normal"], cwd=ROOT, text=True).strip()
     runtime_delta = subprocess.run(
-        ["git", "diff", "--quiet", engine_commit, "HEAD", "--", "native", "scripts/build-native-runtime.sh"],
+        ["git", "diff", "--quiet", engine_commit, "HEAD", "--", "native/src", "native/include",
+         "native/aot", "native/generated", "scripts/build-native-runtime.sh"],
         cwd=ROOT, capture_output=True, check=False)
     return {"checkout_commit": checkout, "checkout_clean": not status,
             "native_source_commit": engine_commit,
@@ -393,6 +424,7 @@ def main() -> int:
                  and (logits is None or logits["qualified"]))
     performance = [item for item in comparisons if item["case_id"].startswith("performance_partial_")]
     result = {"schema": "aima-amd395-qwen36/native-safe-prefix-cache/v1",
+              "complete": True,
               "created_at": datetime.now(timezone.utc).isoformat(), "qualified": qualified,
               "release_eligible": (qualified and clean_source and not cli.development
                                    and source["checkout_clean"] and source["engine_runtime_matches_checkout"]

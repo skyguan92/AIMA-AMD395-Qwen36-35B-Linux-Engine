@@ -757,6 +757,7 @@ struct NativeResidentEngine::Impl {
   std::uint64_t prefix_cache_clock = 0;
   std::size_t prefix_cache_entries = 0;
   std::size_t active_kv_prefix_cache_index = kPrefixCacheEntries;
+  std::size_t active_kv_prefix_tokens = 0;
   NativeResidentLoadMetrics metrics;
   int device = 0;
   int cu_count = 0;
@@ -2074,10 +2075,12 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
   const bool prefix_extension_hit = prompt_plan.prefix_extension_hit;
   const bool reuse_active_prefix_kv =
       exact_prefix_hit &&
-      impl_->active_kv_prefix_cache_index == matched_prefix_cache_index;
+      impl_->active_kv_prefix_cache_index == matched_prefix_cache_index &&
+      matched_prefix_tokens <= impl_->active_kv_prefix_tokens;
   // A request may overwrite the live attention cache. Re-establish ownership
   // only after the selected cache state has been restored or captured.
   impl_->active_kv_prefix_cache_index = impl_->prefix_cache_entries;
+  impl_->active_kv_prefix_tokens = 0;
   if (prompt_plan.prompt_decode_required(request.input_token_ids.size())) {
     throw std::runtime_error(
         "native prompt planner left an unexpected serial decode tail");
@@ -2342,8 +2345,10 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
       last_hidden =
           impl_->prefix_caches[matched_prefix_cache_index].terminal_hidden(matched_prefix_tokens);
       if (reuse_active_prefix_kv) {
-        // Decode only appends after the prompt, so a consecutive exact hit
-        // still owns byte-identical prompt KV in the live attention cache.
+        // Decode only appends after the previous request's matched range.
+        // An exact checkpoint request can be shorter than its owner: its
+        // decode overwrites the owner's later KV, so the active extent must
+        // cover this entire hit before skipping KV restoration.
         // Restore only the mutable linear recurrent/conv state. This avoids
         // copying the prompt KV a second time without changing cache state.
         const auto restore_started = std::chrono::steady_clock::now();
@@ -2356,6 +2361,7 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
         metrics.prefix_cache_restore_bytes = metrics.prefix_cache_transfer_bytes;
         metrics.prefix_cache_active_kv_reused = true;
         impl_->active_kv_prefix_cache_index = matched_prefix_cache_index;
+        impl_->active_kv_prefix_tokens = matched_prefix_tokens;
       } else {
         // The cached terminal hidden is sufficient to publish the first
         // token. Restore a non-active KV owner before the next decode step.
@@ -2370,6 +2376,7 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
       metrics.prefix_cache_restore_bytes = metrics.prefix_cache_transfer_bytes;
       metrics.prefix_cache_restore_wall_ms = elapsed_ms(restore_started);
       impl_->active_kv_prefix_cache_index = matched_prefix_cache_index;
+      impl_->active_kv_prefix_tokens = matched_prefix_tokens;
     }
   } else {
     metrics.prefix_cache_lookup =
@@ -2396,6 +2403,7 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
         matched_prefix_tokens);
     // The live KV is only a restored prefix until the full new owner commits.
     impl_->active_kv_prefix_cache_index = impl_->prefix_cache_entries;
+    impl_->active_kv_prefix_tokens = 0;
   }
 
   if (!prompt_plan.aot_segments.empty()) {
@@ -2973,6 +2981,7 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
             prompt_terminal_hidden);
     impl_->prefix_cache_use[capture_index] = ++impl_->prefix_cache_clock;
     impl_->active_kv_prefix_cache_index = capture_index;
+    impl_->active_kv_prefix_tokens = request.input_token_ids.size();
   }
   metrics.output_token_ids.push_back(first_token_id);
   metrics.prefill_wall_ms = elapsed_ms(request_started);
@@ -2998,6 +3007,7 @@ NativeResidentRequestMetrics NativeResidentEngine::run(
     metrics.prefix_cache_restore_wall_ms = elapsed_ms(restore_started);
     metrics.prefix_cache_restore_bytes = metrics.prefix_cache_transfer_bytes;
     impl_->active_kv_prefix_cache_index = matched_prefix_cache_index;
+    impl_->active_kv_prefix_tokens = matched_prefix_tokens;
   }
   if (timeline_enabled) {
     double linear_attention_ms = 0.0;
