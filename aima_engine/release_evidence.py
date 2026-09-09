@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from aima_engine.vl_reference import verify_manifest_integrity
+from aima_engine.qualification_runtime import expected_binding
 
 
 DEFAULT_RELEASE = "1.5.1-native-vl.6"
@@ -1037,6 +1038,17 @@ def _verify_checkpoint_validation(
 ) -> list[str]:
     """Bind new checkpoint measurements separately from inherited kernel gates."""
     errors = []
+    try:
+        runtime = expected_binding(identity["engine_sha256"], root / (
+            "benchmarks/results/native-portable-manifest-v1.5.1-native-vl.5.json"))
+    except (OSError, ValueError, KeyError, TypeError):
+        return ["safe-prefix pinned runtime baseline is missing or invalid"]
+    # Historical verification uses the producer sealed into the package input,
+    # not whichever verifier implementation happens to be installed today.
+    runtime["verifier_sha256"] = package_input.get("inputs", {}).get(
+        "qualification_runtime_verifier", {}).get("sha256")
+    if not isinstance(runtime["verifier_sha256"], str) or len(runtime["verifier_sha256"]) != 64:
+        errors.append("safe-prefix runtime verifier input is missing")
     for gate in ("exact_safe_prefix_generation_logits", "exact_safe_prefix_one_owner",
                  "exact_text_19_cell_matrix"):
         if package_input.get("gates", {}).get(gate) is not True:
@@ -1054,6 +1066,8 @@ def _verify_checkpoint_validation(
         if package_input.get("candidate_validation", {}).get(name) != expected:
             errors.append(f"safe-prefix package input binding differs: {name}")
         result = _load(summary)
+        if result.get("runtime_binding") != runtime:
+            errors.append(f"safe-prefix pinned runtime binding differs: {name}")
         engine = (result.get("engine", {}).get("sha256") if capacity is None
                   else result.get("engine_sha256"))
         if (result.get("complete") is not True or result.get("qualified") is not True
@@ -1091,4 +1105,6 @@ def _verify_checkpoint_validation(
                     if (not path.is_relative_to(summary.parent) or not path.is_file()
                         or sha256(path) != digest):
                         errors.append(f"safe-prefix matrix raw report differs: {report}")
+                    elif _load(path).get("qualification", {}).get("runtime_binding") != runtime:
+                        errors.append(f"safe-prefix matrix raw runtime differs: {report}")
     return errors

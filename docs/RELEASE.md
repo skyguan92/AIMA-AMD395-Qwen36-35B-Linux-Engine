@@ -21,14 +21,14 @@ remains available. Media-bearing owners keep whole-prompt snapshots and their
 canonical media namespace; matching token IDs never authorize cross-media reuse.
 
 The issue's `你好` → `你好，你是谁` reproduction restores 15 of 26 tokens and
-prefills only the remaining 11 logical tokens. At the 32768-token cache capacity,
-its measured restore is 64,696,320 bytes / 0.940 ms and TTFT is 472.59 ms versus
-505.89 ms cold. Five longer shared-system requests show median TTFT speedup
-3.367x and decode retention 0.99981. The one-owner 262144-token capacity profile
-shows 3.371x / 0.99986 and peak GTT 90,926,133,248 bytes, below 96 GiB.
+prefills only the remaining 11 logical tokens. Qualification covers the
+32768-token four-owner and 262144-token one-owner cache capacities. Five longer
+shared-system requests must show median partial-hit TTFT improvement, decode
+retention at least 0.97, and peak GTT below 96 GiB. Exact timings and memory
+measurements are recorded in the checksum-bound public evidence for this release.
 
-Both profiles pass 26 full-generation comparisons, 34 comparisons of all
-248320 FP32 logits (top-1 equal, KLD strictly below 0.005; maximum 0.0035071),
+Both profiles must pass 26 full-generation comparisons, 34 comparisons of all
+248320 FP32 logits (top-1 equal, KLD strictly below 0.005),
 and an eight-step short-checkpoint/full-owner replay that verifies actual KV
 extent after intervening decode. Raw logits and generation hashes are retained.
 These tests do not establish universal bitwise identity across BF16 partition
@@ -48,6 +48,15 @@ a second exact `.7` host run.
 
 Run `qualify-native-prefix-cache.py --performance --logits` at cache capacities
 32768 and 262144, then `qualify-native-full-matrix.py --include-window-endpoints`.
+Both commands must receive `--runtime-root` pointing to a verified portable
+capsule containing the exact candidate engine and frozen `.5` userspace.
+The qualifier verifies the recursive manifest, rejects unlisted dependencies,
+and executes through the frozen static launcher and bundled loader with the
+host library cache inhibited. All 209 runtime entries, the launcher, native
+payload and verifier are checksum-bound in each summary (and every matrix
+raw report). Packaging may replace documentation and qualification metadata,
+but the final G5 gate requires the same byte-identical runtime inventory.
+Host-ROCm development measurements are not portable release evidence.
 Use the `.7` contract with the patch product/G5 generators and supply the
 product generator's `--safe-prefix`, `--safe-prefix-one-owner` and `--text-matrix`
 summaries. Public prefix exports verify the original sealed raw files, redact

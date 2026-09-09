@@ -107,22 +107,28 @@ class NativeVlPatchReleaseTest(unittest.TestCase):
 
     def test_checkpoint_public_evidence_binds_raw_files_and_both_capacities(self) -> None:
         from aima_engine.release_evidence import _verify_checkpoint_validation
+        from aima_engine.qualification_runtime import BASELINE, expected_binding
         from aima_engine.vl_reference import atomic_json, file_component, seal_manifest
 
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             identity = {"engine_sha256": "e" * 64, "native_source_commit": "a" * 40}
+            baseline = root / BASELINE.relative_to(ROOT)
+            baseline.parent.mkdir(parents=True)
+            baseline.write_bytes(BASELINE.read_bytes())
+            runtime = expected_binding(identity["engine_sha256"], baseline)
             inputs = {"gates": dict.fromkeys(("exact_safe_prefix_generation_logits",
                       "exact_safe_prefix_one_owner", "exact_text_19_cell_matrix"), True),
+                      "inputs": {"qualification_runtime_verifier": {"sha256": runtime["verifier_sha256"]}},
                       "candidate_validation": {}}
             public = {}
             for name, capacity in (("prefix", 32768), ("one_owner", 262144), ("text_matrix", None)):
                 directory = root / name
                 directory.mkdir()
                 raw = directory / "raw.json"
-                raw.write_text('{"complete": true}\n')
+                raw.write_text(json.dumps({"complete": True, "qualification": {"runtime_binding": runtime}}))
                 artifact = file_component(raw, raw.name)
-                result = {"complete": True, "qualified": True}
+                result = {"complete": True, "qualified": True, "runtime_binding": runtime}
                 if capacity is None:
                     result.update(engine={"sha256": identity["engine_sha256"]},
                                   cells=[{"pass": True, "reports": [raw.name, raw.name],
@@ -139,6 +145,10 @@ class NativeVlPatchReleaseTest(unittest.TestCase):
                 )
                 public[name] = file_component(summary, f"{name}/{summary.name}")
             self.assertEqual(_verify_checkpoint_validation(root, inputs, public, identity), [])
+            changed = copy.deepcopy(inputs)
+            changed["inputs"]["qualification_runtime_verifier"]["sha256"] = "0" * 64
+            self.assertIn("safe-prefix pinned runtime binding differs: prefix",
+                          _verify_checkpoint_validation(root, changed, public, identity))
             for key in ("prefix", "one_owner", "text_matrix"):
                 changed = copy.deepcopy(inputs)
                 changed["candidate_validation"][key]["sha256"] = "0" * 64

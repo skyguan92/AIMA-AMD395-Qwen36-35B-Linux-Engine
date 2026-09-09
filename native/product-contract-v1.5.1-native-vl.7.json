@@ -17,7 +17,8 @@
     "native_engine_sha256": "1de6f8f1b1300ef9ecd300a783e87b289b520a78e00429c2da04e404a3d7d850",
     "qualification": "share/aima/qualification.json",
     "single_resident_process": true,
-    "ready_includes_language_and_vision": true
+    "ready_includes_language_and_vision": true,
+    "prefix_and_matrix_qualification_runtime": "Exact native payload through the frozen static portable launcher and bundled loader; complete userspace inventory byte-identical to .5, with raw matrix runtime bindings. Host ROCm measurements cannot qualify."
   },
   "patch_scope": {
     "classification": "bounded text block/message checkpoint capture, safe continuation scheduling and active-KV ownership",

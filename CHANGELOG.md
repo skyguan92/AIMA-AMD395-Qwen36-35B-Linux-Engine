@@ -17,10 +17,11 @@ Versioning.
 - Bound longer checkpoints to 32-token FLA block boundaries and cold-fallback
   when an unaligned short checkpoint would cross a new block. Restored active
   KV extent is tracked independently from the cache owner's full prompt.
-- Qualified 26 generation and 34 full-vocabulary logits cases at both cache
-  capacities. The long shared-system corpus improves median partial-hit TTFT
-  by 3.37x with 0.9998 decode retention; maximum observed KLD is 0.00351.
-  This is corpus evidence, not universal BF16 bitwise equivalence.
+- Added release gates for 26 generation and 34 full-vocabulary logits cases at
+  both cache capacities, partial-hit TTFT/decode retention and the complete
+  19-cell text matrix. These measurements require the exact portable engine,
+  static launcher and pinned userspace, not the host ROCm libraries.
+  Corpus qualification does not imply universal BF16 bitwise equivalence.
 
 ## 1.5.1-native-vl.6 - 2026-09-08
 
