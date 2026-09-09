@@ -207,6 +207,7 @@ class NativeVlSafePrefixReleaseTest(unittest.TestCase):
         self.assertEqual(generator.ALLOWED_RUNTIME_DELTA, generator.CPU_RUNTIME_DELTA)
 
     def test_prefix_gate_rejects_incomplete_unbound_and_out_of_tolerance_records(self) -> None:
+        from aima_engine.qualification_runtime import expected_binding
         generator = load_generator()
         generator.configure_release(ROOT / "native/product-contract-v1.5.1-native-vl.7.json")
         names = ["short_cold", "short_exact", "divergent_chat", "divergent_exact_sse",
@@ -224,6 +225,7 @@ class NativeVlSafePrefixReleaseTest(unittest.TestCase):
                 "schema": "aima-amd395-qwen36/native-safe-prefix-cache/v1",
                 "complete": True, "qualified": True, "release_eligible": True,
                 "engine_sha256": generator.ENGINE_SHA256,
+                "runtime_binding": expected_binding(generator.ENGINE_SHA256),
                 "build_info": {"source_commit": generator.NATIVE_SOURCE_COMMIT},
                 "source": {"checkout_clean": True, "engine_runtime_matches_checkout": True,
                            "native_source_commit": generator.NATIVE_SOURCE_COMMIT,
@@ -248,7 +250,8 @@ class NativeVlSafePrefixReleaseTest(unittest.TestCase):
                     return generator.require_safe_prefix(root / "qualification.json", 32768)
             check(value)
             for field, replacement in (("release_eligible", False), ("engine_sha256", "0" * 64),
-                                       ("cases", value["cases"][:-1]), ("artifacts", [])):
+                                       ("cases", value["cases"][:-1]), ("artifacts", []),
+                                       ("runtime_binding", None), ("runtime_binding", {})):
                 mutated = copy.deepcopy(value)
                 mutated[field] = replacement
                 with self.subTest(field=field), self.assertRaises(ValueError):
@@ -256,6 +259,7 @@ class NativeVlSafePrefixReleaseTest(unittest.TestCase):
             for path, replacement in ((["logits", "cases", 0, "kl_divergence"], 0.005),
                                       (["source", "checkout_clean"], False),
                                       (["source", "generator_sha256"], "0" * 64),
+                                      (["runtime_binding", "runtime_inventory_sha256"], "0" * 64),
                                       (["configuration", "checkpoint_block_tokens"], 16),
                                       (["performance", "median_decode_retention"], 0.969),
                                       (["performance", "median_partial_ttft_speedup"], float("nan")),

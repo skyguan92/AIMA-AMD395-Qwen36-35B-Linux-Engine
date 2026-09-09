@@ -27,6 +27,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from aima_engine.vl_reference import canonical_json_sha256, seal_manifest, verify_manifest_integrity
 from aima_engine.public_hygiene import scan_bytes
+from aima_engine.qualification_runtime import bind_runtime
 
 spec = importlib.util.spec_from_file_location(
     "prefix_protocol", ROOT / "scripts/qualify-native-chat-protocol.py"
@@ -438,6 +439,8 @@ def export_public_evidence(source: Path, destination: Path) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--engine", type=Path, required=True)
+    parser.add_argument("--runtime-root", type=Path,
+                        help="Verified portable capsule; required for release eligibility")
     parser.add_argument("--model-dir", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--context-tokens", type=int, default=8192)
@@ -448,6 +451,8 @@ def main() -> int:
     parser.add_argument("--development", action="store_true")
     cli = parser.parse_args()
     cli.engine = cli.engine.resolve()
+    engine_sha256 = protocol.sha256_file(cli.engine)
+    cli.engine, runtime_binding = bind_runtime(cli.engine, cli.runtime_root)
     cli.model_dir = cli.model_dir.resolve()
     cli.output = cli.output.resolve()
     cli.output.mkdir(parents=True, exist_ok=False)
@@ -471,9 +476,10 @@ def main() -> int:
               "created_at": datetime.now(timezone.utc).isoformat(), "qualified": qualified,
               "release_eligible": (qualified and clean_source and not cli.development
                                    and source["checkout_clean"] and source["engine_runtime_matches_checkout"]
-                                   and cli.performance and cli.logits),
+                                   and cli.performance and cli.logits and runtime_binding is not None),
               "source": source, "case_input_sha256": canonical_json_sha256(cases),
-              "build_info": build_info, "engine_sha256": protocol.sha256_file(cli.engine),
+              "build_info": build_info, "engine_sha256": engine_sha256,
+              "runtime_binding": runtime_binding,
               "configuration": {"context_tokens": cli.context_tokens,
                                 "cache_capacity": cli.cache_capacity, "checkpoint_limit_per_entry": 3,
                                 "checkpoint_block_tokens": 32},

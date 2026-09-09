@@ -25,6 +25,7 @@ from aima_engine.vl_reference import (  # noqa: E402
     seal_manifest,
     verify_manifest_integrity,
 )
+from aima_engine.qualification_runtime import require_runtime_binding
 
 
 SCHEMA = "aima-amd395-qwen36/native-vl-product-qualification/v1"
@@ -259,6 +260,7 @@ def exact_component(path: Path, logical_path: str, expected: str) -> dict[str, A
 
 def require_safe_prefix(path: Path, capacity: int) -> dict[str, Any]:
     payload = load_object(path)
+    require_runtime_binding(payload.get("runtime_binding"), ENGINE_SHA256)
     require_sealed("safe prefix", payload, "aima-amd395-qwen36/native-safe-prefix-cache/v1")
     if (payload.get("release_eligible") is not True
         or payload.get("engine_sha256") != ENGINE_SHA256
@@ -454,6 +456,7 @@ def build_payload(
         require_safe_prefix(safe_prefix_paths["prefix"], 32768)
         require_safe_prefix(safe_prefix_paths["one_owner"], 262144)
         matrix = load_object(safe_prefix_paths["text_matrix"])
+        require_runtime_binding(matrix.get("runtime_binding"), ENGINE_SHA256)
         if (matrix.get("schema") != "aima-amd395-qwen36/native-full-matrix-qualification/v1"
             or matrix.get("complete") is not True or matrix.get("qualified") is not True
             or matrix.get("engine", {}).get("sha256") != ENGINE_SHA256
@@ -472,6 +475,8 @@ def build_payload(
                 path = (root / report).resolve()
                 if not path.is_relative_to(root) or not path.is_file() or sha256(path) != digest:
                     raise ValueError("text matrix raw report differs")
+                require_runtime_binding(load_object(path).get("qualification", {}).get("runtime_binding"),
+                                        ENGINE_SHA256)
         gates.update(exact_safe_prefix_generation_logits=True,
                      exact_safe_prefix_one_owner=True, exact_text_19_cell_matrix=True)
         extra_validation = {name: file_component(path, f"candidate-validation/{name}/{path.name}")
@@ -586,6 +591,10 @@ def configure_release(contract_path: Path) -> None:
     ENGINE_SHA256 = contract["candidate"]["native_engine_sha256"]
     COMPONENT_SHA256["native_engine"] = ENGINE_SHA256
     DEFAULT_INPUTS["product_contract"] = contract_path
+    if release == "1.5.1-native-vl.7":
+        DEFAULT_INPUTS["qualification_runtime_verifier"] = ROOT / "aima_engine/qualification_runtime.py"
+    else:
+        DEFAULT_INPUTS.pop("qualification_runtime_verifier", None)
     for key, filename in (("safe_prefix_qualifier", "qualify-native-prefix-cache.py"),
                           ("text_matrix_qualifier", "qualify-native-full-matrix.py")):
         if release == "1.5.1-native-vl.7":
