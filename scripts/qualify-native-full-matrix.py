@@ -331,7 +331,7 @@ def build_result(
         },
         "model_dir": "${AIMA_MODEL_DIR}",
         "host": {
-            "hostname": os.uname().nodename,
+            "fingerprint_sha256": hashlib.sha256(os.uname().nodename.encode()).hexdigest(),
             "sysname": os.uname().sysname,
             "release": os.uname().release,
             "machine": os.uname().machine,
