@@ -225,6 +225,10 @@ class NativeVlSafePrefixReleaseTest(unittest.TestCase):
                 "complete": True, "qualified": True, "release_eligible": True,
                 "engine_sha256": generator.ENGINE_SHA256,
                 "build_info": {"source_commit": generator.NATIVE_SOURCE_COMMIT},
+                "source": {"checkout_clean": True, "engine_runtime_matches_checkout": True,
+                           "native_source_commit": generator.NATIVE_SOURCE_COMMIT,
+                           "generator_sha256": generator.sha256(ROOT / "scripts/qualify-native-prefix-cache.py"),
+                           "protocol_helper_sha256": generator.sha256(ROOT / "scripts/qualify-native-chat-protocol.py")},
                 "configuration": {"context_tokens": 8192, "cache_capacity": 32768,
                                   "checkpoint_limit_per_entry": 3, "checkpoint_block_tokens": 32},
                 "cached_peak_memory": {"gtt_bytes": 80 * 1024**3},
@@ -250,6 +254,8 @@ class NativeVlSafePrefixReleaseTest(unittest.TestCase):
                 with self.subTest(field=field), self.assertRaises(ValueError):
                     check(mutated)
             for path, replacement in ((["logits", "cases", 0, "kl_divergence"], 0.005),
+                                      (["source", "checkout_clean"], False),
+                                      (["source", "generator_sha256"], "0" * 64),
                                       (["configuration", "checkpoint_block_tokens"], 16),
                                       (["performance", "median_decode_retention"], 0.969),
                                       (["performance", "median_partial_ttft_speedup"], float("nan")),

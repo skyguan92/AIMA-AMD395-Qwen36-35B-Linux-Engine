@@ -263,6 +263,11 @@ def require_safe_prefix(path: Path, capacity: int) -> dict[str, Any]:
     if (payload.get("release_eligible") is not True
         or payload.get("engine_sha256") != ENGINE_SHA256
         or payload.get("build_info", {}).get("source_commit") != NATIVE_SOURCE_COMMIT
+        or payload.get("source", {}).get("checkout_clean") is not True
+        or payload.get("source", {}).get("engine_runtime_matches_checkout") is not True
+        or payload.get("source", {}).get("native_source_commit") != NATIVE_SOURCE_COMMIT
+        or payload.get("source", {}).get("generator_sha256") != sha256(ROOT / "scripts/qualify-native-prefix-cache.py")
+        or payload.get("source", {}).get("protocol_helper_sha256") != sha256(ROOT / "scripts/qualify-native-chat-protocol.py")
         or payload.get("configuration", {}).get("context_tokens") != 8192
         or payload.get("configuration", {}).get("cache_capacity") != capacity
         or payload.get("configuration", {}).get("checkpoint_limit_per_entry") != 3
@@ -289,7 +294,7 @@ def require_safe_prefix(path: Path, capacity: int) -> dict[str, Any]:
     logits = payload.get("logits", {})
     rows = logits.get("cases", [])
     boundaries = {f"boundary_{boundary}_partial" for boundary in (31, 32, 33, 1023, 1024, 1025, 8192, 8193)}
-    if (logits.get("qualified") is not True or len(rows) < 33
+    if (logits.get("qualified") is not True or len(rows) != 34
         or not boundaries.issubset({row.get("case_id") for row in rows})
         or not all(row.get("pass") is True and row.get("top1_match") is True
                    and row.get("elements") == 248320 and 0 <= row.get("kl_divergence", 1) < 0.005
@@ -581,6 +586,12 @@ def configure_release(contract_path: Path) -> None:
     ENGINE_SHA256 = contract["candidate"]["native_engine_sha256"]
     COMPONENT_SHA256["native_engine"] = ENGINE_SHA256
     DEFAULT_INPUTS["product_contract"] = contract_path
+    for key, filename in (("safe_prefix_qualifier", "qualify-native-prefix-cache.py"),
+                          ("text_matrix_qualifier", "qualify-native-full-matrix.py")):
+        if release == "1.5.1-native-vl.7":
+            DEFAULT_INPUTS[key] = ROOT / "scripts" / filename
+        else:
+            DEFAULT_INPUTS.pop(key, None)
     DEFAULT_OUTPUT = ROOT / f"output/native-portable-product-v{release}.json"
 
 
