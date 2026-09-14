@@ -45,6 +45,9 @@ struct NativeHistoricalToolCall {
   std::size_t call_count = 0;
   std::size_t result_count = 0;
   std::size_t no_progress_result_count = 0;
+  // Failures/empty results in the current observable-progress window, not
+  // the lifetime total. A completed repair can make identical arguments valid.
+  std::size_t no_progress_streak = 0;
 };
 
 struct NativePreparedChat {
@@ -88,6 +91,7 @@ struct NativeToolProgress {
   std::size_t parallel_calls_suppressed = 0;
   std::size_t history_signature_occurrences = 0;
   std::size_t history_no_progress_results = 0;
+  std::size_t history_no_progress_streak = 0;
   std::size_t exhausted_history_calls_suppressed = 0;
   bool no_progress = false;
 };

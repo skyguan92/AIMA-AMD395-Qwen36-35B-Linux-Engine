@@ -1315,6 +1315,8 @@ Json tool_progress_json(const NativeAssistantOutput& output) {
            output.tool_progress.history_signature_occurrences},
           {"history_no_progress_results",
            output.tool_progress.history_no_progress_results},
+          {"history_no_progress_streak",
+           output.tool_progress.history_no_progress_streak},
           {"exhausted_history_calls_suppressed",
            output.tool_progress.exhausted_history_calls_suppressed},
           {"same_signature_retry_limit", 1},
@@ -1324,6 +1326,20 @@ Json tool_progress_json(const NativeAssistantOutput& output) {
                        : Json(nullptr)},
           {"caller_action", caller_action}};
 }
+
+class ToolCallNoProgressError : public std::runtime_error {
+ public:
+  explicit ToolCallNoProgressError(const NativeAssistantOutput& output)
+      : std::runtime_error(
+            "Repeated tool call made no progress and was not executed. "
+            "Change strategy or provide a completed repair before retrying; "
+            "this response does not indicate task completion."),
+        payload(error_payload(what(), "tool_call_no_progress")) {
+    payload["aima_amd395"]["tool_progress"] = tool_progress_json(output);
+  }
+
+  Json payload;
+};
 
 void add_chat_protocol_metrics(Json* metrics,
                                const NativePreparedChat& chat,
@@ -1406,6 +1422,9 @@ Json chat_completion(NativeResidentEngine& engine, NativeTokenizer& tokenizer,
   NativeAssistantOutput output = visible_assistant_output(
       metrics, tokenizer, parsed.chat,
       parsed.named_tool_json_constraint.get(), id + "-call-");
+  if (output.tool_progress.no_progress && output.tool_calls.empty()) {
+    throw ToolCallNoProgressError(output);
+  }
   if (!required_tool_choice_satisfied(parsed.chat, output)) {
     throw std::runtime_error(
         "model output did not satisfy the required tool_choice");
@@ -1594,6 +1613,15 @@ bool stream_chat_completion(
     output.content = gate.complete_text();
   }
 
+  if (output.tool_progress.no_progress && output.tool_calls.empty()) {
+    // Headers may already be sent. Terminate with an explicit SSE error,
+    // never an ordinary assistant completion or a successful finish_reason.
+    const ToolCallNoProgressError error(output);
+    (void)send_sse_event(fd, error.payload.dump());
+    (void)send_sse_event(fd, "[DONE]");
+    (void)try_send_all(fd, "0\r\n\r\n");
+    return false;
+  }
   if (!required_tool_choice_satisfied(parsed.chat, output)) {
     (void)send_sse_event(
         fd,
@@ -2001,6 +2029,8 @@ int run_native_http_server(int argc, char** argv) {
               interrupt_server_io(server.get(), active_client_reads);
               chat_executor.shutdown();
             }
+          } catch (const ToolCallNoProgressError& error) {
+            (void)send_json(queued_request->client.get(), 400, error.payload);
           } catch (const std::invalid_argument& error) {
             (void)send_json(queued_request->client.get(), 400,
                             error_payload(error.what(), "bad_request"));
