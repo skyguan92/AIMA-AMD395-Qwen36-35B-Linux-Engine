@@ -3,8 +3,11 @@ from __future__ import annotations
 import importlib.util
 import copy
 import json
+import os
 from pathlib import Path
+import re
 import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -284,6 +287,40 @@ class NativeVlSafePrefixReleaseTest(unittest.TestCase):
             raw.write_text("modified")
             with self.assertRaises(ValueError):
                 check(value)
+
+
+class NativeVlFeedbackReleaseTest(unittest.TestCase):
+    @unittest.skipUnless(sys.platform.startswith("linux"), "native package uses Linux install")
+    def test_packaged_feedback_documentation_and_checker_are_exact(self):
+        source = (ROOT / "scripts/package-native-foundation.sh").read_text()
+        function = re.search(r"^install_release_documentation\(\) \{\n.*?^\}", source,
+                             re.MULTILINE | re.DOTALL)
+        self.assertIsNotNone(function, "package must install its declared feedback assets")
+        with tempfile.TemporaryDirectory() as temporary:
+            subprocess.run(["bash", "-euc", function.group(0) + "\ninstall_release_documentation"],
+                           check=True, env={**os.environ, "ROOT": str(ROOT), "STAGING": temporary})
+            for relative in ("docs/FEEDBACK_0911.md", "scripts/check-agent-documents.py"):
+                self.assertEqual((Path(temporary) / relative).read_bytes(), (ROOT / relative).read_bytes())
+            self.assertTrue(os.access(Path(temporary) / "scripts/check-agent-documents.py", os.X_OK))
+
+    def test_feedback_release_retains_prefix_gates_and_limits_new_runtime_delta(self):
+        generator = load_generator()
+        generator.configure_release(ROOT / "native/product-contract-v1.5.1-native-vl.9.json")
+        self.assertEqual(generator.ALLOWED_RUNTIME_DELTA, generator.SAFE_PREFIX_RUNTIME_DELTA)
+        self.assertIn("qualification_runtime_verifier", generator.DEFAULT_INPUTS)
+        delta = subprocess.check_output([
+            "git", "diff", "--name-only",
+            f"{generator.FEEDBACK_PREDECESSOR}..{generator.NATIVE_SOURCE_COMMIT}",
+            "--", *generator.RUNTIME_PATHS,
+        ], cwd=ROOT, text=True)
+        self.assertEqual(set(delta.splitlines()), generator.FEEDBACK_RUNTIME_DELTA)
+
+    def test_feedback_release_rejects_older_protocol_evidence(self):
+        generator = load_generator()
+        generator.configure_release(ROOT / "native/product-contract-v1.5.1-native-vl.9.json")
+        old = json.loads((ROOT / "benchmarks/results/native-chat-protocol-v1.5.1-native-vl.7.json").read_text())
+        with self.assertRaisesRegex(ValueError, "repaired tool retry/error qualification"):
+            generator.require_chat_protocol(old)
 
 
 if __name__ == "__main__":

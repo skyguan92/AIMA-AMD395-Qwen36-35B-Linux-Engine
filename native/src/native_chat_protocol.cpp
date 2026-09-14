@@ -292,6 +292,44 @@ bool json_result_is_no_progress(const NativeOrderedJson& value) {
   return found_payload && all_payload_empty;
 }
 
+bool result_confirms_silent_success(std::string_view input) {
+  // An output-free command is still bounded when repeated unchanged, but a
+  // DIFFERENT successful command may have repaired state (e.g. an in-place
+  // edit). Do not require stdout from a tool that reports successful execution.
+  const std::string trimmed = trim_ascii_copy(input);
+  const std::string lower = lowercase_ascii_copy(trimmed);
+  if (lower == "exit code: 0" || lower == "process exited with code 0" ||
+      lower == "process exited with code 0\nfinal output:" ||
+      lower == "exit code: 0\nfinal output:") {
+    return true;
+  }
+  try {
+    const NativeOrderedJson value = NativeOrderedJson::parse(trimmed);
+    if (!value.is_object()) return false;
+    bool zero_exit = false;
+    for (auto item = value.begin(); item != value.end(); ++item) {
+      if (item.key() == "exit_code" || item.key() == "returncode") {
+        if (!item.value().is_number_integer() || item.value() != 0) return false;
+        zero_exit = true;
+      } else if (item.key() == "stdout" || item.key() == "stderr" ||
+                 item.key() == "output") {
+        if (!item.value().is_null() &&
+            !(item.value().is_string() &&
+              trim_ascii_copy(item.value().get_ref<const std::string&>()).empty())) {
+          return false;
+        }
+      } else {
+        // An error, an unknown payload or ambiguous success metadata is not
+        // sufficient evidence to reopen an exhausted retry window.
+        return false;
+      }
+    }
+    return zero_exit;
+  } catch (const NativeOrderedJson::exception&) {
+    return false;
+  }
+}
+
 void reject_unsupported_generation_fields(const NativeOrderedJson& request) {
   static constexpr std::array<std::string_view, 14> kUnsupported = {
       "frequency_penalty", "presence_penalty", "logit_bias", "logprobs",
@@ -1163,8 +1201,19 @@ NativePreparedChat prepare_native_chat(const NativeOrderedJson& request) {
   std::string leading_system_vl;
   bool left_leading_system = false;
   bool saw_user = false;
-  std::unordered_map<std::string, std::size_t> call_id_to_history;
+  // Keep the issuing turn, not result arrival order: a late result from an
+  // older parallel batch must not erase a newer failed verification attempt.
+  std::unordered_map<std::string, std::pair<std::size_t, std::size_t>>
+      call_id_to_history;
+  std::unordered_set<std::string> completed_call_ids;
   std::unordered_map<std::string, std::size_t> history_signature_indices;
+  struct ToolResultObservation {
+    std::size_t history_index;
+    std::size_t call_turn;
+    bool no_progress;
+    bool silent_success;
+  };
+  std::vector<ToolResultObservation> tool_results;
   for (std::size_t message_index = 0;
        message_index < request["messages"].size(); ++message_index) {
     const NativeOrderedJson& source = request["messages"][message_index];
@@ -1272,12 +1321,13 @@ NativePreparedChat prepare_native_chat(const NativeOrderedJson& request) {
             history_index = prepared.historical_tool_calls.size();
             history_signature_indices.emplace(signature, history_index);
             prepared.historical_tool_calls.push_back(
-                {call.name, serialized_arguments, signature, 0, 0, 0});
+                {call.name, serialized_arguments, signature, 0, 0, 0, 0});
           } else {
             history_index = history->second;
           }
           ++prepared.historical_tool_calls[history_index].call_count;
-          call_id_to_history.emplace(call_id, history_index);
+          call_id_to_history.emplace(
+              call_id, std::make_pair(history_index, message_index));
           for (auto item = arguments.begin(); item != arguments.end(); ++item) {
             if (item.key().empty() ||
                 item.key().find_first_of(">\r\n") != std::string::npos) {
@@ -1306,12 +1356,19 @@ NativePreparedChat prepare_native_chat(const NativeOrderedJson& request) {
         throw std::invalid_argument(
             "tool message tool_call_id has no preceding assistant tool call");
       }
+      if (!completed_call_ids.insert(id).second) {
+        throw std::invalid_argument("tool messages must not repeat a tool_call_id");
+      }
       NativeHistoricalToolCall& historical =
-          prepared.historical_tool_calls[history->second];
+          prepared.historical_tool_calls[history->second.first];
       ++historical.result_count;
-      if (native_tool_result_is_no_progress(content.baseline)) {
+      const bool no_progress = native_tool_result_is_no_progress(content.baseline);
+      if (no_progress) {
         ++historical.no_progress_result_count;
       }
+      tool_results.push_back({history->second.first, history->second.second,
+                              no_progress,
+                              no_progress && result_confirms_silent_success(content.baseline)});
     } else {
       throw std::invalid_argument(
           "message role must be system, developer, user, assistant, or tool");
@@ -1320,6 +1377,27 @@ NativePreparedChat prepare_native_chat(const NativeOrderedJson& request) {
     vl_message.content = content.vl;
     prepared.messages.push_back(std::move(message));
     prepared.vl_prompt_messages.push_back(std::move(vl_message));
+  }
+  std::size_t latest_progress_turn = 0;
+  for (const ToolResultObservation& result : tool_results) {
+    if (!result.no_progress) {
+      latest_progress_turn = std::max(latest_progress_turn, result.call_turn);
+    }
+  }
+  std::vector<std::size_t> progress_turns(prepared.historical_tool_calls.size(),
+                                          latest_progress_turn);
+  for (const ToolResultObservation& result : tool_results) {
+    if (!result.silent_success) continue;
+    for (std::size_t index = 0; index < progress_turns.size(); ++index) {
+      if (index != result.history_index) {
+        progress_turns[index] = std::max(progress_turns[index], result.call_turn);
+      }
+    }
+  }
+  for (const ToolResultObservation& result : tool_results) {
+    if (result.no_progress && result.call_turn >= progress_turns[result.history_index]) {
+      ++prepared.historical_tool_calls[result.history_index].no_progress_streak;
+    }
   }
   if (prepared.messages.empty() && !leading_system.empty()) {
     prepared.messages.push_back(
@@ -1462,7 +1540,8 @@ void apply_native_tool_call_policy(const NativePreparedChat& chat,
           history->call_count;
       output->tool_progress.history_no_progress_results +=
           history->no_progress_result_count;
-      if (history->no_progress_result_count > kSameSignatureRetryLimit) {
+      output->tool_progress.history_no_progress_streak += history->no_progress_streak;
+      if (history->no_progress_streak > kSameSignatureRetryLimit) {
         ++output->tool_progress.exhausted_history_calls_suppressed;
         output->tool_progress.no_progress = true;
         continue;

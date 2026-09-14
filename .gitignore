@@ -114,6 +114,25 @@ benchmarks/runs/*
 !benchmarks/runs/native-vl-rollback-20260908-vl6-final/**
 !benchmarks/runs/native-vl-release-gates-20260908-vl6-final/
 !benchmarks/runs/native-vl-release-gates-20260908-vl6-final/**
+# v1.5.1-native-vl.9 additive public evidence
+!benchmarks/runs/native-chat-protocol-20260914-vl9-final/
+!benchmarks/runs/native-chat-protocol-20260914-vl9-final/**
+!benchmarks/runs/native-http-control-plane-20260914-vl9-final/
+!benchmarks/runs/native-http-control-plane-20260914-vl9-final/**
+!benchmarks/runs/native-safe-prefix-20260914-vl9-final/
+!benchmarks/runs/native-safe-prefix-20260914-vl9-final/**
+!benchmarks/runs/native-safe-prefix-one-owner-20260914-vl9-final/
+!benchmarks/runs/native-safe-prefix-one-owner-20260914-vl9-final/**
+!benchmarks/runs/native-full-matrix-20260914-vl9-final/
+!benchmarks/runs/native-full-matrix-20260914-vl9-final/**
+!benchmarks/runs/native-portable-bundle-20260914-vl9-final/
+!benchmarks/runs/native-portable-bundle-20260914-vl9-final/**
+!benchmarks/runs/native-vl-resident-soak-20260914-vl9-final/
+!benchmarks/runs/native-vl-resident-soak-20260914-vl9-final/**
+!benchmarks/runs/native-vl-rollback-20260914-vl9-final/
+!benchmarks/runs/native-vl-rollback-20260914-vl9-final/**
+!benchmarks/runs/native-vl-release-gates-20260914-vl9-final/
+!benchmarks/runs/native-vl-release-gates-20260914-vl9-final/**
 *.pid
 *.so
 *.so.*

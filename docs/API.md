@@ -486,21 +486,32 @@ assistant and tool messages:
 Tool definitions and history count toward the cache capacity. Clients do not
 pad requests; after tokenization the engine composes resident AOT buckets and
 internally pads only the final segment. Required and named `tool_choice`
-requests fail if generation does not produce an admitted function call, except
-when the bounded no-progress policy deliberately suppresses an exhausted
-history signature.
+requests fail if generation does not produce an admitted function call. If
+the bounded no-progress policy suppresses every proposed call, the response
+is an explicit error rather than an ordinary assistant completion.
 
 At the protocol boundary, calls are compared by function name plus canonical
 JSON arguments. Exact duplicates in one generated response are emitted only
 once; the same function with different arguments remains valid. History is
 also inspected conservatively: an empty result or explicit error permits one
-same-signature retry, while a second no-progress result suppresses another
-identical call. `parallel_tool_calls:false` is applied after those checks and
+same-signature retry, while a second no-progress result **since the latest
+completed tool progress** suppresses another identical call. A useful,
+non-error tool result reopens the retry window. A different command that
+explicitly completes with exit code zero can also reopen it without stdout:
+an in-place repair must not prevent rerunning the original verification.
+Identical output-free commands retain their own no-progress bound. User
+continuations, assistant promises, pending calls and failed repairs do not
+reset it. Progress is ordered by the issuing assistant turn, so a late result
+from an older parallel batch cannot erase newer failures. Repeated tool result
+IDs are rejected instead of being counted twice.
+
+`parallel_tool_calls:false` is applied after those checks and
 emits at most one call in both response modes.
 
 The terminal `aima_amd395.tool_progress` object reports
 `duplicate_calls_suppressed`, `history_signature_occurrences`,
-`history_no_progress_results`, `exhausted_history_calls_suppressed`,
+`history_no_progress_results` (lifetime), `history_no_progress_streak` (current
+progress window), `exhausted_history_calls_suppressed`,
 `no_progress`, `reason`, and `caller_action`. The native engine prevents exact
 duplicate actions and exposes this state; choosing a materially different
 strategy, composing a best-effort answer, or returning a domain-specific
@@ -508,6 +519,16 @@ blocked result remains the calling agent's responsibility. This boundary is
 intentional because the engine cannot determine whether two different tool
 calls are semantically equivalent or whether their results add domain-specific
 information.
+
+If all proposed calls are exhausted, non-streaming requests return HTTP 400
+with `error.code: "tool_call_no_progress"` and the progress object under
+`aima_amd395.tool_progress`. Streaming requests, whose HTTP headers may already
+have been sent, emit the same structured error as an SSE event followed by
+`[DONE]`; there is no successful terminal `finish_reason`. Clients must treat
+the error as a failed turn, not a completed artifact or permission to execute
+tool XML from assistant text. Mixed responses with other admitted calls still
+return those calls normally. The engine does not inspect the caller's output
+files or certify their formats, correctness or task completion.
 
 ## Errors
 

@@ -1,5 +1,57 @@
 # Release provenance and procedure
 
+## v1.5.1-native-vl.9 agent feedback boundary
+
+The unpublished `.8` candidate was stopped by the package Markdown-link gate:
+the feedback document and caller checker were listed as inputs but not copied
+into the bundle. Its local source tag was not moved. `.9` fixes that packaging
+omission and adds an execution regression for the copied assets. The qualified
+native binary is unchanged; exact-candidate prefix and text measurements remain
+bound to its SHA-256, while HTTP and final-archive gates bind the `.9` identity.
+
+The `.9` release fixes tool retries after a completed repair and reports an
+exhausted tool turn as an explicit HTTP/SSE error instead of normal completion.
+Its native source is `29f67beda7199575c62020d2b95e24c0a754c9a9`, with engine SHA-256
+`ddc1ee62fbfacd844d3332dab1f655a3f69a110a05702d51d0f3e8ec9d143d15`.
+Only the protocol header, protocol implementation and HTTP server differ from
+the exact `.7` native source; model arithmetic, checkpoint implementation,
+thinking defaults, GPU artifacts and portable userspace remain unchanged.
+
+The [product contract](../native/product-contract-v1.5.1-native-vl.9.json) retains
+all `.7` exact-candidate prefix/capacity/full-vocabulary and 19-cell performance
+gates. It additionally requires successful and silent repair/retry HTTP/SSE
+checks. Promotion still requires exact-candidate HTTP control-plane checks,
+final archive isolation, the full one-hour/240-request mixed-workload soak,
+exact v1.5.1 rollback and clean-tag repository/security/evidence checks.
+The byte-identical `.5` static launcher and userspace are reused; an incidental
+rebuild with a newer host toolchain does not replace that frozen inventory.
+
+The immutable source tag points to
+`a1a41b529811a5d65a6bc349d820be85d6b9e0c2`. The final archive is
+`aima-engine-native-portable-ebabbe863f83.tar.zst` (345,512,244 bytes), SHA-256
+`5911a8a6733a89991829b51b982a50688cfaf75a214076c360c4ac4c2262e446`.
+Its exact-candidate checks passed: 13 chat/protocol checks, 12 HTTP control-plane
+checks, both prefix capacities (52 generation and 68 full-vocabulary comparisons
+in total), and all 19 text performance cells. The isolated archive passed text
+and multimodal execution, 3,600 seconds / 360 resident mixed requests, clean
+shutdown, and checksum-identical v1.5.1 rollback. Post-warm RSS growth was zero;
+peak GTT was 85,384,773,632 bytes, below the 96 GiB limit. Clean-tag `make check`
+(505 Python tests, one conditional skip), security and evidence gates passed.
+
+The additive [final qualification](../benchmarks/results/native-vl-g5-release-v1.5.1-native-vl.9.json)
+and [public provenance](../benchmarks/results/native-release-provenance-v1.5.1-native-vl.9.json)
+bind the exact archive without moving the tag. The default evidence verifier
+now selects `.9`; `.5`, `.6`, and `.7` remain independently verifiable. The
+companion public evidence archive includes the complete verification closure.
+
+[0911 feedback analysis](FEEDBACK_0911.md) includes the caller-side DOCX
+container checker and explains why recovering a text file as Markdown does
+not prove delivery of a valid Word document. The checker is a development
+helper, not a Python dependency of the portable engine. Original sessions and
+document text are excluded from the public release; the two document tasks'
+legal/content quality and the original caller's full agent workflow are not
+claimed to be qualified by this protocol patch.
+
 ## v1.5.1-native-vl.7 safe-prefix boundary
 
 This release addresses organization issue

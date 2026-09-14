@@ -11,7 +11,7 @@ from aima_engine.vl_reference import verify_manifest_integrity
 from aima_engine.qualification_runtime import expected_binding
 
 
-DEFAULT_RELEASE = "1.5.1-native-vl.7"
+DEFAULT_RELEASE = "1.5.1-native-vl.9"
 NATIVE_VL_RELEASE = "1.5.1-native-vl.4"
 PATCH_VL_RELEASE = "1.5.1-native-vl.5"
 PATCH_VL_RELEASE_COMMIT = "eb7d8ac30cea4401a068fd25f1f1379c72eaf448"
@@ -23,6 +23,13 @@ PATCH_VL_ARCHIVE_SHA256 = (
     "59f30c4232b8459f3efcd7b8506cc71b957614c0aac1fa96a2eb4e15f52940a3"
 )
 PATCH_VL_IDENTITIES = {
+    "1.5.1-native-vl.9": {
+        "release_commit": "a1a41b529811a5d65a6bc349d820be85d6b9e0c2",
+        "native_source_commit": "29f67beda7199575c62020d2b95e24c0a754c9a9",
+        "engine_sha256": "ddc1ee62fbfacd844d3332dab1f655a3f69a110a05702d51d0f3e8ec9d143d15",
+        "archive_sha256": "5911a8a6733a89991829b51b982a50688cfaf75a214076c360c4ac4c2262e446",
+        "archive_name": "aima-engine-native-portable-ebabbe863f83.tar.zst",
+    },
     "1.5.1-native-vl.7": {
         "release_commit": "9bd8a0fabcf2fc6ef1b882c10b04390c0e31fb00",
         "native_source_commit": "edb584ee16f0ee1fc5f902459598b9446d96387e",
@@ -291,7 +298,7 @@ for _patch_release, _patch_identity in PATCH_VL_IDENTITIES.items():
     STANDALONE_EVIDENCE_KEYS[_patch_release] = (
         STANDALONE_EVIDENCE_KEYS[PATCH_VL_RELEASE].copy()
     )
-    if _patch_release == "1.5.1-native-vl.7":
+    if _patch_release in {"1.5.1-native-vl.7", "1.5.1-native-vl.8", "1.5.1-native-vl.9"}:
         STANDALONE_EVIDENCE_KEYS[_patch_release].update(
             {"prefix", "one_owner", "text_matrix"}
         )
@@ -768,7 +775,7 @@ def verify_release_evidence(
             or checksum.read_text(encoding="utf-8") != expected_checksum
         ):
             errors.append("patch release archive checksum differs")
-        if release in ("1.5.1-native-vl.6", "1.5.1-native-vl.7"):
+        if release in ("1.5.1-native-vl.6", "1.5.1-native-vl.7", "1.5.1-native-vl.8", "1.5.1-native-vl.9"):
             baseline_errors = verify_release_evidence(
                 root,
                 PATCH_VL_RELEASE,
@@ -884,7 +891,7 @@ def verify_release_evidence(
         errors.append("public evidence records are missing or incomplete")
         public_evidence = {}
 
-    if release == "1.5.1-native-vl.7":
+    if release in {"1.5.1-native-vl.7", "1.5.1-native-vl.8", "1.5.1-native-vl.9"}:
         errors.extend(_verify_checkpoint_validation(
             root, package_input, public_evidence, PATCH_VL_IDENTITIES[release]
         ))
@@ -1032,7 +1039,7 @@ def evidence_paths(root: Path, release: str = DEFAULT_RELEASE) -> list[Path]:
             sidecar = summary.with_name(summary.name + ".sha256")
             if sidecar.is_file():
                 paths.append(sidecar)
-    if release in ("1.5.1-native-vl.6", "1.5.1-native-vl.7"):
+    if release in ("1.5.1-native-vl.6", "1.5.1-native-vl.7", "1.5.1-native-vl.8", "1.5.1-native-vl.9"):
         paths.extend(evidence_paths(root, PATCH_VL_RELEASE))
     return list(dict.fromkeys(paths))
 

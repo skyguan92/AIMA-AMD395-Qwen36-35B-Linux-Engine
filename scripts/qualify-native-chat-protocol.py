@@ -207,7 +207,10 @@ def request_stream(port: int, payload: dict[str, Any]) -> dict[str, Any]:
     usage: dict[str, Any] | None = None
     metrics: dict[str, Any] | None = None
     role_seen = False
+    errors: list[dict[str, Any]] = []
     for event in events:
+        if isinstance(event.get("error"), dict):
+            errors.append(event["error"])
         if isinstance(event.get("usage"), dict):
             usage = event["usage"]
         if isinstance(event.get("aima_amd395"), dict):
@@ -254,6 +257,8 @@ def request_stream(port: int, payload: dict[str, Any]) -> dict[str, Any]:
         "finish_reason": finish_reason,
         "usage": usage,
         "metrics": metrics,
+        "error": errors[0] if errors else None,
+        "error_count": len(errors),
     }
 
 
@@ -263,6 +268,14 @@ def tool_signature(call: dict[str, Any]) -> tuple[str, Any]:
 
 
 def response_summary(response: dict[str, Any]) -> dict[str, Any]:
+    if "error" in response:
+        return {
+            "error": response["error"],
+            "finish_reason": None,
+            "content": None,
+            "tool_calls": [],
+            "tool_progress": response["aima_amd395"]["tool_progress"],
+        }
     choice = response["choices"][0]
     message = choice["message"]
     reasoning = message.get("reasoning_content")
@@ -301,9 +314,11 @@ def stream_summary(response: dict[str, Any]) -> dict[str, Any]:
         "reasoning_content_sha256": sha256_text(reasoning),
         "content": response["content"],
         "tool_calls": response["tool_calls"],
-        "output_token_ids_sha256": metrics["output_token_ids_sha256"],
-        "thinking": metrics["thinking"],
+        "output_token_ids_sha256": metrics.get("output_token_ids_sha256"),
+        "thinking": metrics.get("thinking"),
         "tool_progress": metrics.get("tool_progress"),
+        "error": response.get("error"),
+        "error_count": response.get("error_count", 0),
     }
 
 
@@ -713,17 +728,24 @@ def main() -> None:
                 cli.port, "POST", "/v1/chat/completions", exhausted
             )
             exhausted_stream = request_stream(cli.port, exhausted)
-            exhausted_message = exhausted_response["choices"][0]["message"]
             exhausted_progress = exhausted_response["aima_amd395"][
                 "tool_progress"
             ]
             checks["bounded_history_no_progress_stream_parity"] = (
-                exhausted_status == 200
+                exhausted_status == 400
                 and exhausted_stream["status"] == 200
-                and not exhausted_message.get("tool_calls")
+                and exhausted_response.get("error", {}).get("code")
+                == "tool_call_no_progress"
+                and "choices" not in exhausted_response
+                and exhausted_stream.get("error", {}).get("code")
+                == "tool_call_no_progress"
+                and exhausted_stream["error_count"] == 1
+                and exhausted_stream["finish_reason"] is None
+                and exhausted_stream["done"]
                 and not exhausted_stream["tool_calls"]
                 and exhausted_progress["history_signature_occurrences"] == 2
                 and exhausted_progress["history_no_progress_results"] == 2
+                and exhausted_progress["history_no_progress_streak"] == 2
                 and exhausted_progress["exhausted_history_calls_suppressed"]
                 == 1
                 and exhausted_progress["no_progress"] is True
@@ -733,6 +755,46 @@ def main() -> None:
                 == exhausted_progress
                 and "<tool_call>" not in exhausted_stream["content"]
             )
+
+            recovery_observations = {}
+            for kind, repair_result in (
+                ("repair", "Successfully updated the weather service configuration."),
+                ("silent_repair", "Exit code: 0"),
+            ):
+                recovered = {
+                    **exhausted,
+                    "messages": exhausted["messages"][:-1] + [
+                        {"role": "assistant", "content": None, "tool_calls": [{
+                            "id": "hist-repair", "type": "function", "function": {
+                                "name": "repair_environment", "arguments": "{}"}}]},
+                        {"role": "tool", "tool_call_id": "hist-repair", "content": repair_result},
+                        exhausted["messages"][-1],
+                    ],
+                    "tools": exhausted["tools"] + [{"type": "function", "function": {
+                        "name": "repair_environment", "description": "Repair service configuration.",
+                        "parameters": {"type": "object", "properties": {}}}}],
+                }
+                status, response = request_json(cli.port, "POST", "/v1/chat/completions", recovered)
+                streamed = request_stream(cli.port, recovered)
+                progress = response.get("aima_amd395", {}).get("tool_progress", {})
+                calls = response.get("choices", [{}])[0].get("message", {}).get("tool_calls", [])
+                checks[f"{kind}_reopens_retry_window_stream_parity"] = (
+                    status == 200 and streamed["status"] == 200 and streamed["done"]
+                    and not streamed["error"] and len(calls) == 1
+                    and len(streamed["tool_calls"]) == 1
+                    and tool_signature(calls[0]) == ("get_weather", {"city": "Paris"})
+                    and tool_signature(calls[0]) == tool_signature(streamed["tool_calls"][0])
+                    and response["choices"][0]["finish_reason"] == "tool_calls"
+                    and streamed["finish_reason"] == "tool_calls"
+                    and progress.get("history_no_progress_results") == 2
+                    and progress.get("history_no_progress_streak") == 0
+                    and progress.get("exhausted_history_calls_suppressed") == 0
+                    and progress.get("no_progress") is False
+                    and streamed["metrics"]["tool_progress"] == progress
+                    and "<tool_call>" not in streamed["content"]
+                )
+                recovery_observations[kind + "_nonstream"] = response_summary(response)
+                recovery_observations[kind + "_stream"] = stream_summary(streamed)
 
             vl_disabled = {
                 **vl,
@@ -820,6 +882,7 @@ def main() -> None:
                 "parallel_false": response_summary(serial_response),
                 "exhausted_nonstream": response_summary(exhausted_response),
                 "exhausted_stream": stream_summary(exhausted_stream),
+                **recovery_observations,
                 "vl_default": response_summary(vl_default_response),
                 "vl_default_stream": stream_summary(vl_default_stream),
                 "vl_disabled": response_summary(vl_disabled_response),

@@ -9,6 +9,7 @@ check: check-cpu
 	fi
 
 check-cpu: check-native-http-support
+	python3 -m py_compile scripts/check-agent-documents.py
 	python3 -m py_compile scripts/qualify-native-prefix-cache.py
 	python3 -m compileall -q aima_engine tools benchmarks/shape-lab tests
 	bash -n scripts/bisect-native-text-correctness.sh
@@ -36,7 +37,12 @@ check-native-http-support:
 check-python-package:
 	python3 -m pip wheel --no-deps --wheel-dir build/wheel .
 
-check-native-syntax: check-native-http-support
+.PHONY: check-native-tool-recovery
+check-native-tool-recovery:
+	mkdir -p build && g++ -std=c++17 -Wall -Wextra -Wpedantic -Werror -O2 -I native/include -I native/generated tests/native_tool_recovery_test.cpp native/src/native_chat_protocol.cpp native/src/native_tokenizer.cpp native/src/sha256.cpp $$(pkg-config --cflags --libs icu-i18n) -o build/native_tool_recovery_test
+	./build/native_tool_recovery_test
+
+check-native-syntax: check-native-http-support check-native-tool-recovery
 	mkdir -p build && g++ -std=c++17 -Wall -Wextra -Wpedantic -Werror -O2 -I native/include tests/native_sampling_test.cpp native/src/native_sampling.cpp -o build/native_sampling_test
 	./build/native_sampling_test
 	mkdir -p build && g++ -std=c++17 -Wall -Wextra -Wpedantic -Werror -O2 -I native/include -I native/generated tests/native_chat_protocol_test.cpp native/src/native_chat_protocol.cpp native/src/native_tokenizer.cpp native/src/sha256.cpp $$(pkg-config --cflags --libs icu-i18n) -o build/native_chat_protocol_test
