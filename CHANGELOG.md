@@ -3,6 +3,27 @@
 All notable changes are documented here. This project follows Semantic
 Versioning.
 
+## 1.5.1-native-vl.8 - 2026-09-14
+
+- Reopened identical verification commands after completed tool repairs,
+  including a different command that succeeds without stdout. Lifetime
+  history counts remain available alongside the current no-progress streak.
+- Preserved retry limits for genuinely unchanged failures and empty results;
+  user reminders, claimed repairs, delayed old results and duplicate tool
+  result IDs cannot manufacture a new progress window.
+- Returned explicit `tool_call_no_progress` errors when every proposed tool
+  call is exhausted: HTTP 400 for non-streaming and an SSE error followed by
+  `[DONE]` without a successful terminal finish reason. Other admitted calls
+  in a mixed response remain executable.
+- Added a caller-side DOCX container checker and optional Markdown text
+  recovery. Text with a `.docx` suffix, missing files and corrupt containers
+  fail even when readable text can be recovered. Original feedback documents
+  remain private; document claims/layout and the original agent workflow are
+  not represented as validated engine outputs.
+- Restricted the runtime delta from `.7` to three CPU protocol files and
+  retained the exact-candidate prefix/full-vocabulary, 19-cell matrix, portable
+  archive, one-hour soak, rollback and repository release gates.
+
 ## 1.5.1-native-vl.7 - 2026-09-09
 
 - Added bounded text message checkpoints to the native prefix LRU, allowing

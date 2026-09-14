@@ -52,6 +52,8 @@ release_metadata=(
   "${ROOT}/docs/MEMORY.zh-CN.md"
   "${ROOT}/docs/PERFORMANCE.md"
   "${ROOT}/docs/RELEASE.md"
+  "${ROOT}/docs/FEEDBACK_0911.md"
+  "${ROOT}/scripts/check-agent-documents.py"
   "${ROOT}/docs/NATIVE_VL_GOAL.md"
   "${ROOT}/docs/NATIVE_VL_IMPLEMENTATION.md"
   "${ROOT}/packaging/systemd/aima-engine.service"
