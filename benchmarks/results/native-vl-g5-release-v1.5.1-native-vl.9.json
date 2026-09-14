@@ -1,0 +1,139 @@
+{
+  "archive": {
+    "bytes": 345512244,
+    "checksum_sidecar": "aima-engine-native-portable-ebabbe863f83.tar.zst.sha256",
+    "checksum_verified": true,
+    "name": "aima-engine-native-portable-ebabbe863f83.tar.zst",
+    "sha256": "5911a8a6733a89991829b51b982a50688cfaf75a214076c360c4ac4c2262e446"
+  },
+  "bundle_checks": {
+    "archive_exact": true,
+    "doctor_qualified": true,
+    "host_fingerprint_present": true,
+    "host_is_amd395": true,
+    "isolated_environment": true,
+    "manifest_native_vl": true,
+    "pinned_userspace_and_launcher_unchanged": true,
+    "primary_host_role": true,
+    "provider_smokes_qualified": true,
+    "public_hygiene": true,
+    "source_exact": true,
+    "vl_smoke_qualified": true
+  },
+  "candidate": {
+    "host_rocm_userspace_required": false,
+    "native_engine_sha256": "ddc1ee62fbfacd844d3332dab1f655a3f69a110a05702d51d0f3e8ec9d143d15",
+    "native_source_commit": "29f67beda7199575c62020d2b95e24c0a754c9a9",
+    "runtime_python": false,
+    "runtime_torch": false,
+    "runtime_transformers": false,
+    "runtime_triton": false,
+    "runtime_vllm": false,
+    "single_resident_process": true
+  },
+  "complete": true,
+  "decision": {
+    "exact_patch_archive_on_amd395": true,
+    "exact_patch_package_input": true,
+    "inherited_frozen_g1_g4": true,
+    "inherited_two_host_portable_userspace": true,
+    "next_blocking_boundary": null,
+    "patch_release_promoted": true,
+    "repository_security_evidence_gates": true,
+    "resident_mixed_workload_soak": true,
+    "rollback": true
+  },
+  "evidence": {
+    "baseline_g5": {
+      "bytes": 6167,
+      "path": "patch-release-evidence/native-vl-g5-release-v1.5.1-native-vl.4.json",
+      "sha256": "8e6bf3e6763b6b4972b10eb5d3e884ba0604e6080630ebc300615efb8c74a987"
+    },
+    "bundle": {
+      "bytes": 14591,
+      "path": "patch-release-evidence/bundle.json",
+      "sha256": "11944cc5ea4cad83935b86f02aa8c0b2cef7c8ed49f3e43b87d9f68023a8cc47"
+    },
+    "package_input": {
+      "bytes": 13013,
+      "path": "patch-release-evidence/native-portable-product-v1.5.1-native-vl.9.json",
+      "sha256": "419a21407b4914d215cb79d9382600863f6b4662c942419dca99517ad23f8f79"
+    },
+    "product_contract": {
+      "bytes": 10632,
+      "path": "patch-release-evidence/product-contract-v1.5.1-native-vl.9.json",
+      "sha256": "236a930c2da8cd8696c2f1075d4696ca674ca25a1b5a18c0e3fba570fcd51729"
+    },
+    "release_gates": {
+      "bytes": 3045,
+      "path": "patch-release-evidence/release-gates.json",
+      "sha256": "9d6ba6a800df703c9fa31a71e2b27632972163fbdbf1ca3f24575953a9e25003"
+    },
+    "resident_soak": {
+      "bytes": 6350,
+      "path": "patch-release-evidence/soak.json",
+      "sha256": "74bf4504331c8cc1b586d5727897cc79073c88019b5bd402b4152e4daee42aba"
+    },
+    "rollback": {
+      "bytes": 4137,
+      "path": "patch-release-evidence/rollback.json",
+      "sha256": "67d394eef99cd0a7a3e76353f59c1e2c96cef12d37fbb313e1492fd42146ed3d"
+    }
+  },
+  "gates": {
+    "exact_patch_archive_on_amd395": true,
+    "exact_patch_package_input": true,
+    "inherited_frozen_g1_g4": true,
+    "inherited_two_host_portable_userspace": true,
+    "repository_security_evidence_gates": true,
+    "resident_mixed_workload_soak": true,
+    "rollback": true
+  },
+  "inheritance": {
+    "baseline_release": "1.5.1-native-vl.4",
+    "checks": {
+      "baseline_engine_exact": true,
+      "baseline_fully_promoted": true,
+      "baseline_g1_g4_all": true,
+      "baseline_two_host_portability": true
+    },
+    "claim_limit": "The .4 G1-G4 and two-host results are inherited baseline evidence, not exact 1.5.1-native-vl.9 measurements or a second 1.5.1-native-vl.9 host run.",
+    "scope": "unchanged cold/VL arithmetic, providers, AOT images and portable userspace; new text checkpoint paths are separately qualified"
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "canonical_payload_sha256": "47d79addde298af8dc9869243035d791a637e01943e5ef560034ae7e9bde10fd"
+  },
+  "qualified": true,
+  "recorded_at": "2026-09-14",
+  "release": "1.5.1-native-vl.9",
+  "rollback_checks": {
+    "all_checks_pass": true,
+    "baseline_archive_exact": true,
+    "candidate_archive_exact": true,
+    "primary_host": true,
+    "rollback_decision": true
+  },
+  "schema": "aima-amd395-qwen36/native-vl-patch-g5-release-qualification/v1",
+  "soak_checks": {
+    "all_checks_pass": true,
+    "archive_exact": true,
+    "minimum_requests": true,
+    "one_hour": true,
+    "primary_host": true,
+    "single_model_load": true
+  },
+  "source": {
+    "native_source_commit": "29f67beda7199575c62020d2b95e24c0a754c9a9",
+    "native_source_dirty": false,
+    "release_commit": "a1a41b529811a5d65a6bc349d820be85d6b9e0c2",
+    "release_tag": "v1.5.1-native-vl.9"
+  },
+  "static_release_checks": {
+    "all_checks_pass": true,
+    "evidence_preflight": true,
+    "make_check": true,
+    "security_scan": true,
+    "source_exact": true
+  }
+}

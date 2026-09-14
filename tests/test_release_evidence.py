@@ -26,13 +26,15 @@ def digest(path: Path) -> str:
 
 class ReleaseEvidencePathResolutionTest(unittest.TestCase):
     def test_completed_native_vl_release_is_the_default(self) -> None:
-        self.assertEqual(DEFAULT_RELEASE, "1.5.1-native-vl.7")
+        self.assertEqual(DEFAULT_RELEASE, "1.5.1-native-vl.9")
 
     def test_default_patch_release_evidence_verifies(self) -> None:
         self.assertEqual(verify_release_evidence(ROOT), [])
 
     def test_previous_patch_release_remains_independently_verifiable(self) -> None:
-        self.assertEqual(verify_release_evidence(ROOT, "1.5.1-native-vl.5"), [])
+        for release in ("1.5.1-native-vl.5", "1.5.1-native-vl.6", "1.5.1-native-vl.7"):
+            with self.subTest(release=release):
+                self.assertEqual(verify_release_evidence(ROOT, release), [])
 
     def test_inline_http_response_digest_is_not_treated_as_a_path(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

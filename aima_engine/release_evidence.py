@@ -11,7 +11,7 @@ from aima_engine.vl_reference import verify_manifest_integrity
 from aima_engine.qualification_runtime import expected_binding
 
 
-DEFAULT_RELEASE = "1.5.1-native-vl.7"
+DEFAULT_RELEASE = "1.5.1-native-vl.9"
 NATIVE_VL_RELEASE = "1.5.1-native-vl.4"
 PATCH_VL_RELEASE = "1.5.1-native-vl.5"
 PATCH_VL_RELEASE_COMMIT = "eb7d8ac30cea4401a068fd25f1f1379c72eaf448"
@@ -23,6 +23,13 @@ PATCH_VL_ARCHIVE_SHA256 = (
     "59f30c4232b8459f3efcd7b8506cc71b957614c0aac1fa96a2eb4e15f52940a3"
 )
 PATCH_VL_IDENTITIES = {
+    "1.5.1-native-vl.9": {
+        "release_commit": "a1a41b529811a5d65a6bc349d820be85d6b9e0c2",
+        "native_source_commit": "29f67beda7199575c62020d2b95e24c0a754c9a9",
+        "engine_sha256": "ddc1ee62fbfacd844d3332dab1f655a3f69a110a05702d51d0f3e8ec9d143d15",
+        "archive_sha256": "5911a8a6733a89991829b51b982a50688cfaf75a214076c360c4ac4c2262e446",
+        "archive_name": "aima-engine-native-portable-ebabbe863f83.tar.zst",
+    },
     "1.5.1-native-vl.7": {
         "release_commit": "9bd8a0fabcf2fc6ef1b882c10b04390c0e31fb00",
         "native_source_commit": "edb584ee16f0ee1fc5f902459598b9446d96387e",
