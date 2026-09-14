@@ -28,7 +28,10 @@ DOCUMENT_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.
 
 def xml_member(archive: zipfile.ZipFile, name: str) -> ET.Element:
     raw = archive.read(name)
-    if b"<!DOCTYPE" in raw.upper() or b"<!ENTITY" in raw.upper():
+    # XML may use UTF-16/32. Normalize ASCII marker bytes only for the
+    # preflight so embedded NULs cannot bypass the no-DTD/entity boundary.
+    markers = raw.replace(b"\0", b"").upper()
+    if b"<!DOCTYPE" in markers or b"<!ENTITY" in markers:
         raise ValueError("XML document types/entities are not admitted")
     return ET.fromstring(raw)
 

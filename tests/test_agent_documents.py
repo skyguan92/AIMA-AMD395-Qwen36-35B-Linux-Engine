@@ -16,12 +16,14 @@ SPEC.loader.exec_module(CHECKER)
 
 
 class AgentDocumentsTest(unittest.TestCase):
-    def docx(self, path, *, missing=None):
+    def docx(self, path, *, missing=None, document=None):
         parts = {
             "[Content_Types].xml": f'<Types xmlns="{CHECKER.CONTENT_TYPES[1:-1]}"><Override PartName="/word/document.xml" ContentType="{CHECKER.DOCUMENT_TYPE}"/></Types>',
             "_rels/.rels": f'<Relationships xmlns="{CHECKER.RELATIONSHIPS[1:-1]}"><Relationship Id="rId1" Type="{CHECKER.OFFICE_DOCUMENT}" Target="word/document.xml"/></Relationships>',
             "word/document.xml": f'<w:document xmlns:w="{CHECKER.WORD[1:-1]}"><w:body><w:p><w:r><w:t>示例报告</w:t></w:r></w:p></w:body></w:document>',
         }
+        if document is not None:
+            parts["word/document.xml"] = document
         with zipfile.ZipFile(path, "w") as archive:
             for name, content in parts.items():
                 if name != missing:
@@ -83,6 +85,20 @@ class AgentDocumentsTest(unittest.TestCase):
             with contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(CHECKER.main([str(path), "--markdown-dir", str(root)]), 2)
             self.assertEqual((root / "report.md").read_text(), "keep me")
+
+    def test_xml_entities_are_rejected_in_utf8_and_utf16(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "report.docx"
+            for encoding in ("utf-8", "utf-16"):
+                with self.subTest(encoding=encoding):
+                    document = (f'<?xml version="1.0" encoding="{encoding}"?>'
+                        '<!DOCTYPE document [<!ENTITY injected "not accepted">]>'
+                        f'<w:document xmlns:w="{CHECKER.WORD[1:-1]}"><w:body>'
+                        '<w:p><w:r><w:t>&injected;</w:t></w:r></w:p></w:body></w:document>')
+                    self.docx(path, document=document.encode(encoding))
+                    report, text = CHECKER.inspect_document(path)
+                    self.assertFalse(report["container_valid"])
+                    self.assertIsNone(text)
 
 
 if __name__ == "__main__":
