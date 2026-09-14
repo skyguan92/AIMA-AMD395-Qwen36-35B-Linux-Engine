@@ -286,5 +286,26 @@ class NativeVlSafePrefixReleaseTest(unittest.TestCase):
                 check(value)
 
 
+class NativeVlFeedbackReleaseTest(unittest.TestCase):
+    def test_feedback_release_retains_prefix_gates_and_limits_new_runtime_delta(self):
+        generator = load_generator()
+        generator.configure_release(ROOT / "native/product-contract-v1.5.1-native-vl.8.json")
+        self.assertEqual(generator.ALLOWED_RUNTIME_DELTA, generator.SAFE_PREFIX_RUNTIME_DELTA)
+        self.assertIn("qualification_runtime_verifier", generator.DEFAULT_INPUTS)
+        delta = subprocess.check_output([
+            "git", "diff", "--name-only",
+            f"{generator.FEEDBACK_PREDECESSOR}..{generator.NATIVE_SOURCE_COMMIT}",
+            "--", *generator.RUNTIME_PATHS,
+        ], cwd=ROOT, text=True)
+        self.assertEqual(set(delta.splitlines()), generator.FEEDBACK_RUNTIME_DELTA)
+
+    def test_feedback_release_rejects_older_protocol_evidence(self):
+        generator = load_generator()
+        generator.configure_release(ROOT / "native/product-contract-v1.5.1-native-vl.8.json")
+        old = json.loads((ROOT / "benchmarks/results/native-chat-protocol-v1.5.1-native-vl.7.json").read_text())
+        with self.assertRaisesRegex(ValueError, "repaired tool retry/error qualification"):
+            generator.require_chat_protocol(old)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -88,6 +88,12 @@ ALLOWED_RUNTIME_DELTA = {
     "scripts/build-native-runtime.sh",
 }
 CPU_RUNTIME_DELTA = frozenset(ALLOWED_RUNTIME_DELTA)
+FEEDBACK_PREDECESSOR = "edb584ee16f0ee1fc5f902459598b9446d96387e"
+FEEDBACK_RUNTIME_DELTA = {
+    "native/include/aima/native_chat_protocol.h",
+    "native/src/native_chat_protocol.cpp",
+    "native/src/native_http_server.cpp",
+}
 SAFE_PREFIX_RUNTIME_DELTA = CPU_RUNTIME_DELTA | {
     "native/include/aima/native_linear_prefill.h",
     "native/include/aima/native_multimodal_cache.h",
@@ -189,10 +195,18 @@ def require_chat_protocol(payload: Mapping[str, Any]) -> None:
         or not all(payload.get("checks", {}).values())
     ):
         raise ValueError("chat protocol qualification failed")
-    if RELEASE in {"1.5.1-native-vl.6", "1.5.1-native-vl.7"} and payload["checks"].get(
+    if RELEASE in {"1.5.1-native-vl.6", "1.5.1-native-vl.7", "1.5.1-native-vl.8"} and payload["checks"].get(
         "vl_default_thinking_stream_nonstream_parity"
     ) is not True:
         raise ValueError("default VL thinking qualification is missing or failed")
+    if RELEASE == "1.5.1-native-vl.8" and not all(
+        payload["checks"].get(name) is True for name in (
+            "bounded_history_no_progress_stream_parity",
+            "repair_reopens_retry_window_stream_parity",
+            "silent_repair_reopens_retry_window_stream_parity",
+        )
+    ):
+        raise ValueError("repaired tool retry/error qualification is missing or failed")
     integrity = payload.get("integrity", {})
     unsigned = dict(payload)
     unsigned.pop("integrity", None)
@@ -213,6 +227,13 @@ def require_chat_protocol(payload: Mapping[str, Any]) -> None:
 
 
 def release_source_checks(release_commit: str) -> dict[str, bool]:
+    if RELEASE == "1.5.1-native-vl.8":
+        feedback_delta = set(git(
+            "diff", "--name-only", f"{FEEDBACK_PREDECESSOR}..{NATIVE_SOURCE_COMMIT}",
+            "--", *RUNTIME_PATHS,
+        ).stdout.splitlines())
+        if feedback_delta != FEEDBACK_RUNTIME_DELTA:
+            raise ValueError("feedback patch changes the frozen .7 runtime outside tool protocol")
     tag = git(
         "rev-parse", "--verify", f"refs/tags/{RELEASE_TAG}^{{commit}}", check=False
     )
@@ -450,7 +471,7 @@ def build_payload(
     }
     gates = {**inherited, **patch_checks}
     extra_validation = {}
-    if RELEASE == "1.5.1-native-vl.7":
+    if RELEASE in {"1.5.1-native-vl.7", "1.5.1-native-vl.8"}:
         if safe_prefix_paths is None or set(safe_prefix_paths) != {"prefix", "one_owner", "text_matrix"}:
             raise ValueError("safe-prefix release requires fresh prefix/capacity/performance evidence")
         require_safe_prefix(safe_prefix_paths["prefix"], 32768)
@@ -492,7 +513,7 @@ def build_payload(
             "generation and full-vocabulary correctness, capacity and performance are qualified on "
             "the exact candidate. Frozen .4 VL/cold arithmetic and portable-userspace evidence "
             "is inherited only for unchanged kernels/providers; it does not qualify new checkpoint paths."
-            if RELEASE == "1.5.1-native-vl.7" else
+            if RELEASE in {"1.5.1-native-vl.7", "1.5.1-native-vl.8"} else
             f"patch-delta qualification: exact {RELEASE} CPU protocol/HTTP candidate and "
             "package closure, with .4 G1-G4 and two-host portability inherited "
             "only because the fail-closed runtime diff leaves GPU math, AOT "
@@ -539,7 +560,7 @@ def build_payload(
             "allowed_paths": sorted(ALLOWED_RUNTIME_DELTA),
             "checks": source_checks,
             "classification": ("text checkpoint host scheduling, cache ownership and diagnostics"
-                               if RELEASE == "1.5.1-native-vl.7" else
+                               if RELEASE in {"1.5.1-native-vl.7", "1.5.1-native-vl.8"} else
                                "CPU chat protocol, HTTP control plane and cache synchronization"),
         },
         "candidate_validation": {
@@ -578,26 +599,31 @@ def configure_release(contract_path: Path) -> None:
     global DEFAULT_OUTPUT, ALLOWED_RUNTIME_DELTA
     contract = load_object(contract_path)
     release = contract.get("release")
-    if release not in {"1.5.1-native-vl.5", "1.5.1-native-vl.6", "1.5.1-native-vl.7"}:
+    if release not in {"1.5.1-native-vl.5", "1.5.1-native-vl.6", "1.5.1-native-vl.7", "1.5.1-native-vl.8"}:
         raise ValueError("unsupported native VL patch release")
-    ALLOWED_RUNTIME_DELTA = set(SAFE_PREFIX_RUNTIME_DELTA if release == "1.5.1-native-vl.7" else CPU_RUNTIME_DELTA)
+    ALLOWED_RUNTIME_DELTA = set(SAFE_PREFIX_RUNTIME_DELTA if release in {"1.5.1-native-vl.7", "1.5.1-native-vl.8"} else CPU_RUNTIME_DELTA)
     if set(contract.get("patch_scope", {}).get("allowed_runtime_paths", [])) != ALLOWED_RUNTIME_DELTA:
         raise ValueError("patch contract changes the runtime inheritance allowlist")
     if contract.get("frozen_baseline", {}).get("native_source_commit") != BASELINE_NATIVE_SOURCE_COMMIT:
         raise ValueError("patch contract changes the frozen baseline")
+    if release == "1.5.1-native-vl.8":
+        predecessor = contract.get("patch_scope", {}).get("feedback_predecessor", {})
+        if (predecessor.get("native_source_commit") != FEEDBACK_PREDECESSOR
+                or set(predecessor.get("allowed_runtime_paths", [])) != FEEDBACK_RUNTIME_DELTA):
+            raise ValueError("feedback patch changes its frozen .7 inheritance boundary")
     RELEASE = release
     RELEASE_TAG = f"v{release}"
     NATIVE_SOURCE_COMMIT = contract["candidate"]["native_source_commit"]
     ENGINE_SHA256 = contract["candidate"]["native_engine_sha256"]
     COMPONENT_SHA256["native_engine"] = ENGINE_SHA256
     DEFAULT_INPUTS["product_contract"] = contract_path
-    if release == "1.5.1-native-vl.7":
+    if release in {"1.5.1-native-vl.7", "1.5.1-native-vl.8"}:
         DEFAULT_INPUTS["qualification_runtime_verifier"] = ROOT / "aima_engine/qualification_runtime.py"
     else:
         DEFAULT_INPUTS.pop("qualification_runtime_verifier", None)
     for key, filename in (("safe_prefix_qualifier", "qualify-native-prefix-cache.py"),
                           ("text_matrix_qualifier", "qualify-native-full-matrix.py")):
-        if release == "1.5.1-native-vl.7":
+        if release in {"1.5.1-native-vl.7", "1.5.1-native-vl.8"}:
             DEFAULT_INPUTS[key] = ROOT / "scripts" / filename
         else:
             DEFAULT_INPUTS.pop(key, None)

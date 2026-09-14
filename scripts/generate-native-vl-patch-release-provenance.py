@@ -281,7 +281,7 @@ def build_payload(recorded_on: str) -> dict[str, Any]:
     ):
         raise RuntimeError("exact-candidate patch evidence differs")
 
-    if RELEASE == "1.5.1-native-vl.7":
+    if RELEASE in {"1.5.1-native-vl.7", "1.5.1-native-vl.8"}:
         for name in ("prefix", "one_owner", "text_matrix"):
             summary = PUBLIC_EVIDENCE[name][0]
             expected = file_component(
@@ -387,7 +387,7 @@ def build_payload(recorded_on: str) -> dict[str, Any]:
             + (" New text checkpoint paths additionally have exact-candidate cold/cache "
                "generation and 248320-element logits comparisons at both cache capacities, "
                "active-KV replay, memory/TTFT/decode checks and a fresh 19-cell text matrix."
-               if RELEASE == "1.5.1-native-vl.7" else "")
+               if RELEASE in {"1.5.1-native-vl.7", "1.5.1-native-vl.8"} else "")
         ),
     }
 
@@ -409,7 +409,7 @@ def configure_release(release: str, recorded_on: str) -> None:
     global RELEASE_URL, DEFAULT_OUTPUT, IMMUTABLE_PATHS, PUBLIC_EVIDENCE
     if release == "1.5.1-native-vl.5":
         return
-    if release not in ("1.5.1-native-vl.6", "1.5.1-native-vl.7"):
+    if release not in ("1.5.1-native-vl.6", "1.5.1-native-vl.7", "1.5.1-native-vl.8"):
         raise ValueError("unsupported native VL patch release")
     previous = RELEASE
     RELEASE = release
@@ -441,7 +441,7 @@ def configure_release(release: str, recorded_on: str) -> None:
         name: tuple(Path(str(path).replace("20260901-vl5-final", suffix)) for path in paths)
         for name, paths in PUBLIC_EVIDENCE.items()
     }
-    if release == "1.5.1-native-vl.7":
+    if release in {"1.5.1-native-vl.7", "1.5.1-native-vl.8"}:
         for name, directory, filename in (
             ("prefix", "native-safe-prefix", "qualification.json"),
             ("one_owner", "native-safe-prefix-one-owner", "qualification.json"),
@@ -454,7 +454,7 @@ def configure_release(release: str, recorded_on: str) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--recorded-on", default="2026-09-01")
-    parser.add_argument("--release", choices=("1.5.1-native-vl.5", "1.5.1-native-vl.6", "1.5.1-native-vl.7"), default=RELEASE)
+    parser.add_argument("--release", choices=("1.5.1-native-vl.5", "1.5.1-native-vl.6", "1.5.1-native-vl.7", "1.5.1-native-vl.8"), default=RELEASE)
     parser.add_argument("--output", type=Path)
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()

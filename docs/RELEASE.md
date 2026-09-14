@@ -1,5 +1,32 @@
 # Release provenance and procedure
 
+## v1.5.1-native-vl.8 agent feedback boundary
+
+The `.8` candidate fixes tool retries after a completed repair and reports an
+exhausted tool turn as an explicit HTTP/SSE error instead of normal completion.
+Its native source is `29f67beda7199575c62020d2b95e24c0a754c9a9`, with engine SHA-256
+`ddc1ee62fbfacd844d3332dab1f655a3f69a110a05702d51d0f3e8ec9d143d15`.
+Only the protocol header, protocol implementation and HTTP server differ from
+the exact `.7` native source; model arithmetic, checkpoint implementation,
+thinking defaults, GPU artifacts and portable userspace remain unchanged.
+
+The [product contract](../native/product-contract-v1.5.1-native-vl.8.json) retains
+all `.7` exact-candidate prefix/capacity/full-vocabulary and 19-cell performance
+gates. It additionally requires successful and silent repair/retry HTTP/SSE
+checks. Promotion still requires exact-candidate HTTP control-plane checks,
+final archive isolation, the full one-hour/240-request mixed-workload soak,
+exact v1.5.1 rollback and clean-tag repository/security/evidence checks.
+The byte-identical `.5` static launcher and userspace are reused; an incidental
+rebuild with a newer host toolchain does not replace that frozen inventory.
+
+[0911 feedback analysis](FEEDBACK_0911.md) includes the caller-side DOCX
+container checker and explains why recovering a text file as Markdown does
+not prove delivery of a valid Word document. The checker is a development
+helper, not a Python dependency of the portable engine. Original sessions and
+document text are excluded from the public release; the two document tasks'
+legal/content quality and the original caller's full agent workflow are not
+claimed to be qualified by this protocol patch.
+
 ## v1.5.1-native-vl.7 safe-prefix boundary
 
 This release addresses organization issue
