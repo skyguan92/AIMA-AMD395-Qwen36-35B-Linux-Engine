@@ -1,6 +1,6 @@
 # Install the portable native runtime
 
-This page documents the v1.5.1-native-vl.8 portable package. Archives before
+This page documents the v1.5.1-native-vl.9 portable package. Archives before
 v1.4.0 do not contain the deployment doctor, bearer authentication, socket
 timeouts or the hardened systemd template; the exact v1.5.1 baseline contains
 those controls but not the native vision runtime. Use the documentation bundled
@@ -8,7 +8,7 @@ with the version you deploy.
 
 ## 1. Qualified platform
 
-The v1.5.1-native-vl.8 release qualification uses:
+The v1.5.1-native-vl.9 release qualification uses:
 
 - AMD Ryzen AI Max+ 395 with Radeon 8060S (`gfx1151`);
 - 128 GB installed unified memory;

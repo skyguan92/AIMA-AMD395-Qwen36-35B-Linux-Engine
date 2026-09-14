@@ -3,7 +3,11 @@
 All notable changes are documented here. This project follows Semantic
 Versioning.
 
-## 1.5.1-native-vl.8 - 2026-09-14
+## 1.5.1-native-vl.9 - 2026-09-14
+
+- Include the feedback documentation and caller checker in the actual portable
+  bundle, with a Linux copy/executable regression. The unpublished `.8` candidate
+  failed the package documentation gate; its local source tag is not moved.
 
 - Reopened identical verification commands after completed tool repairs,
   including a different command that succeeds without stdout. Lifetime

@@ -2,13 +2,13 @@
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![CI](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/actions/workflows/ci.yml/badge.svg)](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/release-v1.5.1--native--vl.8-green.svg)](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.5.1-native-vl.8)
+[![Release](https://img.shields.io/badge/release-v1.5.1--native--vl.9-green.svg)](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.5.1-native-vl.9)
 [![Hardware](https://img.shields.io/badge/GPU-gfx1151-orange.svg)](docs/INSTALL.md)
 
 这是一个面向 AMD Ryzen AI Max+ 395 / Radeon 8060S 的 batch-1
 `Qwen3.6-35B-A3B-BF16` 专用推理引擎。
 
-v1.5.1-native-vl.8 在可搬移原生包内提供固定模型的图片、视频、混合媒体和多轮
+v1.5.1-native-vl.9 在可搬移原生包内提供固定模型的图片、视频、混合媒体和多轮
 多模态对话能力。同一个常驻进程完成媒体处理、27 层视觉塔与语言模型，并保留真正
 的 SSE 流式输出和 OpenAI function tools。运行时不加载 Python、PyTorch、vLLM、
 Triton、Transformers，也不依赖宿主机安装 ROCm userspace。发布包内含静态
@@ -28,7 +28,7 @@ Triton、Transformers，也不依赖宿主机安装 ROCm userspace。发布包�
 > v1.5.1-native-vl.7 为分叉文本对话增加已保存的公共前缀复用，完整恢复
 > KV、递归和卷积状态，并限制缓存所有权与测量恢复开销。
 > 具体安全边界见[发布说明](docs/RELEASE.md)。
-> v1.5.1-native-vl.8 允许成功修复后的验证重试，工具重试耗尽时返回明确的
+> v1.5.1-native-vl.9 允许成功修复后的验证重试，工具重试耗尽时返回明确的
 > HTTP/SSE 错误。新增调用方[文档格式检查](docs/FEEDBACK_0911.md)，识别文本
 > 冒充 DOCX；它不等于文档内容已核验，也不是引擎自动完成 Agent 任务的保证。
 
@@ -73,7 +73,7 @@ q1024/q2048/q4096/q8192 调度，并选择能够覆盖真实 prompt 的最小 bu
 只影响时延，不再决定请求能否执行。绝对窗口上限仍为 262,144 token。原生版本
 现已替代 v1.1 的公开性能矩阵；Python 版本仅保留为兼容与来源参考。
 机器可读边界见
-[native/product-contract-v1.5.1-native-vl.8.json](native/product-contract-v1.5.1-native-vl.8.json)。
+[native/product-contract-v1.5.1-native-vl.9.json](native/product-contract-v1.5.1-native-vl.9.json)。
 
 同一进程支持单图/多图、单视频/多视频、图片与视频混合、文本和媒体任意合法顺序
 交错、多轮媒体复用与替换、tools，以及流式/非流式请求。冻结能力边界覆盖格式、
@@ -100,7 +100,7 @@ BF16/top-p 采样，并保证流式与非流式一致。音频、batching 与并
 
 ## 快速启动
 
-先从[个人上游 v1.5.1-native-vl.8 Release](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.5.1-native-vl.8)
+先从[个人上游 v1.5.1-native-vl.9 Release](https://github.com/skyguan92/AIMA-AMD395-Qwen36-35B-Linux-Engine/releases/tag/v1.5.1-native-vl.9)
 下载运行包与校验文件：
 
 使用该版本的运行包和配套 `.tar.zst.sha256` 文件；校验文件记录精确的包名与
@@ -216,7 +216,7 @@ curl -fsS -X POST http://127.0.0.1:8000/shutdown
 
 ## 原生 CLI
 
-v1.5.1-native-vl.8 CLI 提供：
+v1.5.1-native-vl.9 CLI 提供：
 
 ```text
 aima-engine --build-info
@@ -287,7 +287,7 @@ aima-engine chat --messages-json conversation.json --tools-json tools.json
   A/B/A 请求序列验证了 4 条目 LRU 的复用。
 
 完整精度、每次测量值和组件哈希见
-[补丁产品契约](native/product-contract-v1.5.1-native-vl.8.json)和发布后镜像的
+[补丁产品契约](native/product-contract-v1.5.1-native-vl.9.json)和发布后镜像的
 哈希绑定证据；package-input qualification 同时随包保存为
 `share/aima/qualification.json`。`.8` 压缩包必须在 AMD395 上隔离运行并完成一小时
 单进程 text/image/video/mixed soak，随后回滚验证精确的 v1.5.1 基线包。`.4` 的

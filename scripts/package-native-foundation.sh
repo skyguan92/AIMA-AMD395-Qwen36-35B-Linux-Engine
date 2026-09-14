@@ -439,10 +439,15 @@ for asset in "${release_assets[@]}"; do
   install -Dm644 "${asset}" \
     "${STAGING}/assets/demos/$(basename "${asset}")"
 done
-for document in INSTALL API ARCHITECTURE MEMORY MEMORY.zh-CN PERFORMANCE RELEASE NATIVE_VL_GOAL NATIVE_VL_IMPLEMENTATION; do
-  install -Dm644 "${ROOT}/docs/${document}.md" \
-    "${STAGING}/docs/${document}.md"
-done
+install_release_documentation() {
+  for document in INSTALL API ARCHITECTURE MEMORY MEMORY.zh-CN PERFORMANCE RELEASE FEEDBACK_0911 NATIVE_VL_GOAL NATIVE_VL_IMPLEMENTATION; do
+    install -Dm644 "${ROOT}/docs/${document}.md" \
+      "${STAGING}/docs/${document}.md"
+  done
+  install -Dm755 "${ROOT}/scripts/check-agent-documents.py" \
+    "${STAGING}/scripts/check-agent-documents.py"
+}
+install_release_documentation
 install -Dm644 "${PRODUCT_CONTRACT}" \
   "${STAGING}/share/aima/product-contract.json"
 install -Dm644 "${PRODUCT_CONTRACT}" \

@@ -1,6 +1,13 @@
 # Release provenance and procedure
 
-## v1.5.1-native-vl.8 agent feedback boundary
+## v1.5.1-native-vl.9 agent feedback boundary
+
+The unpublished `.8` candidate was stopped by the package Markdown-link gate:
+the feedback document and caller checker were listed as inputs but not copied
+into the bundle. Its local source tag was not moved. `.9` fixes that packaging
+omission and adds an execution regression for the copied assets. The qualified
+native binary is unchanged; exact-candidate prefix and text measurements remain
+bound to its SHA-256, while HTTP and final-archive gates bind the `.9` identity.
 
 The `.8` candidate fixes tool retries after a completed repair and reports an
 exhausted tool turn as an explicit HTTP/SSE error instead of normal completion.
@@ -10,7 +17,7 @@ Only the protocol header, protocol implementation and HTTP server differ from
 the exact `.7` native source; model arithmetic, checkpoint implementation,
 thinking defaults, GPU artifacts and portable userspace remain unchanged.
 
-The [product contract](../native/product-contract-v1.5.1-native-vl.8.json) retains
+The [product contract](../native/product-contract-v1.5.1-native-vl.9.json) retains
 all `.7` exact-candidate prefix/capacity/full-vocabulary and 19-cell performance
 gates. It additionally requires successful and silent repair/retry HTTP/SSE
 checks. Promotion still requires exact-candidate HTTP control-plane checks,

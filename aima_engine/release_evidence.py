@@ -291,7 +291,7 @@ for _patch_release, _patch_identity in PATCH_VL_IDENTITIES.items():
     STANDALONE_EVIDENCE_KEYS[_patch_release] = (
         STANDALONE_EVIDENCE_KEYS[PATCH_VL_RELEASE].copy()
     )
-    if _patch_release in {"1.5.1-native-vl.7", "1.5.1-native-vl.8"}:
+    if _patch_release in {"1.5.1-native-vl.7", "1.5.1-native-vl.8", "1.5.1-native-vl.9"}:
         STANDALONE_EVIDENCE_KEYS[_patch_release].update(
             {"prefix", "one_owner", "text_matrix"}
         )
@@ -768,7 +768,7 @@ def verify_release_evidence(
             or checksum.read_text(encoding="utf-8") != expected_checksum
         ):
             errors.append("patch release archive checksum differs")
-        if release in ("1.5.1-native-vl.6", "1.5.1-native-vl.7", "1.5.1-native-vl.8"):
+        if release in ("1.5.1-native-vl.6", "1.5.1-native-vl.7", "1.5.1-native-vl.8", "1.5.1-native-vl.9"):
             baseline_errors = verify_release_evidence(
                 root,
                 PATCH_VL_RELEASE,
@@ -884,7 +884,7 @@ def verify_release_evidence(
         errors.append("public evidence records are missing or incomplete")
         public_evidence = {}
 
-    if release in {"1.5.1-native-vl.7", "1.5.1-native-vl.8"}:
+    if release in {"1.5.1-native-vl.7", "1.5.1-native-vl.8", "1.5.1-native-vl.9"}:
         errors.extend(_verify_checkpoint_validation(
             root, package_input, public_evidence, PATCH_VL_IDENTITIES[release]
         ))
@@ -1032,7 +1032,7 @@ def evidence_paths(root: Path, release: str = DEFAULT_RELEASE) -> list[Path]:
             sidecar = summary.with_name(summary.name + ".sha256")
             if sidecar.is_file():
                 paths.append(sidecar)
-    if release in ("1.5.1-native-vl.6", "1.5.1-native-vl.7", "1.5.1-native-vl.8"):
+    if release in ("1.5.1-native-vl.6", "1.5.1-native-vl.7", "1.5.1-native-vl.8", "1.5.1-native-vl.9"):
         paths.extend(evidence_paths(root, PATCH_VL_RELEASE))
     return list(dict.fromkeys(paths))
 
