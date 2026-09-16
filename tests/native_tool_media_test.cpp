@@ -175,6 +175,9 @@ void run() {
           "splitting text around media concealed an explicit failure");
 
   Json recovery = request("Error: capture failed");
+  // Text and VL have different default thinking modes. This fixture tests
+  // tool admission with an answer-only generated call in both cases.
+  recovery["thinking"] = {{"type", "disabled"}};
   recovery["tools"] = Json::array({{{"type", "function"}, {"function", {
       {"name", "capture"}, {"parameters", {{"type", "object"},
       {"properties", Json::object()}}}}}}});
