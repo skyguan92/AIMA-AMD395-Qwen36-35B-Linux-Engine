@@ -22,10 +22,12 @@ void check_case(aima::NativeTokenizer* tokenizer, const char* name,
                 std::size_t expected_tokens) {
   const aima::NativePreparedChat prepared =
       aima::prepare_native_chat(request);
-  const bool disable_thinking =
-      prepared.thinking_mode != aima::NativeThinkingMode::kEnabled;
+  const bool disable_thinking = !aima::native_thinking_enabled(prepared);
+  const bool multimodal = !prepared.media.empty();
   const std::string prompt = tokenizer->render_chat_prompt(
-      prepared.messages, prepared.prompt_tools, disable_thinking);
+      multimodal ? prepared.vl_prompt_messages : prepared.messages,
+      multimodal ? prepared.vl_prompt_tools : prepared.prompt_tools,
+      disable_thinking);
   const std::string actual_sha256 =
       aima::sha256_bytes(prompt.data(), prompt.size());
   const std::size_t actual_tokens = tokenizer->encode(prompt).size();
@@ -115,6 +117,36 @@ int main(int argc, char** argv) {
        {"tools", Json::array({tool})}},
       "e763e00178be9cbb2df3de13e9b393d815e976ecdd4e8e9ddea01260b165566c",
       333);
+
+  // Frozen hashes from the checkpoint's chat_template.jinja, after the same
+  // string-content normalization used by the native/vLLM VL serving path.
+  // These cover the tool-response wrapper, media markers and thinking suffix.
+  for (bool video : {false, true}) {
+    Json tool_media = {{"messages", Json::array({
+        {{"role", "user"}, {"content", "Describe the tool result."}},
+        {{"role", "assistant"}, {"content", nullptr},
+         {"tool_calls", Json::array({
+             {{"id", "call_media"}, {"type", "function"},
+              {"function", {{"name", "capture"}, {"arguments", "{}"}}}}})}},
+        {{"role", "tool"}, {"tool_call_id", "call_media"},
+         {"content", Json::array({
+             {{"type", "text"}, {"text", "Result"}},
+             {{"type", video ? "video_url" : "image_url"},
+              {video ? "video_url" : "image_url",
+               {{"url", video ? "file:///media/clip.mp4"
+                              : "file:///media/image.png"}}}}})}}})},
+        {"thinking", {{"type", "disabled"}}}};
+    check_case(&tokenizer, video ? "tool-video" : "tool-image", tool_media,
+        video ? "080b95b623dff6dbfd4b82f88e0f0298a753be26e116334ab9b5653efd7e32ed"
+              : "ffc991f01b843c8900deaf174566cfbdff42ad23c3e340517825c152f4234ac6",
+        53);
+    tool_media["thinking"]["type"] = "enabled";
+    check_case(&tokenizer, video ? "tool-video-thinking" : "tool-image-thinking",
+        tool_media,
+        video ? "bdb669fb01ecc7b722f8c8ea420959721255c5813d7dba07fa51ea9b5e51870e"
+              : "3c500c5efd2868c432fb3eab606cda284d00b5e3c72b1cefda88ac1c58df3223",
+        51);
+  }
 
   constexpr std::size_t kNearWindowVisualTokens = 245760;
   constexpr std::uint32_t kImagePadTokenId = 248056;
