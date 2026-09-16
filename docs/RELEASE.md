@@ -1,5 +1,59 @@
 # Release provenance and procedure
 
+## v1.5.1-native-vl.10 tool media boundary
+
+This release incorporates upstream PR #6. Validated tool results may contain
+images, videos and mixed content while preserving their original tool-response
+wrapper. Matching preceding tool calls, unique result IDs, a real user query,
+aggregate media limits and all existing local/remote source policies remain
+required. Media-only results count as payload; explicit original text/JSON
+errors remain failures even when accompanied by media.
+
+The exact native source is `ec9934446911fdf376da8eebcd83e7b137efbb7c`, independently
+built as SHA-256
+`4011a436312c4bc2b3ca3a52aa6093bdf0f8f8c2dab90fb882469b4402573901`.
+Only `native/src/native_chat_protocol.cpp` differs from the exact `.9` native
+source. The [contract](../native/product-contract-v1.5.1-native-vl.10.json)
+retains every `.9` release gate and adds required exact-candidate tool-media
+checks via `qualify-native-chat-protocol.py --tool-media`. The fresh two-capacity
+prefix/full-vocabulary runs, complete 19-cell text matrix, HTTP checks, final
+archive isolation, one-hour soak, exact rollback and clean-tag repository gates
+must all pass before promotion. The `.5` static launcher and entire pinned
+portable userspace remain byte-identical. Historical `.4` GPU/VL and two-host
+results remain explicitly inherited, not an exact `.10` second-host claim.
+
+The original partner Harness end-to-end workflow is outside these engine
+qualification claims. Client SDKs/gateways must also accept tool content arrays.
+
+The immutable source tag points to
+`0522a57caf24bf21e0e6fcc5b234a7fc361fbc94`. The exact archive is
+`aima-engine-native-portable-90ffe06fa1d5.tar.zst` (345,478,358 bytes), SHA-256
+`7b3e4ddd69bbdd7814e89e8b81ae559246d81698e6f9352a9b26e7d6cb570cd9`.
+It passed 27 chat/tool-media checks and 12 HTTP control-plane checks. Both final
+source prefix profiles passed all 52 generation and 68 full-vocabulary comparisons
+in total (maximum KLD 0.0035070673). At capacities 32768 / 262144, median
+partial-hit TTFT speedups were 3.38622x / 3.39325x and decode retention was
+0.999528 / 1.00347, relative to cold execution rather than the previous release.
+All 19 text-matrix cells passed with at least two samples each; minimum
+prefill/decode retention against the existing v1.0.0 baseline was 1.034104 /
+1.033720. Earlier prefix records were retained privately and rerun after the
+qualification-helper change; only final-source fingerprint-matching records
+qualify this package.
+
+The actual archive passed isolated text/provider/VL execution and a
+3,600.000488-second resident soak: 360 requests, 72 each for text, image, video,
+mixed media and restored image. The model loaded once, post-warm RSS growth
+was zero, peak GTT was 85,384,773,632 bytes (below 96 GiB), and shutdown was
+clean. Exact v1.5.1 rollback passed. Clean-tag repository, security and evidence
+gates passed, including 509 Python tests (one conditional skip) and native C++
+checks. All 70 local Markdown links in the installed package resolve.
+
+The additive [final qualification](../benchmarks/results/native-vl-g5-release-v1.5.1-native-vl.10.json)
+and [public provenance](../benchmarks/results/native-release-provenance-v1.5.1-native-vl.10.json)
+bind the exact archive without moving its source tag. The default evidence
+verifier now selects `.10`; `.9` remains unchanged and independently verifiable.
+The companion public evidence archive includes the complete verification closure.
+
 ## v1.5.1-native-vl.9 agent feedback boundary
 
 The unpublished `.8` candidate was stopped by the package Markdown-link gate:
@@ -40,8 +94,8 @@ peak GTT was 85,384,773,632 bytes, below the 96 GiB limit. Clean-tag `make check
 
 The additive [final qualification](../benchmarks/results/native-vl-g5-release-v1.5.1-native-vl.9.json)
 and [public provenance](../benchmarks/results/native-release-provenance-v1.5.1-native-vl.9.json)
-bind the exact archive without moving the tag. The default evidence verifier
-now selects `.9`; `.5`, `.6`, and `.7` remain independently verifiable. The
+bind the exact archive without moving the tag. At that release, the default
+evidence verifier selected `.9`; `.5`, `.6`, and `.7` remain independently verifiable. The
 companion public evidence archive includes the complete verification closure.
 
 [0911 feedback analysis](FEEDBACK_0911.md) includes the caller-side DOCX

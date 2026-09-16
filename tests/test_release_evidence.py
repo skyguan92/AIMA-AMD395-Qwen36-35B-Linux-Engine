@@ -26,7 +26,7 @@ def digest(path: Path) -> str:
 
 class ReleaseEvidencePathResolutionTest(unittest.TestCase):
     def test_completed_native_vl_release_is_the_default(self) -> None:
-        self.assertEqual(DEFAULT_RELEASE, "1.5.1-native-vl.9")
+        self.assertEqual(DEFAULT_RELEASE, "1.5.1-native-vl.10")
 
     def test_default_patch_release_evidence_verifies(self) -> None:
         self.assertEqual(verify_release_evidence(ROOT), [])

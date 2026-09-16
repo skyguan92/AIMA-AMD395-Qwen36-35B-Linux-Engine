@@ -3,6 +3,31 @@
 All notable changes are documented here. This project follows Semantic
 Versioning.
 
+## 1.5.1-native-vl.10 - 2026-09-17
+
+- Merged upstream PR #6: tool results now accept image, video and mixed content
+  through the existing native media pipeline and Qwen tool-response wrapper.
+  Original user messages, matching preceding calls, unique result IDs,
+  request-wide limits and local/remote media policies remain required.
+- Classified tool progress from original text independently of visual markers:
+  media-only results are payload, but explicit text/JSON failures remain
+  failures and cannot reopen an exhausted retry window. Text-only behavior is
+  preserved. No GPU arithmetic or safe-prefix implementation changes.
+- Added tool-media parser regressions and image/video thinking template parity.
+  The release gate requires live tool media, SSE, thinking, cache replay,
+  parallel history, rejection and failure-window checks on the exact candidate,
+  alongside every prior prefix, accuracy, text matrix, archive and soak gate.
+- Client SDKs/gateways must also accept tool content arrays. Original partner
+  Harness end-to-end acceptance is not claimed by these engine checks.
+- Qualified the exact archive with 27 chat/tool-media checks, 12 HTTP checks,
+  both final-source prefix profiles and all 19 text-matrix cells. Completed the
+  full one-hour/360-request mixed-workload soak with one model load, zero
+  post-warm RSS growth, clean shutdown and exact v1.5.1 rollback. Clean-tag
+  repository/security/evidence checks passed (509 Python tests, one skip).
+- Published additive, checksum-bound summaries and all referenced raw evidence;
+  `.10` is now the default evidence-verification target, without moving the
+  immutable source tag or modifying previous release records.
+
 ## 1.5.1-native-vl.9 - 2026-09-14
 
 - Include the feedback documentation and caller checker in the actual portable
