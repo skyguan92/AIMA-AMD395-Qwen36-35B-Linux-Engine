@@ -1,7 +1,7 @@
 # Native CLI and HTTP API
 
 This page documents the native CLI and HTTP API. Tool-result images and videos
-described below require a build containing the tool-media change; the published
+described below require v1.5.1-native-vl.10 or a build containing the tool-media change; the published
 v1.5.1-native-vl.9 binary accepts media in user messages only. Other surfaces
 retain their documented release boundaries.
 

@@ -7,6 +7,8 @@
 from __future__ import annotations
 
 import argparse
+import base64
+import copy
 from datetime import datetime, timezone
 import hashlib
 import http.client
@@ -322,6 +324,127 @@ def stream_summary(response: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def qualify_tool_media(port: int, image: Path) -> tuple[dict[str, bool], dict[str, Any]]:
+    """Exercise tool media through the same live server and sealed observations."""
+    video = image.parent / "video-8f-4fps-128.mp4"
+    alternate = image.parent / "image-landscape-512x192.jpg"
+    require(video.is_file() and alternate.is_file(), "tool media fixtures are missing")
+
+    def part(url: str, kind: str = "image") -> dict[str, Any]:
+        return {"type": kind + "_url", kind + "_url": {"url": url}}
+
+    def call(identifier: str) -> dict[str, Any]:
+        return {"role": "assistant", "content": None, "tool_calls": [{
+            "id": identifier, "type": "function",
+            "function": {"name": "capture", "arguments": "{}"}}]}
+
+    def request(parts: list[dict[str, Any]]) -> dict[str, Any]:
+        return {"model": MODEL_ID, "temperature": 0, "max_tokens": 256,
+                "thinking": {"type": "disabled"}, "messages": [
+                    {"role": "user", "content": "Describe the tool media in one short sentence."},
+                    call("media_1"),
+                    {"role": "tool", "tool_call_id": "media_1", "content": parts}]}
+
+    checks: dict[str, bool] = {}
+    observations: dict[str, Any] = {}
+
+    def run(name: str, payload: dict[str, Any], images: int, videos: int,
+            stream: bool = True) -> dict[str, Any]:
+        status, response = request_json(port, "POST", "/v1/chat/completions", payload)
+        require(status == 200, f"tool media {name} returned HTTP {status}")
+        message = response["choices"][0]["message"]
+        metrics = response["aima_amd395"]
+        checks["tool_media_" + name] = bool(
+            message.get("content") and response["choices"][0]["finish_reason"] == "stop"
+            and metrics["vl"]["image_count"] == images
+            and metrics["vl"]["video_count"] == videos)
+        observations[name] = {**response_summary(response), "vl": metrics["vl"],
+                              "prompt_token_ids_sha256": metrics["prompt_token_ids_sha256"]}
+        if stream:
+            streamed = request_stream(port, payload)
+            checks["tool_media_" + name] &= bool(
+                streamed["status"] == 200 and streamed["done"] and not streamed["error"]
+                and streamed["finish_reason"] == response["choices"][0]["finish_reason"]
+                and streamed["content"] == message.get("content")
+                and streamed["reasoning_content"] == message.get("reasoning_content", "")
+                and streamed["metrics"]["output_token_ids_sha256"]
+                == metrics["output_token_ids_sha256"])
+            observations[name + "_stream"] = stream_summary(streamed)
+        return response
+
+    image_part = part(image.as_uri())
+    file_request = request([image_part])
+    original = run("image_file", file_request, 1, 0)
+    data_uri = "data:image/png;base64," + base64.b64encode(image.read_bytes()).decode("ascii")
+    data = run("image_data", request([part(data_uri)]), 1, 0)
+    checks["tool_media_file_data_identity"] = all(
+        original["aima_amd395"][key] == data["aima_amd395"][key]
+        for key in ("prompt_token_ids_sha256", "output_token_ids_sha256"))
+    run("video", request([part(video.as_uri(), "video")]), 0, 1)
+    run("mixed", request([{"type": "text", "text": "Captured media:"}, image_part,
+                          part(video.as_uri(), "video")]), 1, 1)
+    run("replacement", request([part(alternate.as_uri())]), 1, 0, stream=False)
+    replay = run("replay", file_request, 1, 0)
+    checks["tool_media_replay_identity"] = bool(
+        replay["aima_amd395"]["output_token_ids_sha256"]
+        == original["aima_amd395"]["output_token_ids_sha256"]
+        and replay["aima_amd395"]["vl"]["media_cache_hits"] >= 1)
+    parallel = copy.deepcopy(file_request)
+    parallel["messages"][1]["tool_calls"] += call("media_2")["tool_calls"]
+    parallel["messages"].append({"role": "tool", "tool_call_id": "media_2",
+                                 "content": [part(alternate.as_uri())]})
+    run("parallel", parallel, 2, 0)
+    thinking = copy.deepcopy(file_request)
+    thinking.update(thinking={"type": "enabled", "budget_tokens": 512}, max_tokens=512)
+    enabled = run("thinking", thinking, 1, 0)
+    del thinking["thinking"]
+    default = run("default_thinking", thinking, 1, 0)
+    checks["tool_media_default_thinking_identity"] = bool(
+        enabled["choices"][0]["message"].get("reasoning_content")
+        and default["aima_amd395"]["output_token_ids_sha256"]
+        == enabled["aima_amd395"]["output_token_ids_sha256"])
+
+    invalid: dict[str, dict[str, Any]] = {}
+    for name in ("missing_id", "unknown_id", "duplicate_id", "no_user", "image_limit"):
+        invalid[name] = copy.deepcopy(file_request)
+    del invalid["missing_id"]["messages"][2]["tool_call_id"]
+    invalid["unknown_id"]["messages"][2]["tool_call_id"] = "unknown"
+    invalid["duplicate_id"]["messages"].append(copy.deepcopy(file_request["messages"][2]))
+    del invalid["no_user"]["messages"][0]
+    invalid["image_limit"]["messages"][2]["content"] = [image_part] * 16
+    invalid["image_limit"]["messages"][0]["content"] = [image_part]
+    for role in ("system", "developer", "assistant"):
+        invalid[role] = copy.deepcopy(file_request)
+        invalid[role]["messages"][0] = {"role": role, "content": [image_part]}
+    invalid["unlisted_domain"] = request([part("https://not-allowed.example/image.png")])
+    invalid["malformed_media"] = request([part("data:image/png;base64,%%%%")])
+    rejected = {}
+    for name, payload in invalid.items():
+        status, response = request_json(port, "POST", "/v1/chat/completions", payload)
+        rejected[name] = {"status": status, "error": response.get("error")}
+    observations["rejected"] = rejected
+    checks["tool_media_invalid_history_and_media_rejected"] = all(
+        item["status"] == 400 and item["error"] for item in rejected.values())
+
+    failed = copy.deepcopy(file_request)
+    failed.update(tools=[{"type": "function", "function": {
+        "name": "capture", "parameters": {"type": "object", "properties": {}}}}],
+        tool_choice="required")
+    failed["messages"][0]["content"] = "Call capture once now with no arguments."
+    failed["messages"][2]["content"] = [image_part, {"type": "text", "text": '{"error":"capture failed"}'}]
+    failed["messages"] += [call("media_retry"), {"role": "tool", "tool_call_id": "media_retry",
+                                               "content": failed["messages"][2]["content"]}]
+    status, failure = request_json(port, "POST", "/v1/chat/completions", failed)
+    failure_stream = request_stream(port, failed)
+    checks["tool_media_failure_does_not_reopen_retry"] = bool(
+        status == 400 and failure.get("error", {}).get("code") == "tool_call_no_progress"
+        and failure_stream["done"] and failure_stream["finish_reason"] is None
+        and (failure_stream.get("error") or {}).get("code") == "tool_call_no_progress")
+    observations["failed_media"] = response_summary(failure)
+    observations["failed_media_stream"] = stream_summary(failure_stream)
+    return checks, observations
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -343,6 +466,8 @@ def main() -> None:
     parser.add_argument("--expected-engine-sha256")
     parser.add_argument("--expected-source-commit")
     parser.add_argument("--host-role", default="protocol_qualification_amd395")
+    parser.add_argument("--tool-media", action="store_true",
+                        help="require tool image/video, retry, cache and SSE release checks")
     cli = parser.parse_args()
 
     engine = cli.engine.expanduser().resolve()
@@ -888,6 +1013,10 @@ def main() -> None:
                 "vl_disabled": response_summary(vl_disabled_response),
                 "vl_enabled": response_summary(vl_enabled_response),
             }
+            if cli.tool_media:
+                media_checks, media_observations = qualify_tool_media(cli.port, image)
+                checks.update(media_checks)
+                observations["tool_media"] = media_observations
         finally:
             if process.poll() is None:
                 try:

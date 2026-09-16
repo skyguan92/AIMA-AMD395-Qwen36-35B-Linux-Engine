@@ -1,5 +1,30 @@
 # Release provenance and procedure
 
+## v1.5.1-native-vl.10 tool media boundary
+
+This release incorporates upstream PR #6. Validated tool results may contain
+images, videos and mixed content while preserving their original tool-response
+wrapper. Matching preceding tool calls, unique result IDs, a real user query,
+aggregate media limits and all existing local/remote source policies remain
+required. Media-only results count as payload; explicit original text/JSON
+errors remain failures even when accompanied by media.
+
+The exact native source is `ec9934446911fdf376da8eebcd83e7b137efbb7c`, independently
+built as SHA-256
+`4011a436312c4bc2b3ca3a52aa6093bdf0f8f8c2dab90fb882469b4402573901`.
+Only `native/src/native_chat_protocol.cpp` differs from the exact `.9` native
+source. The [contract](../native/product-contract-v1.5.1-native-vl.10.json)
+retains every `.9` release gate and adds required exact-candidate tool-media
+checks via `qualify-native-chat-protocol.py --tool-media`. The fresh two-capacity
+prefix/full-vocabulary runs, complete 19-cell text matrix, HTTP checks, final
+archive isolation, one-hour soak, exact rollback and clean-tag repository gates
+must all pass before promotion. The `.5` static launcher and entire pinned
+portable userspace remain byte-identical. Historical `.4` GPU/VL and two-host
+results remain explicitly inherited, not an exact `.10` second-host claim.
+
+The original partner Harness end-to-end workflow is outside these engine
+qualification claims. Client SDKs/gateways must also accept tool content arrays.
+
 ## v1.5.1-native-vl.9 agent feedback boundary
 
 The unpublished `.8` candidate was stopped by the package Markdown-link gate:
