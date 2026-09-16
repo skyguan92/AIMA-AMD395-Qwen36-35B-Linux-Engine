@@ -19,6 +19,14 @@ Versioning.
   alongside every prior prefix, accuracy, text matrix, archive and soak gate.
 - Client SDKs/gateways must also accept tool content arrays. Original partner
   Harness end-to-end acceptance is not claimed by these engine checks.
+- Qualified the exact archive with 27 chat/tool-media checks, 12 HTTP checks,
+  both final-source prefix profiles and all 19 text-matrix cells. Completed the
+  full one-hour/360-request mixed-workload soak with one model load, zero
+  post-warm RSS growth, clean shutdown and exact v1.5.1 rollback. Clean-tag
+  repository/security/evidence checks passed (509 Python tests, one skip).
+- Published additive, checksum-bound summaries and all referenced raw evidence;
+  `.10` is now the default evidence-verification target, without moving the
+  immutable source tag or modifying previous release records.
 
 ## 1.5.1-native-vl.9 - 2026-09-14
 
