@@ -176,16 +176,18 @@ std::string canonical_tool_signature(std::string_view name,
   return result;
 }
 
-bool json_result_is_no_progress(const NativeOrderedJson& value);
+enum class ToolResultState { kProgress, kEmpty, kFailure };
 
-bool string_result_is_no_progress(std::string_view input) {
+ToolResultState classify_json_result(const NativeOrderedJson& value);
+
+ToolResultState classify_string_result(std::string_view input) {
   const std::string trimmed = trim_ascii_copy(input);
-  if (trimmed.empty()) return true;
+  if (trimmed.empty()) return ToolResultState::kEmpty;
   const std::string lower = lowercase_ascii_copy(trimmed);
   if (lower == "no output" || lower == "<no output>" ||
       lower == "null" || lower == "none" || lower == "exit code: 0" ||
       lower == "process exited with code 0" || lower == "final output:") {
-    return true;
+    return ToolResultState::kEmpty;
   }
 
   const auto explicit_nonzero_exit = [&](std::string_view marker) {
@@ -200,7 +202,7 @@ bool string_result_is_no_progress(std::string_view input) {
   };
   if (explicit_nonzero_exit("exit code:") ||
       explicit_nonzero_exit("process exited with code")) {
-    return true;
+    return ToolResultState::kFailure;
   }
 
   // Common command wrappers emit only status boilerplate when stdout and
@@ -217,18 +219,17 @@ bool string_result_is_no_progress(std::string_view input) {
       const std::string payload = trim_ascii_copy(
           trimmed.substr(final_output +
                          std::string_view("final output:").size()));
-      if (payload.empty() || string_result_is_no_progress(payload)) {
-        return true;
-      }
+      const ToolResultState state = classify_string_result(payload);
+      if (state != ToolResultState::kProgress) return state;
     }
   }
 
   try {
-    return json_result_is_no_progress(NativeOrderedJson::parse(trimmed));
+    return classify_json_result(NativeOrderedJson::parse(trimmed));
   } catch (const NativeOrderedJson::exception&) {
     // Explicit failure forms are safe to classify; an arbitrary useful
     // payload that merely mentions an error remains progress.
-    return lower.rfind("error:", 0) == 0 ||
+    const bool failure = lower.rfind("error:", 0) == 0 ||
            lower.rfind("error ", 0) == 0 ||
            lower.rfind("failed:", 0) == 0 ||
            lower.rfind("failure:", 0) == 0 ||
@@ -239,36 +240,39 @@ bool string_result_is_no_progress(std::string_view input) {
            lower.rfind("proxy error", 0) == 0 ||
            lower.rfind("traceback (most recent call last):", 0) == 0 ||
            lower == "failed" || lower == "failure";
+    return failure ? ToolResultState::kFailure : ToolResultState::kProgress;
   }
 }
 
-bool json_result_is_no_progress(const NativeOrderedJson& value) {
-  if (value.is_null()) return true;
+ToolResultState classify_json_result(const NativeOrderedJson& value) {
+  if (value.is_null()) return ToolResultState::kEmpty;
   if (value.is_string()) {
-    return string_result_is_no_progress(value.get_ref<const std::string&>());
+    return classify_string_result(value.get_ref<const std::string&>());
   }
-  if (value.is_array()) return value.empty();
-  if (!value.is_object()) return false;
-  if (value.empty()) return true;
+  if (value.is_array()) {
+    return value.empty() ? ToolResultState::kEmpty : ToolResultState::kProgress;
+  }
+  if (!value.is_object()) return ToolResultState::kProgress;
+  if (value.empty()) return ToolResultState::kEmpty;
 
   for (const std::string_view key : {"error", "exception"}) {
     const auto found = value.find(std::string(key));
     if (found != value.end() && !found->is_null() &&
         !(found->is_string() && found->get_ref<const std::string&>().empty())) {
-      return true;
+      return ToolResultState::kFailure;
     }
   }
   for (const std::string_view key : {"ok", "success"}) {
     const auto found = value.find(std::string(key));
     if (found != value.end() && found->is_boolean() && !found->get<bool>()) {
-      return true;
+      return ToolResultState::kFailure;
     }
   }
   for (const std::string_view key : {"exit_code", "returncode"}) {
     const auto found = value.find(std::string(key));
     if (found != value.end() && found->is_number_integer() &&
         found->get<std::int64_t>() != 0) {
-      return true;
+      return ToolResultState::kFailure;
     }
   }
   const auto status = value.find("status");
@@ -277,19 +281,24 @@ bool json_result_is_no_progress(const NativeOrderedJson& value) {
         lowercase_ascii_copy(status->get_ref<const std::string&>());
     if (normalized == "error" || normalized == "failed" ||
         normalized == "failure") {
-      return true;
+      return ToolResultState::kFailure;
     }
   }
 
   bool found_payload = false;
-  bool all_payload_empty = true;
+  bool all_payload_no_progress = true;
+  bool failed_payload = false;
   for (const std::string_view key : {"output", "stdout", "result", "data"}) {
     const auto found = value.find(std::string(key));
     if (found == value.end()) continue;
     found_payload = true;
-    all_payload_empty = all_payload_empty && json_result_is_no_progress(*found);
+    const ToolResultState state = classify_json_result(*found);
+    all_payload_no_progress =
+        all_payload_no_progress && state != ToolResultState::kProgress;
+    failed_payload = failed_payload || state == ToolResultState::kFailure;
   }
-  return found_payload && all_payload_empty;
+  if (!found_payload || !all_payload_no_progress) return ToolResultState::kProgress;
+  return failed_payload ? ToolResultState::kFailure : ToolResultState::kEmpty;
 }
 
 bool result_confirms_silent_success(std::string_view input) {
@@ -423,6 +432,10 @@ std::string media_source(const NativeOrderedJson& part,
 struct ParsedMessageContent {
   std::string baseline;
   std::string vl;
+  // Keep tool status text independent of inserted visual markers: a marker
+  // before/after JSON would otherwise hide an explicit error from the parser.
+  std::string text;
+  bool has_media = false;
 };
 
 std::size_t count_nonoverlapping(std::string_view value,
@@ -459,7 +472,7 @@ ParsedMessageContent parse_message_content(
   const NativeOrderedJson& content = message["content"];
   if (content.is_string()) {
     const std::string value = content.get<std::string>();
-    return {value, value};
+    return {value, value, value, false};
   }
   if (!content.is_array()) {
     throw std::invalid_argument(
@@ -484,6 +497,7 @@ ParsedMessageContent parse_message_content(
       }
       const std::string text = part["text"].get<std::string>();
       result.baseline += text;
+      result.text += text;
       text_parts.push_back(text);
       continue;
     }
@@ -498,9 +512,9 @@ ParsedMessageContent parse_message_content(
     } else {
       throw std::invalid_argument("unsupported message content part type");
     }
-    if (role != "user") {
+    if (role != "user" && role != "tool") {
       throw std::invalid_argument(
-          "image and video content parts are supported in user messages only");
+          "image and video content parts are supported in user and tool messages only");
     }
     NativeMediaPart media;
     media.kind = kind;
@@ -513,6 +527,7 @@ ParsedMessageContent parse_message_content(
       modality_order.push_back(kind);
     }
     result.baseline += media_placeholder(kind);
+    result.has_media = true;
   }
 
   const std::string text_prompt = join_with_newlines(text_parts);
@@ -1085,7 +1100,7 @@ std::string render_qwen_json(const NativeOrderedJson& value) {
 }
 
 bool native_tool_result_is_no_progress(std::string_view result) {
-  return string_result_is_no_progress(result);
+  return classify_string_result(result) != ToolResultState::kProgress;
 }
 
 void validate_native_thinking_budget(const NativePreparedChat& chat,
@@ -1362,13 +1377,15 @@ NativePreparedChat prepare_native_chat(const NativeOrderedJson& request) {
       NativeHistoricalToolCall& historical =
           prepared.historical_tool_calls[history->second.first];
       ++historical.result_count;
-      const bool no_progress = native_tool_result_is_no_progress(content.baseline);
+      const ToolResultState result_state = classify_string_result(content.text);
+      const bool no_progress = result_state == ToolResultState::kFailure ||
+          (result_state == ToolResultState::kEmpty && !content.has_media);
       if (no_progress) {
         ++historical.no_progress_result_count;
       }
       tool_results.push_back({history->second.first, history->second.second,
                               no_progress,
-                              no_progress && result_confirms_silent_success(content.baseline)});
+                              no_progress && result_confirms_silent_success(content.text)});
     } else {
       throw std::invalid_argument(
           "message role must be system, developer, user, assistant, or tool");

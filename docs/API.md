@@ -1,8 +1,9 @@
 # Native CLI and HTTP API
 
-This page documents the v1.5.1-native-vl.5 native CLI and HTTP API. Earlier
-binaries do not include every command, multimodal surface and hardening control
-described here.
+This page documents the native CLI and HTTP API. Tool-result images and videos
+described below require a build containing the tool-media change; the published
+v1.5.1-native-vl.9 binary accepts media in user messages only. Other surfaces
+retain their documented release boundaries.
 
 ## CLI
 
@@ -164,7 +165,7 @@ Supported request fields:
 
 - `model`: if present, must be `aima-amd395-qwen36-35b`;
 - `messages`: `system`, `developer`, `user`, `assistant` and `tool` history;
-  user messages may contain ordered OpenAI `text`, `image_url` and
+  user and tool messages may contain ordered OpenAI `text`, `image_url` and
   `video_url` content parts; assistant `tool_calls` and matching tool
   responses are accepted;
 - `max_tokens` or `max_completion_tokens`: positive integer;
@@ -250,6 +251,17 @@ deadline limits apply before tensors reach the visual encoder. There is no
 separate duration-only cap: the fixed OpenCV reference accepts finite sparse
 videos beyond the former 768-second product limit, while byte, source/selected
 frame, decoded-pixel and decode-wall bounds remain active.
+
+For example, the Qwen demo image domain needs this additional `serve` option:
+
+```bash
+--allowed-media-domain qianwen-res.oss-accelerate.aliyuncs.com
+```
+
+Use the exact hostname, without a scheme or path, and repeat the option for
+additional hosts. A `remote media domain is not allowlisted` response indicates
+missing server configuration, not an unsupported `image_url` content shape.
+This option already works in the published v1.5.1-native-vl.9 runtime.
 
 Decoded processor results use a 4 GiB, 64-entry content-addressed LRU by
 default. `--media-cache-capacity-bytes` can reduce the byte bound and
@@ -483,6 +495,49 @@ assistant and tool messages:
 ]
 ```
 
+Tool results can contain image/video parts using the same media sources,
+processing and limits as user messages. Keep the original user query, the
+preceding assistant function call and its matching `tool_call_id`; a standalone
+tool message is not a complete conversation. For a server started with
+`--allowed-local-media-path /srv/aima-media`, a complete image-result request is:
+
+```json
+{
+  "model": "aima-amd395-qwen36-35b",
+  "messages": [
+    {"role": "user", "content": "Describe the tool's screenshot."},
+    {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [{
+        "id": "call_screenshot",
+        "type": "function",
+        "function": {"name": "capture_screen", "arguments": "{}"}
+      }]
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "call_screenshot",
+      "content": [
+        {"type": "text", "text": "Screenshot captured."},
+        {"type": "image_url", "image_url": {"url": "file:///srv/aima-media/screenshot.png"}}
+      ]
+    }
+  ],
+  "temperature": 0,
+  "thinking": {"type": "disabled"},
+  "max_tokens": 128
+}
+```
+
+Replace the image part with `video_url` for a video, or combine text and media
+parts. Bounded data URIs and allowlisted HTTPS URLs also work in tool results.
+System, developer and assistant media remain unsupported. Limits are counted
+across all user and tool messages in the request. Tool results retain their
+`<tool_response>` wrapper in the model prompt; clients need not rewrite roles.
+These content arrays are the engine's supported extension for tool results;
+client SDKs or gateways must also permit them.
+
 Tool definitions and history count toward the cache capacity. Clients do not
 pad requests; after tokenization the engine composes resident AOT buckets and
 internally pads only the final segment. Required and named `tool_choice`
@@ -504,6 +559,12 @@ continuations, assistant promises, pending calls and failed repairs do not
 reset it. Progress is ordered by the issuing assistant turn, so a late result
 from an older parallel batch cannot erase newer failures. Repeated tool result
 IDs are rejected instead of being counted twice.
+
+A media-only tool result counts as payload even when its accompanying text
+is empty or contains only a successful exit status. Explicit errors in the
+original text/JSON remain failures when media is attached, independent of the
+media part's position. Media admission and decoding must still succeed for
+the request to execute. Text-only progress and retry behavior is unchanged.
 
 `parallel_tool_calls:false` is applied after those checks and
 emits at most one call in both response modes.
