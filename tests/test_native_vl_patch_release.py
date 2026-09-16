@@ -324,6 +324,35 @@ class NativeVlFeedbackReleaseTest(unittest.TestCase):
 
 
 class NativeVlToolMediaReleaseTest(unittest.TestCase):
+    @staticmethod
+    def protocol_qualifier():
+        path = ROOT / "scripts/qualify-native-chat-protocol.py"
+        spec = importlib.util.spec_from_file_location("native_chat_protocol_qualification_test", path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def test_protocol_validation_error_summary_keeps_original_error(self) -> None:
+        qualifier = self.protocol_qualifier()
+        error = {"code": "bad_request", "message": "unsupported tool schema"}
+        result = qualifier.response_summary({"error": error})
+        self.assertEqual(result["error"], error)
+        self.assertIsNone(result["tool_progress"])
+        self.assertIsNone(result["finish_reason"])
+
+    def test_stream_validation_error_summary_does_not_require_metrics(self) -> None:
+        qualifier = self.protocol_qualifier()
+        error = {"code": "bad_request", "message": "unsupported tool schema"}
+        response = {"status": 400, "content_type": "application/json",
+                    "transfer_encoding": None, "event_count": 0, "done": False,
+                    "role_seen": False, "delta_order": [], "finish_reason": None,
+                    "usage": None, "reasoning_content": "", "content": "",
+                    "tool_calls": [], "metrics": None, "error": error, "error_count": 1}
+        result = qualifier.stream_summary(response)
+        self.assertEqual(result["error"], error)
+        self.assertFalse(result["done"])
+        self.assertIsNone(result["output_token_ids_sha256"])
+
     def test_tool_media_contract_preserves_runtime_and_all_prior_gates(self) -> None:
         generator = load_generator()
         path = ROOT / "native/product-contract-v1.5.1-native-vl.10.json"

@@ -276,7 +276,7 @@ def response_summary(response: dict[str, Any]) -> dict[str, Any]:
             "finish_reason": None,
             "content": None,
             "tool_calls": [],
-            "tool_progress": response["aima_amd395"]["tool_progress"],
+            "tool_progress": (response.get("aima_amd395") or {}).get("tool_progress"),
         }
     choice = response["choices"][0]
     message = choice["message"]
@@ -301,7 +301,7 @@ def response_summary(response: dict[str, Any]) -> dict[str, Any]:
 
 def stream_summary(response: dict[str, Any]) -> dict[str, Any]:
     reasoning = response["reasoning_content"]
-    metrics = response["metrics"]
+    metrics = response["metrics"] or {}
     return {
         "status": response["status"],
         "content_type": response["content_type"],
@@ -428,17 +428,29 @@ def qualify_tool_media(port: int, image: Path) -> tuple[dict[str, bool], dict[st
 
     failed = copy.deepcopy(file_request)
     failed.update(tools=[{"type": "function", "function": {
-        "name": "capture", "parameters": {"type": "object", "properties": {}}}}],
-        tool_choice="required")
-    failed["messages"][0]["content"] = "Call capture once now with no arguments."
+        "name": "capture", "parameters": {
+            "type": "object", "properties": {"target": {"type": "string"}},
+            "required": ["target"], "additionalProperties": False}}}],
+        tool_choice={"type": "function", "function": {"name": "capture"}})
+    failed["messages"][0]["content"] = "Call capture once now with target exactly screen."
     failed["messages"][2]["content"] = [image_part, {"type": "text", "text": '{"error":"capture failed"}'}]
     failed["messages"] += [call("media_retry"), {"role": "tool", "tool_call_id": "media_retry",
                                                "content": failed["messages"][2]["content"]}]
+    # Forced VL calls use the existing closed, single-string JSON grammar.
+    # Both failed history calls must match the newly proposed signature.
+    for message in failed["messages"]:
+        for history_call in message.get("tool_calls", []):
+            history_call["function"]["arguments"] = '{"target":"screen"}'
     status, failure = request_json(port, "POST", "/v1/chat/completions", failed)
     failure_stream = request_stream(port, failed)
+    failure_progress = (failure.get("aima_amd395") or {}).get("tool_progress") or {}
     checks["tool_media_failure_does_not_reopen_retry"] = bool(
         status == 400 and failure.get("error", {}).get("code") == "tool_call_no_progress"
+        and failure_progress.get("history_no_progress_streak") == 2
+        and failure_progress.get("exhausted_history_calls_suppressed") == 1
+        and failure_stream["status"] == 200 and failure_stream["error_count"] == 1
         and failure_stream["done"] and failure_stream["finish_reason"] is None
+        and (failure_stream.get("metrics") or {}).get("tool_progress") == failure_progress
         and (failure_stream.get("error") or {}).get("code") == "tool_call_no_progress")
     observations["failed_media"] = response_summary(failure)
     observations["failed_media_stream"] = stream_summary(failure_stream)
